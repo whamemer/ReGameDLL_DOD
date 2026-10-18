@@ -1,0 +1,1103 @@
+/***
+*
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
+*	
+*	This product contains software technology licensed from Id 
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
+*	All Rights Reserved.
+*
+*   Use, distribution, and modification of this source code and/or resulting
+*   object code is restricted to non-commercial enhancements to products from
+*   Valve LLC.  All other use, distribution, or modification is prohibited
+*   without written permission from Valve LLC.
+*
+****/
+#include "extdll.h"
+#include "util.h"
+#include "cbase.h"
+#include "MemPool.h"
+#include "saverestore.h"
+#include "client.h"
+#include "decals.h"
+#include "gamerules.h"
+#include "game.h"
+
+void EntvarsKeyvalue( entvars_t *pev, KeyValueData *pkvd );
+
+extern "C" void PM_Move( struct playermove_s *ppmove, int server );
+extern "C" void PM_Init( struct playermove_s *ppmove );
+extern "C" char PM_FindTextureType( char *name );
+// the engine headers declare pfnPM_FindTextureType as char(*)(const char*);
+// pm_shared impl takes char* (read-only in practice) — adapt locally,
+// shared pm_shared/ files stay untouched.
+static char PM_FindTextureType_Const( const char *name ) { return PM_FindTextureType( const_cast<char *>( name ) ); }
+
+extern Vector VecBModelOrigin( entvars_t *pevBModel );
+extern DLL_GLOBAL Vector g_vecAttackDir;
+extern DLL_GLOBAL int g_iSkillLevel;
+
+static DLL_FUNCTIONS gFunctionTable = {
+	GameDLLInit,				//pfnGameInit
+	DispatchSpawn,				//pfnSpawn
+	DispatchThink,				//pfnThink
+	DispatchUse,				//pfnUse
+	DispatchTouch,				//pfnTouch
+	DispatchBlocked,			//pfnBlocked
+	DispatchKeyValue,			//pfnKeyValue
+	DispatchSave,				//pfnSave
+	DispatchRestore,			//pfnRestore
+	DispatchObjectCollsionBox,	//pfnAbsBox
+
+	SaveWriteFields,  //pfnSaveWriteFields
+	SaveReadFields,	  //pfnSaveReadFields
+
+	SaveGlobalState,	 //pfnSaveGlobalState
+	RestoreGlobalState,	 //pfnRestoreGlobalState
+	ResetGlobalState,	 //pfnResetGlobalState
+
+	ClientConnect,			//pfnClientConnect
+	ClientDisconnect,		//pfnClientDisconnect
+	ClientKill,				//pfnClientKill
+	ClientPutInServer,		//pfnClientPutInServer
+	ClientCommand,			//pfnClientCommand
+	ClientUserInfoChanged,	//pfnClientUserInfoChanged
+	ServerActivate,			//pfnServerActivate
+	ServerDeactivate,		//pfnServerDeactivate
+
+	PlayerPreThink,	  //pfnPlayerPreThink
+	PlayerPostThink,  //pfnPlayerPostThink
+
+	StartFrame,		   //pfnStartFrame
+	ParmsNewLevel,	   //pfnParmsNewLevel
+	ParmsChangeLevel,  //pfnParmsChangeLevel
+
+	GetGameDescription,	  //pfnGetGameDescription    Returns string describing current .dll game.
+	PlayerCustomization,  //pfnPlayerCustomization   Notifies .dll of new customization for player.
+
+	SpectatorConnect,	  //pfnSpectatorConnect      Called when spectator joins server
+	SpectatorDisconnect,  //pfnSpectatorDisconnect   Called when spectator leaves the server
+	SpectatorThink,		  //pfnSpectatorThink        Called when spectator sends a command packet (usercmd_t)
+
+	Sys_Error,	//pfnSys_Error				Called when engine has encountered an error
+
+	PM_Move,			 //pfnPM_Move
+	PM_Init,			 //pfnPM_Init				Server version of player movement initialization
+	PM_FindTextureType_Const,	 //pfnPM_FindTextureType
+
+	SetupVisibility,   //pfnSetupVisibility        Set up PVS and PAS for networking for this client
+	UpdateClientData,  //pfnUpdateClientData       Set up data sent only to specific client
+	AddToFullPack,	   //pfnAddToFullPack
+	CreateBaseline,	 //pfnCreateBaseline			Tweak entity baseline for network encoding, allows setup of player baselines, too.
+	RegisterEncoders,		   //pfnRegisterEncoders		Callbacks for network encoding
+	GetWeaponData,			   //pfnGetWeaponData
+	CmdStart,				   //pfnCmdStart
+	CmdEnd,					   //pfnCmdEnd
+	ConnectionlessPacket,	   //pfnConnectionlessPacket
+	GetHullBounds,			   //pfnGetHullBounds
+	CreateInstancedBaselines,  //pfnCreateInstancedBaselines
+	InconsistentFile,		   //pfnInconsistentFile
+	AllowLagCompensation,	   //pfnAllowLagCompensation
+};
+
+static void SetObjectCollisionBox( entvars_t *pev );
+
+void OnFreeEntPrivateData( edict_t *pEnt );
+void GameShutdown( void );
+int ShouldCollide( edict_t *pentTouched, edict_t *pentOther );
+
+void OnFreeEntPrivateData( edict_t *pEnt )
+{
+	if ( pEnt && pEnt->pvPrivateData )
+	{
+		CBaseEntity *pEntity = (CBaseEntity *) pEnt->pvPrivateData;
+		pEntity->UpdateOnRemove();	// binary: CBaseEntity::UpdateOnRemove @000bf642
+		RemoveEntityHashValue( pEntity->pev, STRING( pEntity->pev->classname ),
+							   CLASSNAME );	 // binary: inline hash removal @000bf642+
+		pEntity->~CBaseEntity();
+	}
+}
+
+void GameShutdown( void ) {}
+
+int ShouldCollide( edict_t *pentTouched, edict_t *pentOther )
+{
+	(void) pentTouched;
+	(void) pentOther;
+	return 1;
+}
+
+// the engine headers declare this extern (non-static); keep in sync, ours to define.
+NEW_DLL_FUNCTIONS gNewDLLFunctions = {
+	OnFreeEntPrivateData, GameShutdown, ShouldCollide, NULL, NULL,
+};
+
+extern "C"
+{
+
+	int GetEntityAPI( DLL_FUNCTIONS *pFunctionTable, int interfaceVersion )
+	{
+		if ( !pFunctionTable || interfaceVersion != INTERFACE_VERSION )
+		{
+			return FALSE;
+		}
+
+		memcpy( pFunctionTable, &gFunctionTable, sizeof( DLL_FUNCTIONS ) );
+		return TRUE;
+	}
+
+	int GetEntityAPI2( DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion )
+	{
+		if ( !pFunctionTable || *interfaceVersion != INTERFACE_VERSION )
+		{
+			// Tell engine what version we had, so it can figure out who is out of date.
+			*interfaceVersion = INTERFACE_VERSION;
+			return FALSE;
+		}
+
+		memcpy( pFunctionTable, &gFunctionTable, sizeof( DLL_FUNCTIONS ) );
+		return TRUE;
+	}
+
+	int GetNewDLLFunctions( NEW_DLL_FUNCTIONS *pFunctionTable, int *interfaceVersion )
+	{
+		if ( !pFunctionTable || *interfaceVersion != NEW_DLL_FUNCTIONS_VERSION )
+		{
+			*interfaceVersion = NEW_DLL_FUNCTIONS_VERSION;
+			return FALSE;
+		}
+
+		pFunctionTable->pfnOnFreeEntPrivateData = gNewDLLFunctions.pfnOnFreeEntPrivateData;
+		pFunctionTable->pfnGameShutdown = gNewDLLFunctions.pfnGameShutdown;
+		pFunctionTable->pfnShouldCollide = gNewDLLFunctions.pfnShouldCollide;
+		pFunctionTable->pfnCvarValue = gNewDLLFunctions.pfnCvarValue;
+		pFunctionTable->pfnCvarValue2 = gNewDLLFunctions.pfnCvarValue2;
+		return TRUE;
+	}
+}
+
+int DispatchSpawn( edict_t *pent )
+{
+	CBaseEntity *pEntity = (CBaseEntity *) GET_PRIVATE( pent );
+
+	if ( pEntity )
+	{
+		// Initialize these or entities who don't link to the world won't have anything in here
+		pEntity->pev->absmin = pEntity->pev->origin - Vector( 1, 1, 1 );
+		pEntity->pev->absmax = pEntity->pev->origin + Vector( 1, 1, 1 );
+
+		pEntity->Spawn();
+
+		// Try to get the pointer again, in case the spawn function deleted the entity.
+		// UNDONE: Spawn() should really return a code to ask that the entity be deleted, but
+		// that would touch too much code for me to do that right now.
+		pEntity = (CBaseEntity *) GET_PRIVATE( pent );
+
+		if ( pEntity )
+		{
+			if ( g_pGameRules && !g_pGameRules->IsAllowedToSpawn( pEntity ) )
+				return -1;	// return that this entity should be deleted
+			if ( pEntity->pev->flags & FL_KILLME )
+				return -1;
+		}
+
+		// Handle global stuff here
+		if ( pEntity && pEntity->pev->globalname )
+		{
+			const globalentity_t *pGlobal = gGlobalState.EntityFromTable( pEntity->pev->globalname );
+			if ( pGlobal )
+			{
+				// Already dead? delete
+				if ( pGlobal->state == GLOBAL_DEAD )
+					return -1;
+				else if ( !FStrEq( STRING( gpGlobals->mapname ), pGlobal->levelName ) )
+					pEntity->MakeDormant();	 // Hasn't been moved to this level yet, wait but stay alive
+											 // In this level & not dead, continue on as normal
+			}
+			else
+			{
+				// Spawned entities default to 'On'
+				gGlobalState.EntityAdd( pEntity->pev->globalname, gpGlobals->mapname, GLOBAL_ON );
+				//				ALERT( at_console, "Added global entity %s (%s)\n", STRING(pEntity->pev->classname), STRING(pEntity->pev->globalname) );
+			}
+		}
+	}
+
+	return 0;
+}
+
+void DispatchKeyValue( edict_t *pentKeyvalue, KeyValueData *pkvd )
+{
+	if ( !pkvd || !pentKeyvalue )
+		return;
+
+	EntvarsKeyvalue( VARS( pentKeyvalue ), pkvd );
+
+	// If the key was an entity variable, or there's no class set yet, don't look for the object, it may
+	// not exist yet.
+	if ( pkvd->fHandled || pkvd->szClassName == NULL )
+		return;
+
+	// Get the actualy entity object
+	CBaseEntity *pEntity = (CBaseEntity *) GET_PRIVATE( pentKeyvalue );
+
+	if ( !pEntity )
+		return;
+
+	pEntity->KeyValue( pkvd );
+}
+
+// HACKHACK -- this is a hack to keep the node graph entity from "touching" things (like triggers)
+// while it builds the graph
+BOOL gTouchDisabled = FALSE;
+void DispatchTouch( edict_t *pentTouched, edict_t *pentOther )
+{
+	if ( gTouchDisabled )
+		return;
+
+	CBaseEntity *pEntity = (CBaseEntity *) GET_PRIVATE( pentTouched );
+	CBaseEntity *pOther = (CBaseEntity *) GET_PRIVATE( pentOther );
+
+	if ( pEntity && pOther && !( ( pEntity->pev->flags | pOther->pev->flags ) & FL_KILLME ) )
+		pEntity->Touch( pOther );
+}
+
+void DispatchUse( edict_t *pentUsed, edict_t *pentOther )
+{
+	CBaseEntity *pEntity = (CBaseEntity *) GET_PRIVATE( pentUsed );
+	CBaseEntity *pOther = (CBaseEntity *) GET_PRIVATE( pentOther );
+
+	if ( pEntity && !( pEntity->pev->flags & FL_KILLME ) )
+		pEntity->Use( pOther, pOther, USE_TOGGLE, 0 );
+}
+
+void DispatchThink( edict_t *pent )
+{
+	CBaseEntity *pEntity = (CBaseEntity *) GET_PRIVATE( pent );
+	if ( pEntity )
+	{
+		if ( FBitSet( pEntity->pev->flags, FL_DORMANT ) )
+			ALERT( at_error, "Dormant entity %s is thinking!!\n", STRING( pEntity->pev->classname ) );
+
+		pEntity->Think();
+	}
+}
+
+void DispatchBlocked( edict_t *pentBlocked, edict_t *pentOther )
+{
+	CBaseEntity *pEntity = (CBaseEntity *) GET_PRIVATE( pentBlocked );
+	CBaseEntity *pOther = (CBaseEntity *) GET_PRIVATE( pentOther );
+
+	if ( pEntity )
+		pEntity->Blocked( pOther );
+}
+
+void DispatchSave( edict_t *pent, SAVERESTOREDATA *pSaveData )
+{
+	CBaseEntity *pEntity = (CBaseEntity *) GET_PRIVATE( pent );
+
+	if ( pEntity && pSaveData )
+	{
+		ENTITYTABLE *pTable = &pSaveData->pTable[pSaveData->currentIndex];
+
+		if ( pTable->pent != pent )
+			ALERT( at_error, "ENTITY TABLE OR INDEX IS WRONG!!!!\n" );
+
+		if ( pEntity->ObjectCaps() & FCAP_DONT_SAVE )
+			return;
+
+		// These don't use ltime & nextthink as times really, but we'll fudge around it.
+		if ( pEntity->pev->movetype == MOVETYPE_PUSH )
+		{
+			float delta = pEntity->pev->nextthink - pEntity->pev->ltime;
+			pEntity->pev->ltime = gpGlobals->time;
+			pEntity->pev->nextthink = pEntity->pev->ltime + delta;
+		}
+
+		pTable->location = pSaveData->size;			  // Remember entity position for file I/O
+		pTable->classname = pEntity->pev->classname;  // Remember entity class for respawn
+
+		CSave saveHelper( pSaveData );
+		pEntity->Save( saveHelper );
+
+		pTable->size = pSaveData->size - pTable->location;	// Size of entity block is data size written to block
+	}
+}
+
+// Find the matching global entity.  Spit out an error if the designer made entities of
+// different classes with the same global name
+CBaseEntity *FindGlobalEntity( string_t classname, string_t globalname )
+{
+	edict_t *pent = FIND_ENTITY_BY_STRING( NULL, "globalname", STRING( globalname ) );
+	CBaseEntity *pReturn = CBaseEntity::Instance( pent );
+	if ( pReturn )
+	{
+		if ( !FClassnameIs( pReturn->pev, STRING( classname ) ) )
+		{
+			ALERT( at_console, "Global entity found %s, wrong class %s\n", STRING( globalname ),
+				   STRING( pReturn->pev->classname ) );
+			pReturn = NULL;
+		}
+	}
+
+	return pReturn;
+}
+
+int DispatchRestore( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity )
+{
+	CBaseEntity *pEntity = (CBaseEntity *) GET_PRIVATE( pent );
+
+	if ( pEntity && pSaveData )
+	{
+		entvars_t tmpVars;
+		Vector oldOffset;
+
+		CRestore restoreHelper( pSaveData );
+		if ( globalEntity )
+		{
+			CRestore tmpRestore( pSaveData );
+			tmpRestore.PrecacheMode( 0 );
+			tmpRestore.ReadEntVars( "ENTVARS", &tmpVars );
+
+			// HACKHACK - reset the save pointers, we're going to restore for real this time
+			pSaveData->size = pSaveData->pTable[pSaveData->currentIndex].location;
+			pSaveData->pCurrentData = pSaveData->pBaseData + pSaveData->size;
+			// -------------------
+
+			const globalentity_t *pGlobal = gGlobalState.EntityFromTable( tmpVars.globalname );
+
+			// Don't overlay any instance of the global that isn't the latest
+			// pSaveData->szCurrentMapName is the level this entity is coming from
+			// pGlobla->levelName is the last level the global entity was active in.
+			// If they aren't the same, then this global update is out of date.
+			if ( !FStrEq( pSaveData->szCurrentMapName, pGlobal->levelName ) )
+				return 0;
+
+			// Compute the new global offset
+			oldOffset = pSaveData->vecLandmarkOffset;
+			CBaseEntity *pNewEntity = FindGlobalEntity( tmpVars.classname, tmpVars.globalname );
+			if ( pNewEntity )
+			{
+				//				ALERT( at_console, "Overlay %s with %s\n", STRING(pNewEntity->pev->classname), STRING(tmpVars.classname) );
+				// Tell the restore code we're overlaying a global entity from another level
+				restoreHelper.SetGlobalMode( 1 );  // Don't overwrite global fields
+				pSaveData->vecLandmarkOffset = ( pSaveData->vecLandmarkOffset - pNewEntity->pev->mins ) + tmpVars.mins;
+				pEntity = pNewEntity;  // we're going to restore this data OVER the old entity
+				pent = ENT( pEntity->pev );
+				// Update the global table to say that the global definition of this entity should come from this level
+				gGlobalState.EntityUpdate( pEntity->pev->globalname, gpGlobals->mapname );
+			}
+			else
+			{
+				// This entity will be freed automatically by the engine.  If we don't do a restore on a matching entity (below)
+				// or call EntityUpdate() to move it to this level, we haven't changed global state at all.
+				return 0;
+			}
+		}
+
+		if ( pEntity->ObjectCaps() & FCAP_MUST_SPAWN )
+		{
+			pEntity->Restore( restoreHelper );
+			pEntity->Spawn();
+		}
+		else
+		{
+			pEntity->Restore( restoreHelper );
+			pEntity->Precache();
+		}
+
+		// Again, could be deleted, get the pointer again.
+		pEntity = (CBaseEntity *) GET_PRIVATE( pent );
+
+#if 0
+		if ( pEntity && pEntity->pev->globalname && globalEntity ) 
+		{
+			ALERT( at_console, "Global %s is %s\n", STRING(pEntity->pev->globalname), STRING(pEntity->pev->model) );
+		}
+#endif
+
+		// Is this an overriding global entity (coming over the transition), or one restoring in a level
+		if ( globalEntity )
+		{
+			//			ALERT( at_console, "After: %f %f %f %s\n", pEntity->pev->origin.x, pEntity->pev->origin.y, pEntity->pev->origin.z, STRING(pEntity->pev->model) );
+			pSaveData->vecLandmarkOffset = oldOffset;
+			if ( pEntity )
+			{
+				UTIL_SetOrigin( pEntity->pev, pEntity->pev->origin );
+				pEntity->OverrideReset();
+			}
+		}
+		else if ( pEntity && pEntity->pev->globalname )
+		{
+			const globalentity_t *pGlobal = gGlobalState.EntityFromTable( pEntity->pev->globalname );
+			if ( pGlobal )
+			{
+				// Already dead? delete
+				if ( pGlobal->state == GLOBAL_DEAD )
+					return -1;
+				else if ( !FStrEq( STRING( gpGlobals->mapname ), pGlobal->levelName ) )
+				{
+					pEntity->MakeDormant();	 // Hasn't been moved to this level yet, wait but stay alive
+				}
+				// In this level & not dead, continue on as normal
+			}
+			else
+			{
+				ALERT( at_error, "Global Entity %s (%s) not in table!!!\n", STRING( pEntity->pev->globalname ),
+					   STRING( pEntity->pev->classname ) );
+				// Spawned entities default to 'On'
+				gGlobalState.EntityAdd( pEntity->pev->globalname, gpGlobals->mapname, GLOBAL_ON );
+			}
+		}
+	}
+	return 0;
+}
+
+void DispatchObjectCollsionBox( edict_t *pent )
+{
+	CBaseEntity *pEntity = (CBaseEntity *) GET_PRIVATE( pent );
+	if ( pEntity )
+	{
+		pEntity->SetObjectCollisionBox();
+	}
+	else
+		SetObjectCollisionBox( &pent->v );
+}
+
+void SaveWriteFields( SAVERESTOREDATA *pSaveData, const char *pname, void *pBaseData, TYPEDESCRIPTION *pFields,
+					  int fieldCount )
+{
+	CSave saveHelper( pSaveData );
+	saveHelper.WriteFields( pname, pBaseData, pFields, fieldCount );
+}
+
+void SaveReadFields( SAVERESTOREDATA *pSaveData, const char *pname, void *pBaseData, TYPEDESCRIPTION *pFields,
+					 int fieldCount )
+{
+	CRestore restoreHelper( pSaveData );
+	restoreHelper.ReadFields( pname, pBaseData, pFields, fieldCount );
+}
+
+edict_t *EHANDLE::Get( void )
+{
+	if ( m_pent )
+	{
+		if ( m_pent->serialnumber == m_serialnumber )
+			return m_pent;
+		else
+			return NULL;
+	}
+	return NULL;
+};
+
+edict_t *EHANDLE::Set( edict_t *pent )
+{
+	m_pent = pent;
+	if ( pent )
+		m_serialnumber = m_pent->serialnumber;
+	return pent;
+};
+
+EHANDLE ::operator CBaseEntity *()
+{
+	return (CBaseEntity *) GET_PRIVATE( Get() );
+};
+
+CBaseEntity *EHANDLE ::operator=( CBaseEntity *pEntity )
+{
+	if ( pEntity )
+	{
+		m_pent = ENT( pEntity->pev );
+		if ( m_pent )
+			m_serialnumber = m_pent->serialnumber;
+	}
+	else
+	{
+		m_pent = NULL;
+		m_serialnumber = 0;
+	}
+	return pEntity;
+}
+
+EHANDLE ::operator int()
+{
+	return Get() != NULL;
+}
+
+CBaseEntity *EHANDLE ::operator->()
+{
+	return (CBaseEntity *) GET_PRIVATE( Get() );
+}
+
+// give health
+int CBaseEntity ::TakeHealth( float flHealth, int bitsDamageType )
+{
+	if ( !pev->takedamage )
+		return 0;
+
+	// heal
+	if ( pev->health >= pev->max_health )
+		return 0;
+
+	pev->health += flHealth;
+
+	if ( pev->health > pev->max_health )
+		pev->health = pev->max_health;
+
+	return 1;
+}
+
+// inflict damage on this entity.  bitsDamageType indicates type of damage inflicted, ie: DMG_CRUSH
+
+int CBaseEntity ::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType )
+{
+	Vector vecTemp;
+
+	if ( !pev->takedamage )
+		return 0;
+
+	// UNDONE: some entity types may be immune or resistant to some bitsDamageType
+
+	// if Attacker == Inflictor, the attack was a melee or other instant-hit attack.
+	// (that is, no actual entity projectile was involved in the attack so use the shooter's origin).
+	if ( pevAttacker == pevInflictor )
+	{
+		vecTemp = pevInflictor->origin - ( VecBModelOrigin( pev ) );
+	}
+	else
+	// an actual missile was involved.
+	{
+		vecTemp = pevInflictor->origin - ( VecBModelOrigin( pev ) );
+	}
+
+	// this global is still used for glass and other non-monster killables, along with decals.
+	g_vecAttackDir = vecTemp.Normalize();
+
+	// do the damage
+	pev->health -= flDamage;
+	if ( pev->health <= 0 )
+	{
+		Killed( pevAttacker, GIB_NORMAL );
+		return 0;
+	}
+
+	return 1;
+}
+
+void CBaseEntity ::Killed( entvars_t *pevAttacker, int iGib )
+{
+	pev->takedamage = DAMAGE_NO;
+	pev->deadflag = DEAD_DEAD;
+	UTIL_Remove( this );
+}
+
+CBaseEntity *CBaseEntity::GetNextTarget( void )
+{
+	if ( FStringNull( pev->target ) )
+		return NULL;
+
+	return UTIL_FindEntityByTargetname( NULL, STRING( pev->target ) );	// binary: UTIL_FindEntityByTargetname @000bedd0
+}
+
+// Global Savedata for Delay
+TYPEDESCRIPTION CBaseEntity::m_SaveData[] = {
+	DEFINE_FIELD( CBaseEntity, m_pGoalEnt, FIELD_CLASSPTR ),
+
+	DEFINE_FIELD( CBaseEntity, m_pfnThink, FIELD_FUNCTION ),  // UNDONE: Build table of these!!!
+	DEFINE_FIELD( CBaseEntity, m_pfnTouch, FIELD_FUNCTION ),   DEFINE_FIELD( CBaseEntity, m_pfnUse, FIELD_FUNCTION ),
+	DEFINE_FIELD( CBaseEntity, m_pfnBlocked, FIELD_FUNCTION ),
+};
+
+int CBaseEntity::Save( CSave &save )
+{
+	if ( save.WriteEntVars( "ENTVARS", pev ) )
+		return save.WriteFields( "BASE", this, m_SaveData, ARRAYSIZE( m_SaveData ) );
+
+	return 0;
+}
+
+// DoD round system. Default RoundRespawn is empty in dod.so (nm size 1, ret).
+// .text:000aa380 CBaseEntity::RoundRespawn()
+void CBaseEntity::RoundRespawn( void ) {}
+
+// .text:000aa5e0 CBaseEntity::RoundStore() (dod/dlls/cbase.h:297)
+// Snapshot the entity's engine vars into the m_rr* block so a later
+// RoundRespawnEnt() can restore them at the start of the next round.
+void CBaseEntity::RoundStore( void )
+{
+	m_rrOrigin = pev->origin;
+	if ( m_rrOrigin == g_vecZero )
+	{
+		m_rrMins = pev->mins;
+		m_rrMaxs = pev->maxs;
+	}
+	m_rrAngles = pev->angles;
+	m_rrMovedir = pev->movedir;
+	m_rrSpawnflags = pev->spawnflags;
+	m_rrSolid = pev->solid;
+	m_rrMovetype = pev->movetype;
+	m_rrEffects = pev->effects;
+	m_rrFlags = pev->flags;
+	m_rrFrags = (int) pev->frags;
+	m_rrRendermode = pev->rendermode;
+	m_rrRenderamt = pev->renderamt;
+	m_rrRendercolor = pev->rendercolor;
+	m_rrRenderfx = pev->renderfx;
+	m_rrHealth = pev->health;
+	m_rrFrame = pev->frame;
+	m_rrSpeed = pev->speed;
+	m_rrTarget = pev->target;
+	m_rrTargetname = pev->targetname;
+	m_rrNetname = pev->netname;
+	m_rrTakedamage = pev->takedamage;
+	m_rrScale = pev->scale;
+	m_rrGravity = pev->gravity;
+}
+
+// .text:000aa390 CBaseEntity::RoundRespawnEnt() (dod/dlls/cbase.h:240)
+// Clear pending think/touch/use/blocked callbacks, then restore the vars
+// captured by RoundStore() and run the per-entity RoundRespawn().
+void CBaseEntity::RoundRespawnEnt( void )
+{
+	pev->nextthink = 0;
+	m_pfnThink = NULL;
+	m_pfnTouch = NULL;
+	m_pfnUse = NULL;
+	m_pfnBlocked = NULL;
+
+	if ( m_rrOrigin == g_vecZero )
+	{
+		pev->mins = m_rrMins;
+		pev->maxs = m_rrMaxs;
+	}
+	pev->origin = m_rrOrigin;
+	pev->angles = m_rrAngles;
+	pev->movedir = m_rrMovedir;
+	pev->spawnflags = m_rrSpawnflags;
+	pev->solid = m_rrSolid;
+	pev->movetype = m_rrMovetype;
+	pev->effects = m_rrEffects;
+	pev->flags = m_rrFlags;
+	pev->frags = (float) m_rrFrags;
+	pev->rendermode = m_rrRendermode;
+	pev->renderamt = m_rrRenderamt;
+	pev->rendercolor = m_rrRendercolor;
+	pev->renderfx = m_rrRenderfx;
+	pev->health = m_rrHealth;
+	pev->frame = m_rrFrame;
+	pev->speed = m_rrSpeed;
+	pev->target = m_rrTarget;
+	pev->targetname = m_rrTargetname;
+	pev->netname = m_rrNetname;
+	pev->takedamage = m_rrTakedamage;
+	pev->scale = m_rrScale;
+	pev->gravity = m_rrGravity;
+
+	RoundRespawn();
+}
+
+// .text:00139240 CBaseToggle::GetState() (dod/dlls/cbase.cpp / subs.cpp)
+// Maps TOGGLE_STATE to the DoD STATE enum: table 0x19a628 = {2,0,1,3}.
+STATE CBaseToggle::GetState( void )
+{
+	switch ( m_toggle_state )
+	{
+		case TS_AT_TOP:
+			return STATE_ON;
+		case TS_AT_BOTTOM:
+			return STATE_OFF;
+		case TS_GOING_UP:
+			return STATE_TURN_ON;
+		case TS_GOING_DOWN:
+			return STATE_TURN_OFF;
+	}
+	return STATE_OFF;
+}
+
+int CBaseEntity::Restore( CRestore &restore )
+{
+	int status;
+
+	status = restore.ReadEntVars( "ENTVARS", pev );
+	if ( status )
+		status = restore.ReadFields( "BASE", this, m_SaveData, ARRAYSIZE( m_SaveData ) );
+
+	if ( pev->modelindex != 0 && !FStringNull( pev->model ) )
+	{
+		Vector mins, maxs;
+		mins = pev->mins;  // Set model is about to destroy these
+		maxs = pev->maxs;
+
+		PRECACHE_MODEL( (char *) STRING( pev->model ) );
+		SET_MODEL( ENT( pev ), STRING( pev->model ) );
+		UTIL_SetSize( pev, mins, maxs );  // Reset them
+	}
+
+	return status;
+}
+
+// Initialize absmin & absmax to the appropriate box
+void SetObjectCollisionBox( entvars_t *pev )
+{
+	if ( ( pev->solid == SOLID_BSP ) && ( pev->angles.x || pev->angles.y || pev->angles.z ) )
+	{  // expand for rotation
+		float max, v;
+		int i;
+
+		max = 0;
+		for ( i = 0; i < 3; i++ )
+		{
+			v = fabs( ( (float *) pev->mins )[i] );
+			if ( v > max )
+				max = v;
+			v = fabs( ( (float *) pev->maxs )[i] );
+			if ( v > max )
+				max = v;
+		}
+		for ( i = 0; i < 3; i++ )
+		{
+			( (float *) pev->absmin )[i] = ( (float *) pev->origin )[i] - max;
+			( (float *) pev->absmax )[i] = ( (float *) pev->origin )[i] + max;
+		}
+	}
+	else
+	{
+		pev->absmin = pev->origin + pev->mins;
+		pev->absmax = pev->origin + pev->maxs;
+	}
+
+	pev->absmin.x -= 1;
+	pev->absmin.y -= 1;
+	pev->absmin.z -= 1;
+	pev->absmax.x += 1;
+	pev->absmax.y += 1;
+	pev->absmax.z += 1;
+}
+
+void CBaseEntity::SetObjectCollisionBox( void )
+{
+	::SetObjectCollisionBox( pev );
+}
+
+int CBaseEntity ::Intersects( CBaseEntity *pOther )
+{
+	if ( pOther->pev->absmin.x > pev->absmax.x || pOther->pev->absmin.y > pev->absmax.y ||
+		 pOther->pev->absmin.z > pev->absmax.z || pOther->pev->absmax.x < pev->absmin.x ||
+		 pOther->pev->absmax.y < pev->absmin.y || pOther->pev->absmax.z < pev->absmin.z )
+		return 0;
+	return 1;
+}
+
+void CBaseEntity ::MakeDormant( void )
+{
+	SetBits( pev->flags, FL_DORMANT );
+
+	// Don't touch
+	pev->solid = SOLID_NOT;
+	// Don't move
+	pev->movetype = MOVETYPE_NONE;
+	// Don't draw
+	SetBits( pev->effects, EF_NODRAW );
+	// Don't think
+	pev->nextthink = 0;
+	// Relink
+	UTIL_SetOrigin( pev, pev->origin );
+}
+
+int CBaseEntity ::IsDormant( void )
+{
+	return FBitSet( pev->flags, FL_DORMANT );
+}
+
+BOOL CBaseEntity ::IsInWorld( void )
+{
+	// position
+	if ( pev->origin.x >= 4096 )
+		return FALSE;
+	if ( pev->origin.y >= 4096 )
+		return FALSE;
+	if ( pev->origin.z >= 4096 )
+		return FALSE;
+	if ( pev->origin.x <= -4096 )
+		return FALSE;
+	if ( pev->origin.y <= -4096 )
+		return FALSE;
+	if ( pev->origin.z <= -4096 )
+		return FALSE;
+	// speed
+	if ( pev->velocity.x >= 2000 )
+		return FALSE;
+	if ( pev->velocity.y >= 2000 )
+		return FALSE;
+	if ( pev->velocity.z >= 2000 )
+		return FALSE;
+	if ( pev->velocity.x <= -2000 )
+		return FALSE;
+	if ( pev->velocity.y <= -2000 )
+		return FALSE;
+	if ( pev->velocity.z <= -2000 )
+		return FALSE;
+
+	return TRUE;
+}
+
+int CBaseEntity::ShouldToggle( USE_TYPE useType, BOOL currentState )
+{
+	if ( useType != USE_TOGGLE && useType != USE_SET )
+	{
+		if ( ( currentState && useType == USE_ON ) || ( !currentState && useType == USE_OFF ) )
+			return 0;
+	}
+	return 1;
+}
+
+int CBaseEntity ::DamageDecal( int bitsDamageType )
+{
+	if ( pev->rendermode == kRenderTransAlpha )
+		return -1;
+
+	if ( pev->rendermode != kRenderNormal )
+		return DECAL_BPROOF1;
+
+	return DECAL_GUNSHOT1 + RANDOM_LONG( 0, 4 );
+}
+
+// NOTE: szName must be a pointer to constant memory, e.g. "monster_class" because the entity
+// will keep a pointer to it after this call.
+CBaseEntity *CBaseEntity::Create( const char *szName, const Vector &vecOrigin, const Vector &vecAngles, edict_t *pentOwner )
+{
+	edict_t *pent;
+	CBaseEntity *pEntity;
+
+	pent = CREATE_NAMED_ENTITY( MAKE_STRING( szName ) );
+	if ( FNullEnt( pent ) )
+	{
+		ALERT( at_console, "NULL Ent in Create!\n" );
+		return NULL;
+	}
+	pEntity = Instance( pent );
+	AddEntityHashValue( &pent->v, szName, CLASSNAME );	// binary: AddEntityHashValue after CreateNamedEntity @000c1230
+	pEntity->pev->owner = pentOwner;
+	pEntity->pev->origin = vecOrigin;
+	pEntity->pev->angles = vecAngles;
+	DispatchSpawn( pEntity->edict() );
+	return pEntity;
+}
+
+CUtlVector_Hash stringsHashTable;
+// dod.so: hashItemMemPool CMemoryPool(blockSize=16, numElements=256) -- ctor args from
+// _GLOBAL__sub_I_stringsHashTable @0x0a9603 (mov $0x10 blockSize, mov $0x100 numElements).
+CMemoryPool hashItemMemPool( sizeof( hash_item_t ), 256 );
+
+int CaseInsensitiveHash( const char *s, int size )
+{
+	unsigned int hash = 0;
+	char c = *s;
+	if ( c )
+	{
+		hash = 0;
+		do
+		{
+			int h = hash * 0x21;
+			if ( (unsigned char) ( c + 0xBF ) < 0x1A )
+				h = hash * 0x21 + 0x20;
+			hash = c + h;
+			s++;
+			c = *s;
+		} while ( c );
+		hash = hash % ( size + 1 );
+	}
+	return hash;
+}
+
+void AddEntityHashValue( entvars_t *pev, const char *value, hash_types_e fieldType )
+{
+	if ( stringsHashTable.m_Size < 1 )
+		InitHashTable();
+
+	int size = stringsHashTable.m_Size;
+	if ( fieldType != CLASSNAME )
+		return;
+	if ( pev->classname == 0 )
+		return;
+
+	int hash = CaseInsensitiveHash( value, size );
+	int pevIndex = ENTINDEX( pev->pContainingEntity );
+	hash_item_t *base = stringsHashTable.m_Memory.m_pMemory;
+	hash_item_t *item = base + hash;
+	while ( item->pev )
+	{
+		if ( !strcmp( STRING( item->pev->classname ), STRING( pev->classname ) ) )
+		{
+			// same-classname bucket: keep the collision chain sorted by entity index
+			hash_item_t *last = item;
+			entvars_t *candPev = item->pev;
+			int candIndex = item->pevIndex;
+			while ( last->next && candPev != pev && pevIndex > candIndex )
+			{
+				last = last->next;
+				candPev = last->pev;
+				candIndex = last->pevIndex;
+			}
+			if ( pevIndex < candIndex )
+			{
+				// new entity sorts before the candidate: swap it into the head node
+				last->pev = pev;
+				last->lastHash = NULL;
+				last->pevIndex = pevIndex;
+				pevIndex = ENTINDEX( candPev->pContainingEntity );
+				pev = candPev;
+			}
+			if ( pev == last->pev )
+				return;	 // duplicate
+			hash_item_t *next = last->next;
+			hash_item_t *node = (hash_item_t *)hashItemMemPool.Alloc( sizeof( hash_item_t ) );
+			last->next = node;
+			if ( !node )
+			{
+				ALERT( at_warning, "ERROR - AddEntityHashValue exhausted memory in hashItemMemPool\n" );
+				return;
+			}
+			node->pev = pev;
+			node->lastHash = NULL;
+			node->next = next;
+			node->pevIndex = pevIndex;
+			return;
+		}
+		hash = ( hash + 1 ) % size;
+		item = base + hash;
+	}
+	item->pev = pev;
+	item->lastHash = NULL;
+	item->pevIndex = ENTINDEX( pev->pContainingEntity );
+}
+
+void RemoveEntityHashValue( entvars_t *pev, const char *value, hash_types_e fieldType )
+{
+	int size = stringsHashTable.m_Size;
+	if ( fieldType != CLASSNAME )
+		return;
+	if ( size < 1 || stringsHashTable.m_Memory.m_pMemory == NULL )
+		return;
+
+	int hash = CaseInsensitiveHash( value, size );
+	hash_item_t *base = stringsHashTable.m_Memory.m_pMemory;
+	hash_item_t *item = base + hash;
+	entvars_t *ev = item->pev;
+	if ( !ev )
+		return;
+	while ( strcmp( STRING( ev->classname ), STRING( pev->classname ) ) != 0 )
+	{
+		hash = ( hash + 1 ) % size;
+		item = base + hash;
+		ev = item->pev;
+		if ( !ev )
+			return;
+	}
+
+	hash_item_t *prev = item;
+	hash_item_t *cur = item;
+	hash_item_t *next = item->next;
+	while ( true )
+	{
+		if ( cur->pev == pev )
+		{
+			if ( cur != prev )
+			{
+				if ( base[hash].lastHash == cur )
+				{
+					base[hash].lastHash = NULL;
+					next = cur->next;
+				}
+				prev->next = next;
+				hashItemMemPool.Free( cur );
+				return;
+			}
+			// removing the bucket head
+			if ( next )
+			{
+				cur->pev = next->pev;
+				cur->pevIndex = next->pevIndex;
+				cur->lastHash = NULL;
+				cur->next = next->next;
+				hashItemMemPool.Free( next );
+			}
+			else
+			{
+				cur->pev = NULL;
+				cur->lastHash = NULL;
+				cur->pevIndex = 0;
+			}
+			return;
+		}
+		if ( !next )
+			return;
+		prev = cur;
+		cur = next;
+		next = next->next;
+	}
+}
+
+void EmptyEntityHashTable( void )
+{
+	if ( stringsHashTable.m_Memory.m_pMemory == NULL )
+		return;
+	for ( int i = 0; i < stringsHashTable.m_Size + 1; i++ )
+	{
+		hash_item_t *next = stringsHashTable.m_Memory.m_pMemory[i].next;
+		stringsHashTable.m_Memory.m_pMemory[i].pev = NULL;
+		stringsHashTable.m_Memory.m_pMemory[i].pevIndex = 0;
+		stringsHashTable.m_Memory.m_pMemory[i].lastHash = NULL;
+		stringsHashTable.m_Memory.m_pMemory[i].next = NULL;
+		while ( next )
+		{
+			hash_item_t *tmp = next->next;
+			hashItemMemPool.Free( next );
+			next = tmp;
+		}
+	}
+}
+
+void InitHashTable( void )
+{
+	int newSize = stringsHashTable.m_Size + 0x1050;	 // binary: grows by 0x1050 slots @InitHashTable
+	if ( stringsHashTable.m_Memory.m_nAllocationCount < newSize )
+	{
+		stringsHashTable.m_Memory.m_nAllocationCount = newSize;
+		if ( stringsHashTable.m_Memory.m_pMemory == NULL )
+			stringsHashTable.m_Memory.m_pMemory = (hash_item_t *) malloc( ( stringsHashTable.m_Memory.m_nAllocationCount + 1 ) * sizeof( hash_item_t ) );
+		else
+			stringsHashTable.m_Memory.m_pMemory = (hash_item_t *) realloc( stringsHashTable.m_Memory.m_pMemory,
+																			( stringsHashTable.m_Memory.m_nAllocationCount + 1 ) * sizeof( hash_item_t ) );
+	}
+	stringsHashTable.m_Size = newSize;
+
+	for ( int i = 0; i < stringsHashTable.m_Size + 1; i++ )
+	{
+		hash_item_t *next = stringsHashTable.m_Memory.m_pMemory[i].next;
+		stringsHashTable.m_Memory.m_pMemory[i].pev = NULL;
+		stringsHashTable.m_Memory.m_pMemory[i].pevIndex = 0;
+		stringsHashTable.m_Memory.m_pMemory[i].lastHash = NULL;
+		stringsHashTable.m_Memory.m_pMemory[i].next = NULL;
+		while ( next )
+		{
+			hash_item_t *tmp = next->next;
+			hashItemMemPool.Free( next );
+			next = tmp;
+		}
+	}
+}
+
+// .text:00139380 CPointEntity::Precache (file:cbase.cpp)
+void CPointEntity::Precache( void )
+{
+	if ( pev->spawnflags & 1 )
+		PRECACHE_MODEL( "sprites/null.spr" );
+}
+
+// .text:000c9b20 CMultiSource::RoundRespawn (file:cbase.cpp)
+void CMultiSource::RoundRespawn( void )
+{
+	pev->nextthink = gpGlobals->time + 0.1f;
+	pev->spawnflags |= 2;
+	SetThink( &CMultiSource::Register );
+}
