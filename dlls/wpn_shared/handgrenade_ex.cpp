@@ -1,192 +1,215 @@
-// HandGrenadeEx - primed/frag variant (CHandGrenadeEx) allied
-// PARAMS: dmg 180 | fuse set via SetDmgTime | ammo ammo_agrensex | snd same as grenade | mdl same grenade
+/***
+*
+*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
+*	All Rights Reserved.
+*
+*   Use, distribution, and modification of this source code and/or resulting
+*   object code is restricted to non-commercial enhancements to products from
+*   Valve LLC.  All other use, distribution, or modification is prohibited
+*   without written permission from Valve LLC.
+*
+****/
+
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
-#include "player.h"
 #include "weapons.h"
-#include "gamerules.h"
-#include "dod_gamerules.h"
-#include "skill.h"
+#include "player.h"
 
-LINK_ENTITY_TO_CLASS( weapon_handgrenade_ex, CHandGrenadeEx );
-// .text:001677c0 weapon_handgrenade_ex (wpn_shared/handgrenade_ex.cpp:19) link 001677c0 Ghidra 001777c0
-// .text:00167150 CHandGrenadeEx::Spawn (wpn_shared/handgrenade_ex.cpp:23) link 00167150
-void CHandGrenadeEx::Spawn()
+#include "dod_shared.h"
+
+LINK_ENTITY_TO_CLASS( weapon_handgrenade_ex, CHandGrenadeEx )
+
+extern p_wpninfo_s P_WpnInfo[];
+
+void CHandGrenadeEx::Spawn( void )
 {
 	Precache();
-	m_iId = 16;
-	SET_MODEL( ENT( pev ), P_WpnInfo[16].wmodel );
-	pev->dmg = gSkillData.plrDmgStickGrenade;
+
+	m_iId = WEAPON_HANDGRENADEX;
+	SET_MODEL( ENT( pev ), P_WpnInfo[WEAPON_HANDGRENADEX].wmodel );
+
 	m_iDefaultAmmo = 1;
+
 	FallInit();
 }
-// .text:00166cc0 CHandGrenadeEx::Precache (wpn_shared/handgrenade_ex.cpp:40) link 00166cc0
+
 void CHandGrenadeEx::Precache( void )
 {
-    PRECACHE_SOUND( "weapons/grenthrow.wav" );
+	PRECACHE_SOUND( "weapons/grenthrow.wav" );
 }
-// .text:00166cd0 CHandGrenadeEx::GetItemInfo (wpn_shared/handgrenade_ex.cpp:44) link 00166cd0
+
 int CHandGrenadeEx::GetItemInfo( ItemInfo *p )
 {
 	p->pszName = STRING( pev->classname );
 	p->pszAmmo1 = "ammo_agrensex";
 	p->iMaxAmmo1 = 1;
-	p->pszAmmo2 = 0;
+	p->pszAmmo2 = NULL;
 	p->iMaxAmmo2 = -1;
 	p->iMaxClip = -1;
 	p->iSlot = 4;
 	p->iPosition = 3;
-	p->iFlags = 0x18;
-	p->iId = m_iId = 16;
+	p->iId = m_iId = WEAPON_HANDGRENADEX;
 	p->iWeight = 100;
+	p->iFlags = ITEM_FLAG_GRENADE;
+
 	return 1;
 }
-// .text:00167040 CHandGrenadeEx::Deploy (wpn_shared/handgrenade_ex.cpp:62) link 00167040
-BOOL CHandGrenadeEx::Deploy()
+
+BOOL CHandGrenadeEx::Deploy( void )
 {
-	UTIL_SendDirectorMessage( m_pPlayer, this, 0x26 );
-	m_pPlayer->m_iFOV = GetZoomFOV();
-	m_flReleaseThrow = -1.0;
-	m_flStartThrow = 0.0;
-	if ( g_pGameRules != NULL && ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
-	{
-		pev->iuser1 = 0;
-		return DefaultDeploy( P_WpnInfo[36].vmodel, P_WpnInfo[36].pmodel, 6, P_WpnInfo[36].szAnimExt,
-							  P_WpnInfo[36].szAnimReloadExt, 0 );
-	}
-	pev->iuser1 = 1;
-	return DefaultDeploy( P_WpnInfo[16].vmodel, P_WpnInfo[16].pmodel, 6, P_WpnInfo[16].szAnimExt,
-						  P_WpnInfo[16].szAnimReloadExt, 0 );
+	m_pPlayer->m_iFOV = ZoomOut();
+
+	m_flReleaseThrow = -1.0f;
+	m_flStartThrow = 0.0f;
+
+	return FALSE;
 }
-// .text:00166d50 CHandGrenadeEx::CanHolster (wpn_shared/handgrenade_ex.cpp:91) link 00166d50
-int CHandGrenadeEx::CanHolster()
+
+BOOL CHandGrenadeEx::CanHolster( void )
 {
-	return ( m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] == 0 );
+	return FALSE;
 }
-// .text:00166d70 CHandGrenadeEx::Holster (wpn_shared/handgrenade_ex.cpp:103) link 00166d70
-void CHandGrenadeEx::Holster( int i )
+
+void CHandGrenadeEx::Holster( int skiplocal )
 {
-	return;
+	/* Nothing. */
 }
-// .text:001676c0 CHandGrenadeEx::PrimaryAttack (wpn_shared/handgrenade_ex.cpp:106) link 001676c0
-void CHandGrenadeEx::PrimaryAttack()
+
+void CHandGrenadeEx::SetDmgTime( float time )
 {
-	StartThrow( 0 );
+	m_flTimeToExplode = time;
 }
-// .text:001675c0 CHandGrenadeEx::SecondaryAttack (wpn_shared/handgrenade_ex.cpp:111) link 001675c0
-void CHandGrenadeEx::SecondaryAttack()
+
+BOOL CHandGrenadeEx::CanDeploy( void )
 {
-	StartThrow( 1 );
+	return m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] != 0;
 }
-// .text:00167830 CHandGrenadeEx::StartThrow (wpn_shared/handgrenade_ex.cpp:116) link 00167830
-void CHandGrenadeEx::StartThrow( int t )
+
+void CHandGrenadeEx::PrimaryAttack( void )
 {
-	if ( m_flTimeToExplode < gpGlobals->time )
+	StartThrow( FALSE );
+}
+
+void CHandGrenadeEx::SecondaryAttack( void )
+{
+	StartThrow( TRUE );
+}
+
+void CHandGrenadeEx::StartThrow( BOOL bUnderhand )
+{
+	if( gpGlobals->time > m_flTimeToExplode )
 		DropGren();
 
-	if ( m_flStartThrow != 0.0 )
-		return;
-	if ( m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] <= 0 )
-		return;
-
-	m_flReleaseThrow = 0.0;
-	m_flStartThrow = 1.0;
-	m_bUnderhand = t;
-	SendWeaponAnim( 7, UseDecrement() ? 1 : 0 );
-	if ( m_flTimeToExplode >= gpGlobals->time )
-		m_flReleaseThrow = gpGlobals->time + 0.01f;
-}
-// .text:001671b0 CHandGrenadeEx::DropGren (wpn_shared/handgrenade_ex.cpp:135) link 001671b0 - 7.5KB, drops with remaining fuse
-void CHandGrenadeEx::DropGren()
-{
-	if ( m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] <= 0 )
-		return;
-
-	SendWeaponAnim( 8, UseDecrement() ? 1 : 0 );
-
-	Vector angThrow = m_pPlayer->pev->v_angle + m_pPlayer->pev->punchangle;
-	if ( angThrow.x < 0.0f )
-		angThrow.x = angThrow.x * 0.89f - 10.0f;
-	else
-		angThrow.x = angThrow.x * 1.11f - 10.0f;
-
-	float flVel = ( 90.0f - angThrow.x ) * 4.0f;
-	if ( flVel > 600.0f )
-		flVel = 600.0f;
-
-	UTIL_MakeVectors( angThrow );
-
-	Vector eyes = m_pPlayer->pev->origin + m_pPlayer->pev->view_ofs;
-	Vector vecSrc = eyes + gpGlobals->v_forward * 16.0f;
-	float time = m_flTimeToExplode - gpGlobals->time;
-	if ( time < 0.0f )
-		time = 0.0f;
-
-	float friction;
-	Vector vecThrow;
-	if ( m_bUnderhand )
+	if( m_flStartThrow == 0.0f && m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] > 0 )
 	{
-		friction = 0.6f;
-		vecSrc = eyes + gpGlobals->v_forward * 16.0f;
-		vecThrow = gpGlobals->v_forward * 300.0f;
+		m_flReleaseThrow = 0.0f;
+		m_flStartThrow = 1.0f;
+		m_bUnderhand = bUnderhand;
+
+		SendWeaponAnim( HANDGRENADE_EX_PINPULL, UseDecrement() != 0 );
+
+		if( m_flTimeToExplode >= gpGlobals->time )
+			m_flReleaseThrow = gpGlobals->time + 0.01f;
 	}
-	else
+}
+
+void CHandGrenadeEx::DropGren( void )
+{
+	if( m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] > 0 )
 	{
-		friction = 0.8f;
-		float flPlayerSpeedBonus = DotProduct( m_pPlayer->pev->velocity, gpGlobals->v_forward );
-		vecThrow = gpGlobals->v_forward * ( flPlayerSpeedBonus + flVel );
+		SendWeaponAnim( HANDGRENADE_EX_THROW, UseDecrement() != 0 );
+
+		vec3_t vecAngles = m_pPlayer->pev->v_angle + m_pPlayer->pev->punchangle;
+
+		if( vecAngles.x < 0 )
+			vecAngles.x = -10 + vecAngles.x * ( ( 90 - 10 ) / 90.0 );
+		else
+			vecAngles.x = -10 + vecAngles.x * ( ( 90 + 10 ) / 90.0 );
+
+		float flVel = ( 90 - vecAngles.x ) * 4;
+
+		if( flVel > 600 )
+			flVel = 600;
+
+		UTIL_MakeVectors( vecAngles );
+
+		vec3_t vecStart = m_pPlayer->pev->origin + m_pPlayer->pev->view_ofs;
+		vec3_t vecEnd = vecStart + gpGlobals->v_forward * 16;
+		vec3_t vecVelocity;
+		float flFriction;
+
+		float time = m_flTimeToExplode - gpGlobals->time;
+
+		if( time < 0 )
+			time = 0;
+
+		if( m_bUnderhand )
+		{
+			vecEnd = m_pPlayer->pev->origin + gpGlobals->v_forward * 16;
+			vecVelocity = gpGlobals->v_forward * 300;
+			flFriction = 0.6f;
+		}
+		else
+		{
+			float flDot = DotProduct( m_pPlayer->pev->velocity, gpGlobals->v_forward );
+
+			vecVelocity = gpGlobals->v_forward * flDot + gpGlobals->v_forward * flVel;
+			flFriction = 0.8f;
+		}
+
+		TraceResult ptr;
+		UTIL_TraceLine( vecStart, vecEnd, ignore_monsters, ENT( m_pPlayer->pev ), &ptr );
+
+		if( ptr.flFraction < 1.0f )
+			vecEnd = ptr.vecEndPos;
+
+		if( pev->iuser1 )
+			CGrenade::ShootPickup( m_pPlayer->pev, vecEnd, vecVelocity, time, G_HANDGRENADE, flFriction );
+		else
+			CGrenade::ShootPickup( m_pPlayer->pev, vecEnd, vecVelocity, time, G_MILLSGRENADE, flFriction );
+
+		m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType]--;
+
+		m_flStartThrow = 0.0f;
 	}
-
-	TraceResult tr;
-	UTIL_TraceLine( eyes, vecSrc, ignore_monsters, m_pPlayer->pev->pContainingEntity, &tr );
-	if ( tr.flFraction < 1.0f )
-		vecSrc = tr.vecEndPos;
-
-	if ( pev->iuser1 )
-		CGrenade::ShootPickup( m_pPlayer->pev, vecSrc, vecThrow, time, 1, friction );
-	else
-		CGrenade::ShootPickup( m_pPlayer->pev, vecSrc, vecThrow, time, 0, friction );
-
-	m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType]--;
-	m_flStartThrow = 0.0f;
 }
-// .text:00166d80 CHandGrenadeEx::SetDmgTime (wpn_shared/handgrenade_ex.cpp:192) link 00166d80
-void CHandGrenadeEx::SetDmgTime( float t )
+
+void CHandGrenadeEx::WeaponIdle( void )
 {
-	m_flTimeToExplode = t;
-}
-// .text:00166db0 CHandGrenadeEx::WeaponIdle (wpn_shared/handgrenade_ex.cpp:197) link 00166db0 - 5KB, timed throw, cooks grenade
-void CHandGrenadeEx::WeaponIdle()
-{
-	if ( m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] <= 0 )
+	if( m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] <= 0 )
 	{
 		RetireWeapon();
+
+		m_pPlayer->ClearHasWeapon( WEAPON_HANDGRENADEX );
+
 		SetThink( &CBasePlayerItem::DestroyItem );
-		pev->nextthink = gpGlobals->time + 0.1;
+		pev->nextthink = gpGlobals->time + 0.1f;
+
 		m_flStartThrow = 0.0f;
 		return;
 	}
 
-	if ( m_flTimeToExplode < gpGlobals->time )
+	if( gpGlobals->time > m_flTimeToExplode )
 		DropGren();
 
-	if ( m_flTimeWeaponIdle < gpGlobals->time )
+	if( m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] && gpGlobals->time > m_flTimeWeaponIdle && m_flReleaseThrow == -1.0f )
 	{
-		if ( m_flReleaseThrow == -1.0f )
-		{
-			m_flTimeWeaponIdle = gpGlobals->time + 1.0f;
-			SendWeaponAnim( 5, UseDecrement() ? 1 : 0 );
-		}
+		m_flTimeWeaponIdle = gpGlobals->time + 1.0f;
+
+		SendWeaponAnim( HANDGRENADE_EX_IDLE, UseDecrement() != 0 );
 	}
 
-	if ( m_flReleaseThrow <= gpGlobals->time )
+	if( m_flReleaseThrow <= gpGlobals->time )
 	{
-		if ( m_flStartThrow == 1.0f )
+		if( m_flStartThrow == 1.0f )
 		{
-			if ( m_flReleaseThrow != -1.0f && m_flTimeToExplode >= gpGlobals->time )
+			if( m_flReleaseThrow != -1.0f && m_flTimeToExplode >= gpGlobals->time )
 			{
-				if ( m_bUnderhand )
+				if( m_bUnderhand )
 					m_pPlayer->SetAnimation( PLAYER_ROLLGRENADE );
 				else
 					m_pPlayer->SetAnimation( PLAYER_ATTACK1 );
@@ -195,14 +218,9 @@ void CHandGrenadeEx::WeaponIdle()
 				m_flReleaseThrow = gpGlobals->time + 0.3f;
 			}
 		}
-		else if ( m_flStartThrow == 2.0f && m_flReleaseThrow != -1.0f && m_flTimeToExplode >= gpGlobals->time )
+		else if( m_flStartThrow == 2.0f && m_flReleaseThrow != -1.0f && m_flTimeToExplode >= gpGlobals->time )
 		{
 			DropGren();
 		}
 	}
-}
-// .text:00166d90 CHandGrenadeEx::CanDeploy (wpn_shared/handgrenade_ex.cpp:239) link 00166d90
-int CHandGrenadeEx::CanDeploy()
-{
-	return ( m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] != 0 );
 }

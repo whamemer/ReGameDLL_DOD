@@ -1,111 +1,117 @@
-// BAR M1918 - Allied bipod auto rifle
-// PARAMS: dmg 85 | clip 20 carry 260 | reload 3.72s bipod 3.86s | spread 0.025 bipod 0.02 | delay 0.12s draw 1.5s updown 1.5s | snd bar_shoot | mdl v_bar w_bar p_barbu p_barbd | evt events/weapons/bar.sc | ammo ammo_55mm id 11 slot 3? weight 20 | BULLET_DOD_BAR (14) bipod CBipodWeapon
+/***
+*
+*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
+*	All Rights Reserved.
+*
+*   Use, distribution, and modification of this source code and/or resulting
+*   object code is restricted to non-commercial enhancements to products from
+*   Valve LLC.  All other use, distribution, or modification is prohibited
+*   without written permission from Valve LLC.
+*
+****/
+
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
-#include "player.h"
 #include "weapons.h"
 
-enum bar_e
+#include "dod_shared.h"
+
+LINK_ENTITY_TO_CLASS( weapon_bar, CBAR )
+
+extern p_wpninfo_s P_WpnInfo[];
+
+void CBAR::Spawn( void )
 {
-	BAR_IDLE1 = 0,
-	BAR_FIRE,
-	BAR_RELOAD,
-	BAR_DEPLOY = 5
-};
-LINK_ENTITY_TO_CLASS( weapon_bar, CBAR );
-// .text:001607d0 weapon_bar (wpn_shared/bar.cpp:33)
-// .text:001607b0 CBAR::Spawn (wpn_shared/bar.cpp:38)
-void CBAR::Spawn()
-{
-	CBipodWeapon::Spawn( 11 );
+	CBipodWeapon::Spawn( WEAPON_BAR );
 }
-// .text:00160610 CBAR::Precache (wpn_shared/bar.cpp:44)
+
 void CBAR::Precache( void )
 {
-    PRECACHE_MODEL( P_WpnInfo[11].vmodel );
-    PRECACHE_MODEL( P_WpnInfo[11].wmodel );
+	PRECACHE_MODEL( P_WpnInfo[WEAPON_BAR].vmodel );
+	PRECACHE_MODEL( P_WpnInfo[WEAPON_BAR].wmodel );
 
-    PRECACHE_SOUND( "weapons/357_cock1.wav" );
-    PRECACHE_SOUND( "weapons/bar_shoot.wav" );
+	PRECACHE_SOUND( "weapons/357_cock1.wav" );
+	PRECACHE_SOUND( "weapons/bar_shoot.wav" );
 
-    m_iFireEvent = PRECACHE_EVENT( 1, "events/weapons/bar.sc" );
+	m_iFireEvent = PRECACHE_EVENT( 1, "events/weapons/bar.sc" );
 }
-// .text:00160670 CBAR::GetItemInfo (wpn_shared/bar.cpp:55)
+
 int CBAR::GetItemInfo( ItemInfo *p )
 {
 	p->pszName = STRING( pev->classname );
 	p->pszAmmo1 = "ammo_55mm";
-	p->iMaxAmmo1 = P_WpnInfo[11].ammo_maxcarry;
-	p->pszAmmo2 = 0;
+	p->iMaxAmmo1 = P_WpnInfo[WEAPON_BAR].ammo_maxcarry;
+	p->pszAmmo2 = NULL;
 	p->iMaxAmmo2 = -1;
-	p->iMaxClip = P_WpnInfo[11].ammo_maxclip;
+	p->iMaxClip = P_WpnInfo[WEAPON_BAR].ammo_maxclip;
 	p->iSlot = 2;
 	p->iPosition = 0;
-	p->iFlags = 0x80;
-	p->iId = m_iId = 11;
-	p->iWeight = P_WpnInfo[11].misc_weight;
-	p->iBulletId = BULLET_DOD_BAR;
-	p->flRecoil = 2.0;
+	p->iFlags = ITEM_FLAG_RIFLE;
+	p->iId = m_iId = WEAPON_BAR;
+	p->iBulletId = BULLET_PLAYER_BAR;
+	p->flRecoil = 2.0f;
+	p->iWeight = P_WpnInfo[WEAPON_BAR].misc_weight;
+
 	return 1;
 }
-// .text:00160700 CBAR::Classify (wpn_shared/bar.cpp:76)
-int CBAR::Classify()
+
+int CBAR::Classify( void )
 {
-	return CLASS_MACHINEGUNS;
+	return CLASS_MACHINEGUN;
 }
-// .text:00160790 CBAR::GetReloadAnim (wpn_shared/bar.cpp:79)
+
 int CBAR::GetReloadAnim( void )
 {
-    return !CBipodWeapon::IsDeployed() ? BAR_UP_RELOAD : BAR_DOWN_RELOAD;
+	return !IsDeployed() ? BAR_UP_RELOAD : BAR_DOWN_RELOAD;
 }
-// .text:00160710 CBAR::GetDrawAnim (wpn_shared/bar.cpp:89)
-int CBAR::GetDrawAnim()
+
+int CBAR::GetDrawAnim( void )
 {
-	return 2;
+	return BAR_UP_DRAW;
 }
-// .text:00160740 CBAR::GetIdleAnim (wpn_shared/bar.cpp:92)
+
 int CBAR::GetIdleAnim( void )
 {
-    ResetEmptySound();
+	ResetEmptySound();
 
-    if( m_flTimeWeaponIdle <= UTIL_WeaponTimeBase() )
-        return CBipodWeapon::IsDeployed() ? BAR_DOWN_IDLE : BAR_UP_IDLE;
-    
-    return -1;
+	if( m_flTimeWeaponIdle <= UTIL_WeaponTimeBase() )
+		return IsDeployed() ? BAR_DOWN_IDLE : BAR_UP_IDLE;
+
+	return -1;
 }
-// .text:00160720 CBAR::GetUpToDownAnim (wpn_shared/bar.cpp:108)
-int CBAR::GetUpToDownAnim()
+
+int CBAR::GetUpToDownAnim( void )
 {
-	return 4;
+	return BAR_UP_TO_DOWN;
 }
-// .text:00160730 CBAR::GetDownToUpAnim (wpn_shared/bar.cpp:113)
-int CBAR::GetDownToUpAnim()
+
+int CBAR::GetDownToUpAnim( void )
 {
-	return 8;
+	return BAR_DOWN_TO_UP;
 }
-// NOTE: fire/idle/reload/deploy via CBipodWeapon base (bipod.cpp) using P_WpnInfo[11], BULLET_DOD_BAR (14), event m_usFireBAR
-// .text:001608c0 CBARAmmoClip::Spawn link 001608c0 Ghidra 001708c0
+
 class CBARAmmoClip : public CBasePlayerAmmo
 {
-  public:
-	void Spawn();
-	int AddAmmo( CBaseEntity *pOther );
+public:
+	virtual void Spawn( void )
+	{
+		SET_MODEL( ENT( pev ), "models/allied_ammo.mdl" );
+		CBasePlayerAmmo::Spawn();
+	}
+
+	virtual BOOL AddAmmo( CBaseEntity *pOther )
+	{
+		BOOL bResult = pOther->GiveAmmo( P_WpnInfo[WEAPON_BAR].ammo_maxclip, "ammo_55mm", P_WpnInfo[WEAPON_BAR].ammo_maxcarry ) != -1;
+
+		if( bResult )
+			EMIT_SOUND( ENT( pev ), CHAN_ITEM, "items/ammopickup.wav", 1, ATTN_NORM );
+
+		return bResult;
+	}
 };
-// .text:001608c0 CBARAmmoClip::Spawn (wpn_shared/bar.cpp)
-void CBARAmmoClip::Spawn()
-{
-	SET_MODEL( ENT( pev ), "models/allied_ammo.mdl" );
-	CBasePlayerAmmo::Spawn();
-}
-// .text:001608f0 CBARAmmoClip::AddAmmo (wpn_shared/bar.cpp)
-int CBARAmmoClip::AddAmmo( CBaseEntity *pOther )
-{
-	int bResult =
-		( (CBasePlayer *) pOther )->GiveAmmo( P_WpnInfo[11].ammo_maxclip, "ammo_55mm", P_WpnInfo[11].ammo_maxcarry );
-	if ( bResult != -1 )
-		EMIT_SOUND_DYN( ENT( pev ), CHAN_ITEM, "items/ammopickup.wav", 1.0, ATTN_NORM, 0, 100 );
-	return bResult != -1;
-}
-// .text:00160840 ammo_bar link 00160840 Ghidra 00170840
-LINK_ENTITY_TO_CLASS( ammo_bar, CBARAmmoClip );
+
+LINK_ENTITY_TO_CLASS( ammo_bar, CBARAmmoClip )

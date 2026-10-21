@@ -1,194 +1,237 @@
-// CBipodWeapon - base for BAR/30cal/Bren/MG42/MG34/FG42 (wpn_shared/bipod.cpp)
-// PARAMS: uses P_WpnInfo[id] per weapon | deployed spread base_accuracy2 else base | overheat CoolThink | deploy times up2down/down2up | recoil punchangle
+/***
+*
+*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
+*	All Rights Reserved.
+*
+*   Use, distribution, and modification of this source code and/or resulting
+*   object code is restricted to non-commercial enhancements to products from
+*   Valve LLC.  All other use, distribution, or modification is prohibited
+*   without written permission from Valve LLC.
+*
+****/
+
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
-#include "player.h"
 #include "weapons.h"
+#include "player.h"
 
-// .text:00172680 CBipodWeapon::Spawn (wpn_shared/bipod.cpp:13) link 00162680 Ghidra 00172680
-void CBipodWeapon::Spawn( int id )
+#include "dod_shared.h"
+
+extern p_wpninfo_s P_WpnInfo[];
+
+void CBipodWeapon::Spawn( int weapon_id )
 {
 	Precache();
-	m_iId = id;
-	SET_MODEL( ENT( pev ), P_WpnInfo[id].wmodel );
-	m_iDefaultAmmo = P_WpnInfo[id].ammo_default;
+
+	m_iId = weapon_id;
+	SET_MODEL( ENT( pev ), P_WpnInfo[weapon_id].wmodel );
+
+	m_iDefaultAmmo = P_WpnInfo[m_iId].ammo_default;
+
 	FallInit();
 }
-// .text:00171b40 CBipodWeapon::Precache link 00161a40 size 0x2a Ghidra 00171a40: overheat event exact (158B bogus = Deploy 0x9e)
-void CBipodWeapon::Precache()
+
+void CBipodWeapon::Precache( void )
 {
 	m_iOverheatEvent = PRECACHE_EVENT( 1, "events/effects/overheat.sc" );
 }
-// .text:00171be0 CBipodWeapon::AddToPlayer (wpn_shared/bipod.cpp:27) link 00161be0
-int CBipodWeapon::AddToPlayer( CBasePlayer *p )
+
+int CBipodWeapon::AddToPlayer( CBasePlayer *pPlayer )
 {
-	return CBasePlayerWeapon::AddToPlayer( p ) != 0;
+	if( CBasePlayerWeapon::AddToPlayer( pPlayer ) )
+		return TRUE;
+
+	return FALSE;
 }
-// .text:00171b40? CBipodWeapon::Deploy (wpn_shared/bipod.cpp:36) link 00161b40
-BOOL CBipodWeapon::Deploy()
+
+BOOL CBipodWeapon::Deploy( void )
 {
-	m_pPlayer->m_iFOV = GetZoomFOV();
+	m_pPlayer->m_iFOV = ZoomOut();
 	UpdateZoomSpeed();
-	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 1.0;
-	return DefaultDeploy( P_WpnInfo[m_iId].vmodel, P_WpnInfo[m_iId].pmodel, GetDrawAnim(), P_WpnInfo[m_iId].szAnimExt,
-						  P_WpnInfo[m_iId].szAnimReloadExt, 0 );
+
+	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 1.0f;
+
+	return DefaultDeploy( P_WpnInfo[m_iId].vmodel, P_WpnInfo[m_iId].pmodel, GetDrawAnim(), P_WpnInfo[m_iId].szAnimExt, P_WpnInfo[m_iId].szAnimReloadExt, 0 );
 }
-// .text:00171a70 CBipodWeapon::CanHolster (wpn_shared/bipod.cpp:45) link 00161a70
-int CBipodWeapon::CanHolster()
+
+BOOL CBipodWeapon::CanHolster( void )
 {
-	return !IsDeployed();
+	return !m_pPlayer->IsInMGDeploy();
 }
-// .text:00171b30 CBipodWeapon::Holster (wpn_shared/bipod.cpp:54) link 00161b30
+
 void CBipodWeapon::Holster( int skiplocal )
 {
-	ForceUndeploy();
 	CBasePlayerWeapon::Holster( skiplocal );
 }
-// .text:00171f30 CBipodWeapon::PrimaryAttack (wpn_shared/bipod.cpp:58) link 00161f30 - 12KB decompile, core below
-void CBipodWeapon::PrimaryAttack()
+
+void CBipodWeapon::PrimaryAttack( void )
 {
-	if ( PlayerIsWaterSniping() )
+	ItemInfo info;
+	float flSpread;
+	vec3_t vecSrc;
+	vec3_t vecAiming;
+	vec3_t vecNewShot;
+	vec3_t vecNewShot2;
+
+	if( PlayerIsWaterSniping() )
 	{
 		PlayEmptySound();
-		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 1.0;
+		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 1.0f;
 		return;
 	}
 
-	if ( m_iClip < 1 )
+	if( m_iClip <= 0 )
 	{
-		if ( !m_fInAttack )
+		if( !m_fInAttack )
 		{
 			PlayEmptySound();
-			m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.15;
+			m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.15f;
 			m_fInAttack = 1;
 		}
+
 		return;
 	}
 
-	ItemInfo bipod;
-	GetItemInfo( &bipod );
+	GetItemInfo( &info );
 
-	if ( ( bipod.iFlags & ITEM_FLAG_HEAT ) != 0 )
+	if( info.iFlags & ITEM_FLAG_HEAT )
 	{
-		if ( m_fInAttack )
+		if( m_fInAttack )
 			return;
-		if ( m_flWeaponHeat >= 99.0f )
+
+		if( m_flWeaponHeat >= 99.0f )
 		{
 			m_fInAttack = 1;
 			return;
 		}
-		if ( m_flWeaponHeat >= 95.0f )
-			PLAYBACK_EVENT_FULL( FEV_NOTHOST, m_pPlayer->edict(), m_iOverheatEvent, 0, g_vecZero, g_vecZero, 0, 0, 0,
-								 0, 0, 0 );
+
+		if( m_flWeaponHeat >= 95.0f )
+			PLAYBACK_EVENT_FULL( 1, m_pPlayer->edict(), m_iOverheatEvent, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, 0.0f, 0.0f, 0, 0, 0, 0 );
 	}
 
 	m_pPlayer->SetAnimation( PLAYER_ATTACK1 );
+
 	m_pPlayer->m_iWeaponVolume = 600;
 
-	float flSpread = P_WpnInfo[m_iId].base_accuracy;
-	if ( IsDeployed() )
+	if( m_pPlayer->IsInMGDeploy() )
 		flSpread = P_WpnInfo[m_iId].base_accuracy2;
-	else if ( m_pPlayer->pev->velocity.Length() > 45.0f )
-		flSpread += P_WpnInfo[m_iId].accuracy_penalty;
+	else
+		flSpread = P_WpnInfo[m_iId].base_accuracy;
 
-	Vector vecSrc = m_pPlayer->GetGunPosition();
-	Vector vecDir = m_pPlayer->FireBulletsNC( vecSrc, gpGlobals->v_forward, flSpread, 8192, bipod.iBulletId, 3, 0,
-											  m_pPlayer->pev, m_pPlayer->random_seed );
-	m_iClip -= 1;
-
-	if ( m_iId == WEAPON_MG42 )
+	if( !m_pPlayer->IsInMGDeploy() )
 	{
-		m_iClip -= 1;
-		Vector vecDir2 = m_pPlayer->FireBulletsNC( vecSrc, gpGlobals->v_forward, flSpread, 8192, bipod.iBulletId, 3, 0,
-												   m_pPlayer->pev, m_pPlayer->random_seed + 5 );
-		PLAYBACK_EVENT_FULL( FEV_NOTHOST, m_pPlayer->edict(), m_iFireEvent, 0, g_vecZero, g_vecZero, vecDir2.x,
-							 vecDir2.y, m_iClip, 0, 1, 0 );
+		if( m_pPlayer->pev->velocity.Length() > 45.0f )
+			flSpread += P_WpnInfo[m_iId].accuracy_penalty;
 	}
 
-	PLAYBACK_EVENT_FULL( FEV_NOTHOST, m_pPlayer->edict(), m_iFireEvent, 0, g_vecZero, g_vecZero, vecDir.x, vecDir.y,
-						 m_iClip, 0, 0, 0 );
+	vecSrc = m_pPlayer->GetGunPosition();
+	vecAiming = gpGlobals->v_forward;
 
-	if ( ( bipod.iFlags & ITEM_FLAG_HEAT ) != 0 )
+	vecNewShot = m_pPlayer->FireBulletsNC( vecSrc, vecAiming, flSpread, 8192.0f, info.iBulletId, 3, 0, m_pPlayer->pev, m_pPlayer->random_seed );
+
+	m_iClip--;
+
+	// the MG42 fires two bullets per shot
+	if( m_iId == WEAPON_MG42 )
+	{
+		m_iClip--;
+
+		vecNewShot2 = m_pPlayer->FireBulletsNC( vecSrc, vecAiming, flSpread, 8192.0f, info.iBulletId, 3, 0, m_pPlayer->pev, m_pPlayer->random_seed + 5 );
+
+		PLAYBACK_EVENT_FULL( 1, m_pPlayer->edict(), m_iFireEvent, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, vecNewShot2.x, vecNewShot2.y, m_iClip, 0, 1, 0 );
+	}
+
+	PLAYBACK_EVENT_FULL( 1, m_pPlayer->edict(), m_iFireEvent, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, vecNewShot.x, vecNewShot.y, m_iClip, 0, 0, 0 );
+
+	if( info.iFlags & ITEM_FLAG_HEAT )
 		m_flWeaponHeat += 3.0f;
 
 	m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[m_iId].anim_firedelay;
 	m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[m_iId].anim_firedelay;
 	m_pPlayer->m_flNextAttack = UTIL_WeaponTimeBase() + P_WpnInfo[m_iId].anim_firedelay;
-	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + RANDOM_FLOAT( 10, 15 );
 
-	if ( !IsDeployed() )
-		RemoveStamina( 2.0f, m_pPlayer );
+	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + RANDOM_FLOAT( 10.0f, 15.0f );
 
-	if ( ( bipod.iFlags & ITEM_FLAG_HEAT ) != 0 )
+	if( !m_pPlayer->IsInMGDeploy() )
+		RemoveStamina( info.flRecoil, m_pPlayer );
+}
+
+void CBipodWeapon::CoolThink( void )
+{
+	m_flWeaponHeat -= 0.6f;
+
+	if( m_flWeaponHeat <= 0.0f )
 	{
-		SetThink( &CBipodWeapon::CoolThink );
-		pev->nextthink = gpGlobals->time + 0.1;
+		m_flWeaponHeat = 0.0f;
+		SetThink( NULL );
+	}
+	else
+	{
+		pev->nextthink = gpGlobals->time + 0.1f;
 	}
 }
-// .text:00171c10 CBipodWeapon::CoolThink (wpn_shared/bipod.cpp:194) link 00161c10
-void CBipodWeapon::CoolThink()
+
+void CBipodWeapon::SecondaryAttack( void )
 {
-	m_flWeaponHeat -= 0.6;
-	if ( m_flWeaponHeat > 0 )
-	{
-		pev->nextthink = gpGlobals->time + 0.1;
+	if( m_pPlayer->pev->waterlevel > 0 && m_pPlayer->pev->iuser3 != STANCE_PRONE_DEPLOYED )
 		return;
-	}
-	m_flWeaponHeat = 0;
-	SetThink( NULL );
-}
-// .text:00171d20 CBipodWeapon::SecondaryAttack (wpn_shared/bipod.cpp:207) link 00161d20 - toggles bipod deploy/undeploy, plays up/down anim, sets FOV, blocks while proned/sprinting
-void CBipodWeapon::SecondaryAttack()
-{
-	if ( IsDeployed() )
-		ForceUndeploy();
-	else
-		DeployBipod();
-	m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 1.0;
-	m_pPlayer->m_flNextAttack += 0.5;
-}
-// .text:001726f0 CBipodWeapon::ForceUndeploy (wpn_shared/bipod.cpp:284) link 001626f0
-void CBipodWeapon::ForceUndeploy()
-{
-	m_iWeaponState &= ~2;
-}
-// .text:00171a90 CBipodWeapon::Reload (wpn_shared/bipod.cpp:290) link 00161a90
-void CBipodWeapon::Reload()
-{
-	float flReloadTime;
 
-	if ( m_iId == WEAPON_BREN && IsDeployed() )
-		flReloadTime = P_WpnInfo[m_iId].anim_reloadtime2;
-	else
-		flReloadTime = P_WpnInfo[m_iId].anim_reloadtime;
+	m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[m_iId].anim_down2uptime;
+	m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[m_iId].anim_down2uptime;
 
-	DefaultReload( P_WpnInfo[m_iId].ammo_maxclip, GetReloadAnim(), flReloadTime );
+	if( m_pPlayer->pev->iuser3 == STANCE_PRONE || m_pPlayer->pev->vuser1.x == 1.0f )
+		SendWeaponAnim( GetUpToDownAnim(), 1 );
+	else if( m_pPlayer->pev->iuser3 == STANCE_PRONE_DEPLOYED || m_pPlayer->pev->vuser1.x == SANDBAG_DEPLOYED )
+		SendWeaponAnim( GetDownToUpAnim(), 1 );
 }
-// .text:00171c80 CBipodWeapon::WeaponIdle (wpn_shared/bipod.cpp:302) link 00161c80
-void CBipodWeapon::WeaponIdle()
+
+void CBipodWeapon::ForceUndeploy( void )
+{
+	SendWeaponAnim( GetDownToUpAnim(), 0 );
+}
+
+void CBipodWeapon::Reload( void )
+{
+	float fDelay = P_WpnInfo[m_iId].anim_reloadtime;
+
+	if( m_iId == WEAPON_BREN && m_pPlayer->IsInMGDeploy() )
+		fDelay = P_WpnInfo[m_iId].anim_reloadtime2;
+
+	DefaultReload( P_WpnInfo[m_iId].ammo_maxclip, GetReloadAnim(), fDelay );
+}
+
+void CBipodWeapon::WeaponIdle( void )
 {
 	ResetEmptySound();
-	if ( m_flTimeWeaponIdle > UTIL_WeaponTimeBase() )
+
+	if( m_flTimeWeaponIdle > UTIL_WeaponTimeBase() )
 		return;
-	if ( m_flNextPrimaryAttack > UTIL_WeaponTimeBase() )
+
+	if( m_flNextPrimaryAttack > UTIL_WeaponTimeBase() )
 		return;
-	if ( m_flNextSecondaryAttack > UTIL_WeaponTimeBase() )
+
+	if( m_flNextSecondaryAttack > UTIL_WeaponTimeBase() )
 		return;
+
 	int iAnim = GetIdleAnim();
-	if ( iAnim >= 0 )
+
+	if( iAnim >= 0 )
 		SendWeaponAnim( iAnim, 1 );
 }
-// .text:00172730 CBipodWeapon::IsDeployed (wpn_shared/bipod.cpp:322) link 00162730
-bool CBipodWeapon::IsDeployed()
+
+bool CBipodWeapon::IsDeployed( void )
 {
-	return ( m_iWeaponState & 2 ) ? 1 : 0;
+	return m_pPlayer->IsInMGDeploy();
 }
-// .text:00172750 CBipodWeapon::GetBipodSpread (wpn_shared/bipod.cpp:326) link 00162750
-float CBipodWeapon::GetBipodSpread()
+
+float CBipodWeapon::GetBipodSpread( void )
 {
-	if ( IsDeployed() )
+	if( m_pPlayer->IsInMGDeploy() )
 		return P_WpnInfo[m_iId].base_accuracy2;
+
 	return P_WpnInfo[m_iId].base_accuracy;
 }
-// NOTE: virtuals GetDrawAnim/GetIdleAnim/GetReloadAnim/GetUpToDownAnim/GetDownToUpAnim overridden per weapon (BAR/30cal/Bren above), UseDecrement/iItemSlot/CanDrop weak defaults skipped as junk

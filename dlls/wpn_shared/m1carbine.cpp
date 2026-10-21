@@ -1,194 +1,206 @@
-// M1 Carbine - Allied semi carbine
-// PARAMS: dmg 40 | clip 15 carry 165 | reload 3.14s | spread 0.019 +0.10 | delay 0.10s | snd carbine_shoot boltback boltforward | mdl v_m1carbine p_m1carb w_m1carb p_m1carb_l | evt events/weapons/m1carbine.sc | ammo ammo_66mm id 20 slot 2 weight 20 | BULLET_DOD_CARBINE (19) semi
+/***
+*
+*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
+*	All Rights Reserved.
+*
+*   Use, distribution, and modification of this source code and/or resulting
+*   object code is restricted to non-commercial enhancements to products from
+*   Valve LLC.  All other use, distribution, or modification is prohibited
+*   without written permission from Valve LLC.
+*
+****/
+
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
-#include "player.h"
 #include "weapons.h"
-#include "gamerules.h"
-#include "dod_gamerules.h"
+#include "player.h"
 
-enum m1carbine_e
+#include "dod_shared.h"
+
+LINK_ENTITY_TO_CLASS( weapon_m1carbine, CM1Carbine )
+
+extern p_wpninfo_s P_WpnInfo[];
+
+void CM1Carbine::Spawn( void )
 {
-	M1CARB_IDLE1 = 0,
-	M1CARB_RELOAD,
-	M1CARB_DEPLOY,
-	M1CARB_FIRE,
-	M1CARB_FAST_DEPLOY
-};
-LINK_ENTITY_TO_CLASS( weapon_m1carbine, CM1Carbine );
-// .text:0016bbb0 weapon_m1carbine (wpn_shared/m1carbine.cpp:20)
-// .text:0016b3f0 CM1Carbine::Precache (wpn_shared/m1carbine.cpp:57)
+	Precache();
+
+	SET_MODEL( ENT( pev ), P_WpnInfo[WEAPON_M1CARBINE].wmodel );
+	m_iId = WEAPON_M1CARBINE;
+
+	m_iDefaultAmmo = P_WpnInfo[WEAPON_M1CARBINE].ammo_default;
+
+	FallInit();
+}
+
+int CM1Carbine::AddToPlayer( CBasePlayer *pPlayer )
+{
+	if( CBasePlayerWeapon::AddToPlayer( pPlayer ) )
+	{
+		SET_MODEL( ENT( pev ), P_WpnInfo[WEAPON_M1CARBINE].wmodel );
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 void CM1Carbine::Precache( void )
 {
-    PRECACHE_MODEL( P_WpnInfo[20].vmodel );
-    PRECACHE_MODEL( P_WpnInfo[20].wmodel );
-    PRECACHE_MODEL( P_WpnInfo[WEAPON_FOLDINGCARBINE].vmodel );
-    PRECACHE_MODEL( P_WpnInfo[WEAPON_FOLDINGCARBINE].wmodel );
+	PRECACHE_MODEL( P_WpnInfo[WEAPON_M1CARBINE].vmodel );
+	PRECACHE_MODEL( P_WpnInfo[WEAPON_M1CARBINE].wmodel );
+	PRECACHE_MODEL( P_WpnInfo[WEAPON_FOLDINGCARBINE].vmodel );
+	PRECACHE_MODEL( P_WpnInfo[WEAPON_FOLDINGCARBINE].wmodel );
 
-    PRECACHE_SOUND( "weapons/carbine_shoot.wav" );
-    PRECACHE_SOUND( "weapons/tommy_draw_slideback.wav" );
-    PRECACHE_SOUND( "weapons/tommy_reload_clipout.wav" );
-    PRECACHE_SOUND( "weapons/tommy_reload_clipin.wav" );
+	PRECACHE_SOUND( "weapons/carbine_shoot.wav" );
+	PRECACHE_SOUND( "weapons/tommy_draw_slideback.wav" );
+	PRECACHE_SOUND( "weapons/tommy_reload_clipout.wav" );
+	PRECACHE_SOUND( "weapons/tommy_reload_clipin.wav" );
 
-    m_usFireM1Carbine = PRECACHE_EVENT( 1, "events/weapons/m1carbine.sc" );
+	m_usFireM1Carbine = PRECACHE_EVENT( 1, "events/weapons/m1carbine.sc" );
 }
-// .text:0016b480 CM1Carbine::GetItemInfo (wpn_shared/m1carbine.cpp:73)
+
 int CM1Carbine::GetItemInfo( ItemInfo *p )
 {
 	p->pszName = STRING( pev->classname );
 	p->pszAmmo1 = "ammo_66mm";
-	p->iMaxAmmo1 = P_WpnInfo[20].ammo_maxcarry;
-	p->pszAmmo2 = 0;
+	p->iMaxAmmo1 = P_WpnInfo[WEAPON_M1CARBINE].ammo_maxcarry;
+	p->pszAmmo2 = NULL;
 	p->iMaxAmmo2 = -1;
-	p->iMaxClip = P_WpnInfo[20].ammo_maxclip;
+	p->iMaxClip = P_WpnInfo[WEAPON_M1CARBINE].ammo_maxclip;
 	p->iSlot = 2;
 	p->iPosition = 0;
-	p->iFlags = 0x80;
-	p->iId = m_iId = 20;
-	p->iWeight = P_WpnInfo[20].misc_weight;
+	p->iFlags = ITEM_FLAG_RIFLE;
+	p->iId = m_iId = WEAPON_M1CARBINE;
+	p->iWeight = P_WpnInfo[WEAPON_M1CARBINE].misc_weight;
+
 	return 1;
 }
-// .text:0016b750 CM1Carbine::Spawn (wpn_shared/m1carbine.cpp:27)
-void CM1Carbine::Spawn()
+
+BOOL CM1Carbine::SpawnDeploy( void )
 {
-	Precache();
-	SET_MODEL( ENT( pev ), P_WpnInfo[20].wmodel );
-	m_iId = 20;
-	m_iDefaultAmmo = P_WpnInfo[20].ammo_default;
-	FallInit();
-}
-// .text:0016b820 CM1Carbine::AddToPlayer (wpn_shared/m1carbine.cpp:36)
-int CM1Carbine::AddToPlayer( CBasePlayer *p )
-{
-	if ( CBasePlayerWeapon::AddToPlayer( p ) )
-	{
-		if ( g_pGameRules != NULL && ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesPara() )
-			SET_MODEL( ENT( pev ), P_WpnInfo[WEAPON_FOLDINGCARBINE].wmodel );
-		else
-			SET_MODEL( ENT( pev ), P_WpnInfo[20].wmodel );
-		return 1;
-	}
-	return 0;
-}
-// .text:0016b650 CM1Carbine::SpawnDeploy (wpn_shared/m1carbine.cpp:90)
-BOOL CM1Carbine::SpawnDeploy()
-{
-	m_pPlayer->m_iFOV = GetZoomFOV();
+	m_pPlayer->m_iFOV = ZoomOut();
 	UpdateZoomSpeed();
-	if ( g_pGameRules != NULL && ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesPara() )
-	{
-		return TimedDeploy( P_WpnInfo[WEAPON_FOLDINGCARBINE].vmodel, P_WpnInfo[WEAPON_FOLDINGCARBINE].pmodel,
-							M1CARB_DEPLOY, P_WpnInfo[WEAPON_FOLDINGCARBINE].szAnimExt,
-							P_WpnInfo[WEAPON_FOLDINGCARBINE].szAnimReloadExt, 1.66, 1.66, ( UseDecrement() != 0 ) );
-	}
-	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 1.0;
-	return DefaultDeploy( P_WpnInfo[20].vmodel, P_WpnInfo[20].pmodel, M1CARB_DEPLOY, P_WpnInfo[20].szAnimExt,
-						  P_WpnInfo[20].szAnimReloadExt, 0 );
+
+	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 1.0f;
+
+	return DefaultDeploy( P_WpnInfo[WEAPON_M1CARBINE].vmodel, P_WpnInfo[WEAPON_M1CARBINE].pmodel, M1CARBINE_DRAW, P_WpnInfo[WEAPON_M1CARBINE].szAnimExt, P_WpnInfo[WEAPON_M1CARBINE].szAnimReloadExt, 0 );
 }
-// .text:0016b560 CM1Carbine::Deploy (wpn_shared/m1carbine.cpp:114)
-BOOL CM1Carbine::Deploy()
+
+BOOL CM1Carbine::Deploy( void )
 {
-	m_pPlayer->m_iFOV = GetZoomFOV();
+	m_pPlayer->m_iFOV = ZoomOut();
 	UpdateZoomSpeed();
-	if ( g_pGameRules != NULL && ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesPara() )
-	{
-		m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 1.0;
-		return DefaultDeploy( P_WpnInfo[WEAPON_FOLDINGCARBINE].vmodel, P_WpnInfo[WEAPON_FOLDINGCARBINE].pmodel,
-							  M1CARB_FAST_DEPLOY, P_WpnInfo[WEAPON_FOLDINGCARBINE].szAnimExt,
-							  P_WpnInfo[WEAPON_FOLDINGCARBINE].szAnimReloadExt, 0 );
-	}
-	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 1.0;
-	return DefaultDeploy( P_WpnInfo[20].vmodel, P_WpnInfo[20].pmodel, M1CARB_DEPLOY, P_WpnInfo[20].szAnimExt,
-						  P_WpnInfo[20].szAnimReloadExt, 0 );
+
+	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 1.0f;
+
+	return DefaultDeploy( P_WpnInfo[WEAPON_M1CARBINE].vmodel, P_WpnInfo[WEAPON_M1CARBINE].pmodel, M1CARBINE_DRAW, P_WpnInfo[WEAPON_M1CARBINE].szAnimExt, P_WpnInfo[WEAPON_M1CARBINE].szAnimReloadExt, 0 );
 }
-// .text:0016b500 CM1Carbine::CanHolster (wpn_shared/m1carbine.cpp:141)
-int CM1Carbine::CanHolster()
+
+BOOL CM1Carbine::CanHolster( void )
 {
-	return 1;
+	return TRUE;
 }
-// .text:0016b890 CM1Carbine::PrimaryAttack (wpn_shared/m1carbine.cpp:144)
-void CM1Carbine::PrimaryAttack()
+
+void CM1Carbine::PrimaryAttack( void )
 {
-	if ( PlayerIsWaterSniping() )
+	float flSpread;
+	vec3_t vecSrc;
+	vec3_t vecAiming;
+	vec3_t vecNewShot;
+
+	if( PlayerIsWaterSniping() )
 	{
 		PlayEmptySound();
-		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.15;
+		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.15f;
+		return;
 	}
-	else if ( !m_fInAttack )
+
+	if( m_fInAttack )
+		return;
+
+	if( m_iClip <= 0 )
 	{
-		if ( m_iClip < 1 )
-		{
-			PlayEmptySound();
-			m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.15;
-			m_fInAttack = 1;
-		}
-		else
-		{
-			m_pPlayer->SetAnimation( PLAYER_ATTACK1 );
-			m_pPlayer->m_iWeaponVolume = 600;
-			m_iClip--;
-			float flSpread = P_WpnInfo[m_iId].base_accuracy;
-			if ( m_pPlayer->pev->velocity.Length() > 45.0f )
-				flSpread += P_WpnInfo[m_iId].accuracy_penalty;
-			Vector vecSrc = m_pPlayer->GetGunPosition();
-			Vector vecDir = m_pPlayer->FireBulletsNC( vecSrc, gpGlobals->v_forward, flSpread, 8192,
-													  BULLET_DOD_CARBINE, 3, 0, m_pPlayer->pev, m_pPlayer->random_seed );
-			PLAYBACK_EVENT_FULL( FEV_NOTHOST, m_pPlayer->edict(), m_usFireM1Carbine, 0, g_vecZero, g_vecZero,
-								 vecDir.x, vecDir.y, (int) m_pPlayer->pev->punchangle.x, 0, m_iClip, 0 );
-			m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[20].anim_firedelay;
-			m_pPlayer->m_flNextAttack = UTIL_WeaponTimeBase() + 0.05;
-			m_fInAttack = 1;
-			m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + RANDOM_FLOAT( 10, 15 );
-			RemoveStamina( 2.0f, m_pPlayer );
-		}
+		PlayEmptySound();
+		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.15f;
+		m_fInAttack = 1;
+		return;
 	}
+
+	m_pPlayer->SetAnimation( PLAYER_ATTACK1 );
+
+	m_pPlayer->m_iWeaponVolume = 600;
+
+	m_iClip--;
+
+	flSpread = P_WpnInfo[m_iId].base_accuracy;
+
+	if( m_pPlayer->pev->velocity.Length() > 45.0f )
+		flSpread += P_WpnInfo[m_iId].accuracy_penalty;
+
+	vecSrc = m_pPlayer->GetGunPosition();
+	vecAiming = gpGlobals->v_forward;
+
+	vecNewShot = m_pPlayer->FireBulletsNC( vecSrc, vecAiming, flSpread, 8192.0f, BULLET_PLAYER_M1CARBINE, 3, 0, m_pPlayer->pev, m_pPlayer->random_seed );
+
+	PLAYBACK_EVENT_FULL( 1, m_pPlayer->edict(), m_usFireM1Carbine, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, vecNewShot.x, vecNewShot.y, (int)m_pPlayer->pev->punchangle.x, 0, m_iClip, 0 );
+
+	m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[WEAPON_M1CARBINE].anim_firedelay;
+	m_pPlayer->m_flNextAttack = UTIL_WeaponTimeBase() + 0.05f;
+
+	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + RANDOM_FLOAT( 10.0f, 15.0f );
+	m_fInAttack = 1;
+
+	RemoveStamina( 2.0f, m_pPlayer );
 }
-// .text:0016b510 CM1Carbine::SecondaryAttack (wpn_shared/m1carbine.cpp:203)
-void CM1Carbine::SecondaryAttack()
+
+void CM1Carbine::SecondaryAttack( void )
 {
-	return;
+	/* Nothing. */
 }
-// .text:0016b530 CM1Carbine::Reload (wpn_shared/m1carbine.cpp:206)
-void CM1Carbine::Reload()
+
+void CM1Carbine::Reload( void )
 {
-	DefaultReload( P_WpnInfo[20].ammo_maxclip, 1, P_WpnInfo[20].anim_reloadtime );
+	DefaultReload( P_WpnInfo[WEAPON_M1CARBINE].ammo_maxclip, M1CARBINE_RELOAD, P_WpnInfo[WEAPON_M1CARBINE].anim_reloadtime );
 }
-// .text:0016b7a0 CM1Carbine::WeaponIdle (wpn_shared/m1carbine.cpp:211)
-void CM1Carbine::WeaponIdle()
+
+void CM1Carbine::WeaponIdle( void )
 {
 	ResetEmptySound();
-	if ( m_flTimeWeaponIdle > UTIL_WeaponTimeBase() )
-		return;
-	SendWeaponAnim( 0, 1 );
-	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + RANDOM_FLOAT( 10, 15 );
+
+	if( m_flTimeWeaponIdle <= UTIL_WeaponTimeBase() )
+	{
+		SendWeaponAnim( M1CARBINE_IDLE, 1 );
+		m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + RANDOM_FLOAT( 10.0f, 15.0f );
+	}
 }
-// .text:0016b520 CM1Carbine::Classify (wpn_shared/m1carbine.cpp:224)
-int CM1Carbine::Classify()
+
+int CM1Carbine::Classify( void )
 {
 	return CLASS_RIFLE;
 }
-// .text:0016bcb0 CM1CarbineAmmoClip::Spawn link 0016bcb0 Ghidra 0017bcb0
+
 class CM1CarbineAmmoClip : public CBasePlayerAmmo
 {
-  public:
-	void Spawn();
-	int AddAmmo( CBaseEntity *pOther );
+public:
+	virtual void Spawn( void )
+	{
+		SET_MODEL( ENT( pev ), "models/allied_ammo.mdl" );
+		CBasePlayerAmmo::Spawn();
+	}
+
+	virtual BOOL AddAmmo( CBaseEntity *pOther )
+	{
+		BOOL bResult = pOther->GiveAmmo( P_WpnInfo[WEAPON_M1CARBINE].ammo_maxclip, "ammo_66mm", P_WpnInfo[WEAPON_M1CARBINE].ammo_maxcarry ) != -1;
+
+		if( bResult )
+			EMIT_SOUND( ENT( pev ), CHAN_ITEM, "items/ammopickup.wav", 1, ATTN_NORM );
+
+		return bResult;
+	}
 };
-// .text:0016bcb0 CM1CarbineAmmoClip::Spawn (wpn_shared/m1carbine.cpp)
-void CM1CarbineAmmoClip::Spawn()
-{
-	SET_MODEL( ENT( pev ), "models/allied_ammo.mdl" );
-	CBasePlayerAmmo::Spawn();
-}
-// .text:0016bce0 CM1CarbineAmmoClip::AddAmmo (wpn_shared/m1carbine.cpp)
-int CM1CarbineAmmoClip::AddAmmo( CBaseEntity *pOther )
-{
-	int bResult =
-		( (CBasePlayer *) pOther )->GiveAmmo( P_WpnInfo[20].ammo_maxclip, "ammo_66mm", P_WpnInfo[20].ammo_maxcarry );
-	if ( bResult != -1 )
-		EMIT_SOUND_DYN( ENT( pev ), CHAN_ITEM, "items/ammopickup.wav", 1.0, ATTN_NORM, 0, 100 );
-	return bResult != -1;
-}
-// .text:0016bc20 ammo_m1carbine link 0016bc20 Ghidra 0017bc20
-LINK_ENTITY_TO_CLASS( ammo_m1carbine, CM1CarbineAmmoClip );
+
+LINK_ENTITY_TO_CLASS( ammo_m1carbine, CM1CarbineAmmoClip )

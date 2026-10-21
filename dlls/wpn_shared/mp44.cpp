@@ -1,51 +1,46 @@
-// MP44/StG44 - Axis assault rifle auto (dod/dlls/wpn_shared/mp44.cpp)
-// | Param | Value |
-// | Name | weapon_mp44 / CMP44 / id 8 |
-// | Damage | 50 (plrDmgMP44 via BULLET_DOD_MP44 (11)) |
-// | Mag | 30 / carry 210 / default 210 |
-// | FireDelay | 0.09 | Reload | 3.13 | Draw | 1.0 |
-// | Spread | 0.025 +0.10 move | Ani | stg44 |
-// | Models | p_stg44 / v_mp44 / w_mp44 |
-// | Ammo | ammo_55mm | Slot | 2/0 flags 0x80 weight 20 |
-// | Sound | weapons/mp44_shoot.wav | Event | events/weapons/mp44.sc |
-// | Secondary | empty (return) |
-// preserved .text markers from server:
-// .text:0017d250 weapon_mp44 (wpn_shared/mp44.cpp:28)
-// .text:0017d2c0 ammo_mp44 (wpn_shared/mp44.cpp:187)
-// .text:0017cc80 CMP44::Precache (wpn_shared/mp44.cpp:44)
-// .text:0017ce70 CMP44::Spawn (wpn_shared/mp44.cpp:34)
-// .text:0017cce0 CMP44::GetItemInfo (wpn_shared/mp44.cpp:55)
-// .text:0017cf40 CMP44::PrimaryAttack (wpn_shared/mp44.cpp:94)
-// .text:0017cd70 CMP44::SecondaryAttack (wpn_shared/mp44.cpp:146)
-// MP44_e moved to dod_shared.h (identical 1:1) — local duplicate removed.
-
-//
-// mp44.cpp
-//
-// implementation of CMP44 class
-//
+/***
+*
+*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
+*	All Rights Reserved.
+*
+*   Use, distribution, and modification of this source code and/or resulting
+*   object code is restricted to non-commercial enhancements to products from
+*   Valve LLC.  All other use, distribution, or modification is prohibited
+*   without written permission from Valve LLC.
+*
+****/
 
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
-#include "player.h"
 #include "weapons.h"
+#include "player.h"
+
+#include "dod_shared.h"
 
 LINK_ENTITY_TO_CLASS( weapon_mp44, CMP44 )
+
+extern p_wpninfo_s P_WpnInfo[];
 
 void CMP44::Spawn( void )
 {
 	Precache();
-	SET_MODEL( ENT( pev ), P_WpnInfo[8].wmodel );
-	m_iId = 8;
-	m_iDefaultAmmo = P_WpnInfo[8].ammo_default;
+
+	SET_MODEL( ENT( pev ), P_WpnInfo[WEAPON_MP44].wmodel );
+	m_iId = WEAPON_MP44;
+
+	m_iDefaultAmmo = P_WpnInfo[WEAPON_MP44].ammo_default;
+
 	FallInit();
 }
 
 void CMP44::Precache( void )
 {
-	PRECACHE_MODEL( P_WpnInfo[8].vmodel );
-	PRECACHE_MODEL( P_WpnInfo[8].wmodel );
+	PRECACHE_MODEL( P_WpnInfo[WEAPON_MP44].vmodel );
+	PRECACHE_MODEL( P_WpnInfo[WEAPON_MP44].wmodel );
 
 	PRECACHE_SOUND( "weapons/weaponempty.wav" );
 	PRECACHE_SOUND( "weapons/mp44_shoot.wav" );
@@ -57,30 +52,34 @@ int CMP44::GetItemInfo( ItemInfo *p )
 {
 	p->pszName = STRING( pev->classname );
 	p->pszAmmo1 = "ammo_55mm";
-	p->iMaxAmmo1 = P_WpnInfo[8].ammo_maxcarry;
-	p->pszAmmo2 = 0;
+	p->iMaxAmmo1 = P_WpnInfo[WEAPON_MP44].ammo_maxcarry;
+	p->pszAmmo2 = NULL;
 	p->iMaxAmmo2 = -1;
-	p->iMaxClip = P_WpnInfo[8].ammo_maxclip;
+	p->iMaxClip = P_WpnInfo[WEAPON_MP44].ammo_maxclip;
 	p->iSlot = 2;
 	p->iPosition = 0;
-	p->iFlags = 0x80;
-	p->iId = m_iId = 8;
-	p->iWeight = P_WpnInfo[8].misc_weight;
+	p->iFlags = ITEM_FLAG_RIFLE;
+	p->iId = m_iId = WEAPON_MP44;
+	p->iWeight = P_WpnInfo[WEAPON_MP44].misc_weight;
+
 	return 1;
 }
 
 int CMP44::AddToPlayer( CBasePlayer *pPlayer )
 {
-	return CBasePlayerWeapon::AddToPlayer( pPlayer ) != 0;
+	if( CBasePlayerWeapon::AddToPlayer( pPlayer ) )
+		return TRUE;
+
+	return FALSE;
 }
 
 BOOL CMP44::Deploy( void )
 {
-	ZoomOut();
-	UpdateZoomSpeed();
-	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + P_WpnInfo[8].anim_drawtime;
-	return DefaultDeploy( P_WpnInfo[8].vmodel, P_WpnInfo[8].pmodel, MP44_DRAW, P_WpnInfo[8].szAnimExt,
-						  P_WpnInfo[8].szAnimReloadExt, 0 );
+	m_pPlayer->m_iFOV = ZoomOut();
+
+	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + P_WpnInfo[WEAPON_MP44].anim_drawtime;
+
+	return DefaultDeploy( P_WpnInfo[WEAPON_MP44].vmodel, P_WpnInfo[WEAPON_MP44].pmodel, MP44_DRAW, P_WpnInfo[WEAPON_MP44].szAnimExt, P_WpnInfo[WEAPON_MP44].szAnimReloadExt, 0 );
 }
 
 BOOL CMP44::CanHolster( void )
@@ -91,87 +90,97 @@ BOOL CMP44::CanHolster( void )
 void CMP44::PrimaryAttack( void )
 {
 	float flSpread;
+	vec3_t vecSrc;
+	vec3_t vecAiming;
+	vec3_t vecNewShot;
 
-	if ( PlayerIsWaterSniping() )
+	if( PlayerIsWaterSniping() )
 	{
 		PlayEmptySound();
 		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.15f;
+		return;
 	}
-	else if ( m_iClip <= 0 )
+
+	if( m_iClip <= 0 )
 	{
-		if ( !m_fInAttack )
+		if( !m_fInAttack )
 		{
 			PlayEmptySound();
 			m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.15f;
-			m_fInAttack = TRUE;
+			m_fInAttack = 1;
 		}
+
+		return;
 	}
-	else
-	{
-		m_pPlayer->SetAnimation( PLAYER_ATTACK1 );
-		m_pPlayer->m_iWeaponVolume = NORMAL_GUN_VOLUME;
-		--m_iClip;
 
-		flSpread = P_WpnInfo[8].base_accuracy;
+	m_pPlayer->SetAnimation( PLAYER_ATTACK1 );
 
-		if ( m_pPlayer->pev->velocity.Length() > 45.0f )
-			flSpread += P_WpnInfo[8].accuracy_penalty;
-		Vector vecSrc = m_pPlayer->GetGunPosition();
+	m_pPlayer->m_iWeaponVolume = 600;
 
-		Vector vecDir = m_pPlayer->FireBulletsNC( vecSrc, ( Vector ) gpGlobals->v_forward, flSpread, 8192, BULLET_DOD_MP44, 3, 0, m_pPlayer->pev,
-												  m_pPlayer->random_seed );
+	m_iClip--;
 
-		PLAYBACK_EVENT_FULL( FEV_NOTHOST, m_pPlayer->edict(), m_usFireMP44, 0.0f, g_vecZero, g_vecZero, vecDir.x,
-							 vecDir.y, 0, 0, m_iClip == 0, 0 );
+	flSpread = P_WpnInfo[m_iId].base_accuracy;
 
-		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[8].anim_firedelay;
-		m_pPlayer->m_flNextAttack = UTIL_WeaponTimeBase() + 0.1f;
-		m_flTimeWeaponIdle = RANDOM_FLOAT( 10.0f, 15.0f ) + UTIL_WeaponTimeBase();
-		RemoveStamina( 2.0f, m_pPlayer );
-	}
+	if( m_pPlayer->pev->velocity.Length() > 45.0f )
+		flSpread += P_WpnInfo[m_iId].accuracy_penalty;
+
+	vecSrc = m_pPlayer->GetGunPosition();
+	vecAiming = gpGlobals->v_forward;
+
+	vecNewShot = m_pPlayer->FireBulletsNC( vecSrc, vecAiming, flSpread, 8192.0f, BULLET_PLAYER_MP44, 3, 0, m_pPlayer->pev, m_pPlayer->random_seed );
+
+	PLAYBACK_EVENT_FULL( 1, m_pPlayer->edict(), m_usFireMP44, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, vecNewShot.x, vecNewShot.y, 0, 0, m_iClip == 0, 0 );
+
+	m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[WEAPON_MP44].anim_firedelay;
+	m_pPlayer->m_flNextAttack = UTIL_WeaponTimeBase() + 0.1f;
+
+	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + RANDOM_FLOAT( 10.0f, 15.0f );
+
+	RemoveStamina( 2.0f, m_pPlayer );
 }
 
 void CMP44::SecondaryAttack( void )
 {
-	// Nothing.
+	/* Nothing. */
 }
 
 void CMP44::Reload( void )
 {
-	DefaultReload( P_WpnInfo[8].ammo_maxclip, MP44_RELOAD, P_WpnInfo[8].anim_reloadtime );
+	DefaultReload( P_WpnInfo[WEAPON_MP44].ammo_maxclip, MP44_RELOAD, P_WpnInfo[WEAPON_MP44].anim_reloadtime );
 }
 
 void CMP44::WeaponIdle( void )
 {
 	ResetEmptySound();
 
-	if ( m_flTimeWeaponIdle <= UTIL_WeaponTimeBase() )
+	if( m_flTimeWeaponIdle <= UTIL_WeaponTimeBase() )
 	{
-		SendWeaponAnim( MP44_IDLE );
-		m_flTimeWeaponIdle = RANDOM_FLOAT( 10.0f, 15.0f ) + UTIL_WeaponTimeBase();
+		SendWeaponAnim( MP44_IDLE, 1 );
+		m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + RANDOM_FLOAT( 10.0f, 15.0f );
 	}
 }
 
 int CMP44::Classify( void )
 {
-	return CLASS_AUTO_RIFLE;
+	return CLASS_SMG;
 }
 
 class CMP44AmmoClip : public CBasePlayerAmmo
 {
-	void Spawn( void )
+public:
+	virtual void Spawn( void )
 	{
 		SET_MODEL( ENT( pev ), "models/axis_ammo.mdl" );
 		CBasePlayerAmmo::Spawn();
 	}
 
-	BOOL AddAmmo( CBaseEntity *pOther )
+	virtual BOOL AddAmmo( CBaseEntity *pOther )
 	{
-		int bResult = ( pOther->GiveAmmo( P_WpnInfo[8].ammo_maxclip, "ammo_55mm", P_WpnInfo[8].ammo_maxcarry ) != -1 );
-		if ( bResult )
-		{
-			EMIT_SOUND_DYN( ENT( pev ), CHAN_ITEM, "items/ammopickup.wav", 1, ATTN_NORM, 0, 100 );
-		}
+		BOOL bResult = pOther->GiveAmmo( P_WpnInfo[WEAPON_MP44].ammo_maxclip, "ammo_55mm", P_WpnInfo[WEAPON_MP44].ammo_maxcarry ) != -1;
+
+		if( bResult )
+			EMIT_SOUND( ENT( pev ), CHAN_ITEM, "items/ammopickup.wav", 1, ATTN_NORM );
+
 		return bResult;
 	}
 };

@@ -1,42 +1,39 @@
-// German knife - CMeleeWeapon child (dod/dlls/wpn_shared/ger_knife.cpp)
-// | Param | Value |
-// | Name | weapon_gerknife / CGerKnife / id 2 |
-// | Damage | 60 slash/stab (plrDmgBayonet/Crowbar class) |
-// | Mag | none -1 | Slot | 0/1 weight 0 |
-// | Ani | knife | Models | p_paraknife v_paraknife w_paraknife |
-// | Base | CMeleeWeapon in knife.cpp: Swing Stab Smack SwingAgain |
-// | Sounds | knife_slash knife_hit knife_hitwall knifeswing |
-// preserved .text markers from server:
-// .text:00165340 weapon_gerknife (wpn_shared/ger_knife.cpp:20)
-// .text:001652e0 CGerKnife::Precache (wpn_shared/ger_knife.cpp:29)
-// .text:00165320 CGerKnife::Spawn (wpn_shared/ger_knife.cpp:24)
-// .text:00165230 CGerKnife::GetItemInfo (wpn_shared/ger_knife.cpp:41)
-// .text:001652c0 CGerKnife::GetDrawAnim (wpn_shared/ger_knife.cpp:74)
-// .text:00165290 CGerKnife::GetSlashAnim (wpn_shared/ger_knife.cpp:74)
-//
-// ger_knife.cpp
-//
-// implementation of CGerKnife class
-//
+/***
+*
+*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
+*	All Rights Reserved.
+*
+*   Use, distribution, and modification of this source code and/or resulting
+*   object code is restricted to non-commercial enhancements to products from
+*   Valve LLC.  All other use, distribution, or modification is prohibited
+*   without written permission from Valve LLC.
+*
+****/
 
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
 #include "weapons.h"
 
-// KNIFE_e moved to dod_shared.h (identical) — local duplicate removed.
+#include "dod_shared.h"
+
 LINK_ENTITY_TO_CLASS( weapon_gerknife, CGerKnife )
+
+extern p_wpninfo_s P_WpnInfo[];
 
 void CGerKnife::Spawn( void )
 {
-	CMeleeWeapon::Spawn( 2 );
+	CMeleeWeapon::Spawn( WEAPON_GERKNIFE );
 }
 
 void CGerKnife::Precache( void )
 {
-	PRECACHE_MODEL( P_WpnInfo[2].vmodel );
-	PRECACHE_MODEL( P_WpnInfo[2].wmodel );
-	PRECACHE_MODEL( P_WpnInfo[35].vmodel );
+	PRECACHE_MODEL( P_WpnInfo[WEAPON_GERKNIFE].vmodel );
+	PRECACHE_MODEL( P_WpnInfo[WEAPON_GERKNIFE].wmodel );
+	PRECACHE_MODEL( P_WpnInfo[WEAPON_GERPARAKNIFE].vmodel );
 
 	CMeleeWeapon::Precache();
 }
@@ -44,24 +41,27 @@ void CGerKnife::Precache( void )
 int CGerKnife::GetItemInfo( ItemInfo *p )
 {
 	p->pszName = STRING( pev->classname );
-	p->pszAmmo1 = 0;
+	p->pszAmmo1 = NULL;
 	p->iMaxAmmo1 = -1;
-	p->pszAmmo2 = 0;
+	p->pszAmmo2 = NULL;
 	p->iMaxAmmo2 = -1;
-	p->iMaxClip = -1;
+	p->iMaxClip = WEAPON_NOCLIP;
 	p->iSlot = 0;
 	p->iPosition = 1;
-	p->iId = m_iId = 2;
+	p->iId = WEAPON_GERKNIFE;
 	p->iWeight = 0;
+
 	return 1;
 }
 
 int CGerKnife::GetSlashAnim( int m_iSwing )
 {
-	if ( m_iSwing % KNIFE_SLASH2 == KNIFE_SLASH1 )
-		return KNIFE_SLASH2;
+	int i_Anim = KNIFE_SLASH1;
 
-	return KNIFE_SLASH1;
+	if( m_iSwing % 2 == 1 )
+		i_Anim = KNIFE_SLASH2;
+
+	return i_Anim;
 }
 
 int CGerKnife::GetDrawAnim( void )
