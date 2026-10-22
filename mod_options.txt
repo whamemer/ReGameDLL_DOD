@@ -1,0 +1,10 @@
+# Options of the build, one per line: NAME=VALUE # description
+# ON and OFF make a compile definition (ON) or nothing (OFF), any other value becomes a variable of the build.
+# The fixes of the bugs of the original game are added here, each one under its own macro.
+
+GAMEDIR=dod # Gamedir path
+
+# keys below must match liblist.gam/gameinfo.txt
+SERVER_INSTALL_DIR=dlls # Where to put server dll
+CLIENT_INSTALL_DIR=cl_dlls # Where to put client or menu dll
+SERVER_LIBRARY_NAME=dod # Default server dll name

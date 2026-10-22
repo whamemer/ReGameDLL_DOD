@@ -25,7 +25,7 @@ def build(bld):
 
 	source = bld.path.ant_glob('**/*.cpp', excl=excluded_files)
 	source += bld.path.parent.ant_glob([
-					'pm_shared/*.c',
+					'pm_shared/*.cpp',
 					'public/safe_snprintf.c',
 					'game_shared/voice_gamemgr.cpp'
 					])
@@ -43,7 +43,8 @@ def build(bld):
 		'../engine',
 		'../pm_shared',
 		'../game_shared',
-		'../public'
+		'../public',
+		'../cl_dll' # dod_shared.h is shared with the client
 	]
 
 	# DoD: symbols are complete (verified against the shipped dod.so), so the
