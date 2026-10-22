@@ -2,6 +2,8 @@
 # ON and OFF make a compile definition (ON) or nothing (OFF), any other value becomes a variable of the build.
 # The fixes of the bugs of the original game are added here, each one under its own macro.
 
+CLIENT_WEAPONS=ON # Client local weapons prediction (UseDecrement, UTIL_WeaponTimeBase)
+
 GAMEDIR=dod # Gamedir path
 
 # keys below must match liblist.gam/gameinfo.txt
