@@ -704,28 +704,97 @@ void CDoDTeamPlay::ChangeLevel( void )
 // .text:000e96c0 void CDoDTeamPlay::InitHUD(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::InitHUD( CBasePlayer *pPlayer )
 {
-	const char *nm = "unconnected";
-	if ( pPlayer->pev->netname != 0 && STRING( pPlayer->pev->netname )[0] != 0 )
-		nm = STRING( pPlayer->pev->netname );
-	UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_joined_game", (char *) nm, 0, 0, 0 );
+	const char *name = "unconnected";
+
+	if ( pPlayer->pev->netname )
+	{
+		name = STRING( pPlayer->pev->netname );
+
+		if ( !*name )
+			name = "unconnected";
+	}
+
+	UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_joined_game", (char *)name, NULL, NULL, NULL );
+
 	SendMOTDToClient( pPlayer->edict() );
+
+	// send the scores of the others to the new player
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBasePlayer *p = (CBasePlayer *) UTIL_PlayerByIndex( i );
-		if ( !p || p == pPlayer )
-			continue;
-		int big = ( p->m_iObjScore > 255 || p->pev->frags > 255.0f || p->m_iDeaths > 255 );
-		MESSAGE_BEGIN( MSG_ONE, big ? gmsgScoreInfoLong : gmsgScoreInfo, NULL, pPlayer->pev );
-		WRITE_BYTE( i );
-		WRITE_SHORT( p->m_iObjScore );
-		WRITE_SHORT( (int) p->pev->frags );
-		WRITE_SHORT( p->m_iDeaths );
+		CBasePlayer *plr = (CBasePlayer *)UTIL_PlayerByIndex( i );
+
+		if ( plr && plr != pPlayer )
+		{
+			if ( plr->m_iObjScore <= 255 && plr->pev->frags <= 255 && plr->m_iDeaths <= 255 )
+			{
+				MESSAGE_BEGIN( MSG_ONE, gmsgScoreInfo, NULL, pPlayer->edict() );
+					WRITE_BYTE( i );
+					WRITE_BYTE( plr->m_iObjScore );
+					WRITE_BYTE( plr->pev->frags );
+					WRITE_BYTE( plr->m_iDeaths );
+			}
+			else
+			{
+				ALERT( at_aiconsole, "Init HUD data requiring short values - sending with WRITE_SHORT()\n" );
+
+				MESSAGE_BEGIN( MSG_ONE, gmsgScoreInfoLong, NULL, pPlayer->edict() );
+					WRITE_BYTE( i );
+					WRITE_SHORT( plr->m_iObjScore );
+					WRITE_SHORT( plr->pev->frags );
+					WRITE_SHORT( plr->m_iDeaths );
+			}
+
+			WRITE_BYTE( plr->pev->playerclass );
+			WRITE_BYTE( plr->pev->team );
+			WRITE_BYTE( plr->PlayerStatus() );
+			MESSAGE_END();
+		}
+	}
+
+	// tell everybody about the new player, it spectates until it has chosen a team
+	MESSAGE_BEGIN( MSG_ALL, gmsgScoreInfo );
+		WRITE_BYTE( ENTINDEX( pPlayer->edict() ) );
+		WRITE_BYTE( pPlayer->m_iObjScore );
+		WRITE_BYTE( pPlayer->pev->frags );
+		WRITE_BYTE( pPlayer->m_iDeaths );
+		WRITE_BYTE( 0 );
+		WRITE_BYTE( 3 );
+		WRITE_BYTE( pPlayer->PlayerStatus() );
+	MESSAGE_END();
+
+	if ( g_fGameOver )
+	{
+		MESSAGE_BEGIN( MSG_ONE, SVC_INTERMISSION, NULL, pPlayer->edict() );
 		MESSAGE_END();
 	}
-	SendObjectiveStatus( pPlayer );
-	SendWaveStatus( pPlayer, 0 );
+
+	UTIL_LogPrintf( "\"%s<%i><%s><>\" entered the game\n", STRING( pPlayer->pev->netname ),
+					GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ) );
+
+	LevelChangeResets( pPlayer );
+
+	// the teams of the players that already joined one
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBaseEntity *plr = UTIL_PlayerByIndex( i );
+
+		if ( plr && (unsigned int)( plr->pev->team - 1 ) <= 2 )
+		{
+			MESSAGE_BEGIN( MSG_ONE, gmsgPTeam, NULL, pPlayer->edict() );
+				WRITE_BYTE( ENTINDEX( plr->edict() ) );
+				WRITE_BYTE( plr->pev->team );
+			MESSAGE_END();
+		}
+	}
+
 	SendClientGamerules( pPlayer );
-	SendTeamScores( 0 );
+
+	ShowVGUI( pPlayer, 2, 0 );
+
+	pPlayer->SetThink( &CBasePlayer::ServerSpawnCheck );
+	pPlayer->pev->nextthink = 2.0;
+
+	pPlayer->SetMapMarker( 0 );
 }
 // .text:000e3de0 void CDoDTeamPlay::ClientDisconnected(edict_t*) (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::ClientDisconnected( edict_t *pClient )
