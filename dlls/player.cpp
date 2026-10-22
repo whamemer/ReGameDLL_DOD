@@ -58,7 +58,6 @@ extern DLL_GLOBAL int g_iSkillLevel, gDisplayTitle;
 
 BOOL gInitHUD = TRUE;
 
-extern void CopyToBodyQue( entvars_t *pev );
 extern void respawn( entvars_t *pev, BOOL fCopyCorpse );
 extern Vector VecBModelOrigin( entvars_t *pevBModel );
 extern edict_t *EntSelectSpawnPoint( CBaseEntity *pPlayer, BOOL bJustChecking );
@@ -1331,59 +1330,44 @@ void CBasePlayer::PlayerDeathThink( void )
 //=========================================================
 void CBasePlayer::StartDeathCam( void )
 {
-	edict_t *pSpot, *pNewSpot;
-	int iRand;
-
 	if ( pev->view_ofs == g_vecZero )
 	{
 		// don't accept subsequent attempts to StartDeathCam()
 		return;
 	}
 
-	pSpot = FIND_ENTITY_BY_CLASSNAME( NULL, "info_intermission" );
+	// fade the screen out while the player is dead
+	ScreenFade fade;
+	UTIL_EdictScreenFadeBuild( fade, Vector( 0, 0, 0 ), 1.0f, 15.0f, FFADE_OUT | FFADE_STAYOUT, 0 );
+	UTIL_EdictScreenFadeWrite( fade, edict() );
+
+	edict_t *pSpot = FIND_ENTITY_BY_CLASSNAME( NULL, "info_intermission" );
 
 	if ( !FNullEnt( pSpot ) )
 	{
 		// at least one intermission spot in the world.
-		iRand = RANDOM_LONG( 0, 3 );
+		int iRand = RANDOM_LONG( 0, 3 );
 
 		while ( iRand > 0 )
 		{
-			pNewSpot = FIND_ENTITY_BY_CLASSNAME( pSpot, "info_intermission" );
+			edict_t *pNewSpot = FIND_ENTITY_BY_CLASSNAME( pSpot, "info_intermission" );
 
 			if ( pNewSpot )
-			{
 				pSpot = pNewSpot;
-			}
 
 			iRand--;
 		}
 
-		CopyToBodyQue( pev );
-
-		UTIL_SetOrigin( pev, pSpot->v.origin );
-		pev->angles = pev->v_angle = pSpot->v.v_angle;
+		StartObserver( pSpot->v.origin, pSpot->v.v_angle );
 	}
 	else
 	{
 		// no intermission spot. Push them up in the air, looking down at their corpse
 		TraceResult tr;
-		CopyToBodyQue( pev );
 		UTIL_TraceLine( pev->origin, pev->origin + Vector( 0, 0, 128 ), ignore_monsters, edict(), &tr );
 
-		UTIL_SetOrigin( pev, tr.vecEndPos );
-		pev->angles = pev->v_angle = UTIL_VecToAngles( tr.vecEndPos - pev->origin );
+		StartObserver( tr.vecEndPos, UTIL_VecToAngles( tr.vecEndPos - pev->origin ) );
 	}
-
-	// start death cam
-
-	m_afPhysicsFlags |= PFLAG_OBSERVER;
-	pev->view_ofs = g_vecZero;
-	pev->fixangle = TRUE;
-	pev->solid = SOLID_NOT;
-	pev->takedamage = DAMAGE_NO;
-	pev->movetype = MOVETYPE_NONE;
-	pev->modelindex = 0;
 }
 
 // CBasePlayer::StartObserver moved to observer.cpp (binary link 0x121ee0

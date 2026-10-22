@@ -51,7 +51,6 @@ extern DLL_GLOBAL BOOL g_fGameOver;
 extern DLL_GLOBAL int g_iSkillLevel;
 extern DLL_GLOBAL ULONG g_ulFrameCount;
 
-extern void CopyToBodyQue( entvars_t *pev );
 extern int giPrecacheGrunt;
 extern int gmsgSayText;
 extern int gmsgVGUIMenu;
@@ -168,12 +167,6 @@ void respawn( entvars_t *pev, BOOL fCopyCorpse )
 {
 	if ( gpGlobals->coop || gpGlobals->deathmatch )
 	{
-		if ( fCopyCorpse )
-		{
-			// make a copy of the dead body for appearances sake
-			CopyToBodyQue( pev );
-		}
-
 		// respawn player
 		GetClassPtr( (CBasePlayer *) pev )->Spawn();
 	}
