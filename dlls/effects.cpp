@@ -2675,7 +2675,7 @@ class CEnvModel : public CBaseAnimating
   public:
 	void Spawn( void );
 	void Precache( void );
-	virtual void Think( void );
+	virtual void EXPORT Think( void );
 	virtual void KeyValue( KeyValueData *pkvd );
 	virtual STATE GetState( void );
 	virtual void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );

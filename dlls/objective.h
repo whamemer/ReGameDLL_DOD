@@ -113,7 +113,7 @@ class CControlPointMaster : public CBaseEntity
 	void BecomeInactive( void );
 	virtual void Spawn( void );
 	virtual void KeyValue( KeyValueData *pkvd );
-	void CPMThink( void );
+	void EXPORT CPMThink( void );
 	int TeamOwnsAllPoints();
 };
 
@@ -173,7 +173,7 @@ class CAreaCapture : public CBaseTrigger
 	bool CanUseCatchup();
 	void GetNumRequiredPlayers( int *reqAllies, int *reqAxis );
 	virtual void Spawn( void );
-	void AreaTouch( CBaseEntity *pOther );
+	void EXPORT AreaTouch( CBaseEntity *pOther );
 	virtual void Think( void );
 	virtual void KeyValue( KeyValueData *pkvd );
 	void StartCapture( int team, int capmode );
@@ -216,7 +216,7 @@ class CObject : public CBaseEntity
 	void Spawn( void );
 	void Precache( void );
 	void KeyValue( KeyValueData *pkvd );
-	void ObjectTouch( CBaseEntity *pOther );
+	void EXPORT ObjectTouch( CBaseEntity *pOther );
 	void EXPORT ObjectThink( void );
 	void EXPORT AbsentPlayerThink( void );
 	void Drop( void );
@@ -268,7 +268,7 @@ class CDodRoundTimer : public CBaseEntity
 	virtual void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	virtual void Spawn( void );
 	virtual void KeyValue( KeyValueData *pkvd );
-	virtual void Think( void );
+	virtual void EXPORT Think( void );
 };
 
 // dod_point_relay
@@ -280,7 +280,7 @@ class CDodPointRelay : public CBaseEntity
   public:
 	virtual void Spawn( void );
 	virtual void KeyValue( KeyValueData *pkvd );
-	void DodRelayUse( CBaseEntity *pA, CBaseEntity *pC, USE_TYPE u, float v );
+	void EXPORT DodRelayUse( CBaseEntity *pA, CBaseEntity *pC, USE_TYPE u, float v );
 };
 
 // dod_location
@@ -301,7 +301,7 @@ class CMapMarker : public CBaseEntity
 	// pev->body = icon, pev->fuser1 = create time, angles fixed (0,90,0)
 	static CMapMarker *CreateMapMarker( Vector o, Vector a, CBaseEntity *w, int icon );
 	void Spawn( void );
-	void Die();
+	void EXPORT Die();
 };
 
 // info_doddetect (dod_gamerules.cpp) - DWARF-canonical (gdb ptype /o CDoDDetect)
@@ -336,7 +336,7 @@ class CDodParaRoundTimer : public CBaseEntity
 	void StopTimer( void );
 	void ResetTimer( void );
 	void SendStatus( class CBasePlayer *p );
-	void TimerThink( void );
+	void EXPORT TimerThink( void );
 };
 
 // particle_shooter (CParticleShooter, objectives.cpp:661-775)
@@ -397,6 +397,6 @@ class CScoreEvent : public CBaseEntity
   public:
 	void Spawn( void );
 	void KeyValue( KeyValueData *pkvd );
-	void ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	void EXPORT ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void EXPORT ScoreThink( void );
 };

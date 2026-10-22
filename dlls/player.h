@@ -334,10 +334,10 @@ class CBasePlayer : public CBaseMonster
 	void RemoveAllItems( BOOL removeSuit );
 	BOOL SwitchWeapon( CBasePlayerItem *pWeapon, BOOL bSetActive );
 	void DelayedSpawn( void );
-	void SpawnThink( void );
-	void ServerSpawnCheck();
+	void EXPORT SpawnThink( void );
+	void EXPORT ServerSpawnCheck();
 	int PlayerStatus();
-	void ClientDisconnect();
+	void EXPORT ClientDisconnect();
 	void UTIL_EdictScreenFade( struct edict_s *pEdict, const Vector &color, float fadeTime, float holdTime, int flags,
 							   int alpha );
 	void PushPlayer( void );

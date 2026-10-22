@@ -2435,7 +2435,7 @@ class CSandBag : public CBaseTrigger
 	void Spawn();
 	void RoundRespawn();
 	void KeyValue( KeyValueData *pkvd );
-	void SandBagTouch( CBaseEntity *pOther );
+	void EXPORT SandBagTouch( CBaseEntity *pOther );
 	BOOL IsMasteredOn();
 
 	int m_nYaw;		// +0x200, from pev->angles.y at Spawn
@@ -2573,7 +2573,7 @@ class CDoDCamera : public CBaseDelay
 	void Spawn( void );
 	void KeyValue( KeyValueData *pkvd );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	void FollowTarget();
+	void EXPORT FollowTarget();
 	void Move();
 	void SetCameraMode( const char *szTargetname, int nFade );
 	float ReturnTimeLeft( void );

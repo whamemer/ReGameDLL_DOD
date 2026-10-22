@@ -138,7 +138,7 @@ class CFuncTank : public CBaseEntity
 	CBaseEntity *BestVisibleEnemy( void );
 	int IRelationship( CBaseEntity *pTarget );
 	void UpdateSpot( void );
-	void TrackThink( void );
+	void EXPORT TrackThink( void );
 };
 
 TYPEDESCRIPTION CFuncTank::m_SaveData[] = {

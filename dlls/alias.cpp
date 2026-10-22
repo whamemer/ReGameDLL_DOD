@@ -24,7 +24,7 @@ class CInfoGroup : public CBaseEntity
 {
   public:
 	void KeyValue( KeyValueData *pkvd );
-	void Think();
+	void EXPORT Think();
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	int Save( CSave &save );
 	int Restore( CRestore &restore );

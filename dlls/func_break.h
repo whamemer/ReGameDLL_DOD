@@ -47,7 +47,7 @@ class CBreakable : public CBaseDelay
 	void EXPORT BreakTouch( CBaseEntity *pOther );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void EXPORT BreakUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	void ObjectDie( void );
+	void EXPORT ObjectDie( void );
 	void DamageSound( void );
 
 	// breakables use an overridden takedamage
