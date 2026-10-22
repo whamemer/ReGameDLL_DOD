@@ -747,16 +747,13 @@ void CSarge :: DeclineFollowing( void )
 
 
 // .text:000c2380 CSarge::ScheduleFromName (bot_barney.cpp:180)
-Schedule_t *CSarge :: ScheduleFromName( const char *pName );
 
 // .text:000c2ee0 CSarge::ResetAfterDoDMovie (bot_barney.cpp:794)
 
 // .text:000c2440 CSarge::Save (bot_barney.cpp:66)
 // .text:0013a2e0 CSarge::Save (sarge.cpp:111)
-int CSarge::Save( CSave &save );
 
 // .text:000c23e0 CSarge::Restore (bot_barney.cpp:66)
-int CSarge::Restore( CRestore &restore );
 
 
 
@@ -921,11 +918,8 @@ void CSarge :: GiveAdvice( CBaseEntity *pPlayer )
 LINK_ENTITY_TO_CLASS( monster_sarge_allies, CSarge );
 
 // .text:0013a220 CSarge::ScheduleFromName (sarge.cpp:225)
-Schedule_t *CSarge::ScheduleFromName( const char *pName );
 
 // .text:0013a2e0 CSarge::Save (sarge.cpp:111)
-int CSarge::Save( CSave &save );
 
 // .text:0013a280 CSarge::Restore (sarge.cpp:111)
-int CSarge::Restore( CRestore &restore );
 

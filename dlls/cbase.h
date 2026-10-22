@@ -477,6 +477,7 @@ class CBaseEntity
 };
 
 // dod.so DWARF CBaseEntity layout proof (size 344).
+#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of dod.so, the MSVC ABI differs
 static_assert( sizeof( CBaseEntity ) == 344, "CBaseEntity size must be 344 (dod.so DWARF)" );
 static_assert( offsetof( CBaseEntity, pev ) == 4, "CBaseEntity::pev @4" );
 static_assert( offsetof( CBaseEntity, m_pGoalEnt ) == 8, "CBaseEntity::m_pGoalEnt @8" );
@@ -520,6 +521,7 @@ static_assert( offsetof( CBaseEntity, m_chargeReady ) == 276, "CBaseEntity::m_ch
 static_assert( offsetof( CBaseEntity, m_fInAttack ) == 280, "CBaseEntity::m_fInAttack @280" );
 static_assert( offsetof( CBaseEntity, m_fireState ) == 284, "CBaseEntity::m_fireState @284" );
 static_assert( offsetof( CBaseEntity, m_trDecalTrace ) == 288, "CBaseEntity::m_trDecalTrace @288" );
+#endif
 
 // Ugly technique to override base member functions
 // Normally it's illegal to cast a pointer to a member function of a derived class to a pointer to a
@@ -666,9 +668,11 @@ class CBaseDelay : public CBaseEntity
 };
 
 // dod.so DWARF CBaseDelay layout proof (size 352).
+#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of dod.so, the MSVC ABI differs
 static_assert( sizeof( CBaseDelay ) == 352, "CBaseDelay size must be 352 (dod.so DWARF)" );
 static_assert( offsetof( CBaseDelay, m_flDelay ) == 344, "CBaseDelay::m_flDelay @344" );
 static_assert( offsetof( CBaseDelay, m_iszKillTarget ) == 348, "CBaseDelay::m_iszKillTarget @348" );
+#endif
 
 class CBaseAnimating : public CBaseDelay
 {
@@ -711,12 +715,14 @@ class CBaseAnimating : public CBaseDelay
 };
 
 // dod.so DWARF CBaseAnimating layout proof (size 372).
+#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of dod.so, the MSVC ABI differs
 static_assert( sizeof( CBaseAnimating ) == 372, "CBaseAnimating size must be 372 (dod.so DWARF)" );
 static_assert( offsetof( CBaseAnimating, m_flFrameRate ) == 352, "CBaseAnimating::m_flFrameRate @352" );
 static_assert( offsetof( CBaseAnimating, m_flGroundSpeed ) == 356, "CBaseAnimating::m_flGroundSpeed @356" );
 static_assert( offsetof( CBaseAnimating, m_flLastEventCheck ) == 360, "CBaseAnimating::m_flLastEventCheck @360" );
 static_assert( offsetof( CBaseAnimating, m_fSequenceFinished ) == 364, "CBaseAnimating::m_fSequenceFinished @364" );
 static_assert( offsetof( CBaseAnimating, m_fSequenceLoops ) == 368, "CBaseAnimating::m_fSequenceLoops @368" );
+#endif
 
 //
 // generic Toggle entity.
@@ -789,6 +795,7 @@ class CBaseToggle : public CBaseAnimating
 };
 
 // dod.so DWARF CBaseToggle layout proof (size 512).
+#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of dod.so, the MSVC ABI differs
 static_assert( sizeof( CBaseToggle ) == 512, "CBaseToggle size must be 512 (dod.so DWARF)" );
 static_assert( offsetof( CBaseToggle, m_toggle_state ) == 372, "CBaseToggle::m_toggle_state @372" );
 static_assert( offsetof( CBaseToggle, m_flActivateFinished ) == 376, "CBaseToggle::m_flActivateFinished @376" );
@@ -811,6 +818,7 @@ static_assert( offsetof( CBaseToggle, m_vecFinalAngle ) == 488, "CBaseToggle::m_
 static_assert( offsetof( CBaseToggle, m_bitsDamageInflict ) == 500, "CBaseToggle::m_bitsDamageInflict @500" );
 static_assert( offsetof( CBaseToggle, m_team ) == 504, "CBaseToggle::m_team @504" );
 static_assert( offsetof( CBaseToggle, m_sMaster ) == 508, "CBaseToggle::m_sMaster @508" );
+#endif
 #define SetMoveDone( a ) m_pfnCallWhenMoveDone = static_cast<void ( CBaseToggle::* )( void )>( a )
 
 // people gib if their health is <= this at the time of death

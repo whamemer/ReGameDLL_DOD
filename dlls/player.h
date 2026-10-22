@@ -432,7 +432,9 @@ class CBasePlayer : public CBaseMonster
 	static BOOL IsSandbagDeployed( CBasePlayer *pPlayer );
 };
 
+#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of dod.so, the MSVC ABI differs
 static_assert( sizeof( CBasePlayer ) == 2132, "CBasePlayer size must be 2132 (dod.so DWARF)" );
+#endif
 
 #define AUTOAIM_2DEGREES 0.0348994967025
 #define AUTOAIM_5DEGREES 0.08715574274766

@@ -370,6 +370,7 @@ class CBaseMonster : public CBaseToggle
 };
 
 // dod.so DWARF CBaseMonster layout proof (size 940).
+#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of dod.so, the MSVC ABI differs
 static_assert( sizeof( CBaseMonster ) == 940, "CBaseMonster size must be 940 (dod.so DWARF)" );
 static_assert( offsetof( CBaseMonster, m_hEnemy ) == 516, "CBaseMonster::m_hEnemy @516" );
 static_assert( offsetof( CBaseMonster, m_hTargetEnt ) == 524, "CBaseMonster::m_hTargetEnt @524" );
@@ -385,5 +386,6 @@ static_assert( offsetof( CBaseMonster, m_cAmmoLoaded ) == 856, "CBaseMonster::m_
 static_assert( offsetof( CBaseMonster, m_pCine ) == 928, "CBaseMonster::m_pCine @928" );
 static_assert( offsetof( CBaseMonster, m_flLastYawTime ) == 932, "CBaseMonster::m_flLastYawTime @932" );
 static_assert( offsetof( CBaseMonster, m_iClass ) == 936, "CBaseMonster::m_iClass @936" );
+#endif
 
 #endif	// BASEMONSTER_H

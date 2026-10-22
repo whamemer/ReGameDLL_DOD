@@ -1336,7 +1336,7 @@ class CDodAmmoBox : public CBaseEntity
 	virtual void Spawn();
 	virtual void Touch( CBaseEntity *pOther );
 	void SetOwner( CBaseEntity *pOwner );
-	void KillThink();
+	void EXPORT KillThink();
 };
 
 class CBazookaShell : public CGrenade
@@ -1344,7 +1344,7 @@ class CBazookaShell : public CGrenade
   public:
 	virtual void Spawn();
 	virtual void Precache();
-	void RocketTouch( CBaseEntity *pOther );
+	void EXPORT RocketTouch( CBaseEntity *pOther );
 	static CBazookaShell *CreateRocket( Vector vecSrc, Vector vecDir, CBaseEntity *pOwner );
 };
 
@@ -1353,7 +1353,7 @@ class CPIATShell : public CGrenade
   public:
 	virtual void Spawn();
 	virtual void Precache();
-	void RocketTouch( CBaseEntity *pOther );
+	void EXPORT RocketTouch( CBaseEntity *pOther );
 	static CPIATShell *CreateRocket( Vector vecSrc, Vector vecDir, CBaseEntity *pOwner );
 };
 
@@ -1362,7 +1362,7 @@ class CPschreckShell : public CGrenade
   public:
 	virtual void Spawn();
 	virtual void Precache();
-	void RocketTouch( CBaseEntity *pOther );
+	void EXPORT RocketTouch( CBaseEntity *pOther );
 	static CPschreckShell *CreateRocket( Vector vecSrc, Vector vecDir, CBaseEntity *pOwner );
 };
 

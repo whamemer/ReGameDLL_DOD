@@ -804,7 +804,6 @@ void CAlliedBarney :: DeclineFollowing( void )
 
 
 // .text:000c2380 CAlliedBarney::ScheduleFromName (bot_allied_barney.cpp:180)
-Schedule_t *CAlliedBarney :: ScheduleFromName( const char *pName );
 
 // .text:000c2ee0 CAlliedBarney::ResetAfterDoDMovie (bot_allied_barney.cpp:794)
 void CAlliedBarney :: ResetAfterDoDMovie( void )
@@ -817,8 +816,6 @@ void CAlliedBarney :: ResetAfterDoDMovie( void )
 LINK_ENTITY_TO_CLASS( monster_allied_barney, CAlliedBarney );
 
 // .text:000c2440 CAlliedBarney::Save (bot_allied_barney.cpp:66)
-int CAlliedBarney::Save( CSave &save );
 
 // .text:000c23e0 CAlliedBarney::Restore (bot_allied_barney.cpp:66)
-int CAlliedBarney::Restore( CRestore &restore );
 

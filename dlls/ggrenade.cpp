@@ -479,7 +479,6 @@ void CGrenade::RemoveMe( void )
 #include "func_break.h"
 #include "combat.h"
 #include "enginecallback.h"
-#include <strings.h>
 void CGrenade::MortarShellExplodeTouch( CBaseEntity *pOther )
 {
 	if ( FClassnameIs( pOther->pev, "func_breakable" ) )
@@ -523,7 +522,7 @@ void CGrenade::MortarShellExplodeTouch( CBaseEntity *pOther )
 	TraceResult tr;
 	UTIL_TraceLine( vecSpot, vecSpot + pev->velocity.Normalize() * 64, dont_ignore_monsters, ENT( pev ), &tr );
 	const char *pTexture = TRACE_TEXTURE( ENT( 0 ), vecSpot, vecSpot + pev->velocity.Normalize() * 64 );
-	if ( pTexture && !strncasecmp( pTexture, "sky", 3 ) )
+	if ( pTexture && !strnicmp( pTexture, "sky", 3 ) )
 	{
 		UTIL_Remove( this );
 		return;
@@ -578,7 +577,7 @@ void CGrenade::RocketExplodeTouch( CBaseEntity *pOther )
 	TraceResult tr;
 	UTIL_TraceLine( vecSpot, vecSpot + pev->velocity.Normalize() * 64, dont_ignore_monsters, ENT( pev ), &tr );
 	const char *pTexture = TRACE_TEXTURE( ENT( 0 ), vecSpot, vecSpot + pev->velocity.Normalize() * 64 );
-	if ( pTexture && !strncasecmp( pTexture, "sky", 3 ) )
+	if ( pTexture && !strnicmp( pTexture, "sky", 3 ) )
 	{
 		UTIL_Remove( this );
 		return;

@@ -687,7 +687,7 @@ void CDoDTeamPlay::ChangeLevel( void )
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 		if ( UTIL_PlayerByIndex( i ) )
 			cur++;
-	if ( strcasecmp( cf, prevFile ) != 0 )
+	if ( stricmp( cf, prevFile ) != 0 )
 	{
 		strcpy( prevFile, cf );
 		DestroyMapCycle( &cycle );
@@ -913,7 +913,7 @@ int CDoDTeamPlay::GetWeaponId( char *wn )
 	if ( !wn || !wn[0] )
 		return 0;
 	for ( int i = 0; i < 32; i++ )
-		if ( CBasePlayerItem::ItemInfoArray[i].pszName && !strcasecmp( CBasePlayerItem::ItemInfoArray[i].pszName, wn ) )
+		if ( CBasePlayerItem::ItemInfoArray[i].pszName && !stricmp( CBasePlayerItem::ItemInfoArray[i].pszName, wn ) )
 			return i;
 	return 0;
 }
@@ -939,7 +939,7 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 {
 	if ( g_VoiceGameMgr.ClientCommand( pPlayer, pcmd ) )
 		return TRUE;
-	if ( !strcasecmp( pcmd, "spectate" ) )
+	if ( !stricmp( pcmd, "spectate" ) )
 	{
 		if ( ( pPlayer->pev->flags & FL_SPECTATOR ) == 0 )
 		{
@@ -962,30 +962,30 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		}
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "specmode" ) )
+	if ( !stricmp( pcmd, "specmode" ) )
 	{
 		if ( pPlayer->pev->iuser1 > 0 )
 			pPlayer->Observer_SetMode( atoi( CMD_ARGV( 1 ) ) );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "follownext" ) )
+	if ( !stricmp( pcmd, "follownext" ) )
 	{
 		if ( pPlayer->pev->iuser1 > 0 )
 			pPlayer->Observer_FindNextPlayer( atoi( CMD_ARGV( 1 ) ) != 0 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "spectateperson" ) )
+	if ( !stricmp( pcmd, "spectateperson" ) )
 	{
 		if ( CMD_ARGC() > 1 )
 			pPlayer->Observer_SpectatePlayer( atoi( CMD_ARGV( 1 ) ) );
 		return TRUE;
 	}
-	if ( !strcasecmp( pcmd, "fullupdate" ) )
+	if ( !stricmp( pcmd, "fullupdate" ) )
 	{
 		pPlayer->ForceClientDllUpdate();
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "timeleft" ) )
+	if ( !stricmp( pcmd, "timeleft" ) )
 	{
 		if ( CVAR_GET_FLOAT( "timelimit" ) == 0.0f )
 			ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_time_left2", 0, 0, 0, 0 );
@@ -997,22 +997,22 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		}
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "dod_version" ) )
+	if ( !stricmp( pcmd, "dod_version" ) )
 	{
 		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "Version 1.2f", 0, 0, 0, 0 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "chatmsg" ) )
+	if ( !stricmp( pcmd, "chatmsg" ) )
 	{
 		pPlayer->m_chatMsg = !pPlayer->m_chatMsg;
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "deathmsg" ) )
+	if ( !stricmp( pcmd, "deathmsg" ) )
 	{
 		pPlayer->m_deathMsg = !pPlayer->m_deathMsg;
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "clientcutscenes" ) )
+	if ( !stricmp( pcmd, "clientcutscenes" ) )
 	{
 		if ( CMD_ARGC() < 2 )
 			return FALSE;
@@ -1029,7 +1029,7 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		}
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "vote" ) )
+	if ( !stricmp( pcmd, "vote" ) )
 	{
 		if ( (unsigned) ( pPlayer->lastMenuSelected - 5 ) < 5 )
 			return TRUE;
@@ -1045,13 +1045,13 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		}
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "fov" ) )
+	if ( !stricmp( pcmd, "fov" ) )
 	{
 		pPlayer->pev->fov = (float) pPlayer->m_iFOV;
 		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_dont_cheat", 0, 0, 0, 0 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "say" ) )
+	if ( !stricmp( pcmd, "say" ) )
 	{
 		int chatOn = pPlayer->m_chatMsg;
 		const char *readyCvar = CVAR_GET_STRING( "mp_clan_ready_signal" );
@@ -1082,7 +1082,7 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		}
 		return CGameRules::ClientCommand( pPlayer, pcmd );
 	}
-	if ( !strcasecmp( pcmd, "say_team" ) )
+	if ( !stricmp( pcmd, "say_team" ) )
 	{
 		if ( pPlayer->m_chatMsg != 0 )
 		{
@@ -1092,7 +1092,7 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_chat_off", 0, 0, 0, 0 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "menuselect" ) )
+	if ( !stricmp( pcmd, "menuselect" ) )
 	{
 		if ( CMD_ARGC() < 2 )
 			return TRUE;
@@ -1136,23 +1136,23 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		pPlayer->lastMenuSelected = -1;
 		return TRUE;
 	}
-	if ( !strcasecmp( pcmd, "jointeam" ) )
+	if ( !stricmp( pcmd, "jointeam" ) )
 	{
 		if ( CMD_ARGC() > 1 )
 			TeamSelect( pPlayer, atoi( CMD_ARGV( 1 ) ) );
 		return TRUE;
 	}
-	if ( !strcasecmp( pcmd, "changeclass" ) )
+	if ( !stricmp( pcmd, "changeclass" ) )
 	{
 		ShowClassSelectMenu( pPlayer );
 		return TRUE;
 	}
-	if ( !strcasecmp( pcmd, "changeteam" ) )
+	if ( !stricmp( pcmd, "changeteam" ) )
 	{
 		ShowVGUI( pPlayer, 2, 0 );
 		return TRUE;
 	}
-	if ( !strncasecmp( pcmd, "cls_", 4 ) )
+	if ( !strnicmp( pcmd, "cls_", 4 ) )
 	{
 		int cls = 0;
 		while ( cls != 0x1c )
@@ -1166,16 +1166,16 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		ClassSelect( pPlayer, cls );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "nextmap" ) )
+	if ( !stricmp( pcmd, "nextmap" ) )
 	{
 		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_nextmap", m_szNextMap, 0, 0, 0 );
 		return TRUE;
 	}
-	if ( !strcasecmp( pcmd, "debug" ) || !strcasecmp( pcmd, "debug2" ) )
+	if ( !stricmp( pcmd, "debug" ) || !stricmp( pcmd, "debug2" ) )
 		return TRUE;
 	if ( pPlayer->pev->deadflag != 0 )
 		return FALSE;
-	if ( !strcasecmp( pcmd, "sprone" ) )
+	if ( !stricmp( pcmd, "sprone" ) )
 	{
 		if ( pPlayer->IsSandbagDeployed() )
 			return TRUE;
@@ -1215,107 +1215,107 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		pPlayer->CheckPlayerSpeed();
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "use" ) )
+	if ( !stricmp( pcmd, "use" ) )
 	{
 		pPlayer->SelectItem( CMD_ARGV( 1 ) );
 		return FALSE;
 	}
-	if ( !strncasecmp( pcmd, "weapon_", 7 ) )
+	if ( !strnicmp( pcmd, "weapon_", 7 ) )
 	{
 		pPlayer->SelectItem( pcmd );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "lastinv" ) )
+	if ( !stricmp( pcmd, "lastinv" ) )
 	{
 		pPlayer->SelectLastItem();
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "dropammo" ) || !strcasecmp( pcmd, "dropmgammo" ) )
+	if ( !stricmp( pcmd, "dropammo" ) || !stricmp( pcmd, "dropmgammo" ) )
 	{
 		pPlayer->DropGenericAmmo();
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "drop" ) )
+	if ( !stricmp( pcmd, "drop" ) )
 	{
 		pPlayer->DropPlayerItem( (char *) CMD_ARGV( 1 ), FALSE );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "signal_sticktogether" ) )
+	if ( !stricmp( pcmd, "signal_sticktogether" ) )
 	{
 		pPlayer->HandSignal( 0 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "signal_fallback" ) )
+	if ( !stricmp( pcmd, "signal_fallback" ) )
 	{
 		pPlayer->HandSignal( 1 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "signal_no" ) )
+	if ( !stricmp( pcmd, "signal_no" ) )
 	{
 		pPlayer->HandSignal( 2 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "signal_yes" ) )
+	if ( !stricmp( pcmd, "signal_yes" ) )
 	{
 		pPlayer->HandSignal( 3 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "signal_sniper" ) )
+	if ( !stricmp( pcmd, "signal_sniper" ) )
 	{
 		pPlayer->HandSignal( 4 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "signal_backup" ) )
+	if ( !stricmp( pcmd, "signal_backup" ) )
 	{
 		pPlayer->HandSignal( 5 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "signal_enemyright" ) )
+	if ( !stricmp( pcmd, "signal_enemyright" ) )
 	{
 		pPlayer->HandSignal( 6 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "signal_enemyleft" ) )
+	if ( !stricmp( pcmd, "signal_enemyleft" ) )
 	{
 		pPlayer->HandSignal( 7 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "signal_grenade" ) )
+	if ( !stricmp( pcmd, "signal_grenade" ) )
 	{
 		pPlayer->HandSignal( 8 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "signal_flankleft" ) )
+	if ( !stricmp( pcmd, "signal_flankleft" ) )
 	{
 		pPlayer->HandSignal( 9 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "signal_moveout" ) )
+	if ( !stricmp( pcmd, "signal_moveout" ) )
 	{
 		pPlayer->HandSignal( 10 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "signal_flankright" ) )
+	if ( !stricmp( pcmd, "signal_flankright" ) )
 	{
 		pPlayer->HandSignal( 0xb );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "signal_areaclear" ) )
+	if ( !stricmp( pcmd, "signal_areaclear" ) )
 	{
 		pPlayer->HandSignal( 0xc );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "signal_coveringfire" ) )
+	if ( !stricmp( pcmd, "signal_coveringfire" ) )
 	{
 		pPlayer->HandSignal( 0xd );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "signal_holdposition" ) )
+	if ( !stricmp( pcmd, "signal_holdposition" ) )
 	{
 		pPlayer->HandSignal( 0xf );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "signal_enemyspotted" ) )
+	if ( !stricmp( pcmd, "signal_enemyspotted" ) )
 	{
 		pPlayer->HandSignal( 0x11 );
 		return FALSE;
@@ -1327,28 +1327,28 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 			pPlayer->HandSignal( num + 0x18 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "voice_menu1" ) )
+	if ( !stricmp( pcmd, "voice_menu1" ) )
 	{
 		pPlayer->VoiceMenu( 1 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "voice_menu2" ) )
+	if ( !stricmp( pcmd, "voice_menu2" ) )
 	{
 		pPlayer->VoiceMenu( 2 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "voice_menu3" ) )
+	if ( !stricmp( pcmd, "voice_menu3" ) )
 	{
 		pPlayer->VoiceMenu( 3 );
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "dropobject" ) )
+	if ( !stricmp( pcmd, "dropobject" ) )
 	{
 		if ( pPlayer->HasObject != 0 )
 			pPlayer->DropObject();
 		return TRUE;
 	}
-	if ( !strcasecmp( pcmd, "chattoplayer" ) )
+	if ( !stricmp( pcmd, "chattoplayer" ) )
 	{
 		int idx = atoi( CMD_ARGV( 1 ) );
 		CBaseEntity *plr = UTIL_PlayerByIndex( idx );
@@ -1366,17 +1366,17 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		}
 		return TRUE;
 	}
-	if ( !strcasecmp( pcmd, "firemarker" ) )
+	if ( !stricmp( pcmd, "firemarker" ) )
 	{
 		pPlayer->FireMapMarker();
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "nextmarker" ) )
+	if ( !stricmp( pcmd, "nextmarker" ) )
 	{
 		pPlayer->NextMapMarker();
 		return FALSE;
 	}
-	if ( !strcasecmp( pcmd, "prevmarker" ) )
+	if ( !stricmp( pcmd, "prevmarker" ) )
 	{
 		pPlayer->PrevMapMarker();
 		return FALSE;
@@ -2332,7 +2332,7 @@ int CDoDTeamPlay::PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget
 		return 0;
 	if ( GetTeamID( pTarget )[0] == 0 )
 		return 0;
-	return ( strcasecmp( GetTeamID( pTarget ), GetTeamID( pPlayer ) ) == 0 );
+	return ( stricmp( GetTeamID( pTarget ), GetTeamID( pPlayer ) ) == 0 );
 }
 // .text:000e9090 void CDoDTeamPlay::SendWaveStatus(CBasePlayer*,int) (dod/dlls/dod_gamerules.cpp:5162)
 void CDoDTeamPlay::SendWaveStatus( CBasePlayer *pPlayer, int status )

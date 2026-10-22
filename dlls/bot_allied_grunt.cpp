@@ -226,7 +226,7 @@ enum
 	ALLIEDGRUNT_SENT_THROW,
 	ALLIEDGRUNT_SENT_CHARGE,
 	ALLIEDGRUNT_SENT_TAUNT,
-} HGRUNT_SENTENCE_TYPES;
+} ALLIEDGRUNT_SENTENCE_TYPES;
 
 //=========================================================
 // Speak Sentence - say your cued up sentence.
@@ -2281,11 +2281,8 @@ LINK_ENTITY_TO_CLASS( monster_allied_grunt, CAlliedGrunt );
 LINK_ENTITY_TO_CLASS( monster_alliedgrunt_dead, CDeadAlliedGrunt );
 
 // .text:000c3df0 CAlliedGrunt::ScheduleFromName (bot_allied_grunt.cpp:1725)
-Schedule_t *CAlliedGrunt::ScheduleFromName( const char *pName );
 
 // .text:000c3eb0 CAlliedGrunt::Save (bot_allied_grunt.cpp:207)
-int CAlliedGrunt::Save( CSave &save );
 
 // .text:000c3e50 CAlliedGrunt::Restore (bot_allied_grunt.cpp:207)
-int CAlliedGrunt::Restore( CRestore &restore );
 

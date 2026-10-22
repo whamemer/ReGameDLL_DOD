@@ -338,8 +338,3 @@ void DrawLine( float *rgflStart, float *rgflEnd, unsigned char r, unsigned char 
 	( void )rgflStart; ( void )rgflEnd; ( void )r; ( void )g; ( void )b;
 }
 
-// .text:000beff0 CONSOLE_ECHO(char*, ...) -- file-local in dod.so
-static void __attribute__((used)) CONSOLE_ECHO( char *pszMsg, ... )
-{
-	( void )pszMsg;
-}

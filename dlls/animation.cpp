@@ -30,6 +30,10 @@ typedef int BOOL;
 typedef int qboolean;
 typedef unsigned char byte;
 // mathlib.h from the common include path provides VectorCopy etc. used below
+// pm_math.cpp defines these with plain pointers, mathlib.h declares the same functions with array parameters,
+// which MSVC mangles differently: declare them first so the link finds the definitions of pm_math.cpp
+int VectorCompare( const float *v1, const float *v2 );
+void AngleMatrix( const float *angles, float ( *matrix )[4] );
 #include "mathlib.h"
 #include "const.h"
 #include "progdefs.h"

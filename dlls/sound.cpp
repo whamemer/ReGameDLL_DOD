@@ -26,8 +26,9 @@
 
 #if !defined( _WIN32 )
 #include <ctype.h>
-#define SF_AMBIENT_OFF 16
 #endif
+
+#define SF_AMBIENT_OFF 16
 
 static char *memfgets( byte *pMemFile, int fileSize, int &filePos, char *pBuffer, int bufferSize );
 
@@ -1594,7 +1595,7 @@ char TEXTURETYPE_Find( char *name )
 	while ( left <= right )
 	{
 		int pivot = ( left + right ) / 2;
-		int val = strncasecmp( name, grgszTextureName[pivot], 12 );
+		int val = strnicmp( name, grgszTextureName[pivot], 12 );
 
 		if ( val == 0 )
 			return grgchTextureType[pivot];
@@ -1642,7 +1643,7 @@ float TEXTURETYPE_PlaySound( TraceResult *ptr, Vector vecSrc, Vector vecEnd, int
 		while ( left <= right )
 		{
 			pivot = ( left + right ) / 2;
-			int val = strncasecmp( szbuffer, grgszTextureName[pivot], 12 );
+			int val = strnicmp( szbuffer, grgszTextureName[pivot], 12 );
 			if ( val == 0 )
 			{
 				chTextureType = grgchTextureType[pivot];

@@ -226,7 +226,7 @@ enum
 	AXISGRUNT_SENT_THROW,
 	AXISGRUNT_SENT_CHARGE,
 	AXISGRUNT_SENT_TAUNT,
-} HGRUNT_SENTENCE_TYPES;
+} AXISGRUNT_SENTENCE_TYPES;
 
 //=========================================================
 // Speak Sentence - say your cued up sentence.
@@ -2397,11 +2397,8 @@ LINK_ENTITY_TO_CLASS( monster_axis_grunt, CAxisGrunt );
 LINK_ENTITY_TO_CLASS( monster_axisgrunt_dead, CDeadAxisGrunt );
 
 // .text:000c7310 CAxisGrunt::ScheduleFromName (bot_axis_grunt.cpp:1725)
-Schedule_t *CAxisGrunt::ScheduleFromName( const char *pName );
 
 // .text:000c73d0 CAxisGrunt::Save (bot_axis_grunt.cpp:207)
-int CAxisGrunt::Save( CSave &save );
 
 // .text:000c7370 CAxisGrunt::Restore (bot_axis_grunt.cpp:207)
-int CAxisGrunt::Restore( CRestore &restore );
 
