@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -15,11 +15,13 @@
 //=========================================================
 // skill.h - skill level concerns
 //=========================================================
+#pragma once
+#if !defined(SKILL_H)
+#define SKILL_H
 
 struct skilldata_t
 {
-
-	int iSkillLevel;  // game skill level
+	int iSkillLevel; // game skill level
 
 	// Monster Health & Damage
 	float agruntHealth;
@@ -29,10 +31,10 @@ struct skilldata_t
 
 	float barneyHealth;
 
-	float bigmommaHealthFactor;	 // Multiply each node's health by this
-	float bigmommaDmgSlash;		 // melee attack damage
-	float bigmommaDmgBlast;		 // mortar attack damage
-	float bigmommaRadiusBlast;	 // mortar attack radius
+	float bigmommaHealthFactor;		// Multiply each node's health by this
+	float bigmommaDmgSlash;			// melee attack damage
+	float bigmommaDmgBlast;			// mortar attack damage
+	float bigmommaRadiusBlast;		// mortar attack radius
 
 	float bullsquidHealth;
 	float bullsquidDmgBite;
@@ -138,7 +140,7 @@ struct skilldata_t
 	float plrDmgPiatShell;
 	float plrDmgPschreckShell;
 	float plrDmgMortarShell;
-
+	
 	// weapons shared by monsters
 	float monDmgLuger;
 	float monDmgColt;
@@ -170,11 +172,12 @@ struct skilldata_t
 	float plrArm;
 };
 
-extern DLL_GLOBAL skilldata_t gSkillData;
+extern	DLL_GLOBAL	skilldata_t	gSkillData;
 float GetSkillCvar( const char *pName );
 
-extern DLL_GLOBAL int g_iSkillLevel;
+extern DLL_GLOBAL int		g_iSkillLevel;
 
-#define SKILL_EASY 1
-#define SKILL_MEDIUM 2
-#define SKILL_HARD 3
+#define SKILL_EASY		1
+#define SKILL_MEDIUM	2
+#define SKILL_HARD		3
+#endif // SKILL_H

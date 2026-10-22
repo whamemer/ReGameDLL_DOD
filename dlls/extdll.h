@@ -1,6 +1,6 @@
 /***
 *
-*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
+*	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
 *	
 *	This product contains software technology licensed from Id 
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
@@ -12,76 +12,84 @@
 *   without written permission from Valve LLC.
 *
 ****/
-#ifndef EXTDLL_H
+#pragma once
+#if !defined(EXTDLL_H)
 #define EXTDLL_H
-
+#include "build.h"
 //
 // Global header file for extension DLLs
 //
 
 // Allow "DEBUG" in addition to default "_DEBUG"
-#ifdef _DEBUG
+#if _DEBUG
 #define DEBUG 1
 #endif
 
 // Silence certain warnings
-#pragma warning( disable : 4244 )  // int or float down-conversion
-#pragma warning( disable : 4305 )  // int or float data truncation
-#pragma warning( disable : 4201 )  // nameless struct/union
-#pragma warning( disable : 4514 )  // unreferenced inline function removed
-#pragma warning( disable : 4100 )  // unreferenced formal parameter
-
-// archtypes.h is not shipped with the engine headers; stdint compat for DoD uint32/uint64 use
-// (extended: client.cpp UTF-8 code needs uint8; keep full old-SDK set for DoD code)
-#include <stdint.h>
-typedef uint8_t uint8;
-typedef int8_t int8;
-typedef uint16_t uint16;
-typedef int16_t int16;
-typedef uint32_t uint32;
-typedef int32_t int32;
-typedef uint64_t uint64;
-typedef int64_t int64;
+#if _MSC_VER
+#pragma warning(disable : 4244)		// int or float down-conversion
+#pragma warning(disable : 4305)		// int or float data truncation
+#pragma warning(disable : 4201)		// nameless struct/union
+#pragma warning(disable : 4514)		// unreferenced inline function removed
+#pragma warning(disable : 4100)		// unreferenced formal parameter
+#endif
 
 // Prevent tons of unused windows definitions
-#ifdef _WIN32
+#if XASH_WIN32
 #define WIN32_LEAN_AND_MEAN
 #define NOWINRES
 #define NOSERVICE
 #define NOMCX
 #define NOIME
-#include "winsani_in.h"
-#include "windows.h"
-#include "winsani_out.h"
-#else  // _WIN32
+#define HSPRITE HSPRITE_win32
+#include <windows.h>
+#undef HSPRITE
+#else // _WIN32
+#if !defined(FALSE)
 #define FALSE 0
-#define TRUE ( !FALSE )
-typedef uint32 ULONG;
+#endif
+#if !defined(TRUE)
+#define TRUE (!FALSE)
+#endif
+#include <limits.h>
+#include <stdarg.h>
+typedef unsigned int ULONG;
 typedef unsigned char BYTE;
 typedef int BOOL;
 #define MAX_PATH PATH_MAX
-#include <limits.h>
-#include <stddef.h>	 // offsetof for engine/eiface.h (DoD)
-#include <stdarg.h>
-#include <string.h>	 // memset
-#ifndef _vsnprintf
-#define _vsnprintf( a, b, c, d ) vsnprintf( a, b, c, d )
+#if !defined(PATH_MAX)
+#define PATH_MAX 4096
 #endif
-#endif	//_WIN32
+#endif //_WIN32
 
 // Misc C-runtime library headers
-#include "stdio.h"
-#include "stdlib.h"
-#include "minmax.h"	// DoD local (dlls/): C++-safe std::min/max, undefs legacy macros
-#if !defined( _vsnprintf ) && !defined( _WIN32 )
-#define _vsnprintf( a, b, c, d ) vsnprintf( a, b, c, d )
+#include <stdio.h>
+#include <stdlib.h>
+#include <stddef.h>
+#include "safe_snprintf.h"
+#ifndef __restrict
+#define	__restrict 
 #endif
-#include "math.h"
+#if !HAVE_STRLCPY
+extern "C" size_t strlcpy(char * __restrict dst, const char * __restrict src, size_t dsize);
+#endif
+#if !HAVE_STRLCAT
+extern "C" size_t strlcat(char * __restrict dst, const char * __restrict src, size_t dsize);
+#endif
+#if HAVE_CMATH
+#include <cmath>
+#else
+#include <math.h>
+#endif
+
+#if !defined(M_PI_F)
+#define M_PI_F          (float)M_PI
+#endif
 
 // Header file containing definition of globalvars_t and entvars_t
-typedef unsigned int func_t;	//
-typedef int string_t;	// engine common/const.h uses int; keep in sync (DoD)
-typedef float vec_t;			// needed before including progdefs.h
+typedef unsigned int func_t;
+typedef int string_t;				// from engine's pr_comp.h;
+typedef float vec_t;				// needed before including progdefs.h
 
 // Vector class
 #include "vector.h"
@@ -99,5 +107,27 @@ typedef float vec_t;			// needed before including progdefs.h
 
 // Shared header between the client DLL and the game DLLs
 #include "cdll_dll.h"
+#if !defined(Q_min)
+#define Q_min(a,b)  (((a) < (b)) ? (a) : (b))
+#endif
+#if !defined(Q_max)
+#define Q_max(a,b)  (((a) > (b)) ? (a) : (b))
+#endif
 
-#endif	//EXTDLL_H
+#if !CLIENT_DLL
+// the server code relies on string.h and min/max from extdll.h, and on the integer types of the Steam SDK
+// (steamtypes.h in the original game)
+#include <string.h>
+#include "minmax.h"
+#include <stdint.h>
+typedef uint8_t uint8;
+typedef int8_t int8;
+typedef uint16_t uint16;
+typedef int16_t int16;
+typedef uint32_t uint32;
+typedef int32_t int32;
+typedef uint64_t uint64;
+typedef int64_t int64;
+#endif
+
+#endif //EXTDLL_H
