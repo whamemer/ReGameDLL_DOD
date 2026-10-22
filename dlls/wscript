@@ -10,14 +10,14 @@ def options(opt):
 
 def configure(conf):
 	if conf.env.COMPILER_CC == 'msvc':
-		# hl.def removes MSVC function name decoration from GiveFnptrsToDll on Windows.
+		# dod.def removes MSVC function name decoration from GiveFnptrsToDll on Windows.
 		# Without this, the lookup for this function fails.
-		hlDefNode = conf.path.find_resource("./hl.def")
+		hlDefNode = conf.path.find_resource("./dod.def")
 
 		if hlDefNode is not None:
 			conf.env.append_value('LINKFLAGS', '/def:%s' % hlDefNode.abspath())
 		else:
-			conf.fatal("Could not find hl.def")
+			conf.fatal("Could not find dod.def")
 
 def build(bld):
 	# DoD: stats.cpp required (AmmoDamage, extern in dod_gamerules.cpp) — removed from excludes

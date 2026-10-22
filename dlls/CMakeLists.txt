@@ -173,7 +173,7 @@ include_directories (. wpn_shared ../common ../engine ../pm_shared ../game_share
 if(MSVC)
 	set(SVDLL_SOURCES
 		${SVDLL_SOURCES}
-		hl.def)
+		dod.def)
 endif()
 add_library (${SVDLL_LIBRARY} SHARED ${SVDLL_SOURCES})
 target_link_libraries(${SVDLL_LIBRARY} vcs_info)
