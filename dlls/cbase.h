@@ -576,6 +576,16 @@ void InitHashTable();
 void AddEntityHashValue( entvars_t *pev, const char *value, hash_types_e fieldType );
 void RemoveEntityHashValue( entvars_t *pev, const char *value, hash_types_e fieldType );
 
+// sets the classname of the entity and keeps the classname hash in sync (dod.so util.h:59)
+inline void MAKE_STRING_CLASS( const char *str, entvars_t *pev )
+{
+	if( pev->classname )
+		RemoveEntityHashValue( pev, STRING( pev->classname ), CLASSNAME );
+
+	pev->classname = MAKE_STRING( str );
+	AddEntityHashValue( pev, STRING( pev->classname ), CLASSNAME );
+}
+
 #endif
 
 class CPointEntity : public CBaseEntity

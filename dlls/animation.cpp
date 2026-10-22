@@ -568,7 +568,11 @@ static inline int ENTINDEX( edict_t *pEdict ) { return ( *g_engfuncs.pfnIndexOfE
 #define Q_acos acos
 #endif
 #ifndef C_DLLEXPORT
-#define C_DLLEXPORT
+#ifdef _WIN32
+#define C_DLLEXPORT extern "C" __declspec( dllexport )
+#else
+#define C_DLLEXPORT extern "C" __attribute__( ( visibility( "default" ) ) )
+#endif
 #endif
 #ifndef model_t
 typedef struct model_s model_t;

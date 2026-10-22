@@ -21,6 +21,11 @@
 
 #include "dod_shared.h"
 
+#if !CLIENT_DLL
+#include "gamerules.h"
+#include "skill.h"
+#endif
+
 LINK_ENTITY_TO_CLASS( weapon_piat, CPIAT )
 
 extern p_wpninfo_s P_WpnInfo[];
@@ -37,6 +42,61 @@ extern int gmsgResetSens;
 		m_pPlayer->m_bBazookaDeployed = ( sens ); \
 		m_pPlayer->CheckPlayerSpeed(); \
 	} while( 0 )
+#endif
+
+#if !CLIENT_DLL
+LINK_ENTITY_TO_CLASS( shell_piat, CPIATShell )
+
+CPIATShell *CPIATShell::CreateRocket( Vector vecOrigin, Vector vecAngles, CBaseEntity *pOwner )
+{
+	CPIATShell *pRocket = GetClassPtr( (CPIATShell *)NULL );
+	UTIL_SetOrigin( pRocket, vecOrigin );
+	pRocket->pev->angles = vecAngles;
+	pRocket->Spawn();
+	pRocket->SetTouch( &CPIATShell::RocketTouch );
+	pRocket->pev->owner = pOwner->edict();
+	pRocket->pev->team = pOwner->pev->team;
+
+	UTIL_SendDirectorMessage( pRocket, NULL, 135 );
+
+	PLAYBACK_EVENT_FULL( FEV_GLOBAL, pRocket->edict(), g_pGameRules->StartTrail(), 0, (float *)&g_vecZero, (float *)&g_vecZero, 0, 0, 0, 0, 0, 0 );
+
+	return pRocket;
+}
+
+void CPIATShell::Spawn( void )
+{
+	Precache();
+
+	pev->solid = SOLID_BBOX;
+	SET_MODEL( ENT( pev ), "models/w_piat_rocket.mdl" );
+	UTIL_SetSize( pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ) );
+	UTIL_SetOrigin( this, pev->origin );
+	pev->movetype = MOVETYPE_FLY;
+
+	pev->velocity = gpGlobals->v_forward * 1300;
+	pev->gravity = 0.1;
+	pev->dmg = gSkillData.plrDmgPiatShell;
+	pev->angles.x = -pev->angles.x;
+	pev->angles.x = pev->angles.x - 180;
+
+	EMIT_SOUND( ENT( pev ), CHAN_VOICE, "weapons/rocket2.wav", 1.0, 0.5 );
+
+	SetTouch( &CGrenade::RocketExplodeTouch );
+	MAKE_STRING_CLASS( "shell_piat", pev );
+}
+
+void CPIATShell::RocketTouch( CBaseEntity *pOther )
+{
+	STOP_SOUND( edict(), CHAN_VOICE, "weapons/rocket2.wav" );
+	CGrenade::RocketExplodeTouch( pOther );
+}
+
+void CPIATShell::Precache( void )
+{
+	PRECACHE_MODEL( "models/w_piat_rocket.mdl" );
+	PRECACHE_SOUND( "weapons/rocket2.wav" );
+}
 #endif
 
 void CPIAT::Reload( void )

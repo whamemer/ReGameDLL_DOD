@@ -21,6 +21,11 @@
 
 #include "dod_shared.h"
 
+#if !CLIENT_DLL
+#include "gamerules.h"
+#include "skill.h"
+#endif
+
 LINK_ENTITY_TO_CLASS( weapon_bazooka, CBazooka )
 
 extern p_wpninfo_s P_WpnInfo[];
@@ -37,6 +42,64 @@ extern int gmsgResetSens;
 		m_pPlayer->m_bBazookaDeployed = ( sens ); \
 		m_pPlayer->CheckPlayerSpeed(); \
 	} while( 0 )
+#endif
+
+#if !CLIENT_DLL
+LINK_ENTITY_TO_CLASS( shell_bazooka, CBazookaShell )
+
+CBazookaShell *CBazookaShell::CreateRocket( Vector vecOrigin, Vector vecAngles, CBaseEntity *pOwner )
+{
+	CBazookaShell *pRocket = GetClassPtr( (CBazookaShell *)NULL );
+	UTIL_SetOrigin( pRocket, vecOrigin );
+	pRocket->pev->angles = vecAngles;
+	pRocket->Spawn();
+	pRocket->SetTouch( &CBazookaShell::RocketTouch );
+	pRocket->pev->owner = pOwner->edict();
+	pRocket->pev->team = pOwner->pev->team;
+
+	UTIL_SendDirectorMessage( pRocket, NULL, 135 );
+
+	PLAYBACK_EVENT_FULL( FEV_GLOBAL, pRocket->edict(), g_pGameRules->StartTrail(), 0, (float *)&g_vecZero, (float *)&g_vecZero, 0, 0, 0, 0, 0, 0 );
+
+	return pRocket;
+}
+
+void CBazookaShell::Spawn( void )
+{
+	Precache();
+
+	pev->solid = SOLID_BBOX;
+	SET_MODEL( ENT( pev ), "models/w_bazooka_rocket.mdl" );
+	UTIL_SetSize( pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ) );
+	UTIL_SetOrigin( this, pev->origin );
+	pev->movetype = MOVETYPE_FLY;
+
+	Vector forward;
+	UTIL_MakeVectorsPrivate( pev->angles, forward, NULL, NULL );
+	pev->velocity = forward * 1300;
+	pev->gravity = 0.1;
+	pev->dmg = gSkillData.plrDmgBazookaShell;
+	pev->angles.x = -pev->angles.x;
+	pev->angles.x = pev->angles.x - 180;
+	pev->flags |= FL_MONSTERCLIP;
+
+	EMIT_SOUND( ENT( pev ), CHAN_VOICE, "weapons/rocket1.wav", 1.0, 0.5 );
+
+	SetTouch( &CGrenade::RocketExplodeTouch );
+	MAKE_STRING_CLASS( "shell_bazooka", pev );
+}
+
+void CBazookaShell::RocketTouch( CBaseEntity *pOther )
+{
+	STOP_SOUND( edict(), CHAN_VOICE, "weapons/rocket1.wav" );
+	CGrenade::RocketExplodeTouch( pOther );
+}
+
+void CBazookaShell::Precache( void )
+{
+	PRECACHE_MODEL( "models/w_bazooka_rocket.mdl" );
+	PRECACHE_SOUND( "weapons/rocket1.wav" );
+}
 #endif
 
 void CBazooka::Reload( void )

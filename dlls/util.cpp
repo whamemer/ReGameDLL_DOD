@@ -1012,6 +1012,11 @@ float UTIL_VecToYaw( const Vector &vec )
 	return VEC_TO_YAW( vec );
 }
 
+void UTIL_SetOrigin( CBaseEntity *pEntity, const Vector &vecOrigin )
+{
+	SET_ORIGIN( ENT( pEntity->pev ), vecOrigin );
+}
+
 void UTIL_SetOrigin( entvars_t *pev, const Vector &vecOrigin )
 {
 	edict_t *ent = ENT( pev );
