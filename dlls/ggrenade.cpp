@@ -421,35 +421,6 @@ CGrenade *CGrenade::ShootTimed( entvars_t *pevOwner, Vector vecStart, Vector vec
 	return pGrenade;
 }
 
-CGrenade *CGrenade ::ShootSatchelCharge( entvars_t *pevOwner, Vector vecStart, Vector vecVelocity )
-{
-	CGrenade *pGrenade = GetClassPtr( (CGrenade *) NULL );
-	pGrenade->pev->movetype = MOVETYPE_BOUNCE;
-	pGrenade->pev->classname = MAKE_STRING( "grenade" );
-
-	pGrenade->pev->solid = SOLID_BBOX;
-
-	SET_MODEL( ENT( pGrenade->pev ), "models/grenade.mdl" );  // Change this to satchel charge model
-
-	UTIL_SetSize( pGrenade->pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ) );
-
-	pGrenade->pev->dmg = 200;
-	UTIL_SetOrigin( pGrenade->pev, vecStart );
-	pGrenade->pev->velocity = vecVelocity;
-	pGrenade->pev->angles = g_vecZero;
-	pGrenade->pev->owner = ENT( pevOwner );
-
-	// Detonate in "time" seconds
-	pGrenade->SetThink( &CGrenade::SUB_DoNothing );
-	pGrenade->SetUse( &CGrenade::DetonateUse );
-	pGrenade->SetTouch( &CGrenade::SlideTouch );
-	pGrenade->pev->spawnflags = SF_DETONATE;
-
-	pGrenade->pev->friction = 0.9;
-
-	return pGrenade;
-}
-
 void CGrenade ::UseSatchelCharges( entvars_t *pevOwner, SATCHELCODE code )
 {
 	edict_t *pentFind;
@@ -614,7 +585,7 @@ void CGrenade::RocketExplodeTouch( CBaseEntity *pOther )
 	}
 	Explode( &tr, DMG_BLAST | DMG_SONIC );
 }
-CGrenade *CGrenade::ShootPickup( entvars_t *pevOwner, Vector vecStart, Vector vecVelocity, float time, int grenType, float fDelay )
+CGrenade *CGrenade::ShootPickup( entvars_t *pevOwner, Vector vecStart, Vector vecVelocity, float time, grenType value, float fDelay )
 {
 	CGrenade *pGrenade = GetClassPtr( (CGrenade *)NULL );
 	pGrenade->Spawn();
@@ -639,12 +610,12 @@ CGrenade *CGrenade::ShootPickup( entvars_t *pevOwner, Vector vecStart, Vector ve
 	pGrenade->pev->avelocity.x = -400.0;
 	pGrenade->pev->gravity = 0.5;
 	pGrenade->pev->friction = fDelay;
-	if ( grenType == 0 )
+	if ( value == 0 )
 	{
 		SET_MODEL( ENT( pGrenade->pev ), "models/w_mills.mdl" );
 		pGrenade->pev->dmg = gSkillData.plrDmgHandGrenade;
 	}
-	else if ( grenType == 1 )
+	else if ( value == 1 )
 	{
 		SET_MODEL( ENT( pGrenade->pev ), "models/w_grenade.mdl" );
 		pGrenade->pev->dmg = gSkillData.plrDmgHandGrenade;

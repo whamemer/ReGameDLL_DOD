@@ -147,7 +147,7 @@ BOOL CDoDTeamPlay::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pIt
 {
 	if ( cvar_weaponstay.value <= 0.0f || ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & 8 ) == 0 )
 	{
-		unsigned int cls = pItem->GetItemClass();
+		unsigned int cls = pItem->Classify();
 		unsigned int mask = cls & 8;
 		if ( ( cls & 0x3F0 ) != 0 )
 			mask = 0x3F0;
@@ -157,7 +157,7 @@ BOOL CDoDTeamPlay::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pIt
 		{
 			for ( int i = 0; i < 6; i++ )
 				for ( CBasePlayerItem *p = pPlayer->m_rgpPlayerItems[i]; p; p = p->m_pNext )
-					if ( p->GetItemClass() & mask )
+					if ( p->Classify() & mask )
 						return FALSE;
 		}
 	}

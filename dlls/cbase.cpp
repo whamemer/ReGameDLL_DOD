@@ -24,9 +24,7 @@
 
 void EntvarsKeyvalue( entvars_t *pev, KeyValueData *pkvd );
 
-extern "C" void PM_Move( struct playermove_s *ppmove, int server );
-extern "C" void PM_Init( struct playermove_s *ppmove );
-extern "C" char PM_FindTextureType( char *name );
+#include "pm_shared.h"
 // the engine headers declare pfnPM_FindTextureType as char(*)(const char*);
 // pm_shared impl takes char* (read-only in practice) — adapt locally,
 // shared pm_shared/ files stay untouched.

@@ -801,19 +801,19 @@ void CAlliedGrunt :: Shoot( void )
 	EjectBrass( vecShootOrigin - vecShootDir * 24, vecShellVelocity, pev->angles.y, m_iBrassShell, TE_BOUNCE_SHELL );
 	if ( pev->weapons & 2 )
 	{
-		FireBullets( 1, vecShootOrigin, vecShootDir, VECTOR_CONE_5DEGREES, 2048, BULLET_DOD_GARAND );
+		FireBullets( 1, vecShootOrigin, vecShootDir, VECTOR_CONE_5DEGREES, 2048, BULLET_PLAYER_GARAND );
 		EMIT_SOUND( ENT( pev ), CHAN_WEAPON, "weapons/garand_shoot.wav", 1, ATTN_NORM );
 		ALERT( at_console, "Shoot GARAND\n" );
 	}
 	else if ( pev->weapons & 8 )
 	{
-		FireBullets( 1, vecShootOrigin, vecShootDir, VECTOR_CONE_10DEGREES, 2048, BULLET_DOD_BAR );
+		FireBullets( 1, vecShootOrigin, vecShootDir, VECTOR_CONE_10DEGREES, 2048, BULLET_PLAYER_BAR );
 		EMIT_SOUND( ENT( pev ), CHAN_WEAPON, "weapons/bar_shoot.wav", 1, ATTN_NORM );
 		ALERT( at_console, "Shoot BAR\n" );
 	}
 	else if ( pev->weapons & 4 )
 	{
-		FireBullets( 1, vecShootOrigin, vecShootDir, VECTOR_CONE_10DEGREES, 2048, BULLET_DOD_THOMPSON );
+		FireBullets( 1, vecShootOrigin, vecShootDir, VECTOR_CONE_10DEGREES, 2048, BULLET_PLAYER_THOMPSON );
 		EMIT_SOUND( ENT( pev ), CHAN_WEAPON, "weapons/thompson_shoot.wav", 1, ATTN_NORM );
 		ALERT( at_console, "Shoot THOMPSON\n" );
 	}

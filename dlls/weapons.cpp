@@ -620,11 +620,6 @@ void CBasePlayerWeapon::ItemPostFrame( void )
 		m_fInReload = FALSE;
 	}
 
-	if ( !( m_pPlayer->pev->button & IN_ATTACK ) )
-	{
-		m_flLastFireTime = 0.0f;
-	}
-
 	if ( ( m_pPlayer->pev->button & IN_ATTACK2 ) &&
 		 CanAttack( m_flNextSecondaryAttack, gpGlobals->time, UseDecrement() ) )
 	{
@@ -825,9 +820,8 @@ int CBasePlayerWeapon::UpdateClientData( CBasePlayer *pPlayer )
 }
 
 // .text:0016aec0 SendWeaponAnim - DoD picks bodygroup by team/playerclass
-void CBasePlayerWeapon::SendWeaponAnim( int iAnim, int skiplocal, int body )
+void CBasePlayerWeapon::SendWeaponAnim( int iAnim, int skiplocal )
 {
-	(void)body;
 	if ( !m_pPlayer )
 		return;
 
@@ -957,9 +951,14 @@ BOOL CBasePlayerWeapon ::CanDeploy( void )
 	return TRUE;
 }
 
+int CBasePlayerWeapon::Classify( void )
+{
+	return 0;
+}
+
 // .text:0016d5e0 DefaultDeploy(…, szAnimReloadExt, skiplocal)
-BOOL CBasePlayerWeapon ::DefaultDeploy( const char *szViewModel, const char *szWeaponModel, int iAnim, const char *szAnimExt,
-										const char *szAnimReloadExt, int skiplocal )
+BOOL CBasePlayerWeapon ::DefaultDeploy( char *szViewModel, char *szWeaponModel, int iAnim, char *szAnimExt,
+										char *szAnimReloadExt, int skiplocal )
 {
 	(void)szAnimReloadExt;
 	if ( !CanDeploy() )
@@ -969,7 +968,7 @@ BOOL CBasePlayerWeapon ::DefaultDeploy( const char *szViewModel, const char *szW
 	m_pPlayer->pev->viewmodel = MAKE_STRING( szViewModel );
 	m_pPlayer->pev->weaponmodel = MAKE_STRING( szWeaponModel );
 	strcpy( m_pPlayer->m_szAnimExtention, szAnimExt );
-	SendWeaponAnim( iAnim, skiplocal, 0 );
+	SendWeaponAnim( iAnim, skiplocal );
 	m_pPlayer->SetAnimation( PLAYER_IDLE );
 
 	m_pPlayer->m_flNextAttack = UTIL_WeaponTimeBase() + 0.5;
@@ -979,8 +978,8 @@ BOOL CBasePlayerWeapon ::DefaultDeploy( const char *szViewModel, const char *szW
 }
 
 // .text:0016d700 TimedDeploy(…, idleTime, attackTime, skiplocal)
-BOOL CBasePlayerWeapon::TimedDeploy( const char *szViewModel, const char *szWeaponModel, int iAnim, const char *szAnimExt,
-									 const char *szAnimReloadExt, float idleTime, float attackTime, int skiplocal )
+BOOL CBasePlayerWeapon::TimedDeploy( char *szViewModel, char *szWeaponModel, int iAnim, char *szAnimExt,
+									 char *szAnimReloadExt, float idleTime, float attackTime, int skiplocal )
 {
 	(void)szAnimReloadExt;
 	if ( !CanDeploy() )
@@ -990,7 +989,7 @@ BOOL CBasePlayerWeapon::TimedDeploy( const char *szViewModel, const char *szWeap
 	m_pPlayer->pev->viewmodel = MAKE_STRING( szViewModel );
 	m_pPlayer->pev->weaponmodel = MAKE_STRING( szWeaponModel );
 	strcpy( m_pPlayer->m_szAnimExtention, szAnimExt );
-	SendWeaponAnim( iAnim, skiplocal, 0 );
+	SendWeaponAnim( iAnim, skiplocal );
 	m_pPlayer->SetAnimation( PLAYER_IDLE );
 
 	m_pPlayer->m_flNextAttack = UTIL_WeaponTimeBase() + attackTime;
@@ -999,7 +998,7 @@ BOOL CBasePlayerWeapon::TimedDeploy( const char *szViewModel, const char *szWeap
 	return TRUE;
 }
 
-BOOL CBasePlayerWeapon ::DefaultReload( int iClipSize, int iAnim, float fDelay, int body )
+BOOL CBasePlayerWeapon ::DefaultReload( int iClipSize, int iAnim, float fDelay )
 {
 	if ( m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] <= 0 )
 		return FALSE;
@@ -1183,37 +1182,6 @@ void CBasePlayerWeapon::RetireWeapon( void )
 	//m_pPlayer->pev->viewmodelindex = NULL;
 
 	g_pGameRules->GetNextBestWeapon( m_pPlayer, this );
-}
-
-//=========================================================================
-// GetNextAttackDelay - An accurate way of calcualting the next attack time.
-//=========================================================================
-float CBasePlayerWeapon::GetNextAttackDelay( float delay )
-{
-	if ( m_flLastFireTime == 0 || m_flNextPrimaryAttack == -1 )
-	{
-		// At this point, we are assuming that the client has stopped firing
-		// and we are going to reset our book keeping variables.
-		m_flLastFireTime = gpGlobals->time;
-		m_flPrevPrimaryAttack = delay;
-	}
-	// calculate the time between this shot and the previous
-	float flTimeBetweenFires = gpGlobals->time - m_flLastFireTime;
-	float flCreep = 0.0f;
-	if ( flTimeBetweenFires > 0 )
-		flCreep = flTimeBetweenFires - m_flPrevPrimaryAttack;  // postive or negative
-
-	// save the last fire time
-	m_flLastFireTime = gpGlobals->time;
-
-	float flNextAttack = UTIL_WeaponTimeBase() + delay - flCreep;
-	// we need to remember what the m_flNextPrimaryAttack time is set to for each shot,
-	// store it as m_flPrevPrimaryAttack.
-	m_flPrevPrimaryAttack = flNextAttack - UTIL_WeaponTimeBase();
-	// 	char szMsg[256];
-	// 	_snprintf( szMsg, sizeof(szMsg), "next attack time: %0.4f\n", gpGlobals->time + flNextAttack );
-	// 	OutputDebugString( szMsg );
-	return flNextAttack;
 }
 
 //*********************************************************
@@ -1573,7 +1541,7 @@ static void DOD_SendScope( CBasePlayer *pPlayer, int weapon_id )
 	MESSAGE_END();
 }
 
-// .text:0016acd0 UpdateZoomSpeed - only for CLASS_SCOPE_RIFLE(0x20)
+// .text:0016acd0 UpdateZoomSpeed - only for CLASS_SCOPED_RIFLE(0x20)
 void CBasePlayerWeapon::UpdateZoomSpeed( void )
 {
 	if ( !m_pPlayer )
@@ -1658,7 +1626,7 @@ bool CBasePlayerWeapon::PlayerIsWaterSniping( void )
 		return CBasePlayer::IsProne( m_pPlayer ) != 0;
 	return false;
 }
-Vector CBasePlayerWeapon::Aim( float accuracyFactor, CBasePlayer *pOther, unsigned int shared_rand )
+Vector CBasePlayerWeapon::Aim( float accuracyFactor, CBasePlayer *pOther, int shared_rand )
 // link 0x15a950 size 0x81 Ghidra 0x16a950: 3x UTIL_SharedRandomFloat xyz, returns Vector
 {
 	float targetx = UTIL_SharedRandomFloat( shared_rand, accuracyFactor, 0.0f );
@@ -1684,19 +1652,6 @@ void CBasePlayerWeapon::SendMortarFireCommand( char *c )
 // EXACT link 0x15db50 Ghidra 0x16db50 weapons.cpp:1629 server stub empty dispatch via gamerules string table
 {
 	return;
-}
-
-// DoD P_WpnInfo runtime link 0x1d4b20 Ghidra 0x1e4b20 dod_shared.cpp:451 size 41 zero-init filled by shared init before W_Precache x-ref objdump -R relocs ammo fields verified vs GetItemInfo
-p_wpninfo_s P_WpnInfo[41];
-
-BOOL CBasePlayerWeapon::IsEmptyOrZoomed( void )
-{
-	return ( m_iClip <= 0 || ( m_pPlayer && m_pPlayer->m_iFOV != 90 ) );
-}
-
-BOOL CBasePlayerWeapon::IsEmptyOrZoomedNoFire( void )
-{
-	return IsEmptyOrZoomed();
 }
 
 // .text:0015d240 CBasePlayerItem::SpawnReplacement (file:weapons.cpp)
@@ -1798,11 +1753,11 @@ void CDodAmmoBox::Touch( CBaseEntity *pOther )
 
 		int iGive;
 		int cls = pWeapon->Classify();
-		if ( cls == CLASS_AUTO_RIFLE )
+		if ( cls == CLASS_SMG )
 			iGive = 2;
-		else if ( cls == CLASS_RIFLE || cls == CLASS_SCOPE_RIFLE )
+		else if ( cls == CLASS_RIFLE || cls == CLASS_SCOPED_RIFLE )
 			iGive = 2;
-		else if ( cls == CLASS_MACHINEGUNS || cls == CLASS_ROCKET )
+		else if ( cls == CLASS_MACHINEGUN || cls == CLASS_ROCKET )
 			iGive = 1;
 		else
 			return;

@@ -700,8 +700,8 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 	// .text:00133f00 link 0x123f00 (dod/dlls/player.cpp:1272)
 	if ( m_pActiveItem )
 	{
+		m_pActiveItem->DropGren();
 		m_pActiveItem->Holster();
-		m_pActiveItem->SetNextThink( 0 );
 	}
 	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
 	{
@@ -4059,18 +4059,7 @@ void CBasePlayer::MortarDeploy( void )
 	CheckPlayerSpeed();
 }
 
-// DoD voice tables (dod.so .data): iVoiceToHandSignal @link 0x1dcc40 size 0x74 (29 ints)
-// Hand-signal values use HANDSIGNALS_e from dod_shared.h (HS_*). Count verified:
-// 29 voice commands vs 30 hand signals (HS_STICK_TOGETHER..HS_IDLE5); max mapped
-// value here is HS_CEASE_FIRE (25), so all entries are in range.
-int iVoiceToHandSignal[] = {
-	HS_STICK_TOGETHER, HS_MOVE_OUT, HS_HOLD_POSITION, HS_FALL_BACK, HS_FLANK_LEFT,
-	HS_FLANK_RIGHT, HS_STICK_TOGETHER, HS_COVERING_FIRE, HS_GOGOGO, HS_CEASE_FIRE,
-	HS_YES_SIR, HS_NO_SIR, HS_BACKUP, HS_GRENADE, HS_FALL_BACK,
-	HS_SNIPER, HS_ENEMY_LEFT, HS_ENEMY_RIGHT, HS_AREA_CLEAR, HS_GOGOGO,
-	HS_DISPLACE, HS_ENEMY_AHEAD, HS_ENEMY_BEHIND, HS_MG_AHEAD, HS_MG_MOVEUP,
-	HS_BACKUP, HS_GOGOGO, HS_SNIPER, HS_SNIPER,
-};
+extern int iVoiceToHandSignal[29];	// defined in dod_shared.cpp
 
 // .text:00133a40 CBasePlayer::VoiceCom(int) size 0x1d2 link 0x123a40 (dod/dlls/player.cpp:5276)
 void CBasePlayer::VoiceCom( int command )

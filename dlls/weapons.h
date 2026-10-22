@@ -230,7 +230,7 @@ public:
 	virtual int AddWeapon( void ) { ExtractAmmo( this ); return TRUE; }
 	virtual BOOL PlayEmptySound( void );
 	virtual void ResetEmptySound( void );
-	virtual void SendWeaponAnim( int iAnim, int skiplocal );
+	virtual void SendWeaponAnim( int iAnim, int skiplocal = 1 );
 	virtual BOOL IsUseable( void );
 
 	virtual Vector Aim( float accuracyFactor, CBasePlayer *pOther, int shared_rand );
@@ -1227,6 +1227,73 @@ public:
 };
 
 #if !CLIENT_DLL
+
+// the parts of the SDK weapons.h that only the server needs
+// constant items
+#define ITEM_HEALTHKIT 1
+#define ITEM_ANTIDOTE 2
+#define ITEM_SECURITY 3
+#define ITEM_BATTERY 4
+
+#define MAX_NORMAL_BATTERY 100
+extern DLL_GLOBAL short g_sModelIndexLaser;	 // holds the index for the laser beam
+
+extern DLL_GLOBAL short g_sModelIndexLaserDot;	  // holds the index for the laser beam dot
+extern DLL_GLOBAL short g_sModelIndexFireball;	  // holds the index for the fireball
+extern DLL_GLOBAL short g_sModelIndexSmoke;		  // holds the index for the smoke cloud
+extern DLL_GLOBAL short g_sModelIndexWExplosion;  // holds the index for the underwater explosion
+extern DLL_GLOBAL short g_sModelIndexBubbles;	  // holds the index for the bubbles model
+extern DLL_GLOBAL short g_sModelIndexBloodDrop;	  // holds the sprite index for blood drops
+extern DLL_GLOBAL short g_sModelIndexBloodSpray;  // holds the sprite index for blood spray (bigger)
+
+extern void ClearMultiDamage( void );
+extern void ApplyMultiDamage( entvars_t *pevInflictor, entvars_t *pevAttacker );
+extern void AddMultiDamage( entvars_t *pevInflictor, CBaseEntity *pEntity, float flDamage, int bitsDamageType );
+
+extern void DecalGunshot( TraceResult *pTrace, int iBulletType );
+extern void SpawnBlood( Vector vecSpot, int bloodColor, float flDamage );
+extern int DamageDecal( CBaseEntity *pEntity, int bitsDamageType );
+extern void RadiusDamage( Vector vecSrc, entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage,
+						  float flRadius, int iClassIgnore, int bitsDamageType );
+
+typedef struct
+{
+	CBaseEntity *pEntity;
+	float amount;
+	int type;
+} MULTIDAMAGE;
+
+extern MULTIDAMAGE gMultiDamage;
+
+extern p_wpninfo_s P_WpnInfo[];	// defined in dod_shared.cpp
+
+#define LOUD_GUN_VOLUME 1000
+#define NORMAL_GUN_VOLUME 600
+#define QUIET_GUN_VOLUME 200
+
+#define BRIGHT_GUN_FLASH 512
+#define NORMAL_GUN_FLASH 256
+#define DIM_GUN_FLASH 128
+
+#define BIG_EXPLOSION_VOLUME 2048
+#define NORMAL_EXPLOSION_VOLUME 1024
+#define SMALL_EXPLOSION_VOLUME 512
+
+#define WEAPON_ACTIVITY_VOLUME 64
+
+#define VECTOR_CONE_1DEGREES Vector( 0.00873, 0.00873, 0.00873 )
+#define VECTOR_CONE_2DEGREES Vector( 0.01745, 0.01745, 0.01745 )
+#define VECTOR_CONE_3DEGREES Vector( 0.02618, 0.02618, 0.02618 )
+#define VECTOR_CONE_4DEGREES Vector( 0.03490, 0.03490, 0.03490 )
+#define VECTOR_CONE_5DEGREES Vector( 0.04362, 0.04362, 0.04362 )
+#define VECTOR_CONE_6DEGREES Vector( 0.05234, 0.05234, 0.05234 )
+#define VECTOR_CONE_7DEGREES Vector( 0.06105, 0.06105, 0.06105 )
+#define VECTOR_CONE_8DEGREES Vector( 0.06976, 0.06976, 0.06976 )
+#define VECTOR_CONE_9DEGREES Vector( 0.07846, 0.07846, 0.07846 )
+#define VECTOR_CONE_10DEGREES Vector( 0.08716, 0.08716, 0.08716 )
+#define VECTOR_CONE_15DEGREES Vector( 0.13053, 0.13053, 0.13053 )
+#define VECTOR_CONE_20DEGREES Vector( 0.17365, 0.17365, 0.17365 )
+
 // the classes below exist only in the server dll
 
 class CWeaponBox : public CBaseEntity

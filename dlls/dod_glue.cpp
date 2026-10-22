@@ -168,11 +168,6 @@ void CGameRules::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvars_
 {
 }
 
-// dod.so: _ZN13CRocketWeapon6ReSlowEv (weak) -- no-op in the base.
-void CRocketWeapon::ReSlow( void )
-{
-}
-
 // ---------------------------------------------------------------------------
 // DoD player-blend accessors (exported for the client; dod.so player.cpp)
 // ---------------------------------------------------------------------------

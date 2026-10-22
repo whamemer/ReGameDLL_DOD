@@ -803,19 +803,19 @@ void CAxisGrunt :: Shoot( void )
 	EjectBrass( vecShootOrigin - vecShootDir * 24, vecShellVelocity, pev->angles.y, m_iBrassShell, TE_BOUNCE_SHELL );
 	if ( pev->weapons & 2 )
 	{
-		FireBullets( 1, vecShootOrigin, vecShootDir, VECTOR_CONE_5DEGREES, 2048, BULLET_DOD_KAR );
+		FireBullets( 1, vecShootOrigin, vecShootDir, VECTOR_CONE_5DEGREES, 2048, BULLET_PLAYER_KAR );
 		EMIT_SOUND( ENT( pev ), CHAN_WEAPON, "weapons/kar_shoot.wav", 1, ATTN_NORM );
 		ALERT( at_console, "Shoot KAR\n" );
 	}
 	else if ( pev->weapons & 4 )
 	{
-		FireBullets( 1, vecShootOrigin, vecShootDir, VECTOR_CONE_10DEGREES, 2048, BULLET_DOD_MP40 );
+		FireBullets( 1, vecShootOrigin, vecShootDir, VECTOR_CONE_10DEGREES, 2048, BULLET_PLAYER_MP40 );
 		EMIT_SOUND( ENT( pev ), CHAN_WEAPON, "weapons/mp40_shoot.wav", 1, ATTN_NORM );
 		ALERT( at_console, "Shoot MP40\n" );
 	}
 	else if ( pev->weapons & 8 )
 	{
-		FireBullets( 1, vecShootOrigin, vecShootDir, VECTOR_CONE_10DEGREES, 2048, BULLET_DOD_MP44 );
+		FireBullets( 1, vecShootOrigin, vecShootDir, VECTOR_CONE_10DEGREES, 2048, BULLET_PLAYER_MP44 );
 		EMIT_SOUND( ENT( pev ), CHAN_WEAPON, "weapons/mp44_shoot.wav", 1, ATTN_NORM );
 		ALERT( at_console, "Shoot MP44\n" );
 	}
