@@ -25,7 +25,9 @@ LINK_ENTITY_TO_CLASS( weapon_enfield, CENFIELD )
 LINK_ENTITY_TO_CLASS( weapon_scopedenfield, CENFIELD )
 
 extern p_wpninfo_s P_WpnInfo[];
+#if CLIENT_DLL
 extern float flBoltHideXHair;
+#endif
 
 void CENFIELD::Spawn( void )
 {
@@ -179,7 +181,9 @@ void CENFIELD::PrimaryAttack( void )
 	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + RANDOM_FLOAT( 10.0f, 15.0f );
 	m_fInAttack = 1;
 
+#if CLIENT_DLL
 	flBoltHideXHair = P_WpnInfo[WEAPON_KAR].anim_firedelay;
+#endif
 
 	if( ( m_iWeaponState & WPNSTATE_SCOPED ) && GetFOV() > 0 )
 	{

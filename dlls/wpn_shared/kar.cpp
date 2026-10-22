@@ -24,7 +24,9 @@
 LINK_ENTITY_TO_CLASS( weapon_kar, CKAR )
 
 extern p_wpninfo_s P_WpnInfo[];
+#if CLIENT_DLL
 extern float flBoltHideXHair;
+#endif
 
 void CKAR::Spawn( void )
 {
@@ -151,7 +153,9 @@ void CKAR::PrimaryAttack( void )
 	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + RANDOM_FLOAT( 10.0f, 15.0f );
 	m_fInAttack = 1;
 
+#if CLIENT_DLL
 	flBoltHideXHair = P_WpnInfo[WEAPON_KAR].anim_firedelay;
+#endif
 
 	RemoveStamina( 2.0f, m_pPlayer );
 }

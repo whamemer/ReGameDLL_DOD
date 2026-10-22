@@ -25,7 +25,19 @@ LINK_ENTITY_TO_CLASS( weapon_pschreck, CPschreck )
 
 extern p_wpninfo_s P_WpnInfo[];
 
+#if CLIENT_DLL
 extern void ClientSetSensitivity( int sens );
+#else
+// the server has no mouse sensitivity to change: the launcher slows the player down instead
+extern int gmsgResetSens;
+
+#define ClientSetSensitivity( sens ) \
+	do \
+	{ \
+		m_pPlayer->m_bBazookaDeployed = ( sens ); \
+		m_pPlayer->CheckPlayerSpeed(); \
+	} while( 0 )
+#endif
 
 void CPschreck::Reload( void )
 {
@@ -115,6 +127,11 @@ BOOL CPschreck::CanHolster( void )
 void CPschreck::Holster( int skiplocal )
 {
 	ClientSetSensitivity( 0 );
+
+#if !CLIENT_DLL
+	MESSAGE_BEGIN( MSG_ONE, gmsgResetSens, NULL, m_pPlayer->pev );
+	MESSAGE_END();
+#endif
 
 	m_iWeaponState &= ~( WPNSTATE_SCOPED | WPNSTATE_ROCKET_SLOW );
 
