@@ -683,7 +683,7 @@ void UTIL_EmitAmbientSound( edict_t *entity, const Vector &vecOrigin, const char
 		EMIT_AMBIENT_SOUND( entity, rgfl, samp, vol, attenuation, fFlags, pitch );
 }
 
-static unsigned short FixedUnsigned16( float value, float scale )
+unsigned short FixedUnsigned16( float value, float scale )
 {
 	int output;
 

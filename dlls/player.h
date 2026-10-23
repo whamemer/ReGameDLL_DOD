@@ -338,8 +338,8 @@ class CBasePlayer : public CBaseMonster
 	void EXPORT ServerSpawnCheck();
 	int PlayerStatus();
 	void EXPORT ClientDisconnect();
-	void UTIL_EdictScreenFade( struct edict_s *pEdict, const Vector &color, float fadeTime, float holdTime, int flags,
-							   int alpha );
+	void UTIL_EdictScreenFade( edict_t *pEdict, const Vector &color, float fadeTime, float fadeHold, int alpha,
+							   int flags );
 	void PushPlayer( void );
 	void UpdatePlayerSound( void );
 	virtual void DeathSound( void );

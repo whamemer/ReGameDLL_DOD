@@ -251,16 +251,6 @@ edict_t *ReturnSpot( CBaseEntity *pSpot, CBasePlayer *cbPlayer, BOOL bJustChecki
 	return NULL;
 }
 
-// .text:0012d9f0 UTIL_DodBloodPuff
-void UTIL_DodBloodPuff( Vector *origin )
-{
-	MESSAGE_BEGIN( MSG_PAS, gmsgBloodPuff, &origin->x, (edict_t *)NULL );
-	WRITE_COORD( origin->x );
-	WRITE_COORD( origin->y );
-	WRITE_COORD( origin->z );
-	MESSAGE_END();
-}
-
 // .text:000d0370 CREATE_NAMED_ENTITY
 edict_t *CREATE_NAMED_ENTITY( string_t iClass )
 {

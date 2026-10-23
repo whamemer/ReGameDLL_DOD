@@ -295,6 +295,7 @@ extern void UTIL_ScreenShake( const Vector &center, float amplitude, float frequ
 extern void UTIL_ScreenShakeAll( const Vector &center, float amplitude, float frequency, float duration );
 extern void UTIL_ShowMessage( const char *pString, CBaseEntity *pPlayer, BOOL bHint = FALSE );
 extern void UTIL_ShowMessageAll( const char *pString, BOOL bHint = FALSE );
+extern unsigned short FixedUnsigned16( float value, float scale );
 extern void UTIL_ScreenFadeAll( const Vector &color, float fadeTime, float holdTime, int alpha, int flags );
 extern void UTIL_ScreenFade( CBaseEntity *pEntity, const Vector &color, float fadeTime, float fadeHold, int alpha,
 							 int flags );

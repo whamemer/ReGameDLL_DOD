@@ -40,13 +40,16 @@
 
 #include "objective.h"
 #include "dod_shared.h"
+#include "combat.h"
 
 extern DodClassInfo_t g_ClassInfo[];
 extern DodClassInfo_t g_ParaClassInfo[];
 
-void UTIL_EdictScreenFadeBuild( ScreenFade &fade, const Vector &color, float fadeTime, float holdTime, int flags,
-								int alpha );
+void UTIL_EdictScreenFadeBuild( ScreenFade &fade, const Vector &color, float fadeTime, float fadeHold, int alpha,
+								int flags );
 void UTIL_EdictScreenFadeWrite( const ScreenFade &fade, edict_t *pEntity );
+void UTIL_DodBloodPuff( Vector &origin );
+extern cvar_t *pcvar_mp_friendlyfire;
 
 // #define DUCKFIX
 
@@ -390,25 +393,124 @@ Vector CBasePlayer ::GetGunPosition()
 void CBasePlayer ::TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr,
 								int bitsDamageType )
 {
-	// .text:0012b530 link 0x11b530 (dod/dlls/player.cpp:827)
-	if ( !pevAttacker )
-		pevAttacker = VARS( INDEXENT( 0 ) );
-	if ( ( bitsDamageType & DMG_BULLET ) && pevAttacker->pContainingEntity != edict() )
+	float flDot;
+	int fBehind;
+	CBaseEntity *pAttacker = CBaseEntity::Instance( pevAttacker );
+	float ff = 0;
+
+	if ( pcvar_mp_friendlyfire )
+		ff = pcvar_mp_friendlyfire->value;
+
+	if ( ff <= 0 && pAttacker->pev->team == pev->team && !( bitsDamageType & DMG_DOD_SELFSPLASH ) )
+		return;
+
+	if ( this == pAttacker && ( bitsDamageType & DMG_BULLET ) )
+		return;
+
+	if ( pev->takedamage == DAMAGE_NO )
+		return;
+
+	m_LastHitGroup = ptr->iHitgroup;
+
+	MESSAGE_BEGIN( MSG_ONE, gmsgHealth, NULL, pev );
+		WRITE_BYTE( m_iClientHealth );
+	MESSAGE_END();
+
+	if ( bitsDamageType & DMG_CLUB )
 	{
-		CBaseEntity *pAttacker = CBaseEntity::Instance( pevAttacker );
-		if ( pAttacker && g_pGameRules->PlayerRelationship( this, pAttacker ) == GR_TEAMMATE &&
-			 !g_pGameRules->FPlayerCanTakeDamage( this, pAttacker ) )
-			return;
-		m_bSlowedByHit = true;
-		m_flUnslowTime = gpGlobals->time + 1.0f;
+		UTIL_MakeVectors( pev->angles );
+
+		flDot = DotProduct( g_vecAttackDir * -1, gpGlobals->v_forward );
+		fBehind = flDot > 0.3;
+
+		if ( fBehind )
+			flDamage = 200;
 	}
-	if ( ptr )
-		m_LastHitGroup = ptr->iHitgroup;
-	if ( ptr && ptr->iHitgroup == HITGROUP_HEAD )
-		flDamage *= 4.0f;
-	else if ( ptr && ( ptr->iHitgroup == HITGROUP_LEFTLEG || ptr->iHitgroup == HITGROUP_RIGHTLEG ) )
-		flDamage *= 0.5f;
-	CBaseMonster::TraceAttack( pevAttacker, flDamage, vecDir, ptr, bitsDamageType );
+
+	if ( pAttacker->pev->team != pev->team || ff > 0 )
+	{
+		m_bSlowedByHit = true;
+		m_flUnslowTime = gpGlobals->time + 0.5;
+	}
+
+	int hitgroup = ptr->iHitgroup;
+	char *szHitbox;
+	float originalDmg = flDamage;
+
+	if ( bitsDamageType & DMG_SONIC )
+		flDamage *= 1.5;
+
+	switch ( hitgroup )
+	{
+	case HITGROUP_GENERIC:
+		szHitbox = "(error - hit generic)";
+		break;
+
+	case HITGROUP_HEAD:
+		flDamage *= 2.5;
+
+		if ( IsAlive() && ( pAttacker->pev->team != pev->team || ff == 1 ) )
+		{
+			UTIL_EdictScreenFade( edict(), Vector( 128, 0, 0 ), 3.0f, 2.0f, 200, FFADE_IN );
+
+			PLAYBACK_EVENT_FULL( 0, edict(), g_pGameRules->bodyDamage(), 0.0f, g_vecZero, g_vecZero, 0.0f, 0.0f, 0, 0,
+								 0, 0 );
+		}
+
+		UTIL_SendDirectorMessage( this, pAttacker, 5 );
+
+		if ( pAttacker->pev->team != pev->team || ff == 1 )
+		{
+			Vector dir = vecDir * 100;
+
+			dir.z = dir.z + 100;
+
+			PopHelmet( &dir );
+		}
+
+		szHitbox = "head";
+		break;
+
+	case HITGROUP_CHEST:
+		szHitbox = "chest";
+		break;
+
+	case HITGROUP_STOMACH:
+		szHitbox = "stomach";
+		break;
+
+	case HITGROUP_LEFTARM:
+	case HITGROUP_RIGHTARM:
+		flDamage *= 0.75;
+		szHitbox = "arm";
+		break;
+
+	case HITGROUP_LEFTLEG:
+	case HITGROUP_RIGHTLEG:
+		if ( pAttacker->pev->team != pev->team || ff == 1 )
+		{
+			m_bSlowedByHit = true;
+			m_flUnslowTime = gpGlobals->time + 2.0;
+		}
+
+		flDamage *= 0.75;
+		szHitbox = "leg";
+		break;
+
+	default:
+		szHitbox = "(error - hit default)";
+		break;
+	}
+
+	ALERT( at_aiconsole, "%s hit %s in the %s hitgroup for %f damage ( %f base damage )\n",
+		   STRING( pAttacker->pev->netname ), STRING( pev->netname ), szHitbox, flDamage, originalDmg );
+
+	UTIL_DodBloodPuff( ptr->vecEndPos );
+
+	if ( bitsDamageType & DMG_BLAST )
+		AddMultiDamage( pevAttacker, this, flDamage, bitsDamageType );
+	else
+		TakeDamage( pevAttacker, pevAttacker, flDamage, bitsDamageType );
 }
 
 /*
@@ -1338,7 +1440,7 @@ void CBasePlayer::StartDeathCam( void )
 
 	// fade the screen out while the player is dead
 	ScreenFade fade;
-	UTIL_EdictScreenFadeBuild( fade, Vector( 0, 0, 0 ), 1.0f, 15.0f, FFADE_OUT | FFADE_STAYOUT, 0 );
+	UTIL_EdictScreenFadeBuild( fade, Vector( 0, 0, 0 ), 1.0f, 15.0f, 0, FFADE_OUT | FFADE_STAYOUT );
 	UTIL_EdictScreenFadeWrite( fade, edict() );
 
 	edict_t *pSpot = FIND_ENTITY_BY_CLASSNAME( NULL, "info_intermission" );
@@ -4653,59 +4755,78 @@ void CBasePlayer::FireMapMarker()
 	}
 	m_flNextMapMarkerTime = gpGlobals->time + 1.0f;
 }
-// .text:00132740 link 0x132740 (helmet bodygroup pop)
 void CBasePlayer::PopHelmet( Vector *vecdir )
 {
 	int helmetgroup = GetBodygroup( 1 );
-	bool bPara = g_pGameRules != NULL && ( (CDoDTeamPlay *) g_pGameRules )->IsTeamPara( pev->team );
+	BOOL bIsPara = FALSE;
 	int iHelmet;
+
+	if ( g_pGameRules )
+		bIsPara = ( (CDoDTeamPlay *) g_pGameRules )->IsTeamPara( pev->team );
+
 	if ( pev->team == 1 )
 	{
-		if ( !bPara )
+		if ( bIsPara )
 		{
-			if ( (unsigned) ( pev->playerclass - 0x15 ) < 6 )
-			{
-				if ( helmetgroup > 1 ) return;
-				SetBodygroup( 1, g_ClassInfo[pev->playerclass].hairgroup );
-				iHelmet = 3;
-			}
-			else
-			{
-				if ( helmetgroup > 2 ) return;
-				SetBodygroup( 1, g_ClassInfo[pev->playerclass].hairgroup );
-				iHelmet = 0;
-			}
+			if ( helmetgroup > 1 )
+				return;
+
+			SetBodygroup( 1, g_ParaClassInfo[pev->playerclass].hairgroup );
+			iHelmet = ( helmetgroup == 1 ) + 4;
+		}
+		else if ( (unsigned int) ( pev->playerclass - 21 ) > 5 )
+		{
+			if ( helmetgroup > 2 )
+				return;
+
+			SetBodygroup( 1, g_ClassInfo[pev->playerclass].hairgroup );
+			iHelmet = 0;
 		}
 		else
 		{
-			if ( helmetgroup > 1 ) return;
-			SetBodygroup( 1, g_ParaClassInfo[pev->playerclass].hairgroup );
-			iHelmet = ( helmetgroup == 1 ) + 4;
+			if ( helmetgroup > 1 )
+				return;
+
+			SetBodygroup( 1, g_ClassInfo[pev->playerclass].hairgroup );
+			iHelmet = 3;
 		}
 	}
 	else if ( pev->team == 2 )
 	{
-		if ( !bPara )
+		if ( bIsPara )
 		{
-			if ( helmetgroup > 1 ) return;
-			SetBodygroup( 1, g_ClassInfo[pev->playerclass].hairgroup );
-			iHelmet = ( helmetgroup == 1 ) + 1;
-		}
-		else
-		{
-			if ( helmetgroup > 0 ) return;
+			if ( helmetgroup > 0 )
+				return;
+
 			SetBodygroup( 1, g_ParaClassInfo[pev->playerclass].hairgroup );
 			iHelmet = 6;
 		}
+		else
+		{
+			if ( helmetgroup > 1 )
+				return;
+
+			SetBodygroup( 1, g_ClassInfo[pev->playerclass].hairgroup );
+			iHelmet = ( helmetgroup == 1 ) + 1;
+		}
 	}
 	else
+	{
 		return;
-	Vector vecAttachment, vecAngles;
-	GetAttachment( 1, vecAttachment, vecAngles );
-	vecdir->x += pev->velocity.x;
-	vecdir->y += pev->velocity.y;
-	vecdir->z += pev->velocity.z;
-	UTIL_SendDirectorMessage( this, NULL, 0x45 );
+	}
+
+	Vector origin, angles;
+
+	GetAttachment( 1, origin, angles );
+
+	vecdir->x = vecdir->x + pev->velocity.x;
+	vecdir->y = vecdir->y + pev->velocity.y;
+	vecdir->z = vecdir->z + pev->velocity.z;
+
+	PLAYBACK_EVENT_FULL( 0, NULL, g_pGameRules->PopHelmet(), 0.0f, origin, *vecdir, pev->angles.x, pev->angles.y,
+						 iHelmet, 0, 0, 0 );
+
+	UTIL_SendDirectorMessage( this, NULL, 69 );
 }
 // .text:00131380 GetObject (done above)
 // .text:001315e0 link 0x1315e0
@@ -4804,19 +4925,22 @@ void CBasePlayer::StudioProcessGait()
 // .text:00121c00 (GetStamina/SetStamina inline in binary)
 float CBasePlayer::GetStamina() { return pev->fuser4; }
 void CBasePlayer::SetStamina( float s ) { pev->fuser4 = s; }
-// .text:0011d940 link 0x11d940
-void CBasePlayer::UTIL_EdictScreenFade( edict_t *pEdict, const Vector &color, float fadeTime, float holdTime,
-										int flags, int alpha )
+void CBasePlayer::UTIL_EdictScreenFade( edict_t *pEdict, const Vector &color, float fadeTime, float fadeHold,
+										int alpha, int flags )
 {
 	ScreenFade fade;
-	fade.duration = (unsigned short) ( fadeTime * 4096.0f );
-	fade.holdTime = (unsigned short) ( holdTime * 4096.0f );
-	fade.fadeFlags = flags;
-	fade.r = (byte) color.x;
-	fade.g = (byte) color.y;
-	fade.b = (byte) color.z;
-	fade.a = (byte) alpha;
+
+	UTIL_EdictScreenFadeBuild( fade, color, fadeTime, fadeHold, alpha, flags );
 	UTIL_EdictScreenFadeWrite( fade, pEdict );
+}
+
+void UTIL_DodBloodPuff( Vector &origin )
+{
+	MESSAGE_BEGIN( MSG_PVS, gmsgBloodPuff, origin );
+		WRITE_COORD( origin.x );
+		WRITE_COORD( origin.y );
+		WRITE_COORD( origin.z );
+	MESSAGE_END();
 }
 // static helpers (inlined in binary; declared in player.h)
 BOOL CBasePlayer::IsProne( CBasePlayer *pPlayer )
@@ -4828,17 +4952,16 @@ BOOL CBasePlayer::IsSandbagDeployed( CBasePlayer *pPlayer )
 	return pPlayer && pPlayer->IsSandbagDeployed();
 }
 
-// .text:0011d800 link 0x11d800 (dod/dlls/player.cpp:783)
-void UTIL_EdictScreenFadeBuild( ScreenFade &fade, const Vector &color, float fadeTime, float holdTime, int flags,
-								int alpha )
+void UTIL_EdictScreenFadeBuild( ScreenFade &fade, const Vector &color, float fadeTime, float fadeHold, int alpha,
+								int flags )
 {
-	fade.duration = (unsigned short) ( fadeTime * 4096.0f );
-	fade.holdTime = (unsigned short) ( holdTime * 4096.0f );
-	fade.fadeFlags = (short) flags;
-	fade.r = (byte) color.x;
-	fade.g = (byte) color.y;
-	fade.b = (byte) color.z;
-	fade.a = (byte) alpha;
+	fade.duration = FixedUnsigned16( fadeTime, 1 << 12 );  // 4.12 fixed
+	fade.holdTime = FixedUnsigned16( fadeHold, 1 << 12 );  // 4.12 fixed
+	fade.r = (int) color.x;
+	fade.g = (int) color.y;
+	fade.b = (int) color.z;
+	fade.a = alpha;
+	fade.fadeFlags = flags;
 }
 
 // .text:0011d8a0 link 0x11d8a0 (dod/dlls/player.cpp:794)
