@@ -2537,50 +2537,60 @@ ReturnSpot:
 
 void CBasePlayer::Spawn( void )
 {
-	// .text:0012be70 link 0x11be70 (dod/dlls/player.cpp:3287)
-	if ( pev->iuser1 != 0 )
+	if ( pev->iuser1 )
 		return;
+
 	m_iGaitsequence = 0;
 	m_flGaitframe = 0;
 	m_flGaityaw = 0;
 	m_flGaitMovement = 0;
 	m_fHandleSignalsTime = 0;
 	m_fGunDropTime = 0;
-	if ( m_iJoiningState == JUSTJOINED )
+
+	if ( m_iJoiningState != JUSTJOINED )
+	{
+		if ( !g_pGameRules->GetPlayerSpawnSpot( this ) )
+		{
+			m_iJoiningState = JOINED;
+
+			UTIL_EdictScreenFade( edict(), Vector( 0, 0, 0 ), 1.0f, 15.0f, 0, 5 );
+
+			pev->deadflag = DEAD_RESPAWNABLE;
+			pev->effects |= EF_NODRAW;
+
+			m_bIsObserver = 1;
+
+			SetThink( &CBasePlayer::SpawnThink );
+			pev->nextthink = gpGlobals->time + 1.0;
+
+			StartObserver( pev->origin, pev->angles );
+
+			ClientPrint( pev, HUD_PRINTCENTER, "#game_no_spawns" );
+			return;
+		}
+	}
+	else
 	{
 		g_pGameRules->GetInitialSpawnSpot( this );
 	}
-	else if ( !g_pGameRules->GetPlayerSpawnSpot( this ) )
-	{
-		ScreenFade fade;
-		memset( &fade, 0, sizeof( fade ) );
-		fade.fadeFlags = 5;
-		fade.duration = 0x1000;
-		fade.holdTime = 0xf000;
-		UTIL_EdictScreenFadeWrite( fade, ENT( pev ) );
-		pev->deadflag = DEAD_RESPAWNABLE;
-		pev->effects |= EF_NODRAW;
-		m_bIsObserver = 1;
-		SetThink( &CBasePlayer::SpawnThink );
-		pev->nextthink = gpGlobals->time + 1.0;
-		StartObserver( pev->origin, pev->angles );
-		ClientPrint( pev, HUD_PRINTCENTER, "#game_no_spawns" );
-		return;
-	}
+
 	m_prevgaitorigin = pev->origin;
+
 	m_hintMessageQueue.Reset();
 	m_flDisplayHistory &= ~0x10;
-	pev->classname = MAKE_STRING( "game_zone_player" );
+
+	MAKE_STRING_CLASS( "player", pev );
+
 	pev->health = 100;
 	pev->armorvalue = 0;
 	pev->takedamage = DAMAGE_AIM;
 	pev->solid = SOLID_SLIDEBOX;
 	pev->movetype = MOVETYPE_WALK;
+	pev->max_health = pev->health;
 	pev->flags &= 0x100000;
 	pev->flags |= FL_CLIENT;
-	pev->max_health = pev->health;
-	pev->air_finished = gpGlobals->time + 12.0f;
-	pev->dmg = 2;
+	pev->air_finished = gpGlobals->time + 12;
+	pev->dmg = 2;  // initial water damage
 	pev->effects = 0;
 	pev->deadflag = DEAD_NO;
 	pev->dmg_take = 0;
@@ -2590,71 +2600,102 @@ void CBasePlayer::Spawn( void )
 	m_bitsHUDDamage = -1;
 	m_bitsDamageType = 0;
 	m_afPhysicsFlags = 0;
-	if ( m_flSndRoomtype != 0.0f )
+
+	if ( m_flSndRoomtype != 0 )
 	{
 		m_pentSndLast = NULL;
 		m_flSndRange = 0;
 		m_flSndRoomtype = 0;
-		MESSAGE_BEGIN( MSG_ONE, SVC_ROOMTYPE, NULL, pev );
-		WRITE_SHORT( 0 );
+
+		MESSAGE_BEGIN( MSG_ONE, SVC_ROOMTYPE, NULL, pev );  // roomtype 0 is dry
+			WRITE_SHORT( 0 );
 		MESSAGE_END();
 	}
+
 	pev->iuser1 = 0;
 	pev->iuser2 = 0;
 	pev->iuser3 = 0;
 	pev->vuser1.x = 0;
 	pev->vuser1.y = 0;
+
 	m_bIsObserver = 0;
 	m_hObserverTarget = NULL;
+
 	m_ianimupdate = 0;
 	m_fSpeedFactor = 1.0;
 	m_iRespawnFrames = 0;
 	m_flLastTalkTime = 0;
 	m_inextprone = 0;
-	m_nextRunThink = gpGlobals->time - 0.1f;
+	m_nextRunThink = gpGlobals->time - 0.1;
+
+	m_flIdleTimer = RANDOM_LONG( 20, 30 ) + gpGlobals->time;
 	m_bSlowedByHit = false;
-	m_flIdleTimer = gpGlobals->time + RANDOM_LONG( 20, 30 );
 	m_flUnslowTime = gpGlobals->time;
 	m_hLastIDTarget = NULL;
-	g_engfuncs.pfnSetPhysicsKeyValue( ENT( pev ), "slj", "0" );
-	g_engfuncs.pfnSetPhysicsKeyValue( ENT( pev ), "hl", "1" );
-	m_iFOV = 0;
-	m_iClientFOV = 0;
+
+	g_engfuncs.pfnSetPhysicsKeyValue( edict(), "slj", "0" );
+	g_engfuncs.pfnSetPhysicsKeyValue( edict(), "hl", "1" );
+
+	m_iFOV = 0;  // init field of view.
+	m_iClientFOV = 0;  // init client field of view.
 	m_bloodColor = 247;
-	m_flNextDecalTime = 0;
-	m_flFieldOfView = 0.5;
+	m_flNextDecalTime = 0;  // let this player decal as soon as he spawns.
+
+	m_flFieldOfView = 0.5;  // some monsters use this to determine whether or not the player is looking at them.
+
 	m_flNextAttack = UTIL_WeaponTimeBase();
-	CBaseMonster::Spawn();
-	g_pGameRules->PlayerSpawn( this );
+	StartSneaking();
+
+	m_flFallVelocity = 0;
+
+	g_pGameRules->SetDefaultPlayerTeam( this );
+
 	SET_MODEL( ENT( pev ), "models/player.mdl" );
 	g_ulModelIndexPlayer = pev->modelindex;
 	pev->sequence = LookupActivity( ACT_IDLE );
+
 	UTIL_SetSize( pev, Vector( -16, -16, -36 ), Vector( 16, 16, 36 ) );
-	pev->view_ofs = Vector( 0, 0, 22 );
+
+	pev->view_ofs = Vector( 0, 0, 22 );  // view height
 	Precache();
 	m_HackedGunPos = Vector( 0, 32, 0 );
-	if ( m_iPlayerSound == -1 )
+
+	if ( m_iPlayerSound == SOUNDLIST_EMPTY )
+	{
 		ALERT( at_console, "Couldn't alloc player sound slot!\n" );
+	}
+
 	m_pLastItem = NULL;
 	m_pClientActiveItem = NULL;
+
 	m_iClientHealth = -1;
 	m_fInitHUD = TRUE;
-	m_iClientHideHUD = -1;
+	m_iClientHideHUD = -1;  // force this to be recalculated
 	m_fWeapon = FALSE;
 	m_flNextMapMarkerTime = gpGlobals->time;
+
 	memset( m_rgAmmo, 0, sizeof( m_rgAmmo ) );
 	memset( m_rgAmmoLast, 0, sizeof( m_rgAmmoLast ) );
-	pev->fuser4 = 100.0;
+
+	if ( !g_pGameRules->IsMultiplayer() || !m_bIsObserver )
+		g_pGameRules->PlayerSpawn( this );
+
+	pev->fuser4 = 100;
 	m_nMGAmmoCount = 1;
 	m_nGenericAmmoCount = 1;
+
 	m_iClientFOV = 0;
 	m_iFOV = 0;
 	pev->fov = 0;
+
 	UTIL_ScreenFade( this, Vector( 0, 0, 0 ), 0.001, 0, 0, 0 );
+
 	HasObject = 0;
 	m_pObject = NULL;
+
 	MESSAGE_BEGIN( MSG_ONE, gmsgResetSens, NULL, pev );
 	MESSAGE_END();
+
 	m_iCapAreaIconIndex = -1;
 	m_iObjectAreaIndex = -1;
 	m_iCapAreaIndex = -1;
