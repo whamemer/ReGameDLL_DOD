@@ -199,7 +199,6 @@ extern const char *g_PlayerAnimationList[88];
 
 void LinkUserMessages( void )
 {
-	// .text:0011cd10 link 0x11cd10 (dod/dlls/player.cpp:432) EXACT registration set.
 	gmsgCurWeapon = REG_USER_MSG( "CurWeapon", 3 );
 	gmsgHealth = REG_USER_MSG( "Health", 1 );
 	gmsgHudText = REG_USER_MSG( "HudText", -1 );
@@ -832,7 +831,6 @@ entvars_t *g_pevLastInflictor;	// Set in combat.cpp.  Used to pass the damage in
 
 void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 {
-	// .text:00133f00 link 0x123f00 (dod/dlls/player.cpp:1272)
 	if ( m_pActiveItem )
 	{
 		m_pActiveItem->DropGren();
@@ -1847,7 +1845,6 @@ void CBasePlayer::PlayerUse( void )
 
 void CBasePlayer::Jump()
 {
-	// .text:00133d70 link 0x123d70 (dod/dlls/player.cpp:2348)
 	if ( FBitSet( pev->flags, FL_WATERJUMP ) )
 		return;
 	if ( !( ( pev->waterlevel < 2 || pev->watertype == -19 ) && ( m_afButtonPressed & IN_JUMP ) &&
@@ -1905,7 +1902,6 @@ void FixPlayerCrouchStuck( edict_t *pPlayer )
 
 void CBasePlayer::Duck()
 {
-	// .text:00133d30 link 0x123d30 (dod/dlls/player.cpp:2448)
 	if ( ( pev->button & IN_DUCK ) && m_IdealActivity != ACT_LEAP )
 		SetAnimation( PLAYER_WALK );
 }
@@ -2436,7 +2432,6 @@ static void CheckPowerups( entvars_t *pev )
 
 void CBasePlayer ::UpdatePlayerSound( void )
 {
-	// .text:0012f450 link 0x11f450 (dod/dlls/player.cpp:2748)
 	int iBodyVolume = 0;
 	int iVolume;
 	CSound *pSound = CSoundEnt::SoundPointerForIndex( CSoundEnt::ClientSoundIndex( edict() ) );
@@ -2966,7 +2961,6 @@ void CBasePlayer::Spawn( void )
 
 void CBasePlayer ::Precache( void )
 {
-	// .text:0012d3b0 link 0x11d3b0 (dod/dlls/player.cpp:3490)
 	if ( WorldGraph.m_fGraphPresent && !WorldGraph.m_fGraphPointersSet )
 	{
 		if ( !WorldGraph.FSetGraphPointers() )
@@ -3297,7 +3291,6 @@ void CBloodSplat::Spray( void )
 
 edict_t *CBasePlayer ::GiveNamedItem( const char *pszName )
 {
-	// .text:00130190 link 0x120190 (dod/dlls/player.cpp:3829)
 	edict_t *pent = CREATE_NAMED_ENTITY( MAKE_STRING( pszName ) );
 	if ( FNullEnt( pent ) )
 	{
@@ -3331,7 +3324,6 @@ CBaseEntity *FindEntityForward( CBaseEntity *pMe )
 
 BOOL CBasePlayer ::FlashlightIsOn( void )
 {
-	// .text:00130350 link 0x120350
 	return FBitSet( pev->effects, EF_DIMLIGHT );
 }
 
@@ -3339,7 +3331,6 @@ BOOL CBasePlayer ::FlashlightIsOn( void )
 
 void CBasePlayer ::FlashlightTurnOn( void )
 {
-	// .text:00130370 link 0x120370
 	if ( g_pGameRules->FAllowFlashlight() )
 	{
 		EMIT_SOUND_DYN( ENT( pev ), CHAN_WEAPON, SOUND_FLASHLIGHT_ON, 1.0, ATTN_NORM, 0, PITCH_NORM );
@@ -3351,7 +3342,6 @@ void CBasePlayer ::FlashlightTurnOn( void )
 
 void CBasePlayer ::FlashlightTurnOff( void )
 {
-	// .text:001303e0 link 0x1203e0
 	EMIT_SOUND_DYN( ENT( pev ), CHAN_WEAPON, SOUND_FLASHLIGHT_OFF, 1.0, ATTN_NORM, 0, PITCH_NORM );
 	ClearBits( pev->effects, EF_DIMLIGHT );
 }
@@ -4056,7 +4046,6 @@ void CBasePlayer ::UpdateClientData( void )
 }
 
 
-// .text:00125e10 link 0x125e10 size 0xed (dod/dlls/player.cpp): _ah/cl_autoreload/_cl_minimap
 void CBasePlayer ::SetPrefsFromUserinfo( char *infobuffer )
 {
 	const char *pszKeyVal;
@@ -4354,7 +4343,6 @@ BOOL CBasePlayer::HasNamedPlayerItem( const char *pszItemName )
 
 BOOL CBasePlayer ::SwitchWeapon( CBasePlayerItem *pWeapon, BOOL bJustSpawned )
 {
-	// .text:00131130 link 0x121130 (dod/dlls/player.cpp:4837)
 	if ( !pWeapon->CanDeploy() )
 		return FALSE;
 	if ( m_pActiveItem )
@@ -4583,7 +4571,6 @@ void CBasePlayer::Stamina( void )
 	if ( !IsAlive() )
 		return;
 
-	// .text:00121c00 link 0x121c00 size 0x118 - low stamina hint (fuser4 < 25, bit 0x4000)
 	if ( !( m_flDisplayHistory & HINT_LOW_STAMINA ) && pev->fuser4 < 25.0f )
 	{
 		if ( m_bShowHints )
@@ -4705,7 +4692,6 @@ bool CBasePlayer::HintMessage( const char *pMessage, BOOL bOverride )
 	return true;
 }
 
-// .text:00137660 CBasePlayer::GoProne() size 0xac link 0x127660 (dod/dlls/player.cpp:6642)
 void CBasePlayer::GoProne( void )
 {
 	pev->iuser3 = STANCE_PRONE;
@@ -4727,7 +4713,6 @@ void CBasePlayer::GoProne( void )
 	}
 }
 
-// .text:001377d0 CBasePlayer::MortarDeploy() size 0xe0 link 0x1277d0 (dod/dlls/player.cpp:6662)
 void CBasePlayer::MortarDeploy( void )
 {
 	if ( pev->deadflag == DEAD_NO && ( STANCE_IS_PRONE( pev->iuser3 ) ) )
@@ -4762,7 +4747,6 @@ void CBasePlayer::MortarDeploy( void )
 
 extern int iVoiceToHandSignal[29];	// defined in dod_shared.cpp
 
-// .text:00133a40 CBasePlayer::VoiceCom(int) size 0x1d2 link 0x123a40 (dod/dlls/player.cpp:5276)
 void CBasePlayer::VoiceCom( int command )
 {
 	if ( pev->iuser1 != 0 || pev->iuser2 != 0 )
@@ -4789,7 +4773,6 @@ void CBasePlayer::VoiceCom( int command )
 	m_flNextVoice = gpGlobals->time + 1.0f;
 }
 
-// .text:00132550 CBasePlayer::PushPlayer() size 0x1e8 link 0x122550 (dod/dlls/player.cpp:5637)
 void CBasePlayer::PushPlayer( void )
 {
 	TraceResult tr;
@@ -4843,13 +4826,11 @@ const char *g_PlayerAnimationList[88] = {
 	"", "die_crouch_head", "die_crouch_backwards", "die_prone1", "die_backward_explode", "die_forward_explode", "die_simple", "die_buttstock",
 };
 
-// .text:001378f0 link 0x1278f0
 bool CBasePlayer::IsInMGDeploy()
 {
 	return pev->iuser3 == STANCE_PRONE_DEPLOYED || pev->vuser1.x == SANDBAG_DEPLOYED;
 }
 
-// .text:00132270 link 0x122270
 void CBasePlayer::UpdateScope( int weapon_id )
 {
 	if ( pev->vuser1.z != 0.0f )
@@ -4859,7 +4840,6 @@ void CBasePlayer::UpdateScope( int weapon_id )
 	MESSAGE_END();
 }
 
-// .text:0012f270 link 0x11f270
 void CBasePlayer::AddFrags( int num, BOOL bSendMsgToAll )
 {
 	if ( g_pGameRules->IsMultiplayer() && !( (CDoDTeamPlay *) g_pGameRules )->IsClanMatchActive() )
@@ -4873,7 +4853,6 @@ void CBasePlayer::AddFrags( int num, BOOL bSendMsgToAll )
 	MESSAGE_END();
 }
 
-// .text:0012f370 link 0x11f370
 void CBasePlayer::AddObjScore( int num, BOOL bSendMsgToAll )
 {
 	if ( g_pGameRules->IsMultiplayer() && !( (CDoDTeamPlay *) g_pGameRules )->IsClanMatchActive() )
@@ -4887,14 +4866,12 @@ void CBasePlayer::AddObjScore( int num, BOOL bSendMsgToAll )
 	MESSAGE_END();
 }
 
-// .text:0012fd40 link 0x11fd40
 void CBasePlayer::DelayedSpawn( void )
 {
 	SetThink( &CBasePlayer::SpawnThink );
 	pev->nextthink = gpGlobals->time + 1.0;
 }
 
-// .text:0012fa60 link 0x11fa60
 void CBasePlayer::SpawnThink( void )
 {
 	edict_t *pSpawn = EntSelectSpawnPoint( this, 1 );
@@ -4908,7 +4885,6 @@ void CBasePlayer::SpawnThink( void )
 	pev->nextthink = gpGlobals->time + 1.0;
 }
 
-// .text:001229e0 link 0x1229e0
 bool CBasePlayer::PlayerHasExplodingGrenades()
 {
 	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
@@ -4922,7 +4898,6 @@ bool CBasePlayer::PlayerHasExplodingGrenades()
 	return false;
 }
 
-// .text:001250c0 link 0x1250c0
 void CBasePlayer::SetClientAreaIcon( int areaIndex, bool state )
 {
 	if ( areaIndex > 0x80 )
@@ -4933,7 +4908,6 @@ void CBasePlayer::SetClientAreaIcon( int areaIndex, bool state )
 	MESSAGE_END();
 }
 
-// .text:001224a0 link 0x1224a0
 void CBasePlayer::AddObjectIcon( char *szIconName )
 {
 	if ( !szIconName )
@@ -4943,7 +4917,6 @@ void CBasePlayer::AddObjectIcon( char *szIconName )
 	MESSAGE_END();
 }
 
-// .text:00122500 link 0x122500
 void CBasePlayer::RemoveObjectIcon()
 {
 	MESSAGE_BEGIN( MSG_ONE, gmsgObject, NULL, pev );
@@ -4951,7 +4924,6 @@ void CBasePlayer::RemoveObjectIcon()
 	MESSAGE_END();
 }
 
-// .text:00121380 link 0x121380
 void CBasePlayer::GetObject( CObject *pObject )
 {
 	if ( HasObject || !IsAlive() )
@@ -4979,7 +4951,6 @@ void CBasePlayer::GetObject( CObject *pObject )
 	}
 }
 
-// .text:0011f1b0 link 0x11f1b0
 CBasePlayerWeapon *CBasePlayer::GetPrimaryWeapon()
 {
 	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
@@ -4989,7 +4960,6 @@ CBasePlayerWeapon *CBasePlayer::GetPrimaryWeapon()
 	return NULL;
 }
 
-// .text:001222e0 link 0x1222e0
 int CBasePlayer::PlayerStatus()
 {
 	if ( HasObject && pev->deadflag == DEAD_NO )
@@ -4999,7 +4969,6 @@ int CBasePlayer::PlayerStatus()
 	return IsAlive() ? 0 : 1;
 }
 
-// .text:00124f20 link 0x124f20
 void CBasePlayer::HandleSignals()
 {
 	int old = m_signals.m_flState;
@@ -5029,39 +4998,26 @@ void CBasePlayer::HandleSignals()
 	}
 }
 
-// .text:00137930 link 0x137930
 bool CBasePlayer::IsProneDeployed() { return pev->iuser3 == STANCE_PRONE_DEPLOYED; }
-// .text:00137950 link 0x137950
 bool CBasePlayer::IsInSandbagZone() { return pev->vuser1.x == 1.0f; }
-// .text:00137980 link 0x137980
 bool CBasePlayer::IsSandbagDeployed() { return pev->vuser1.x == SANDBAG_DEPLOYED; }
-// .text:001379b0 link 0x1379b0
 bool CBasePlayer::IsProne() { return pev->deadflag == DEAD_NO && STANCE_IS_PRONE( pev->iuser3 ); }
-// .text:001379e0 link 0x1379e0
 bool CBasePlayer::IsInMortarDeploy() { return pev->iuser3 == 3; }
-// .text:00137a00 link 0x137a00
 void CBasePlayer::SetProneState( int state ) { pev->iuser3 = state; }
-// .text:00137a20 link 0x137a20
 void CBasePlayer::SetSandbagState( int state ) { pev->vuser1.x = (float) state; }
-// .text:00137a40 link 0x137a40
 bool CBasePlayer::IsDucking() { return ( pev->flags & FL_DUCKING ) != 0; }
-// .text:00137a60 link 0x137a60
 bool CBasePlayer::IsParatrooper()
 {
 	return g_pGameRules != NULL && ( (CDoDTeamPlay *) g_pGameRules )->IsTeamPara( pev->team );
 }
-// .text:00137a90 link 0x137a90
 bool CBasePlayer::IsBritish() { return (unsigned) ( pev->playerclass - 0x15 ) < 6; }
-// .text:00137ab0 link 0x137ab0
 void CBasePlayer::MortarFireCommand( byte command ) { }
-// .text:001378b0 link 0x1378b0
 void CBasePlayer::MortarUnDeploy()
 {
 	pev->iuser3 = 0;
 	SetAnimation( PLAYER_WALK );
 	CheckPlayerSpeed();
 }
-// .text:00137710 link 0x137710
 void CBasePlayer::UnProne()
 {
 	pev->iuser3 = STANCE_STANDING;
@@ -5075,7 +5031,6 @@ void CBasePlayer::UnProne()
 	if ( pWpn )
 		m_iFOV = pWpn->GetFOV();
 }
-// .text:00132a50 link 0x132a50
 Activity CBasePlayer::SetIdealActivity( Activity i_RequestedActivity )
 {
 	Activity cur = m_IdealActivity;
@@ -5103,7 +5058,6 @@ Activity CBasePlayer::SetIdealActivity( Activity i_RequestedActivity )
 		return i_RequestedActivity;
 	}
 }
-// .text:00135f00 link 0x135f00
 void CBasePlayer::ForceZoomOut()
 {
 	if ( m_iFOV < 1 )
@@ -5112,7 +5066,6 @@ void CBasePlayer::ForceZoomOut()
 	if ( pWpn )
 		m_iFOV = pWpn->GetFOV();
 }
-// .text:00132b40 link 0x132b40
 bool CBasePlayer::ShouldGunLower()
 {
 	if ( !m_pActiveItem )
@@ -5134,7 +5087,6 @@ bool CBasePlayer::ShouldGunLower()
 	}
 	return m_fGunDropTime <= gpGlobals->time;
 }
-// .text:001375c0 link 0x1375c0
 void CBasePlayer::SetHasWeapon( int weaponId )
 {
 	if ( weaponId > 0x1f )
@@ -5142,7 +5094,6 @@ void CBasePlayer::SetHasWeapon( int weaponId )
 	else
 		pev->weapons |= 1 << ( weaponId & 0x1f );
 }
-// .text:00137600 link 0x137600
 void CBasePlayer::ClearHasWeapon( int weaponId )
 {
 	if ( weaponId > 0x1f )
@@ -5150,20 +5101,17 @@ void CBasePlayer::ClearHasWeapon( int weaponId )
 	else
 		pev->weapons &= ~( 1 << ( weaponId & 0x1f ) );
 }
-// .text:00137580 link 0x137580
 bool CBasePlayer::HasWeapons( int weaponId )
 {
 	if ( weaponId > 0x1f )
 		return ( m_iWeapons2 & ( 1 << ( ( weaponId - 0x20 ) & 0x1f ) ) ) != 0;
 	return ( pev->weapons & ( 1 << ( weaponId & 0x1f ) ) ) != 0;
 }
-// .text:00137640 link 0x137640
 void CBasePlayer::RemoveAllWeaponFlags()
 {
 	pev->weapons = 0;
 	m_iWeapons2 = 0;
 }
-// .text:00132340 link 0x132340
 void CBasePlayer::ServerSpawnCheck()
 {
 	if ( ( (CDoDTeamPlay *) g_pGameRules )->IsTeamInfinite( pev->team ) )
@@ -5199,7 +5147,6 @@ void CBasePlayer::ServerSpawnCheck()
 	}
 	pev->nextthink = gpGlobals->time + 1.0;
 }
-// .text:00132450 link 0x132450
 void CBasePlayer::ClientDisconnect()
 {
 	m_iNumTKs = 0;
@@ -5208,7 +5155,6 @@ void CBasePlayer::ClientDisconnect()
 	pev->playerclass = 0;
 	m_bIsObserver = 0;
 }
-// .text:00134e70 link 0x134e70
 BOOL CBasePlayer::DropItemByClass( int weaponclass )
 {
 	BOOL bDropped = FALSE;
@@ -5229,7 +5175,6 @@ BOOL CBasePlayer::DropItemByClass( int weaponclass )
 	}
 	return bDropped;
 }
-// .text:00131d20 link 0x131d20
 void CBasePlayer::DropGenericAmmo()
 {
 	if ( pev->iuser1 != 0 || pev->iuser2 != 0 || pev->health <= 0.0f || m_nGenericAmmoCount <= 0 )
@@ -5250,7 +5195,6 @@ void CBasePlayer::DropGenericAmmo()
 	pAmmo->pev->spawnflags |= SF_NORESPAWN;
 	m_nGenericAmmoCount--;
 }
-// .text:00131e60 link 0x131e60
 void CBasePlayer::ShowMenu( int slots, int time, char *szText, int bitsvalid, int menu )
 {
 	MESSAGE_BEGIN( MSG_ONE, gmsgShowMenu, NULL, pev );
@@ -5260,7 +5204,6 @@ void CBasePlayer::ShowMenu( int slots, int time, char *szText, int bitsvalid, in
 	WRITE_STRING( szText );
 	MESSAGE_END();
 }
-// .text:00131ef0 link 0x131ef0
 void CBasePlayer::ClearVoiceMenu()
 {
 	lastMenuSelected = -1;
@@ -5270,7 +5213,6 @@ void CBasePlayer::ClearVoiceMenu()
 	WRITE_BYTE( 0 );
 	MESSAGE_END();
 }
-// .text:00132ac0 link 0x132ac0
 void CBasePlayer::VoteMenu( int kickplayer, int menu )
 {
 	lastMenuSelected = menu;
@@ -5325,7 +5267,6 @@ void CBasePlayer::VoiceMenu( int menuNum )
 		WRITE_STRING( szText );
 	MESSAGE_END();
 }
-// .text:00133c20 link 0x133c20
 void CBasePlayer::HandSignal( int signal )
 {
 	if ( m_flNextHand > gpGlobals->time )
@@ -5348,7 +5289,6 @@ void CBasePlayer::HandSignal( int signal )
 		}
 	}
 }
-// .text:00136320 link 0x136320
 void CBasePlayer::SpawnClientSideCorpse()
 {
 	char *infobuffer = g_engfuncs.pfnGetInfoKeyBuffer( edict() );
@@ -5366,7 +5306,6 @@ void CBasePlayer::SpawnClientSideCorpse()
 	WRITE_BYTE( pev->team );
 	MESSAGE_END();
 }
-// .text:00136240 link 0x136240
 void CBasePlayer::NextMapMarker()
 {
 	int m = m_iMapMarker + 1;
@@ -5375,7 +5314,6 @@ void CBasePlayer::NextMapMarker()
 	WRITE_BYTE( m_iMapMarker );
 	MESSAGE_END();
 }
-// .text:001362a0 link 0x1362a0
 void CBasePlayer::PrevMapMarker()
 {
 	int m = m_iMapMarker - 1;
@@ -5384,7 +5322,6 @@ void CBasePlayer::PrevMapMarker()
 	WRITE_BYTE( m_iMapMarker );
 	MESSAGE_END();
 }
-// .text:00136300 link 0x136300
 void CBasePlayer::SetMapMarker( int marker )
 {
 	if ( (unsigned) marker < 0xf )
@@ -5520,7 +5457,6 @@ void CBasePlayer::PopHelmet( Vector *vecdir )
 
 	UTIL_SendDirectorMessage( this, NULL, 5 | DRC_FLAG_SLOWMOTION );
 }
-// .text:00131380 GetObject (done above)
 void CBasePlayer::DropObject()
 {
 	if ( !HasObject || !m_pObject )
@@ -5563,7 +5499,6 @@ void CBasePlayer::DropObject()
 		}
 	}
 }
-// .text:00134810 link 0x134810
 void CBasePlayer::StudioPlayerBlend( int *pBlend, float *pPitch )
 {
 	float range = (float) (int) -( 0.6f * *pPitch );
@@ -5583,7 +5518,6 @@ void CBasePlayer::StudioPlayerBlend( int *pBlend, float *pPitch )
 		*pBlend = 255;
 	}
 }
-// .text:001348b0 link 0x1348b0
 void CBasePlayer::CalculatePitchBlend()
 {
 	int iBlend;
@@ -5634,7 +5568,6 @@ void CBasePlayer::CalculateYawBlend()
 	pev->blending[0] = (int) blend_yaw;
 	m_flYaw = blend_yaw;
 }
-// .text:001343b0 link 0x1343b0 (simplified)
 void CBasePlayer::StudioEstimateGait()
 {
 	if ( !IsAlive() )
@@ -5666,7 +5599,6 @@ void CBasePlayer::StudioEstimateGait()
 		m_flGaityaw = atan2( delta.y, delta.x ) * 180.0f / 3.14159265f;
 	}
 }
-// .text:00134b30 link 0x134b30
 void CBasePlayer::StudioProcessGait()
 {
 	CalculateYawBlend();
@@ -5675,7 +5607,6 @@ void CBasePlayer::StudioProcessGait()
 	if ( m_flGaitframe > 256.0f )
 		m_flGaitframe = 0.0f;
 }
-// .text:00121c00 (GetStamina/SetStamina inline in binary)
 float CBasePlayer::GetStamina() { return pev->fuser4; }
 void CBasePlayer::SetStamina( float s ) { pev->fuser4 = s; }
 void CBasePlayer::UTIL_EdictScreenFade( edict_t *pEdict, const Vector &color, float fadeTime, float fadeHold,
@@ -5717,7 +5648,6 @@ void UTIL_EdictScreenFadeBuild( ScreenFade &fade, const Vector &color, float fad
 	fade.fadeFlags = flags;
 }
 
-// .text:0011d8a0 link 0x11d8a0 (dod/dlls/player.cpp:794)
 void UTIL_EdictScreenFadeWrite( const ScreenFade &fade, edict_t *pEntity )
 {
 	MESSAGE_BEGIN( MSG_ONE, gmsgFade, NULL, pEntity );

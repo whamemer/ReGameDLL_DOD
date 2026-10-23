@@ -299,7 +299,6 @@ void CMultiSource::Register( void )
 	pev->spawnflags &= ~SF_MULTI_INIT;
 }
 
-// .text:000cc060 CMultiSource::GetState (buttons.cpp:559)
 STATE CMultiSource::GetState( void )
 {
 	STATE state = STATE_OFF;
@@ -1363,7 +1362,6 @@ void CEnvSpark::KeyValue( KeyValueData *pkvd )
 		CBaseEntity::KeyValue( pkvd );
 }
 
-// .text:000cde60 CEnvSpark::SparkThink (buttons.cpp:1835)
 void EXPORT CEnvSpark::SparkThink( void )
 {
 	DoSpark( pev, pev->origin );
@@ -1377,13 +1375,11 @@ void EXPORT CEnvSpark::SparkThink( void )
 	pev->nextthink = gpGlobals->time + ( 0.1 + RANDOM_FLOAT( 0, m_flDelay ) );
 }
 
-// .text:000ca1a0 CEnvSpark::SparkWait (buttons.cpp:1831)
 void EXPORT CEnvSpark::SparkWait( void )
 {
 	SetThink( NULL );
 }
 
-// .text:000cdef0 CEnvSpark::SparkCyclic (buttons.cpp:1817)
 void EXPORT CEnvSpark::SparkCyclic( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if ( m_pfnThink == NULL )
@@ -1398,7 +1394,6 @@ void EXPORT CEnvSpark::SparkCyclic( CBaseEntity *pActivator, CBaseEntity *pCalle
 	}
 }
 
-// .text:000ca1c0 CEnvSpark::SparkStart (buttons.cpp:1848)
 void EXPORT CEnvSpark::SparkStart( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	m_iState = STATE_ON;
@@ -1407,7 +1402,6 @@ void EXPORT CEnvSpark::SparkStart( CBaseEntity *pActivator, CBaseEntity *pCaller
 	pev->nextthink = gpGlobals->time + ( 0.1 + RANDOM_FLOAT( 0, m_flDelay ) );
 }
 
-// .text:000ca240 CEnvSpark::SparkStop (buttons.cpp:1856)
 void EXPORT CEnvSpark::SparkStop( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	SetUse( &CEnvSpark::SparkStart );
@@ -1415,7 +1409,6 @@ void EXPORT CEnvSpark::SparkStop( CBaseEntity *pActivator, CBaseEntity *pCaller,
 	m_iState = STATE_OFF;
 }
 
-// .text:000ca030 CEnvSpark::RoundRespawn (buttons.cpp:1758)
 void CEnvSpark::RoundRespawn( void )
 {
 	m_flDelay = m_rrDelay;
@@ -1450,7 +1443,6 @@ void CEnvSpark::RoundRespawn( void )
 	}
 }
 
-// .text:000cea50 CEnvSpark::GetState (buttons.cpp:1704)
 STATE CEnvSpark::GetState( void )
 {
 	return m_iState;
@@ -1510,7 +1502,6 @@ int CButtonTarget::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, 
 
 	return 1;
 }
-// .text:000bc260 CBaseButton::RoundRespawn (0x29c)
 void CBaseButton::RoundRespawn( void )
 {
 	const char *pszSound = ButtonSound( m_sounds );
@@ -1552,7 +1543,6 @@ void CBaseButton::RoundRespawn( void )
 	}
 }
 
-// .text:000ba4b0 CRotButton::RoundRespawn (0x16e)
 void CRotButton::RoundRespawn( void )
 {
 	const char *pszSound = ButtonSound( m_sounds );
@@ -1585,7 +1575,6 @@ void CRotButton::RoundRespawn( void )
 	}
 }
 
-// .text:000ba390 CMomentaryRotButton::RoundRespawn (0x117)
 void CMomentaryRotButton::RoundRespawn( void )
 {
 	CBaseToggle::AxisDir( pev );
@@ -1658,20 +1647,17 @@ IMPLEMENT_SAVERESTORE( CEnvState, CPointEntity );
 
 LINK_ENTITY_TO_CLASS( env_state, CEnvState );
 
-// .text:000c9a70 CEnvState::Spawn (buttons.cpp:220)
 void CEnvState::Spawn( void )
 {
 	m_iState = FBitSet( pev->spawnflags, 1 ) ? STATE_ON : STATE_OFF;
 	RoundStore();
 }
 
-// .text:000c9aa0 CEnvState::RoundRespawn (buttons.cpp:232)
 void CEnvState::RoundRespawn( void )
 {
 	m_iState = FBitSet( pev->spawnflags, 1 ) ? STATE_ON : STATE_OFF;
 }
 
-// .text:000caf70 CEnvState::Think (buttons.cpp:389)
 void CEnvState::Think( void )
 {
 	if ( m_iState == STATE_TURN_ON )
@@ -1718,7 +1704,6 @@ void CEnvState::Think( void )
 	FireTargets( STRING( pev->noise2 ), this, this, m_iOffMode, 0 );
 }
 
-// .text:000cb2e0 CEnvState::Use (buttons.cpp:291)
 void CEnvState::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if ( !ShouldToggle( useType ) || !UTIL_IsMasterTriggered( m_sMaster, NULL ) )
@@ -1826,7 +1811,6 @@ void CEnvState::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 	pev->nextthink = m_fTurnOnTime + gpGlobals->time;
 }
 
-// .text:000cd010 CEnvState::KeyValue (buttons.cpp:253)
 void CEnvState::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "turnontime" ) )
@@ -1864,18 +1848,15 @@ void CEnvState::KeyValue( KeyValueData *pkvd )
 	}
 }
 
-// .text:000cea20 CEnvState::GetState (buttons.cpp:205)
 STATE CEnvState::GetState( void )
 {
 	return m_iState;
 }
 
-// .text:000c9ed0 CBaseButton::Activate (file:buttons.cpp)
 void CBaseButton::Activate( void )
 {
 }
 
-// .text:000b9ee0 CRotButton::Activate (file:buttons.cpp)
 void CRotButton::Activate( void )
 {
 }

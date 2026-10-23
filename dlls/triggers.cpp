@@ -78,7 +78,6 @@ TYPEDESCRIPTION CFrictionModifier::m_SaveData[] = {
 	DEFINE_FIELD( CFrictionModifier, m_frictionFraction, FIELD_FLOAT ),
 };
 
-// .text:00150070 CFrictionModifier::Restore (file:triggers.cpp:128)
 IMPLEMENT_SAVERESTORE( CFrictionModifier, CBaseEntity );
 
 // Modify an entity's friction
@@ -143,7 +142,6 @@ TYPEDESCRIPTION CAutoTrigger::m_SaveData[] = {
 	DEFINE_FIELD( CAutoTrigger, triggerType, FIELD_INTEGER ),
 };
 
-// .text:00150010 CAutoTrigger::Restore (file:triggers.cpp:198)
 IMPLEMENT_SAVERESTORE( CAutoTrigger, CBaseDelay );
 
 void CAutoTrigger::KeyValue( KeyValueData *pkvd )
@@ -234,7 +232,6 @@ TYPEDESCRIPTION CTriggerRelay::m_SaveData[] = {
 	DEFINE_FIELD( CTriggerRelay, m_sMaster, FIELD_STRING ),
 };
 
-// .text:0014ffb0 CTriggerRelay::Restore (file:triggers.cpp:318)
 IMPLEMENT_SAVERESTORE( CTriggerRelay, CBaseDelay );
 
 void CTriggerRelay::KeyValue( KeyValueData *pkvd )
@@ -426,7 +423,6 @@ TYPEDESCRIPTION CMultiManager::m_SaveData[] = {
 	DEFINE_FIELD( CMultiManager, m_flMaxWait, FIELD_FLOAT ),
 };
 
-// .text:0014ff50 CMultiManager::Restore (file:triggers.cpp:511)
 IMPLEMENT_SAVERESTORE( CMultiManager, CBaseEntity );
 
 void CMultiManager ::KeyValue( KeyValueData *pkvd )
@@ -1102,7 +1098,6 @@ void CTriggerHurt ::Spawn( void )
 	RoundStore();
 }
 
-// .text:001576e0 CTriggerHurt::RoundRespawn (file:triggers.cpp:1792)
 // Same as Spawn minus the final UTIL_SetOrigin link.
 void CTriggerHurt ::RoundRespawn( void )
 {
@@ -1326,7 +1321,6 @@ void CTriggerMultiple ::Spawn( void )
 	RoundStore();
 }
 
-// .text:00157620 CTriggerMultiple::RoundRespawn (file:triggers.cpp:2062)
 void CTriggerMultiple ::RoundRespawn( void )
 {
 	if ( m_flWait == 0 )
@@ -1366,7 +1360,6 @@ void CTriggerOnce::Spawn( void )
 	CTriggerMultiple ::Spawn();
 }
 
-// .text:0014eb00 CTriggerOnce::RoundRespawn (file:triggers.cpp:2106)
 void CTriggerOnce::RoundRespawn( void )
 {
 	if ( pev->spawnflags & SF_TRIGGER_ROUND )  // DoD: re-arm once-triggers on round restart
@@ -1648,7 +1641,6 @@ TYPEDESCRIPTION CChangeLevel::m_SaveData[] = {
 	DEFINE_FIELD( CChangeLevel, m_changeTargetDelay, FIELD_FLOAT ),
 };
 
-// .text:0014fe30 CChangeLevel::Restore (file:triggers.cpp:2412)
 IMPLEMENT_SAVERESTORE( CChangeLevel, CBaseTrigger );
 
 //
@@ -2224,7 +2216,6 @@ void CTriggerTeleport ::Spawn( void )
 	RoundStore();
 }
 
-// .text:001573b0 CTriggerTeleport::RoundRespawn (file:triggers.cpp:3042)
 void CTriggerTeleport ::RoundRespawn( void )
 {
 	InitTrigger();
@@ -2384,7 +2375,6 @@ TYPEDESCRIPTION CTriggerChangeTarget::m_SaveData[] = {
 	DEFINE_FIELD( CTriggerChangeTarget, m_iszNewTarget, FIELD_STRING ),
 };
 
-// .text:0014fd70 CTriggerChangeTarget::Restore (file:triggers.cpp:3266)
 IMPLEMENT_SAVERESTORE( CTriggerChangeTarget, CBaseDelay );
 
 void CTriggerChangeTarget::KeyValue( KeyValueData *pkvd )
@@ -2466,7 +2456,6 @@ TYPEDESCRIPTION CTriggerCamera::m_SaveData[] = {
 	DEFINE_FIELD( CTriggerCamera, m_state, FIELD_INTEGER ),
 };
 
-// .text:0014fd10 CTriggerCamera::Restore (file:triggers.cpp:3355)
 IMPLEMENT_SAVERESTORE( CTriggerCamera, CBaseDelay );
 
 void CTriggerCamera::Spawn( void )
@@ -2749,11 +2738,9 @@ class CSandBag : public CBaseTrigger
 	int m_sMaster;	// +0x208, string_t
 };
 
-// .text:0015aa50 dod_trigger_sandbag (file:triggers.cpp:5210)
 // Factory: GetClassPtr sets the vtable + pev (ctor inits m_nRange=5, m_sMaster=0).
 LINK_ENTITY_TO_CLASS( dod_trigger_sandbag, CSandBag );
 
-// .text:0015aad0 CSandBag::CSandBag (file:triggers.cpp:5212)
 CSandBag::CSandBag()
 {
 	m_nRange = 5;
@@ -2776,7 +2763,6 @@ void CSandBag::Spawn()
 	RoundStore();
 }
 
-// .text:00157120 CSandBag::RoundRespawn (file:triggers.cpp:5260)
 void CSandBag::RoundRespawn()
 {
 	CBaseTrigger::InitTrigger();
@@ -2786,7 +2772,6 @@ void CSandBag::RoundRespawn()
 	SetTouch( &CSandBag::SandBagTouch );
 }
 
-// .text:00151ca0 CSandBag::KeyValue (file:triggers.cpp:5244)
 void CSandBag::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "sandbag_range" ) )
@@ -2811,7 +2796,6 @@ BOOL CSandBag::IsMasteredOn()
 	return !m_sMaster || UTIL_IsMasterTriggered( m_sMaster, this );
 }
 
-// .text:00151070 CSandBag::SandBagTouch (file:triggers.cpp:5280)
 // Deploy/bipod zone: sets bit0 @player+0x76c always, and bit 0x400 @player+0x7cc
 // with hint on first touch. Facing window = m_nRange degrees (default 5).
 // Active-item gate: m_pActiveItem->Classify() == 0x100 (LMG: MG34/MG42/BREN,
@@ -2912,17 +2896,14 @@ class CDoDCamera : public CBaseDelay
 		m_origin;  // +0x2c0 binary-verified Move origin-angles block 0x14c580; alloc 0x2c8 leaves 4 bytes tail verified
 };
 
-// .text:0015c3d0 dod_camera (file:triggers.cpp:6554)
 // Factory: GetClassPtr sets the vtable + pev (size 0x2c8).
 LINK_ENTITY_TO_CLASS( dod_camera, CDoDCamera );
 
-// .text:0014efa0 CDoDCamera::Precache (file:triggers.cpp:6675)
 void CDoDCamera::Precache( void )
 {
 	PRECACHE_MODEL( "models/mapmodels/null.mdl" );
 }
 
-// .text:0014efb0 CDoDCamera::Spawn (file:triggers.cpp:6577)
 void CDoDCamera::Spawn( void )
 {
 	Precache();
@@ -2942,7 +2923,6 @@ void CDoDCamera::Spawn( void )
 		m_deceleration = 500.0;
 }
 
-// .text:00153180 CDoDCamera::KeyValue (file:triggers.cpp:6671)
 void CDoDCamera::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "wait" ) )
@@ -3014,7 +2994,6 @@ static BOOL SceneAlreadySeen( CBasePlayer *pPlayer, int slot );
 static void MarkSceneSeen( CBasePlayer *pPlayer, int slot );
 static const char *CutSceneName( int scene );
 
-// .text:0015ced0 CDoDCamera::Use (file:triggers.cpp:6679)
 // Binds players 1..32 (skips non-team, wrong-team unless teamBound==3,
 // invisible/dead-check via iuser2 scene slot state), then on toggle-on:
 // sets speed/target from moveto path, snaps to stored origin/angles,
@@ -3100,7 +3079,6 @@ void CDoDCamera::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 	Move();
 }
 
-// .text:0015cb50 CDoDCamera::FollowTarget (file:triggers.cpp:6857)
 // While time is before m_flReturnTime and m_hTarget lives: face the target
 // (angle wrap + avelocity), damp velocity unless spawnflags&4, think again
 // next frame via Move(). Otherwise: release all bound players (EnableControl
@@ -3226,7 +3204,6 @@ static void MarkSceneSeen( CBasePlayer *pPlayer, int slot )
 	}
 }
 
-// .text:0015c580 CDoDCamera::Move (file:triggers.cpp:6943)
 // Advances m_moveDistance by pev->speed * frametime toward m_pentPath.
 // On arrival: console log (plain for iuser2 < 1, cut-scene name for 1..8),
 // fire path message target (cleared when spawnflags & 4), advance along
@@ -3319,7 +3296,6 @@ static const char *CutSceneName( int scene )
 	}
 }
 
-// .text:0015c450 CDoDCamera::SetCameraMode (file:triggers.cpp:7070)
 // Sends gmsgCameraView(targetname) to every bound on-team player, with an
 // optional screen fade. fade index: 1..5 -> (fadeTime, flags) =
 // (0.6,1) (2.0,1) (2.0,0) (3.0,1) (4.0,0); anything else -> (2.0,5).
@@ -3398,7 +3374,6 @@ int GetClanScoringValues( int team, int cp )
 	return szValues[cp] - '0';
 }
 
-// .text:0015c440 CDoDCamera::ReturnTimeLeft (file:triggers.cpp:7065)
 float CDoDCamera::ReturnTimeLeft( void )
 {
 	return m_flReturnTime;
@@ -3410,8 +3385,6 @@ extern int gmsgProgBarUpdate;
 extern int gmsgCancelProgressBar;
 
 // ---- CDoDCamera SaveData (binary SaveData[13], mirrors CTriggerCamera 13 fields) ----
-// .text:001400d0 CDoDCamera::Save (file:triggers.cpp:6560)
-// .text:0014fcb0 CDoDCamera::Restore (file:triggers.cpp:6574)
 TYPEDESCRIPTION CDoDCamera::m_SaveData[] = {
 	DEFINE_FIELD( CDoDCamera, m_hTarget, FIELD_EHANDLE ),
 	DEFINE_FIELD( CDoDCamera, m_pentPath, FIELD_CLASSPTR ),
@@ -3440,7 +3413,6 @@ IMPLEMENT_SAVERESTORE( CDoDCamera, CBaseDelay );
 
 
 // CControlPoint (binary ctor + getters)
-// .text:00159910 CControlPoint::CControlPoint (file:triggers.cpp:3949)
 CControlPoint::CControlPoint()
 {
 	m_iPointIndex = -1;
@@ -3455,15 +3427,11 @@ CControlPoint::CControlPoint()
 	m_iAxisModelBodygroup = 0;
 	m_iResetModelBodygroup = 0;
 }
-// .text:0015a610 CControlPoint::GetOwner (file:triggers.cpp:4295)
 int CControlPoint::GetOwner( void ) { return m_iTeam; }
-// .text:0015a620 CControlPoint::GetGroup (file:triggers.cpp:4300)
 char *CControlPoint::GetGroup( void ) { return m_szGroup; }
-// .text:0015a630 CControlPoint::PointValue (file:triggers.cpp:4310)
 int CControlPoint::PointValue( void ) { return m_iPointValue; }
 
 // CControlPointMaster helpers
-// .text:0015a810 CControlPointMaster::GetPointOwner (file:triggers.cpp:5089)
 int CControlPointMaster::GetPointOwner( int point )
 {
 	int owner = 0;
@@ -3471,7 +3439,6 @@ int CControlPointMaster::GetPointOwner( int point )
 		owner = ( (CControlPoint *)ControlPointArray[point] )->m_iTeam;
 	return owner;
 }
-// .text:0015a9f0 CControlPointMaster::TeamOwnsAllPoints (file:triggers.cpp:5158)
 int CControlPointMaster::TeamOwnsAllPoints()
 {
 	if ( m_iNumPoints < 1 || !ControlPointArray[0] )
@@ -3486,7 +3453,6 @@ int CControlPointMaster::TeamOwnsAllPoints()
 }
 
 // CAreaCapture helpers (decompile + DWARF field names)
-// .text:00150b00 CAreaCapture::area_SetIndex (file:triggers.cpp:5455)
 void CAreaCapture::area_SetIndex( int index )
 {
 	m_iAreaIndex = index;
@@ -3498,7 +3464,6 @@ void CAreaCapture::area_SetIndex( int index )
 		WRITE_STRING( sz_HudIcon );
 	MESSAGE_END();
 }
-// .text:0015af00 CAreaCapture::area_SendStatus (file:triggers.cpp:5475)
 void CAreaCapture::area_SendStatus( CBasePlayer *p )
 {
 	if ( !p )
@@ -3541,7 +3506,6 @@ void CAreaCapture::GetNumRequiredPlayers( int *reqAllies, int *reqAxis )
 	if ( *reqAxis < 1 )
 		*reqAxis = 1;
 }
-// .text:0015ac30 CAreaCapture::CanUseCatchup (file:triggers.cpp:5616)
 // ODR: CDoDTeamPlay canonical in dod_gamerules.h
 bool CAreaCapture::CanUseCatchup()
 {
@@ -3558,7 +3522,6 @@ bool CAreaCapture::CanUseCatchup()
 
 	return ( pev->spawnflags & SF_AREA_CATCHUP ) && bCatchup;
 }
-// .text:0015ac80 CAreaCapture::GetNumAlive (file:triggers.cpp:5860)
 int CAreaCapture::GetNumAlive( int team )
 {
 	int n = 0;
@@ -3570,7 +3533,6 @@ int CAreaCapture::GetNumAlive( int team )
 	}
 	return n;
 }
-// .text:0015ad40 CAreaCapture::SendNumPlayers (file:triggers.cpp:5886)
 void CAreaCapture::SendNumPlayers( CBasePlayer *pPlayer )
 {
 	if ( !m_pPoint )
@@ -3612,7 +3574,6 @@ void CAreaCapture::SendNumPlayers( CBasePlayer *pPlayer )
 		WRITE_BYTE( req );
 	MESSAGE_END();
 }
-// .text:0015afb0 CAreaCapture::ReSendSwipeInfo (file:triggers.cpp:5934)
 void CAreaCapture::ReSendSwipeInfo()
 {
 	if ( !m_pPoint )
@@ -3628,7 +3589,6 @@ void CAreaCapture::ReSendSwipeInfo()
 		WRITE_COORD( captime );
 	MESSAGE_END();
 }
-// .text:001511b0 CAreaCapture::BreakCapture.part (file:triggers.cpp:6126)
 void CAreaCapture::BreakCapture( int team )
 {
 	if ( !m_bCapturing )
@@ -3661,7 +3621,6 @@ void CAreaCapture::BreakCapture( int team )
 }
 
 // CObjectCapture area (triggers.cpp:3849/3827)
-// .text:00150b80 CObjectCapture::area_SetIndex (file:triggers.cpp:3849)
 void CObjectCapture::area_SetIndex( int index )
 {
 	m_iAreaIndex = index;
@@ -3673,7 +3632,6 @@ void CObjectCapture::area_SetIndex( int index )
 		WRITE_STRING( sz_HudIcon );
 	MESSAGE_END();
 }
-// .text:00150c00 CObjectCapture::area_SendStatus (file:triggers.cpp:3827)
 void CObjectCapture::area_SendStatus( CBasePlayer *p )
 {
 	if ( !p || m_iAreaIndex > 0x80 )
@@ -3686,7 +3644,6 @@ void CObjectCapture::area_SendStatus( CBasePlayer *p )
 }
 
 // CDodRoundTimer (triggers.cpp:6412/6422/6440/6470/6489)
-// .text:0015c0b0 CDodRoundTimer::StartTimer (file:triggers.cpp:6412)
 void CDodRoundTimer::StartTimer()
 {
 	m_bTimer = 1;
@@ -3701,7 +3658,6 @@ void CDodRoundTimer::StartTimer()
 		WRITE_COORD( m_fRoundTime );
 	MESSAGE_END();
 }
-// .text:0015c160 CDodRoundTimer::StopTimer (file:triggers.cpp:6422)
 void CDodRoundTimer::StopTimer()
 {
 	m_bTimer = 0;
@@ -3714,7 +3670,6 @@ void CDodRoundTimer::StopTimer()
 		WRITE_COORD( 0.0 );
 	MESSAGE_END();
 }
-// .text:0015c1e0 CDodRoundTimer::ResetTimer (file:triggers.cpp:6440)
 void CDodRoundTimer::ResetTimer()
 {
 	m_bTimer = 0;
@@ -3729,7 +3684,6 @@ void CDodRoundTimer::ResetTimer()
 		WRITE_COORD( m_fRoundTime );
 	MESSAGE_END();
 }
-// .text:0015c290 CDodRoundTimer::SendStatus (file:triggers.cpp:6470)
 void CDodRoundTimer::SendStatus()
 {
 	if ( !( pev->spawnflags & SF_ROUNDTIMER_SHOW ) )
@@ -3743,7 +3697,6 @@ void CDodRoundTimer::SendStatus()
 		WRITE_COORD( m_fRoundTime );
 	MESSAGE_END();
 }
-// .text:0015c320 CDodRoundTimer::SendStatus (file:triggers.cpp:6489)
 void CDodRoundTimer::SendStatus( CBasePlayer *pPlayer )
 {
 	if ( !pPlayer )
@@ -3761,15 +3714,9 @@ void CDodRoundTimer::SendStatus( CBasePlayer *pPlayer )
 }
 
 // GetState (triggers.cpp:451/940)
-// .text:0015d540 CMultiManager::GetState (file:triggers.cpp:451)
 STATE CMultiManager::GetState() { return m_iState; }
 
 // ---- CStateWatcher (ptype: SaveData[3], 0x248 alloc, multi_watcher/watcher) ----
-// .text:0014fef0 CStateWatcher::Restore (file:triggers.cpp:969)
-// .text:0015d550 CStateWatcher::GetState (file:triggers.cpp:940)
-// .text:00156b50 CStateWatcher::EvalLogic (file:triggers.cpp:1072)
-// .text:00156a70 multi_watcher (file:triggers.cpp:958)
-// .text:00156ae0 watcher (file:triggers.cpp:959)
 class CStateWatcher : public CBaseToggle
 {
 public:
@@ -3801,7 +3748,6 @@ void CStateWatcher::Spawn( void )
 	RoundStore();
 }
 
-// .text:0014e900 CStateWatcher::RoundRespawn (file:triggers.cpp:1026)
 void CStateWatcher::RoundRespawn( void )
 {
 	pev->nextthink = gpGlobals->time + 0.5;
@@ -3845,7 +3791,6 @@ void CStateWatcher::KeyValue( KeyValueData *pkvd )
 			   STRING( pev->classname ), MAX_MULTI_TARGETS );
 }
 
-// .text:00156d20 CStateWatcher::Think (file:triggers.cpp:1031)
 // Re-evaluates EvalLogic each 0.1s, latches result into spawnflag 0x200 and,
 // on a state change, fires targets (USE_ON/USE_OFF/USE_TOGGLE gated by
 // spawnflags 1=fire, 2=no-on, 4=no-off).
@@ -3979,14 +3924,10 @@ BOOL CStateWatcher::EvalLogic()
 		return ( got == 0 );
 	return FALSE;
 }
-// .text:00156a70 multi_watcher (file:triggers.cpp:958)
-// .text:00156ae0 watcher (file:triggers.cpp:959)
 LINK_ENTITY_TO_CLASS( multi_watcher, CStateWatcher );
 LINK_ENTITY_TO_CLASS( watcher, CStateWatcher );
 
 // ---- CEnvCustomize (ptype SaveData[9], 0x17c alloc) ----
-// .text:0014fe90 CEnvCustomize::Restore (file:triggers.cpp:1282)
-// .text:00156e80 env_customize (file:triggers.cpp:1267)
 class CEnvCustomize : public CBaseEntity
 {
 public:
@@ -4021,7 +3962,6 @@ TYPEDESCRIPTION CEnvCustomize::m_SaveData[] = {
 };
 IMPLEMENT_SAVERESTORE( CEnvCustomize, CBaseEntity );
 
-// .text:0014fb40 CEnvCustomize::Spawn (file:triggers.cpp:1336)
 void CEnvCustomize::Spawn( void )
 {
 	pev->solid = SOLID_NOT;
@@ -4031,19 +3971,15 @@ void CEnvCustomize::Spawn( void )
 		pev->nextthink = gpGlobals->time + 0.1;
 }
 
-// .text:0015d570 CEnvCustomize::ObjectCaps (file:triggers.cpp:1248)
 int CEnvCustomize::ObjectCaps( void )
 {
 	return 0;
 }
 
-// .text:00156e80 env_customize (file:triggers.cpp:1267)
 // Factory: GetClassPtr sets the vtable + pev (size 0x17c).
 LINK_ENTITY_TO_CLASS( env_customize, CEnvCustomize );
 
 // ---- CTriggerSetPatrol (ptype SaveData[1], 0x164 alloc) ----
-// .text:0014fdd0 CTriggerSetPatrol::Restore (file:triggers.cpp:3209)
-// .text:00158c30 trigger_startpatrol (file:triggers.cpp:3202)
 class CTriggerSetPatrol : public CBaseDelay
 {
 public:
@@ -4061,16 +3997,13 @@ TYPEDESCRIPTION CTriggerSetPatrol::m_SaveData[] = {
 };
 IMPLEMENT_SAVERESTORE( CTriggerSetPatrol, CBaseDelay );
 
-// .text:0014edc0 CTriggerSetPatrol::Spawn (file:triggers.cpp:3224)
 void CTriggerSetPatrol::Spawn( void ) {}
 
-// .text:0015d5a0 CTriggerSetPatrol::ObjectCaps (file:triggers.cpp:3193)
 int CTriggerSetPatrol::ObjectCaps( void )
 {
 	return 0;
 }
 
-// .text:00151e70 CTriggerSetPatrol::KeyValue (file:triggers.cpp:3212)
 void CTriggerSetPatrol::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "m_iszPath" ) )
@@ -4082,11 +4015,9 @@ void CTriggerSetPatrol::KeyValue( KeyValueData *pkvd )
 		CBaseDelay::KeyValue( pkvd );
 }
 
-// .text:00158c30 trigger_startpatrol (file:triggers.cpp:3202)
 // Factory: GetClassPtr sets the vtable + pev (size 0x164).
 LINK_ENTITY_TO_CLASS( trigger_startpatrol, CTriggerSetPatrol );
 
-// .text:001434a0 CEnvCustomize::Use (file:triggers.cpp:1298)
 void CEnvCustomize::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	CBaseEntity *pTarget = UTIL_FindEntityGeneric( STRING( pev->target ), pev->origin, m_flRadius );
@@ -4213,13 +4144,11 @@ void CEnvCustomize::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 		UTIL_Remove( this );
 }
 
-// .text:0013e940 CEnvCustomize::Think (file:triggers.cpp)
 void CEnvCustomize::Think( void )
 {
 	Use( this, this, USE_TOGGLE, 0 );
 }
 
-// .text:00142ef0 CEnvCustomize::KeyValue (file:triggers.cpp)
 void CEnvCustomize::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "m_iVisible" ) )
@@ -4271,7 +4200,6 @@ void CEnvCustomize::KeyValue( KeyValueData *pkvd )
 		pkvd->fHandled = FALSE;
 }
 
-// .text:0014f570 CTriggerSetPatrol::Use (file:triggers.cpp:3218)
 void CTriggerSetPatrol::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	CBaseMonster *pMonster = (CBaseMonster *)UTIL_FindEntityByTargetname( NULL, STRING( pev->target ) );
@@ -4281,7 +4209,6 @@ void CTriggerSetPatrol::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_
 		pMonster->StartPatrol( path );
 }
 
-// .text:0014fb00 CAutoTrigger::RoundRespawn (file:triggers.cpp)
 void CAutoTrigger::RoundRespawn( void )
 {
 	m_iEnabled = 1;
@@ -4292,7 +4219,6 @@ void CAutoTrigger::RoundRespawn( void )
 	}
 }
 
-// .text:00157420 CTriggerPush::RoundRespawn (file:triggers.cpp)
 void CTriggerPush::RoundRespawn( void )
 {
 	InitTrigger();
@@ -4300,7 +4226,6 @@ void CTriggerPush::RoundRespawn( void )
 	m_iEnabled = 1;
 }
 
-// .text:0013e680 CMultiManager::RoundRespawn (file:triggers.cpp)
 void CMultiManager::RoundRespawn( void )
 {
 	int i;

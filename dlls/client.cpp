@@ -68,7 +68,6 @@ extern void GetCVARPointers( void );
 
 void LinkUserMessages( void );
 
-// .text:000d17f0 get_maptime_left (dod/dlls/client.cpp:78)
 // Returns the number of seconds left on the map timer (clamped to >= 0),
 // or 0 when mp_timelimit is disabled.
 int get_maptime_left( void )
@@ -958,7 +957,6 @@ static const char *sHelmetModels[] = {
 	"models/helmet_axis_para.mdl",
 };
 
-// .text:000d3810 ClientPrecache() size 0xf9e link 0x0c3810 (dod/dlls/client.cpp:989)
 void ClientPrecache( void )
 {
 	// setup precaches always needed
@@ -1425,7 +1423,6 @@ struct PLAYERPVSSTATUS
 static PLAYERPVSSTATUS g_PVSStatus[32];
 static float g_flPVSUpdateTime = 1.0f;  // .rodata 0x0018f3b4
 
-// .text:000d4a40 ResetPlayerPVS(edict_t*, int) size 0x184 link 0x0c4a40 (dod/dlls/client.cpp:1510)
 void ResetPlayerPVS( edict_t *client, int clientnum )
 {
 	PLAYERPVSSTATUS *pvs = &g_PVSStatus[clientnum];
@@ -1444,7 +1441,6 @@ void ResetPlayerPVS( edict_t *client, int clientnum )
 	}
 }
 
-// .text:000d4bd0 CheckPlayerPVSLeafChanged(edict_t*, int) size 0x74 link 0x0c4bd0 (dod/dlls/client.cpp:1524)
 bool CheckPlayerPVSLeafChanged( edict_t *client, int clientnum )
 {
 	PLAYERPVSSTATUS *pvs = &g_PVSStatus[clientnum];
@@ -1462,13 +1458,11 @@ bool CheckPlayerPVSLeafChanged( edict_t *client, int clientnum )
 	return true;
 }
 
-// .text:000d4c50 MarkEntityInPVS(int, int, float, bool) size 0x20 link 0x0c4c50 (dod/dlls/client.cpp:1551)
 void MarkEntityInPVS( int clientnum, int entitynum, float time, bool inpvs )
 {
 	g_PVSStatus[clientnum].m_Status[entitynum].m_fTimeEnteredPVS = inpvs ? time : 0.0f;
 }
 
-// .text:000d4c70 CheckEntityRecentlyInPVS(int, int, float) size 0x37 link 0x0c4c70 (dod/dlls/client.cpp:1563)
 bool CheckEntityRecentlyInPVS( int clientnum, int entitynum, float currenttime )
 {
 	float fTimeEnteredPVS = g_PVSStatus[clientnum].m_Status[entitynum].m_fTimeEnteredPVS;
@@ -2328,7 +2322,6 @@ int AllowLagCompensation( void )
 	return 1;
 }
 
-// .text:000d60e0 ShowVGUI(CBasePlayer*,int,int) size 0x64 link 0x0c60e0 (dod/dlls/client.cpp:2491)
 void ShowVGUI( CBasePlayer *pPlayer, int iMenu, int iParam )
 {
 	MESSAGE_BEGIN( MSG_ONE, gmsgVGUIMenu, NULL, pPlayer->pev->pContainingEntity );
@@ -2337,7 +2330,6 @@ void ShowVGUI( CBasePlayer *pPlayer, int iMenu, int iParam )
 	MESSAGE_END();
 }
 
-// .text:000d6150 ResetPlayers() size 0x85 link 0x0c6150 (dod/dlls/client.cpp:2499)
 void ResetPlayers( void )
 {
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
@@ -2351,7 +2343,6 @@ void ResetPlayers( void )
 	}
 }
 
-// .text:000d61e0 ResetEnt(char*) size 0x40 link 0x0c61e0 (dod/dlls/client.cpp:2516)
 void ResetEnt( const char *classname )
 {
 	CBaseEntity *pEnt = NULL;
@@ -2359,7 +2350,6 @@ void ResetEnt( const char *classname )
 		pEnt->RoundRespawnEnt();
 }
 
-// .text:000d6220 CallRoundRespawn(char*) size 0x3f link 0x0c6220 (dod/dlls/client.cpp:2529)
 void CallRoundRespawn( const char *classname )
 {
 	CBaseEntity *pEnt = NULL;
@@ -2367,7 +2357,6 @@ void CallRoundRespawn( const char *classname )
 		pEnt->RoundRespawn();
 }
 
-// .text:000d6260 ResetEnts() size 0x1131 link 0x0c6260 (dod/dlls/client.cpp:2540)
 void ResetEnts( void )
 {
 	ResetEnt( "func_breakable" );

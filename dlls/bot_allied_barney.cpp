@@ -204,13 +204,11 @@ DEFINE_CUSTOM_SCHEDULES( CAlliedBarney )
 
 IMPLEMENT_CUSTOM_SCHEDULES( CAlliedBarney, CTalkMonster );
 
-// .text:000c2100 CAlliedBarney::StartTask (bot_allied_barney.cpp:184)
 void CAlliedBarney :: StartTask( Task_t *pTask )
 {
 	CTalkMonster::StartTask( pTask );
 }
 
-// .text:000c2300 CAlliedBarney::RunTask (bot_allied_barney.cpp:188)
 void CAlliedBarney :: RunTask( Task_t *pTask )
 {
 	switch ( pTask->iTask )
@@ -235,7 +233,6 @@ void CAlliedBarney :: RunTask( Task_t *pTask )
 // ISoundMask - returns a bit mask indicating which types
 // of sounds this monster regards. 
 //=========================================================
-// .text:000c1a10 CAlliedBarney::ISoundMask (bot_allied_barney.cpp:221)
 int CAlliedBarney :: ISoundMask ( void) 
 {
 	return	bits_SOUND_WORLD	|
@@ -251,7 +248,6 @@ int CAlliedBarney :: ISoundMask ( void)
 // Classify - indicates this monster's place in the 
 // relationship table.
 //=========================================================
-// .text:000c1a20 CAlliedBarney::Classify (bot_allied_barney.cpp:229)
 int	CAlliedBarney :: Classify ( void )
 {
 	if ( m_iClass == 0 )
@@ -262,7 +258,6 @@ int	CAlliedBarney :: Classify ( void )
 //=========================================================
 // ALertSound - barney says "Freeze!"
 //=========================================================
-// .text:000c21f0 CAlliedBarney::AlertSound (bot_allied_barney.cpp:236)
 void CAlliedBarney :: AlertSound( void )
 {
 	if ( m_hEnemy != NULL )
@@ -288,7 +283,6 @@ void CAlliedBarney :: AlertSound( void )
 // SetYawSpeed - allows each sequence to have a different
 // turn rate associated with it.
 //=========================================================
-// .text:000c1a40 CAlliedBarney::SetYawSpeed (bot_allied_barney.cpp:261)
 void CAlliedBarney :: SetYawSpeed ( void )
 {
 	int ys;
@@ -318,7 +312,6 @@ void CAlliedBarney :: SetYawSpeed ( void )
 //=========================================================
 // CheckRangeAttack1
 //=========================================================
-// .text:000c25c0 CAlliedBarney::CheckRangeAttack1 (bot_allied_barney.cpp:290)
 BOOL CAlliedBarney :: CheckRangeAttack1 ( float flDot, float flDist )
 {
 	if ( flDist <= 1024 && flDot >= 0.5 )
@@ -348,7 +341,6 @@ BOOL CAlliedBarney :: CheckRangeAttack1 ( float flDot, float flDist )
 // BarneyFirePistol - shoots one round from the pistol at
 // the enemy barney is facing.
 //=========================================================
-// .text:000c2ab0 CAlliedBarney::BarneyFirePistol (bot_allied_barney.cpp:324)
 void CAlliedBarney :: BarneyFirePistol ( void )
 {
 	Vector vecShootOrigin;
@@ -374,7 +366,6 @@ void CAlliedBarney :: BarneyFirePistol ( void )
 //
 // Returns number of events handled, 0 if none.
 //=========================================================
-// .text:000c2c80 CAlliedBarney::HandleAnimEvent (bot_allied_barney.cpp:360)
 void CAlliedBarney :: HandleAnimEvent( MonsterEvent_t *pEvent )
 {
 	switch( pEvent->event )
@@ -397,7 +388,6 @@ void CAlliedBarney :: HandleAnimEvent( MonsterEvent_t *pEvent )
 //=========================================================
 // Spawn
 //=========================================================
-// .text:000c1f80 CAlliedBarney::Spawn (bot_allied_barney.cpp:389)
 void CAlliedBarney :: Spawn()
 {
 	Precache( );
@@ -429,7 +419,6 @@ void CAlliedBarney :: Spawn()
 //=========================================================
 // Precache - precaches all resources this monster needs
 //=========================================================
-// .text:000c2e50 CAlliedBarney::Precache (bot_allied_barney.cpp:431)
 void CAlliedBarney :: Precache()
 {
 	PRECACHE_MODEL("models/allied_barney.mdl");
@@ -451,7 +440,6 @@ void CAlliedBarney :: Precache()
 }	
 
 // Init talk data
-// .text:000c2ce0 CAlliedBarney::TalkInit (bot_allied_barney.cpp:452)
 void CAlliedBarney :: TalkInit( void )
 {
 	CTalkMonster::TalkInit();
@@ -516,7 +504,6 @@ static BOOL IsFacing( entvars_t *pevTest, const Vector &reference )
 }
 
 
-// .text:000c2770 CAlliedBarney::TakeDamage (bot_allied_barney.cpp:526)
 int CAlliedBarney :: TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker, float flDamage, int bitsDamageType)
 {
 	// make sure friends talk about it if player hurts talkmonsters...
@@ -561,7 +548,6 @@ int CAlliedBarney :: TakeDamage( entvars_t* pevInflictor, entvars_t* pevAttacker
 //=========================================================
 // PainSound
 //=========================================================
-// .text:000c24a0 CAlliedBarney::PainSound (bot_allied_barney.cpp:570)
 void CAlliedBarney :: PainSound ( void )
 {
 	if (gpGlobals->time < m_painTime)
@@ -580,7 +566,6 @@ void CAlliedBarney :: PainSound ( void )
 //=========================================================
 // DeathSound 
 //=========================================================
-// .text:000c1ea0 CAlliedBarney::DeathSound (bot_allied_barney.cpp:588)
 void CAlliedBarney :: DeathSound ( void )
 {
 	switch (RANDOM_LONG(0,2))
@@ -592,7 +577,6 @@ void CAlliedBarney :: DeathSound ( void )
 }
 
 
-// .text:000c1dc0 CAlliedBarney::TraceAttack (bot_allied_barney.cpp:599)
 void CAlliedBarney::TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType)
 {
 	switch( ptr->iHitgroup)
@@ -623,7 +607,6 @@ void CAlliedBarney::TraceAttack( entvars_t *pevAttacker, float flDamage, Vector 
 }
 
 
-// .text:000c1d10 CAlliedBarney::Killed (bot_allied_barney.cpp:629)
 void CAlliedBarney :: Killed( entvars_t *pevAttacker, int iGib )
 {
 	if ( pev->body < 2 && !( pev->spawnflags & 0x400 ) )
@@ -642,7 +625,6 @@ void CAlliedBarney :: Killed( entvars_t *pevAttacker, int iGib )
 // AI Schedules Specific to this monster
 //=========================================================
 
-// .text:000c2110 CAlliedBarney::GetScheduleOfType (bot_allied_barney.cpp:651)
 Schedule_t* CAlliedBarney :: GetScheduleOfType ( int Type )
 {
 	Schedule_t *psched;
@@ -773,7 +755,6 @@ Schedule_t *CAlliedBarney :: GetSchedule ( void )
 	return CTalkMonster::GetSchedule();
 }
 
-// .text:000c1ab0 CAlliedBarney::GetIdealState (bot_allied_barney.cpp:782)
 MONSTERSTATE CAlliedBarney :: GetIdealState( void )
 {
 	return CTalkMonster::GetIdealState();
@@ -781,7 +762,6 @@ MONSTERSTATE CAlliedBarney :: GetIdealState( void )
 
 
 
-// .text:000c1a70 CAlliedBarney::DeclineFollowing (bot_allied_barney.cpp:788)
 void CAlliedBarney :: DeclineFollowing( void )
 {
 	PlaySentence( m_szGrp[6], 2.0, VOL_NORM, ATTN_NORM );
@@ -803,19 +783,14 @@ void CAlliedBarney :: DeclineFollowing( void )
 //=========================================================
 
 
-// .text:000c2380 CAlliedBarney::ScheduleFromName (bot_allied_barney.cpp:180)
 
-// .text:000c2ee0 CAlliedBarney::ResetAfterDoDMovie (bot_allied_barney.cpp:794)
 void CAlliedBarney :: ResetAfterDoDMovie( void )
 {
 	pev->angles = m_angles;
 	pev->origin = m_origin;
 }
 
-// .text:000c2a40 monster_allied_barney (bot_allied_barney.cpp:55)
 LINK_ENTITY_TO_CLASS( monster_allied_barney, CAlliedBarney );
 
-// .text:000c2440 CAlliedBarney::Save (bot_allied_barney.cpp:66)
 
-// .text:000c23e0 CAlliedBarney::Restore (bot_allied_barney.cpp:66)
 

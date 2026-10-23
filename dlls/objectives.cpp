@@ -24,7 +24,6 @@ extern void FireDODCamera( const char *p1, CBaseEntity *p2, CBaseEntity *p3, USE
 // object_otherpoints => m_iOtherPoints | object_resettime (default 600,
 // clamp 600) | object_donetarget | object_hud_sprite => m_szObjectHIcon
 // object_player_sprite => m_szObjectPIcon
-// .text:00120230 KeyValue (file:objectives.cpp:296)
 void CObject::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "object_name" ) )
@@ -118,7 +117,6 @@ void CObject::KeyValue( KeyValueData *pkvd )
 		pkvd->fHandled = FALSE;
 }
 
-// .text:0011fbc0 CObject::Spawn() (file:objectives.cpp, ~140)
 void CObject::Spawn()
 {
 	Precache();
@@ -142,7 +140,6 @@ void CObject::Spawn()
 	RoundStore();
 }
 
-// .text:0011f380 CObject::Precache() (file:objectives.cpp:89)
 void CObject::Precache()
 {
 	if ( pev->noise )
@@ -155,7 +152,6 @@ void CObject::Precache()
 		PRECACHE_SOUND( STRING( pev->noise3 ) );
 }
 
-// .text:00120930 CObject::ObjectTouch (file:objectives.cpp:179)
 // Enemy-team pickup: team-1 object taken by team 2 and vice versa, neutral
 // by anyone. RoundState==1, master gate, 1.0 s touch throttle, player must
 // be free-handed. GetObject, hide (EF_NODRAW), Touch=NULL,
@@ -205,7 +201,6 @@ void CObject::ObjectTouch( CBaseEntity *pOther )
 		ResetObject();
 }
 
-// .text:001208b0 ObjectThink link 0x1108b0 size 0x63 Ghidra 0x1208b0: dropped + resetTime>=1 + time>=m_flReset => ResetObject; nextthink=time+0.1
 void CObject::ObjectThink( void )
 {
 	if ( m_bDropped )
@@ -216,7 +211,6 @@ void CObject::ObjectThink( void )
 	pev->nextthink = gpGlobals->time + 0.1f;
 }
 
-// .text:00120810 AbsentPlayerThink link 0x110810 size 0x96 Ghidra 0x120810: carrier gone => ResetObject; dropped => Think=ObjectThink; nextthink=time+0.1
 void CObject::AbsentPlayerThink( void )
 {
 	if ( m_bDropped )
@@ -235,7 +229,6 @@ void CObject::AbsentPlayerThink( void )
 	pev->nextthink = gpGlobals->time + 0.1f;
 }
 
-// .text:00120690 CObject::ResetObject (file:objectives.cpp:109)
 void CObject::ResetObject()
 {
 	if ( m_vStartOrigin.Length() == 0.0 )
@@ -256,13 +249,11 @@ void CObject::ResetObject()
 	DROP_TO_FLOOR( edict() );
 }
 
-// .text:00120920 CObject::RoundRespawn (file:objectives.cpp:105, size5 thunk to ResetObject)
 void CObject::RoundRespawn()
 {
 	ResetObject();
 }
 
-// .text:00120ba0 CObject::Drop (file:objectives.cpp:128)
 void CObject::Drop()
 {
 	if ( UTIL_IsMasterTriggered( m_sMaster, this ) )
@@ -277,7 +268,6 @@ void CObject::Drop()
 	m_flReset = gpGlobals->time + (float)m_iResetTime;
 }
 
-// .text:00120c40 CObject::Materialize (file:objectives.cpp:140)
 void CObject::Materialize()
 {
 	if ( UTIL_IsMasterTriggered( m_sMaster, this ) )
@@ -290,7 +280,6 @@ void CObject::Materialize()
 	}
 }
 
-// .text:00120cc0 CObject::Disappear (file:objectives.cpp:154)
 void CObject::Disappear()
 {
 	pev->effects |= EF_NODRAW;
@@ -303,14 +292,12 @@ void CObject::Disappear()
 	m_bDropped = 0;
 }
 
-// .text:00120d40 CObject::SendDroppedMsg (file:objectives.cpp:394)
 void CObject::SendDroppedMsg( CBasePlayer *pPlayer )
 {
 	if ( pPlayer && ( pev->spawnflags & SF_OBJECT_ANNOUNCE ) )
 		UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_lost_object", STRING( pPlayer->pev->netname ), sz_Name );
 }
 
-// .text:00120db0 CObject::SendPickupMsg (file:objectives.cpp:402)
 void CObject::SendPickupMsg( CBasePlayer *pPlayer )
 {
 	if ( pPlayer && ( pev->spawnflags & SF_OBJECT_ANNOUNCE ) )
@@ -319,13 +306,8 @@ void CObject::SendPickupMsg( CBasePlayer *pPlayer )
 
 // CObjectCapture KeyValue: capobj_group | capobj_donetarget |
 // capobj_hud_sprite, rest => CBaseTrigger. .text:0015d5d0 (triggers.cpp:3609)
-// .text:0014fbf0 Precache (triggers.cpp:3820): hud sprite.
-// .text:00157260 Spawn (triggers.cpp:3646): InitTrigger, m_bCapped = false.
-// .text:00157230 RoundRespawn (triggers.cpp:3656): re-init, m_bCapped = false.
-// .text:00150b80 area_SetIndex / .text:00150c00 area_SendStatus
 // (triggers.cpp:3849/3827): ClientAreas(index, -1, icon) when index <= 0x80.
 
-// .text:00151310 CObjectCapture::Touch (file:triggers.cpp:3667)
 // link 0x141310 size 0x56a Ghidra 0x151310
 void CObjectCapture::Touch( CBaseEntity *pOther )
 {
@@ -422,7 +404,6 @@ void CObjectCapture::Touch( CBaseEntity *pOther )
 	pPlayer->RemoveObjectIcon();
 }
 
-// .text:0011f480 CParticleShooter::Spawn link 0x10f480 size 0x3e Ghidra 0x11f480: Precache, solid=0, effects=0x80, RoundStore, m_iState=0
 void CParticleShooter::Spawn( void )
 {
 	Precache();
@@ -432,13 +413,11 @@ void CParticleShooter::Spawn( void )
 	m_iState = 0;
 }
 
-// .text:0011f440 CParticleShooter::Precache (file:objectives.cpp:688)
 void CParticleShooter::Precache()
 {
 	m_iSpriteIndex = PRECACHE_MODEL( STRING( pev->model ) );
 }
 
-// .text:0011fe20 CParticleShooter::KeyValue (file:objectives.cpp:664)
 void CParticleShooter::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "group_id" ) )
@@ -458,7 +437,6 @@ void CParticleShooter::KeyValue( KeyValueData *pkvd )
 	}
 }
 
-// .text:00120f00 CParticleShooter::FindTargetEntity (file:objectives.cpp:755)
 void CParticleShooter::FindTargetEntity()
 {
 	CBaseEntity *pTarget = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ) );
@@ -475,7 +453,6 @@ void CParticleShooter::FindTargetEntity()
 		m_vShootDir = vecDir * ( m_flSpeed / flLen );
 }
 
-// .text:00121030 CParticleShooter::SendUpdate (file:objectives.cpp:775)
 void CParticleShooter::SendUpdate( CBasePlayer *pPlayer )
 {
 	if ( !pPlayer )
@@ -493,13 +470,11 @@ void CParticleShooter::SendUpdate( CBasePlayer *pPlayer )
 	MESSAGE_END();
 }
 
-// .text:00121110 CParticleShooter::UpdateJoiningPlayer (file:objectives.cpp:771, size5 thunk to SendUpdate)
 void CParticleShooter::UpdateJoiningPlayer( CBasePlayer *pPlayer )
 {
 	SendUpdate( pPlayer );
 }
 
-// .text:00121120 CParticleShooter::RoundRespawn (file:objectives.cpp:734)
 void CParticleShooter::RoundRespawn()
 {
 	if ( pev->spawnflags & SF_PARTICLESHOOTER_STARTON )
@@ -515,7 +490,6 @@ void CParticleShooter::RoundRespawn()
 	SendUpdate( NULL );
 }
 
-// .text:00121190 CParticleShooter::Use (file:objectives.cpp:693)
 void CParticleShooter::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	int newState = 0;
@@ -536,7 +510,6 @@ void CParticleShooter::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 	}
 }
 
-// .text:0011f530 CWeatherSystem::Spawn link 0x10f530 size 0x96 Ghidra 0x11f530: SetModel, SetSize mins/maxs, rendermode=2, renderamt=0, Think=InitThink +1.0
 void CWeatherSystem::Spawn( void )
 {
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );
@@ -547,7 +520,6 @@ void CWeatherSystem::Spawn( void )
 	pev->nextthink = gpGlobals->time + 1.0f;
 }
 
-// .text:0011f4c0 CWeatherSystem::InitThink (file:objectives.cpp:813)
 void CWeatherSystem::InitThink()
 {
 	MESSAGE_BEGIN( MSG_ALL, gmsgWeather );
@@ -555,13 +527,11 @@ void CWeatherSystem::InitThink()
 	MESSAGE_END();
 }
 
-// .text:0011f520 CWeatherSystem::Precache (file:objectives.cpp:821)
 void CWeatherSystem::Precache()
 {
 	PRECACHE_MODEL( "sprites/white.spr" );
 }
 
-// .text:0011fd20 CWeatherSystem::KeyValue (file:objectives.cpp:825)
 void CWeatherSystem::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "type" ) )
@@ -582,7 +552,6 @@ void CWeatherSystem::KeyValue( KeyValueData *pkvd )
 	}
 }
 
-// .text:00121200 CWeatherSystem::SendForecast (file:objectives.cpp:848)
 void CWeatherSystem::SendForecast( CBasePlayer *pPlayer )
 {
 	MESSAGE_BEGIN( MSG_ONE, gmsgWeather, NULL, pPlayer->edict() );
@@ -591,14 +560,12 @@ void CWeatherSystem::SendForecast( CBasePlayer *pPlayer )
 	MESSAGE_END();
 }
 
-// .text:00121270 CWeatherSystem::SendData (file:objectives.cpp:855)
 void CWeatherSystem::SendData()
 {
 	WRITE_BYTE( ENTINDEX( edict() ) );
 	WRITE_BYTE( m_iType );
 }
 
-// .text:0011fb10 CScoreEvent::Spawn link 0x10fb10 size 0xad Ghidra 0x11fb10: solid=0 movetype=0 effects=0x80, origin/size0, Touch=NULL Use=ScoreEventUse Think=ScoreThink +0.1
 void CScoreEvent::Spawn( void )
 {
 	pev->solid = SOLID_NOT;
@@ -612,7 +579,6 @@ void CScoreEvent::Spawn( void )
 	pev->nextthink = gpGlobals->time + 0.1f;
 }
 
-// .text:0011ff20 CScoreEvent::KeyValue (file:objectives.cpp:463)
 void CScoreEvent::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "score_resetitemtime" ) )
@@ -644,7 +610,6 @@ void CScoreEvent::KeyValue( KeyValueData *pkvd )
 		pkvd->fHandled = FALSE;
 }
 
-// .text:001200a0 CScoreEvent::ScoreThink (file:objectives.cpp:494)
 void CScoreEvent::ScoreThink()
 {
 	if ( ResetItems && ResetItemsTime <= gpGlobals->time )
@@ -678,7 +643,6 @@ void CScoreEvent::ScoreThink()
 	pev->nextthink = gpGlobals->time + 0.1;
 }
 
-// .text:0011f5d0 CScoreEvent::ScoreEventUse (file:objectives.cpp:539)
 void CScoreEvent::ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	// slot 0x2d gate approx IsPlayer: ignore player callers
@@ -769,14 +733,10 @@ void CScoreEvent::ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 		pRules->GoToIntermission();
 }
 
-// .text:00120620 LINK dod_object (file:objectives.cpp:36, size 0x63)
 LINK_ENTITY_TO_CLASS( dod_object, CObject );
-// .text:00120e20 LINK dod_score_ent (file:objectives.cpp:445, size 0x63)
 LINK_ENTITY_TO_CLASS( dod_score_ent, CScoreEvent );
-// .text:00120e90 LINK particle_shooter (file:objectives.cpp:661, size 0x63)
 LINK_ENTITY_TO_CLASS( particle_shooter, CParticleShooter );
 
-// .text:000de0b0 CDoDDetect::IsMasteredOn (file:objectives.cpp)
 bool CDoDDetect::IsMasteredOn( void )
 {
 	if ( m_sMaster != 0 )
@@ -786,7 +746,6 @@ bool CDoDDetect::IsMasteredOn( void )
 
 extern int gmsgTimerStatus;
 
-// .text:000e3b90 CDodParaRoundTimer::Spawn (file:objectives.cpp)
 void CDodParaRoundTimer::Spawn( void )
 {
 	m_bTimer = false;
@@ -798,7 +757,6 @@ void CDodParaRoundTimer::Spawn( void )
 	pev->nextthink = gpGlobals->time + 0.1f;
 }
 
-// .text:000ee150 CDodParaRoundTimer::StartTimer
 void CDodParaRoundTimer::StartTimer( void )
 {
 	m_bTimer = true;
@@ -812,7 +770,6 @@ void CDodParaRoundTimer::StartTimer( void )
 	pev->nextthink = gpGlobals->time + 0.1f;
 }
 
-// .text:000ee1f0 CDodParaRoundTimer::StopTimer
 void CDodParaRoundTimer::StopTimer( void )
 {
 	m_bTimer = false;
@@ -825,7 +782,6 @@ void CDodParaRoundTimer::StopTimer( void )
 	SetThink( NULL );
 }
 
-// .text:000ee270 CDodParaRoundTimer::ResetTimer
 void CDodParaRoundTimer::ResetTimer( void )
 {
 	m_fRoundTimer = 240.0f;
@@ -839,7 +795,6 @@ void CDodParaRoundTimer::ResetTimer( void )
 	pev->nextthink = gpGlobals->time + 0.1f;
 }
 
-// .text:000ee380 CDodParaRoundTimer::SendStatus
 void CDodParaRoundTimer::SendStatus( CBasePlayer *pPlayer )
 {
 	float t = m_fRoundTimer;
@@ -850,7 +805,6 @@ void CDodParaRoundTimer::SendStatus( CBasePlayer *pPlayer )
 	MESSAGE_END();
 }
 
-// .text:000eaa80 CDodParaRoundTimer::TimerThink
 void CDodParaRoundTimer::TimerThink( void )
 {
 	float now = gpGlobals->time;
@@ -899,7 +853,6 @@ void CDodParaRoundTimer::TimerThink( void )
 	}
 }
 
-// .text:000ea0a0 CDoDDetect::Spawn
 void CDoDDetect::Spawn( void )
 {
 	AddEntityHashValue( pev, "info_doddetect", CLASSNAME );
@@ -907,7 +860,6 @@ void CDoDDetect::Spawn( void )
 	((CDoDTeamPlay *)g_pGameRules)->DetectGameRules();
 }
 
-// .text:000ee020 CDoDDetect::CDoDDetect
 CDoDDetect::CDoDDetect( void )
 {
 	m_GamePlayRules.m_iTimerTeam = 0;
@@ -927,7 +879,6 @@ CDoDDetect::CDoDDetect( void )
 	m_GamePlayRules.m_fAxisRespawnFactor = 1.0f;
 }
 
-// .text:000d5420 CDoDDetect::KeyValue (file:objectives.cpp)
 void CDoDDetect::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "detect_axis_infinite" ) || FStrEq( pkvd->szKeyName, "axis_infinite_lifes" ) )

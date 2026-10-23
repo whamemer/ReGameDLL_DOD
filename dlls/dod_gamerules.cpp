@@ -113,7 +113,6 @@ void ResetEnts( void );
 // SDK-IDENTICAL: dlls/stats.cpp UpdateStatsFile
 // SDK-IDENTICAL: dlls/stats.cpp InitStats
 // SDK-IDENTICAL: dlls/singleplay_gamerules.cpp Think empty stub
-// .text:000e3cf0 void CDoDTeamPlay::RefreshSkillData() (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::RefreshSkillData( void )
 {
 	CGameRules::RefreshSkillData();
@@ -150,7 +149,6 @@ void CDoDTeamPlay::RefreshSkillData( void )
 	gSkillData.plrDmgPschreckShell = 100.0f;
 	gSkillData.plrDmgMortarShell = 180.0f;
 }
-// .text:000e4910 BOOL CDoDTeamPlay::CanHavePlayerItem(CBasePlayer*, CBasePlayerItem*) (dod/dlls/dod_gamerules.cpp:0)
 BOOL CDoDTeamPlay::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pItem )
 {
 	if ( cvar_weaponstay.value <= 0.0f || ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & ITEM_FLAG_LIMITINWORLD ) == 0 )
@@ -171,7 +169,6 @@ BOOL CDoDTeamPlay::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pIt
 	}
 	return CGameRules::CanHavePlayerItem( pPlayer, pItem );
 }
-// .text:000e49e0 edict_t* CDoDTeamPlay::GetPlayerSpawnSpot(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:0)
 edict_t *CDoDTeamPlay::GetPlayerSpawnSpot( CBasePlayer *pPlayer )
 {
 	edict_t *spot = CGameRules::GetPlayerSpawnSpot( pPlayer );
@@ -528,7 +525,6 @@ void CDoDTeamPlay::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvar
 
 	UTIL_SendDirectorMessage( pVictim, pOther, iDirectorMsg );
 }
-// .text:000ee590 void CDoDTeamPlay::RestartRound() (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::RestartRound( void )
 {
 	m_RoundDoesCount = TRUE;
@@ -608,7 +604,6 @@ void CDoDTeamPlay::RestartRound( void )
 		idx++;
 	}
 }
-// .text:000ea470 void CDoDTeamPlay::GoToIntermission() (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::GoToIntermission( void )
 {
 	UTIL_LogPrintf( "Final Scores: Allies: %d   Axis: %d\n", m_iTeamScores[1], m_iTeamScores[2] );
@@ -638,7 +633,6 @@ void CDoDTeamPlay::GoToIntermission( void )
 	g_fGameOver = TRUE;
 	m_iEndIntermissionButtonHit = TRUE;
 }
-// .text:000ea1d0 void CDoDTeamPlay::TeamWon(int) (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::TeamWon( int iTeamWon )
 {
 	int allies = 0;
@@ -666,7 +660,6 @@ void CDoDTeamPlay::TeamWon( int iTeamWon )
 	SetRoundState( ROUNDSTATE_PREROUND );
 	GoodToGo();
 }
-// .text:000ea660 void CDoDTeamPlay::EnumerateTeams(int*,int*,int*,int*) (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::EnumerateTeams( int *aA, int *nA, int *aX, int *nX )
 {
 	int aa = 0;
@@ -949,7 +942,6 @@ void CDoDTeamPlay::Think( void )
 		m_flRestartTime = gpGlobals->time + 3.0;
 	}
 }
-// .text:000e9f70 void CDoDTeamPlay::DetectGameRules() (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::DetectGameRules( void )
 {
 	CBaseEntity *det = UTIL_FindEntityByClassname( NULL, "info_doddetect" );
@@ -986,7 +978,6 @@ void CDoDTeamPlay::DetectGameRules( void )
 	}
 	SendClientGamerules( NULL );
 }
-// .text:000ea0e0 void CDoDTeamPlay::GoodToGo() (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::GoodToGo( void )
 {
 	DetectGameRules();
@@ -1145,7 +1136,6 @@ void CDoDTeamPlay::ChangeLevel( void )
 	if ( strlen( szCommands ) > 0 )
 		SERVER_COMMAND( szCommands );
 }
-// .text:000e96c0 void CDoDTeamPlay::InitHUD(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::InitHUD( CBasePlayer *pPlayer )
 {
 	const char *name = "unconnected";
@@ -1290,7 +1280,6 @@ void CDoDTeamPlay::ClientDisconnected( edict_t *pClient )
 		pPlayer->ClientDisconnect();
 	}
 }
-// .text:000e80e0 void CDoDTeamPlay::RoundUnfreeze() (dod/dlls/dod_gamerules.cpp:6187)
 void CDoDTeamPlay::RoundUnfreeze( void )
 {
 	SetRoundState( ROUNDSTATE_RUNNING );
@@ -1440,7 +1429,6 @@ void CDoDTeamPlay::SendClientGamerules( CBasePlayer *pPlayer )
 		}
 	}
 }
-// .text:000e4c60 void CDoDTeamPlay::SendTeamScores(int) (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::SendTeamScores( int m_iTeam )
 {
 	if ( m_iTeam == 0 )
@@ -1559,7 +1547,6 @@ void CDoDTeamPlay::SetNextMap( void )
 	if ( !IS_MAP_VALID( m_szNextMap ) )
 		strcpy( m_szNextMap, szFirstMapInList );
 }
-// .text:000eae00 void CDoDTeamPlay::StartClanMatch() (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::StartClanMatch( void )
 {
 	m_bClanMatchActive = TRUE;
@@ -1583,13 +1570,11 @@ void CDoDTeamPlay::StartClanMatch( void )
 	SetRoundState( ROUNDSTATE_PREROUND );
 	m_bRoundRestarting = FALSE;
 }
-// .text:000eaf50 void CDoDTeamPlay::CheckClanRestart() (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::CheckClanRestart( void )
 {
 	if ( m_bRoundRestarting && m_flRestartRoundTime < gpGlobals->time )
 		StartClanMatch();
 }
-// .text:000eaca0 void CDoDTeamPlay::VoiceCommSelect(CBasePlayer*, int) (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::VoiceCommSelect( CBasePlayer *pPlayer, int v )
 {
 	if ( v != 10 && pPlayer->lastMenuSelected > 0 )
@@ -1680,7 +1665,6 @@ int CDoDTeamPlay::GetWeaponId( char *weaponname )
 
 	return !strcmp( weaponname, "WEAPON_SCOPEDENFIELD" ) ? 25 : -1;
 }
-// .text:000e4030 BOOL CDoDTeamPlay::ClientConnected(edict_t*,char*,char*,char*) (dod/dlls/dod_gamerules.cpp:0)
 BOOL CDoDTeamPlay::ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress, char *szRejectReason )
 {
 	g_VoiceGameMgr.ClientConnected( pEntity );
@@ -1696,7 +1680,6 @@ BOOL CDoDTeamPlay::ClientConnected( edict_t *pEntity, const char *pszName, const
 	}
 	return TRUE;
 }
-// .text:000ec630 BOOL CDoDTeamPlay::ClientCommand(CBasePlayer*, char*) (dod/dlls/dod_gamerules.cpp:1673)
 // wrapper link 0xddf20 size 0x65 Ghidra 0xedf20: VoiceGameMgr gate before main 0xdc630
 extern char *s_VoiceCommands[29][4];
 
@@ -2332,7 +2315,6 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 	return FALSE;
 }
 
-// .text:000e3610 char* CDoDTeamPlay::GetIndexedTeamName(int) (dod/dlls/dod_gamerules.cpp:3329)
 const char *CDoDTeamPlay::GetIndexedTeamName( int teamIndex )
 {
 	if ( teamIndex == 1 )
@@ -2343,7 +2325,6 @@ const char *CDoDTeamPlay::GetIndexedTeamName( int teamIndex )
 		return "Spectators";
 	return "";
 }
-// .text:000e3650 float CDoDTeamPlay::getWaveTime(int) (dod/dlls/dod_gamerules.cpp:4071)
 float CDoDTeamPlay::getWaveTime( int iTeam )
 {
 	float dt;
@@ -2359,14 +2340,12 @@ float CDoDTeamPlay::getWaveTime( int iTeam )
 	}
 	return 0.0f;
 }
-// .text:000e3760 void CDoDTeamPlay::SetTeamScores(int,int) (dod/dlls/dod_gamerules.cpp:4870)
 void CDoDTeamPlay::SetTeamScores( int iTeam, int iScore )
 {
 	if ( m_RoundDoesCount != TRUE )
 		return;
 	m_iTeamScores[iTeam] = iScore;
 }
-// .text:000e38c0-000e3b30 setters (dod/dlls/dod_gamerules.cpp:4992-5075)
 void CDoDTeamPlay::SetusVoice( short s ) { m_usVoice = s; }
 void CDoDTeamPlay::SetbodyDamage( short s ) { m_bodyDamage = s; }
 void CDoDTeamPlay::SetroundRestartSound( short s ) { m_roundRestartSound = s; }
@@ -2387,7 +2366,6 @@ void CDoDTeamPlay::SetPopHelmet( short s ) { m_PopHelmet = s; }
 void CDoDTeamPlay::SetRoundReset( short s ) { m_RoundReset = s; }
 void CDoDTeamPlay::SetRocketTrail( short s ) { m_RocketTrail = s; }
 void CDoDTeamPlay::SetCamera( short s ) { m_Camera = s; }
-// .text:000e33e0 void CDoDTeamPlay::Init() (dod/dlls/dod_gamerules.cpp:1228)
 void CDoDTeamPlay::Init( void )
 {
 	m_GamePlayRules.m_iTimerTeam = 0;
@@ -2406,35 +2384,29 @@ void CDoDTeamPlay::Init( void )
 	m_GamePlayRules.m_fAlliesRespawnFactor = 1.0f;
 	m_GamePlayRules.m_fAxisRespawnFactor = 1.0f;
 }
-// .text:000e34a0 float CDoDTeamPlay::FlPlayerFallDamage(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:2477)
 float CDoDTeamPlay::FlPlayerFallDamage( CBasePlayer *pPlayer )
 {
 	pPlayer->m_flFallVelocity -= 500.0f;
 	return pPlayer->m_flFallVelocity * 100.0f / 400.0f;
 }
-// .text:000e3240 Vector CDoDTeamPlay::VecWeaponRespawnSpot(CBasePlayerItem*) (dod/dlls/dod_gamerules.cpp:865)
 Vector CDoDTeamPlay::VecWeaponRespawnSpot( CBasePlayerItem *pWeapon )
 {
 	return pWeapon->pev->origin;
 }
-// .text:000e32d0 Vector CDoDTeamPlay::VecItemRespawnSpot(CItem*) (dod/dlls/dod_gamerules.cpp:968)
 Vector CDoDTeamPlay::VecItemRespawnSpot( CItem *pItem )
 {
 	return pItem->pev->origin;
 }
-// .text:000e3320 Vector CDoDTeamPlay::VecAmmoRespawnSpot(CBasePlayerAmmo*) (dod/dlls/dod_gamerules.cpp:1016)
 Vector CDoDTeamPlay::VecAmmoRespawnSpot( CBasePlayerAmmo *pAmmo )
 {
 	return pAmmo->pev->origin;
 }
-// .text:000e32a0 int CDoDTeamPlay::ItemShouldRespawn(CItem*) (dod/dlls/dod_gamerules.cpp:899)
 int CDoDTeamPlay::ItemShouldRespawn( CItem *pItem )
 {
 	if ( ( pItem->pev->spawnflags & SF_NORESPAWN ) == 0 )
 		return GR_ITEM_RESPAWN_NO;
 	return GR_ITEM_RESPAWN_YES;
 }
-// .text:000e4810 void CDoDTeamPlay::ClientUserInfoChanged(CBasePlayer*,char*) (dod/dlls/dod_gamerules.cpp:2760)
 void CDoDTeamPlay::ClientUserInfoChanged( CBasePlayer *pPlayer, char *infobuffer )
 {
 	char *mdls = INFOKEY_VALUE( infobuffer, "model" );
@@ -2451,7 +2423,6 @@ void CDoDTeamPlay::ClientUserInfoChanged( CBasePlayer *pPlayer, char *infobuffer
 	}
 	pPlayer->SetPrefsFromUserinfo( infobuffer );
 }
-// .text:000e4d50 BOOL CDoDTeamPlay::PlayFootstepSounds(CBasePlayer*,float) (dod/dlls/dod_gamerules.cpp:3245)
 BOOL CDoDTeamPlay::PlayFootstepSounds( CBasePlayer *pl, float fvol )
 {
 	extern cvar_t *g_footsteps;
@@ -2462,7 +2433,6 @@ BOOL CDoDTeamPlay::PlayFootstepSounds( CBasePlayer *pl, float fvol )
 	float vel = sqrtf( pl->pev->velocity.x * pl->pev->velocity.x + pl->pev->velocity.y * pl->pev->velocity.y );
 	return ( vel > 30.0f );
 }
-// .text:000e3bf0 float CDoDTeamPlay::GetMaxWaveTime(int) (dod/dlls/dod_gamerules.cpp:4026)
 float CDoDTeamPlay::GetMaxWaveTime( int nTeam )
 {
 	float fTime = 6.0f;
@@ -2486,7 +2456,6 @@ float CDoDTeamPlay::GetMaxWaveTime( int nTeam )
 	return fTime;
 }
 
-// .text:000e50b0 void CDoDTeamPlay::setWaveTime(int,float) (dod/dlls/dod_gamerules.cpp:4094)
 void CDoDTeamPlay::setWaveTime( int iTeam, float fTime )
 {
 	if ( iTeam == TEAM_ALLIES )
@@ -2523,7 +2492,6 @@ int CDoDTeamPlay::GetClassLimit( int cls )
 
 	return -1;
 }
-// .text:000e73c0 char* WeaponIDToChar(int) (dod/dlls/dod_gamerules.cpp:3383)
 extern char weaponnames[][64];
 char *WeaponIDToChar( int id )
 {
@@ -2531,7 +2499,6 @@ char *WeaponIDToChar( int id )
 		return weaponnames[id];
 	return NULL;
 }
-// .text:000e7b40 int CountTeamMembers(int) (dod/dlls/dod_gamerules.cpp:4128)
 int CountTeamMembers( int team )
 {
 	int n = 0;
@@ -2543,7 +2510,6 @@ int CountTeamMembers( int team )
 	}
 	return n;
 }
-// .text:000e7bc0 int DeadTeammates(entvars_t*) (dod/dlls/dod_gamerules.cpp:4182)
 int DeadTeammates( entvars_t *pevOrg )
 {
 	int n = 0;
@@ -2555,7 +2521,6 @@ int DeadTeammates( entvars_t *pevOrg )
 	}
 	return n;
 }
-// .text:000e7c60 int AliveTeammates(entvars_t*) (dod/dlls/dod_gamerules.cpp:4216)
 int AliveTeammates( entvars_t *pevOrg )
 {
 	int n = 0;
@@ -2567,7 +2532,6 @@ int AliveTeammates( entvars_t *pevOrg )
 	}
 	return n;
 }
-// .text:000ea600 int CDoDTeamPlay::IsTeamPara(int) (dod/dlls/dod_gamerules.cpp:5574)
 BOOL CDoDTeamPlay::IsTeamPara( int team )
 {
 	if ( team == TEAM_ALLIES )
@@ -2576,7 +2540,6 @@ BOOL CDoDTeamPlay::IsTeamPara( int team )
 		return m_GamePlayRules.m_bAxisArePara;
 	return FALSE;
 }
-// .text:000ea630 int CDoDTeamPlay::IsTeamInfinite(int) (dod/dlls/dod_gamerules.cpp:5580)
 BOOL CDoDTeamPlay::IsTeamInfinite( int team )
 {
 	if ( team == TEAM_ALLIES )
@@ -2585,7 +2548,6 @@ BOOL CDoDTeamPlay::IsTeamInfinite( int team )
 		return m_GamePlayRules.m_bAxisInfiniteLives;
 	return FALSE;
 }
-// .text:000e4dd0 BOOL CDoDTeamPlay::FShouldSwitchWeapon(CBasePlayer*,CBasePlayerItem*) (dod/dlls/dod_gamerules.cpp:3354)
 BOOL CDoDTeamPlay::FShouldSwitchWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon )
 {
 	if ( !pPlayer->m_pActiveItem )
@@ -2594,7 +2556,6 @@ BOOL CDoDTeamPlay::FShouldSwitchWeapon( CBasePlayer *pPlayer, CBasePlayerItem *p
 		return FALSE;
 	return TRUE;
 }
-// .text:000e4e60 BOOL CDoDTeamPlay::GetNextBestWeapon(CBasePlayer*,CBasePlayerItem*) (dod/dlls/dod_gamerules.cpp:1075)
 BOOL CDoDTeamPlay::GetNextBestWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pCurrentWeapon )
 {
 	if ( pCurrentWeapon && ( pCurrentWeapon->iFlags() & ITEM_FLAG_EXHAUSTIBLE ) )
@@ -2639,7 +2600,6 @@ BOOL CDoDTeamPlay::IsAllowedToSpawn( CBaseEntity *pEntity )
 	return strcmp( pszClassname, "weapon_bazooka" ) != 0;
 }
 
-// .text:000e6830 void ResetGamePlayRules(gameplay_rules_t*) (dod/dlls/dod_gamerules.cpp:169)
 void ResetGamePlayRules( gameplay_rules_t *pRules )
 {
 	pRules->m_bAlliesInfiniteLives = TRUE;
@@ -2658,7 +2618,6 @@ void ResetGamePlayRules( gameplay_rules_t *pRules )
 	pRules->m_fAlliesRespawnFactor = 1.0f;
 	pRules->m_fAxisRespawnFactor = 1.0f;
 }
-// .text:000e68e0 int CountPlayers() (dod/dlls/dod_gamerules.cpp:421)
 int CountPlayers( void )
 {
 	int n = 0;
@@ -2670,7 +2629,6 @@ int CountPlayers( void )
 	}
 	return n;
 }
-// .text:000e6a10 char* COM_Parse(char*) (dod/dlls/dod_gamerules.cpp:500)
 extern char com_token[1024];
 char *COM_Parse( char *data )
 {
@@ -2710,13 +2668,11 @@ char *COM_Parse( char *data )
 	com_token[len] = 0;
 	return data;
 }
-// .text:000e6b30 BOOL COM_TokenWaiting(char*) (dod/dlls/dod_gamerules.cpp:577)
 BOOL COM_TokenWaiting( char *buffer )
 {
 	char *p = COM_Parse( buffer );
 	return ( p && com_token[0] );
 }
-// .text:000e8d10 char* CDoDTeamPlay::COM_Parse(char*) (dod/dlls/dod_gamerules.cpp:4734)
 char *CDoDTeamPlay::COM_Parse( char *data )
 {
 	int c, len = 0;
@@ -2754,13 +2710,11 @@ char *CDoDTeamPlay::COM_Parse( char *data )
 	com_token[len] = 0;
 	return data;
 }
-// .text:000e8e30 BOOL CDoDTeamPlay::COM_TokenWaiting(char*) (dod/dlls/dod_gamerules.cpp:4804)
 BOOL CDoDTeamPlay::COM_TokenWaiting( char *buffer )
 {
 	char *p = COM_Parse( buffer );
 	return ( p && com_token[0] );
 }
-// .text:000e6930 void ExtractCommandString(char*,char*) (dod/dlls/dod_gamerules.cpp:446)
 void ExtractCommandString( char *s, char *szCommand )
 {
 	char pkey[512], value[512];
@@ -2819,7 +2773,6 @@ void CDoDTeamPlay::PreparePlayerForSpawn( CBasePlayer *pPlayer )
 			pPlayer->DelayedSpawn();
 	}
 }
-// .text:000e7340 int CDoDTeamPlay::CountClasses(int) (dod/dlls/dod_gamerules.cpp:2581)
 int CDoDTeamPlay::CountClasses( int targetClass )
 {
 	int n = 0;
@@ -2865,7 +2818,6 @@ BOOL CDoDTeamPlay::ReachedClassLimit( int targetClass )
 
 	return iLimit <= iExisting && iLimit >= 0;
 }
-// .text:000e73e0 BOOL CDoDTeamPlay::CanPlayerJoinClass(int) (dod/dlls/dod_gamerules.cpp:3393)
 // link 0xd73e0 size 0x6a Ghidra 0xe73e0 + part 0xd51a0 size 0xad Ghidra 0xe51a0
 BOOL CDoDTeamPlay::CanPlayerJoinClass( int playerclass )
 {
@@ -2992,7 +2944,6 @@ void CDoDTeamPlay::LevelChangeResets( CBasePlayer *pPlayer )
 		WRITE_CHAR( 0 );
 	MESSAGE_END();
 }
-// .text:000ea730 void CDoDTeamPlay::ResetForDoDCamera() link 0xda730 size 0x83 Ghidra 0xea730: DoDReset all scripted_sequence + RoundRespawn all func_train
 void CDoDTeamPlay::ResetForDoDCamera( void )
 {
 	CBaseEntity *pEnt = UTIL_FindEntityByClassname( NULL, "scripted_sequence" );
@@ -3008,7 +2959,6 @@ void CDoDTeamPlay::ResetForDoDCamera( void )
 		pEnt = UTIL_FindEntityByClassname( pEnt, "func_train" );
 	}
 }
-// .text:000eacf0 void CDoDTeamPlay::StartClanRestart() (dod/dlls/dod_gamerules.cpp:6177)
 void CDoDTeamPlay::StartClanRestart( void )
 {
 	int iRestartDelay = 0;
@@ -3095,7 +3045,6 @@ void CDoDTeamPlay::ShowClassSelectMenu( CBasePlayer *pPlayer )
 			ShowVGUI( pPlayer, 13, GetClassMask( 2 ) );
 	}
 }
-// .text:000edfd0 BOOL CDoDTeamPlay::AllowSpawnableBazookas() (dod/dlls/dod_gamerules.cpp:6368)
 BOOL CDoDTeamPlay::AllowSpawnableBazookas( void )
 {
 	return (int)CVAR_GET_FLOAT( "mp_spawnbazookas" ) != 0;
@@ -3122,7 +3071,6 @@ bool CMultiplayGameMgrHelper::CanPlayerHearPlayer( CBasePlayer *pListener, CBase
 }
 
 CMultiplayGameMgrHelper g_GameMgrHelper;
-// .text:000e4b90 void CDoDTeamPlay::AddToTeamScores(int, int) (dod/dlls/dod_gamerules.cpp:4876)
 void CDoDTeamPlay::AddToTeamScores( int iTeam, int iScore )
 {
 	if ( ( !IsClanMatch() || IsClanMatchActive() ) && m_RoundDoesCount == TRUE )
@@ -3134,12 +3082,10 @@ void CDoDTeamPlay::AddToTeamScores( int iTeam, int iScore )
 		MESSAGE_END();
 	}
 }
-// .text:000e3490 BOOL CDoDTeamPlay::AllowAutoTargetCrosshair() (dod/dlls/dod_gamerules.cpp:1360)
 BOOL CDoDTeamPlay::AllowAutoTargetCrosshair( void )
 {
 	return FALSE;
 }
-// .text:000ec170 void CDoDTeamPlay::ClassSelect(CBasePlayer*,int) (dod/dlls/dod_gamerules.cpp:5757)
 void CDoDTeamPlay::ClassSelect( CBasePlayer *pPlayer, int iClassSelect )
 {
 	int team = pPlayer->pev->team;
@@ -3244,7 +3190,6 @@ void CDoDTeamPlay::ClassSelect( CBasePlayer *pPlayer, int iClassSelect )
 		return;
 	pPlayer->DelayedSpawn();
 }
-// .text:000e3370 void CDoDTeamPlay::PlayerGotWeapon(CBasePlayer*,CBasePlayerItem*) (dod/dlls/dod_gamerules.cpp:1146)
 // NOTE: binary also sets pWeapon->m_bTriggerSpawnOnDie (member absent from this tree's CBasePlayerItem)
 void CDoDTeamPlay::PlayerGotWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon )
 {
@@ -3252,17 +3197,14 @@ void CDoDTeamPlay::PlayerGotWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeap
 	memset( &ii, 0, sizeof( ii ) );
 	pWeapon->GetItemInfo( &ii );
 }
-// .text:000e36a0 void CDoDTeamPlay::VoteKick(CBasePlayer*,int,bool) (dod/dlls/dod_gamerules.cpp:4422)
 void CDoDTeamPlay::VoteKick( CBasePlayer *pPlayer, int vote, bool bAdmin )
 {
 	return;
 }
-// .text:000e80d0 void CDoDTeamPlay::VoteKickTimeUp() (dod/dlls/dod_gamerules.cpp:4426)
 void CDoDTeamPlay::VoteKickTimeUp( void )
 {
 	return;
 }
-// .text:000e70f0 void CDoDTeamPlay::CheckOneLifeRoundConditions() (dod/dlls/dod_gamerules.cpp:1334)
 void CDoDTeamPlay::CheckOneLifeRoundConditions( void )
 {
 	return;
@@ -3272,54 +3214,44 @@ void CDoDTeamPlay::CheckOneLifeRoundConditions( void )
 // Missing CDoDTeamPlay / free bodies restored from dod.so (Ghidra addr = link + 0x10000)
 // ============================================================
 
-// .text:000e3260 int CDoDTeamPlay::DeadPlayerWeapons(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:873)
 int CDoDTeamPlay::DeadPlayerWeapons( CBasePlayer *pPlayer )
 {
 	return 8;
 }
-// .text:000e3290 int CDoDTeamPlay::DeadPlayerAmmo(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:893)
 int CDoDTeamPlay::DeadPlayerAmmo( CBasePlayer *pPlayer )
 {
 	return 11;
 }
-// .text:000e32c0 float CDoDTeamPlay::FlItemRespawnTime(CItem*) (dod/dlls/dod_gamerules.cpp:968)
 float CDoDTeamPlay::FlItemRespawnTime( CItem *pItem )
 {
 	return 30.0f + gpGlobals->time;
 }
-// .text:000e32f0 int CDoDTeamPlay::AmmoShouldRespawn(CBasePlayerAmmo*) (dod/dlls/dod_gamerules.cpp:997)
 int CDoDTeamPlay::AmmoShouldRespawn( CBasePlayerAmmo *pAmmo )
 {
 	if ( ( pAmmo->pev->spawnflags & SF_NORESPAWN ) != 0 )
 		return 4;
 	return 3;
 }
-// .text:000e3310 float CDoDTeamPlay::FlAmmoRespawnTime(CBasePlayerAmmo*) (dod/dlls/dod_gamerules.cpp:1016)
 float CDoDTeamPlay::FlAmmoRespawnTime( CBasePlayerAmmo *pAmmo )
 {
 	return 20.0f + gpGlobals->time;
 }
-// .text:000e3360 float CDoDTeamPlay::FlPlayerSpawnTime(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:1056)
 float CDoDTeamPlay::FlPlayerSpawnTime( CBasePlayer *pPlayer )
 {
 	return gpGlobals->time;
 }
-// .text:000e33c0 float CDoDTeamPlay::FlHealthChargerRechargeTime() (dod/dlls/dod_gamerules.cpp:1168)
 float CDoDTeamPlay::FlHealthChargerRechargeTime( void )
 {
 	return 60.0f;
 }
-// .text:000e33d0 float CDoDTeamPlay::FlHEVChargerRechargeTime() (dod/dlls/dod_gamerules.cpp:1174)
 float CDoDTeamPlay::FlHEVChargerRechargeTime( void )
 {
 	return 30.0f;
 }
-// .text:000e34d0 const char* CDoDTeamPlay::SetDefaultPlayerTeam(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:2610)
 const char *CDoDTeamPlay::SetDefaultPlayerTeam( CBasePlayer *pPlayer )
 {
 	return NULL;
 }
-// .text:000e34f0 BOOL CDoDTeamPlay::FPlayerCanTakeDamage(CBasePlayer*,CBaseEntity*) (dod/dlls/dod_gamerules.cpp:3229)
 BOOL CDoDTeamPlay::FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAttacker )
 {
 	BOOL bRet = TRUE;
@@ -3330,12 +3262,10 @@ BOOL CDoDTeamPlay::FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAtt
 	}
 	return bRet;
 }
-// .text:000e3570 BOOL CDoDTeamPlay::ShouldAutoAim(CBasePlayer*,edict_t*) (dod/dlls/dod_gamerules.cpp:3279)
 BOOL CDoDTeamPlay::ShouldAutoAim( CBasePlayer *pPlayer, edict_t *target )
 {
 	return FALSE;
 }
-// .text:000e3580 int CDoDTeamPlay::IPointsForKill(CBasePlayer*,CBasePlayer*) (dod/dlls/dod_gamerules.cpp:3284)
 int CDoDTeamPlay::IPointsForKill( CBasePlayer *pAttacker, CBasePlayer *pKilled )
 {
 	int pts = 0;
@@ -3347,14 +3277,12 @@ int CDoDTeamPlay::IPointsForKill( CBasePlayer *pAttacker, CBasePlayer *pKilled )
 	}
 	return pts;
 }
-// .text:000e35d0 const char* CDoDTeamPlay::GetTeamID(CBaseEntity*) (dod/dlls/dod_gamerules.cpp:3301)
 const char *CDoDTeamPlay::GetTeamID( CBaseEntity *pEntity )
 {
 	if ( pEntity != NULL && pEntity->pev != NULL )
 		return pEntity->TeamID();
 	return "";
 }
-// .text:000e36f0 void CDoDTeamPlay::SetRoundState(int) (dod/dlls/dod_gamerules.cpp:4825)
 void CDoDTeamPlay::SetRoundState( int i_State )
 {
 	m_RoundState = i_State;
@@ -3362,52 +3290,42 @@ void CDoDTeamPlay::SetRoundState( int i_State )
 	WRITE_BYTE( m_RoundState );
 	MESSAGE_END();
 }
-// .text:000e3740 void CDoDTeamPlay::SetRestartTime(float) (dod/dlls/dod_gamerules.cpp:4861)
 void CDoDTeamPlay::SetRestartTime( float f_Time )
 {
 	m_flRestartTime = f_Time;
 }
-// .text:000e3b20 void CDoDTeamPlay::SetMapChangeFromTime(int) (dod/dlls/dod_gamerules.cpp:5072)
 void CDoDTeamPlay::SetMapChangeFromTime( int iTime )
 {
 	MapChangeFromTime = iTime;
 }
-// .text:000e3b50 void CDoDTeamPlay::setMapTime() (dod/dlls/dod_gamerules.cpp:5176)
 void CDoDTeamPlay::setMapTime( void )
 {
 	m_flDoDMapTime = gpGlobals->time;
 }
-// .text:000e3b70 bool CDoDTeamPlay::IsClanMatch() (dod/dlls/dod_gamerules.cpp:6160)
 bool CDoDTeamPlay::IsClanMatch( void )
 {
 	return m_bClanMatch;
 }
-// .text:000e3b80 bool CDoDTeamPlay::IsClanMatchActive() (dod/dlls/dod_gamerules.cpp:6165)
 bool CDoDTeamPlay::IsClanMatchActive( void )
 {
 	return m_bClanMatchActive;
 }
-// .text:000ea5c0 bool CDoDTeamPlay::IsAxisInfinite() (dod/dlls/dod_gamerules.cpp:5555)
 BOOL CDoDTeamPlay::IsAxisInfinite( void )
 {
 	return m_GamePlayRules.m_bAxisInfiniteLives;
 }
-// .text:000ea5d0 bool CDoDTeamPlay::IsAxisPara() (dod/dlls/dod_gamerules.cpp:5560)
 BOOL CDoDTeamPlay::IsAxisPara( void )
 {
 	return m_GamePlayRules.m_bAxisArePara;
 }
-// .text:000ea5e0 bool CDoDTeamPlay::IsAlliesInfinite() (dod/dlls/dod_gamerules.cpp:5565)
 BOOL CDoDTeamPlay::IsAlliesInfinite( void )
 {
 	return m_GamePlayRules.m_bAlliesInfiniteLives;
 }
-// .text:000ea5f0 bool CDoDTeamPlay::IsAlliesPara() (dod/dlls/dod_gamerules.cpp:5570)
 BOOL CDoDTeamPlay::IsAlliesPara( void )
 {
 	return m_GamePlayRules.m_bAlliesArePara;
 }
-// .text:000e4aa0 void CDoDTeamPlay::PlayerThink(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:1651)
 void CDoDTeamPlay::PlayerThink( CBasePlayer *pPlayer )
 {
 	if ( g_fGameOver )
@@ -3417,14 +3335,12 @@ void CDoDTeamPlay::PlayerThink( CBasePlayer *pPlayer )
 		pPlayer->m_afButtonReleased = 0;
 	}
 }
-// .text:000e4a60 int CDoDTeamPlay::WeaponShouldRespawn(CBasePlayerItem*) (dod/dlls/dod_gamerules.cpp:1025)
 int CDoDTeamPlay::WeaponShouldRespawn( CBasePlayerItem *pWeapon )
 {
 	if ( ( pWeapon->pev->spawnflags & SF_NORESPAWN ) != 0 )
 		return 2;
 	return 2 - ( ( pWeapon->pev->flags & FL_IMMUNE_LAVA ) == 0 );
 }
-// .text:000e5050 float CDoDTeamPlay::FlWeaponRespawnTime(CBasePlayerItem*) (dod/dlls/dod_gamerules.cpp:0)
 float CDoDTeamPlay::FlWeaponRespawnTime( CBasePlayerItem *pWeapon )
 {
 	if ( ( CBasePlayerItem::ItemInfoArray[pWeapon->m_iId].iFlags & ITEM_FLAG_LAUNCHER ) == 0 )
@@ -3436,7 +3352,6 @@ float CDoDTeamPlay::FlWeaponRespawnTime( CBasePlayerItem *pWeapon )
 	}
 	return 0.0f;
 }
-// .text:000e4fb0 float CDoDTeamPlay::FlWeaponTryRespawn(CBasePlayerItem*) (dod/dlls/dod_gamerules.cpp:980)
 float CDoDTeamPlay::FlWeaponTryRespawn( CBasePlayerItem *pWeapon )
 {
 	if ( pWeapon == NULL )
@@ -3446,7 +3361,6 @@ float CDoDTeamPlay::FlWeaponTryRespawn( CBasePlayerItem *pWeapon )
 		return FlWeaponRespawnTime( pWeapon );
 	return 0.0f;
 }
-// .text:000e4ad0 int CDoDTeamPlay::PlayerRelationship(CBaseEntity*,CBaseEntity*) (dod/dlls/dod_gamerules.cpp:3260)
 int CDoDTeamPlay::PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget )
 {
 	if ( pTarget == NULL || pPlayer == NULL )
@@ -3459,7 +3373,6 @@ int CDoDTeamPlay::PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget
 		return 0;
 	return ( stricmp( GetTeamID( pTarget ), GetTeamID( pPlayer ) ) == 0 );
 }
-// .text:000e9090 void CDoDTeamPlay::SendWaveStatus(CBasePlayer*,int) (dod/dlls/dod_gamerules.cpp:5162)
 void CDoDTeamPlay::SendWaveStatus( CBasePlayer *pPlayer, int status )
 {
 	if ( pPlayer == NULL )
@@ -3479,12 +3392,10 @@ void CDoDTeamPlay::SendWaveStatus( CBasePlayer *pPlayer, int status )
 		MESSAGE_END();
 	}
 }
-// .text:000e94c0 void CDoDTeamPlay::CopyGamePlayLogic(gameplay_rules_t const&) (dod/dlls/dod_gamerules.cpp:5497)
 void CDoDTeamPlay::CopyGamePlayLogic( const gameplay_rules_t &rules )
 {
 	memcpy( &m_GamePlayRules, &rules, sizeof( gameplay_rules_t ) );
 }
-// .text:000e9680 void CDoDTeamPlay::SetClanMatch(bool) (dod/dlls/dod_gamerules.cpp:6142)
 void CDoDTeamPlay::SetClanMatch( bool bMatchOn )
 {
 	m_bClanMatch = bMatchOn;
@@ -3507,7 +3418,6 @@ void CDoDTeamPlay::ReturnToWarmup( void )
 		SendClientGamerules( NULL );
 	}
 }
-// .text:000e9680 void CDoDTeamPlay::SetClanMatch(bool) (dod/dlls/dod_gamerules.cpp:6142)
 const char *CDoDTeamPlay::GetPlayerClassName( int playerclass )
 {
 	BOOL para;
@@ -3519,7 +3429,6 @@ const char *CDoDTeamPlay::GetPlayerClassName( int playerclass )
 		return g_ParaClassInfo[playerclass].classname;
 	return g_ClassInfo[playerclass].classname;
 }
-// .text:000e5860 void CDoDTeamPlay::PlayerDeathThink(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:5410)
 void CDoDTeamPlay::PlayerDeathThink( CBasePlayer *pPlayer )
 {
 	if ( gpGlobals->time <= pPlayer->m_fDeadTime + 1.0f || g_fGameOver )
@@ -3563,7 +3472,6 @@ void CDoDTeamPlay::PlayerDeathThink( CBasePlayer *pPlayer )
 	}
 	pPlayer->StartObserver( pPlayer->pev->origin, pPlayer->pev->angles );
 }
-// .text:000e6f80 void CDoDTeamPlay::SendMOTDToClient(edict_t*) (dod/dlls/dod_gamerules.cpp:911)
 void CDoDTeamPlay::SendMOTDToClient( edict_t *client )
 {
 	int length = 0;
@@ -3598,7 +3506,6 @@ void CDoDTeamPlay::SendMOTDToClient( edict_t *client )
 	}
 	FREE_FILE( pFileList );
 }
-// .text:000e7d00 void RespawnAllies() (dod/dlls/dod_gamerules.cpp:4249)
 void RespawnAllies( void )
 {
 	ALERT( at_console, "Respawning Allies\n" );
@@ -3624,7 +3531,6 @@ void RespawnAllies( void )
 	}
 	UTIL_SendDirectorMessage( ent1, NULL, 2 | DRC_FLAG_FACEPLAYER );
 }
-// .text:000e7e20 void RespawnAxis() (dod/dlls/dod_gamerules.cpp:4291)
 void RespawnAxis( void )
 {
 	CBaseEntity *ent1 = NULL;
@@ -3651,7 +3557,6 @@ void RespawnAxis( void )
 	UTIL_SendDirectorMessage( ent1, NULL, 2 );
 }
 
-// .text:000e4110 void CDoDTeamPlay::ChangePlayerTeam(CBasePlayer*, int, int, int) (dod/dlls/dod_gamerules.cpp:2729)
 void CDoDTeamPlay::ChangePlayerTeam( CBasePlayer *pPlayer, int iTeam, int bKill, int bGib )
 {
 	int clientIndex = ENTINDEX( pPlayer->edict() );
@@ -3787,7 +3692,6 @@ void CDoDTeamPlay::PlayerSpawn( CBasePlayer *pPlayer )
 	MESSAGE_END();
 }
 
-// .text:000eba30 void CDoDTeamPlay::TeamSelect(CBasePlayer*, int) (dod/dlls/dod_gamerules.cpp:5402)
 void CDoDTeamPlay::TeamSelect( CBasePlayer *pPlayer, int iTeamSelect )
 {
 	if ( (unsigned) ( iTeamSelect - 1 ) > 4 )
@@ -3941,7 +3845,6 @@ LINK_ENTITY_TO_CLASS( para_roundtimer, CDodParaRoundTimer );
 LINK_ENTITY_TO_CLASS( dod_preround, CDoDPreRound );
 LINK_ENTITY_TO_CLASS( info_doddetect, CDoDDetect );
 
-// .text:000e5250 void CDoDPreRound::KeyValue(KeyValueData*) (dod/dlls/dod_gamerules.cpp:6673)
 void CDoDPreRound::KeyValue( KeyValueData *pkvd )
 {
 	pkvd->fHandled = TRUE;
@@ -3959,19 +3862,16 @@ void CDoDPreRound::KeyValue( KeyValueData *pkvd )
 		pkvd->fHandled = FALSE;
 }
 
-// .text:000e3640 CDoDTeamPlay::IsValidTeam (file:dod_gamerules.cpp)
 BOOL CDoDTeamPlay::IsValidTeam( char *pTeamName )
 {
 	return 1;
 }
 
-// .text:000e3600 CDoDTeamPlay::GetTeamIndex (file:dod_gamerules.cpp)
 int CDoDTeamPlay::GetTeamIndex( char *pTeamName )
 {
 	return -1;
 }
 
-// .text:000e9120 CDoDTeamPlay::ReadInClassInfo (file:dod_gamerules.cpp)
 void CDoDTeamPlay::ReadInClassInfo( void )
 {
 }
@@ -4113,7 +4013,6 @@ CDoDTeamPlay::CDoDTeamPlay( void )
 		pcvar_classlimitcvars[i] = CVAR_GET_POINTER( classlimitcvarNames[i] );
 }
 
-// .text:000de460 CDoDPreRound::Launch (file:dod_gamerules.cpp)
 void CDoDPreRound::Launch( int iRoundState )
 {
 	if ( iRoundState == 3 )
@@ -4140,7 +4039,6 @@ void CDoDPreRound::Launch( int iRoundState )
 	}
 }
 
-// .text:000eace0 CDoDTeamPlay::IsAlliesBrit (file:dod_gamerules.cpp)
 bool CDoDTeamPlay::IsAlliesBrit( void )
 {
 	return m_GamePlayRules.m_bAlliesAreBrit;

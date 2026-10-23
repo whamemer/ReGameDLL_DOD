@@ -62,7 +62,6 @@ BOOL CGameRules::CanHaveAmmo( CBasePlayer *pPlayer, const char *pszAmmoName, int
 
 //=========================================================
 //=========================================================
-// .text:001049c0 edict_t* CGameRules::GetPlayerSpawnSpot(CBasePlayer*) (dod/dlls/gamerules.cpp:64)
 edict_t *CGameRules ::GetPlayerSpawnSpot( CBasePlayer *pPlayer )
 {
 	edict_t *pentSpawnSpot = EntSelectSpawnPoint( pPlayer, false );
@@ -117,7 +116,6 @@ BOOL CGameRules::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pWeap
 //=========================================================
 // load the SkillData struct with the proper values based on the skill level.
 //=========================================================
-// .text:00104870 void CGameRules::RefreshSkillData() (dod/dlls/gamerules.cpp:146)
 void CGameRules::RefreshSkillData( void )
 {
 	int iSkill;
@@ -158,7 +156,6 @@ void CGameRules::RefreshSkillData( void )
 // instantiate the proper game rules object
 //=========================================================
 
-// .text:00104b90 void CGameRules::GetInitialSpawnSpot(CBasePlayer*) (dod/dlls/gamerules.cpp:82)
 void CGameRules::GetInitialSpawnSpot( CBasePlayer *pPlayer )
 {
 	CBaseEntity *pSpot = UTIL_FindEntityByClassname( NULL, "info_player_observer" );

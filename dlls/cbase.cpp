@@ -614,10 +614,8 @@ int CBaseEntity::Save( CSave &save )
 }
 
 // DoD round system. Default RoundRespawn is empty in dod.so (nm size 1, ret).
-// .text:000aa380 CBaseEntity::RoundRespawn()
 void CBaseEntity::RoundRespawn( void ) {}
 
-// .text:000aa5e0 CBaseEntity::RoundStore() (dod/dlls/cbase.h:297)
 // Snapshot the entity's engine vars into the m_rr* block so a later
 // RoundRespawnEnt() can restore them at the start of the next round.
 void CBaseEntity::RoundStore( void )
@@ -651,7 +649,6 @@ void CBaseEntity::RoundStore( void )
 	m_rrGravity = pev->gravity;
 }
 
-// .text:000aa390 CBaseEntity::RoundRespawnEnt() (dod/dlls/cbase.h:240)
 // Clear pending think/touch/use/blocked callbacks, then restore the vars
 // captured by RoundStore() and run the per-entity RoundRespawn().
 void CBaseEntity::RoundRespawnEnt( void )
@@ -693,7 +690,6 @@ void CBaseEntity::RoundRespawnEnt( void )
 	RoundRespawn();
 }
 
-// .text:00139240 CBaseToggle::GetState() (dod/dlls/cbase.cpp / subs.cpp)
 // Maps TOGGLE_STATE to the DoD STATE enum: table 0x19a628 = {2,0,1,3}.
 STATE CBaseToggle::GetState( void )
 {
@@ -1085,14 +1081,12 @@ void InitHashTable( void )
 	}
 }
 
-// .text:00139380 CPointEntity::Precache (file:cbase.cpp)
 void CPointEntity::Precache( void )
 {
 	if ( pev->spawnflags & SF_POINT_NULL_SPRITE )
 		PRECACHE_MODEL( "sprites/null.spr" );
 }
 
-// .text:000c9b20 CMultiSource::RoundRespawn (file:cbase.cpp)
 void CMultiSource::RoundRespawn( void )
 {
 	pev->nextthink = gpGlobals->time + 0.1f;

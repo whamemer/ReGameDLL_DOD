@@ -67,7 +67,6 @@ TYPEDESCRIPTION CRuleEntity::m_SaveData[] = {
 	DEFINE_FIELD( CRuleEntity, m_iszMaster, FIELD_STRING ),
 };
 
-// .text:0010c910 CRuleEntity::Restore (file:maprules.cpp:57)
 IMPLEMENT_SAVERESTORE( CRuleEntity, CBaseEntity );
 
 void CRuleEntity::Spawn( void )
@@ -263,7 +262,6 @@ TYPEDESCRIPTION CGameText::m_SaveData[] = {
 	DEFINE_ARRAY( CGameText, m_textParms, FIELD_CHARACTER, sizeof( hudtextparms_t ) ),
 };
 
-// .text:0010cc20 CGameText::Restore (file:maprules.cpp:277)
 IMPLEMENT_SAVERESTORE( CGameText, CRulePointEntity );
 
 void CGameText::KeyValue( KeyValueData *pkvd )
@@ -573,7 +571,6 @@ TYPEDESCRIPTION CGamePlayerZone::m_SaveData[] = {
 	DEFINE_FIELD( CGamePlayerZone, m_iszOutCount, FIELD_STRING ),
 };
 
-// .text:0010cb80 CGamePlayerZone::Restore (file:maprules.cpp:670)
 IMPLEMENT_SAVERESTORE( CGamePlayerZone, CRuleBrushEntity );
 
 void CGamePlayerZone::KeyValue( KeyValueData *pkvd )
@@ -963,18 +960,11 @@ void CGamePlayerTeam::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 // area_axis_breakcap | master => trigger master | area_hud_sprite
 // area_time_to_cap => m_nCapTime | area_cap_point => sz_CapPointName
 // area_object_group => sz_RequiredObjectGroup, sets m_bRequiresObject.
-// .text:00153970 KeyValue (file:triggers.cpp:5500 approx, maprules 58 group)
 
-// .text:00157040 Spawn (file:triggers.cpp:5455 area): InitTrigger, touch =
 // AreaTouch, think 0.1 s, m_iAreaIndex = m_nOwningTeam = -1,
 // m_nCapturingTeam = -1, m_bCapturing = 0, m_fTimeRemaining = 0.
-// .text:00157920 RoundRespawn: same reset; BreakCapture when capturing.
-// .text:0014fc90 Precache: hud sprite model.
-// .text:00150b00 area_SetIndex: store; broadcast ClientAreas(index,-1,icon)
 // when index <= 0x80. .text:0015af00 area_SendStatus: same, unicast.
-// .text:0015ad10 SetOwner(team): BreakCapture when capturing, set owner.
 
-// .text:00153dc0 AreaTouch (file:triggers.cpp:5498)
 // Master gate, RoundState==1, game live. Lazily resolves m_pPoint by target
 // and mirrors owner. Players only (IsPlayer+IsAlive): sets HUD area slot,
 // area icon + hint, requires-object group check. Records presence via
@@ -1038,13 +1028,9 @@ presentState:
 	pPlayer->m_iCapAreaIndex = m_iAreaIndex;
 }
 
-// .text:0015ab60 GetNumRequiredPlayers (file:triggers.cpp:5584): outputs
 // m_nAlliesNumCap / m_nAxisNumCap clamped to min 1.
-// .text:0015ac80 GetNumAlive(team) (file:triggers.cpp:5860): alive players.
-// .text:0015ac30 CanUseCatchup() (file:triggers.cpp:5616): para rules
 // (AlliesInfinite && not AxisInfinite) && spawnflags & 1.
 
-// .text:0015b050 StartCapture(team, capmode) (file:triggers.cpp:5953)
 // Fire start targets, m_nCapturingTeam = team, m_bCapturing = 1,
 // m_fTimeRemaining = m_nCapTime. HUD: StartProgressBar(index, team, captime)
 // or StartProgressBarF(index, team, captime * required / players) in
@@ -1081,7 +1067,6 @@ void CAreaCapture::StartCapture( int team, int capmode )
 	UTIL_SendDirectorMessage( this, NULL, 12 );
 }
 
-// .text:0015b240 EndCapture(team) (file:triggers.cpp:5998)
 // Fire end targets + team logs. Every qualifying player in area is logged;
 // non-first cappers get AddObjScore(m_pPoint->m_iCapPoints). Consumes a
 // carried required object (sound, icon clear, PStatus refresh). Then
@@ -1167,11 +1152,9 @@ void CAreaCapture::EndCapture( int team )
 	UTIL_SendDirectorMessage( this, NULL, 12 );
 }
 
-// .text:001511b0 / .text:0015bfa0 BreakCapture(team) (file:triggers.cpp:6127)
 // Clears progress, fires break relays for capmode relays, prints
 // #game_capture_broken_allie / _axis, cancels progress bar HUD, director 12.
 
-// .text:0015b770 Think() (file:triggers.cpp:5632), every 0.1 s.
 // Census: count allies/axis with matching area slot; carrier without the
 // required object group is ejected (slot = -1). On change: m_nNumAllies /
 // m_nNumAxis update + SendNumPlayers broadcast.
@@ -1349,9 +1332,7 @@ timeCheck:
 	EndCapture( m_nCapturingTeam );
 }
 
-// .text:0015ad40 SendNumPlayers (file:triggers.cpp:5886): PlayersInArea msg
 // (point index, capturing team, player count, required) to all / one player.
-// .text:0015afb0 ReSendSwipeInfo (file:triggers.cpp:5934): ProgBarUpdate
 // resend with required/players scaled captime.
 // DOD control_point - original file triggers.cpp - source restore/objectives/control_point.cpp
 // control_point.cpp -- dod_control_point + dod_control_point_master
@@ -1373,7 +1354,6 @@ timeCheck:
 // master => m_sMaster | point_hud_icon_allies/axis/neutral
 // point_allies_win_string / point_axis_win_string
 
-// .text:00159f10 CControlPoint::Spawn() (file:triggers.cpp:3968)
 void CControlPoint::Spawn()
 {
 	Precache();
@@ -1399,10 +1379,8 @@ void CControlPoint::Spawn()
 	RoundStore();
 }
 
-// .text:00155bf0 CControlPoint::KeyValue(KeyValueData *) (file:triggers.cpp:4367)
 // See table in header comment above. point_index stored 0-based.
 
-// .text:0014ee60 CControlPoint::Precache() (file:triggers.cpp:4315)
 void CControlPoint::Precache()
 {
 	if ( pev->noise )
@@ -1416,7 +1394,6 @@ void CControlPoint::Precache()
 	PRECACHE_MODEL( sz_ResetModel );
 }
 
-// .text:0015a0c0 CControlPoint::Touch(CBaseEntity *pOther) (file:triggers.cpp:3994)
 // Instant steal on touch. Guards: RoundState()==ROUNDSTATE_RUNNING, m_bActive,
 // gpGlobals->time >= m_fNextCapTime, IsPlayer + IsAlive checks,
 // per-team can-touch block, no-op when toucher team == owner.
@@ -1466,7 +1443,6 @@ void CControlPoint::Touch( CBaseEntity *pOther )
 	}
 }
 
-// .text:00159a60 CControlPoint::SetOwner(int, BOOL, CBasePlayer *) (file:triggers.cpp:4206)
 // Guards: not freeze/restart, RoundState 0/1, not game over.
 // Effects: m_iTeam, team model + bodygroup, cap sound, team target,
 // AddObjScore(player, m_iCapPoints), team score update, SetObjOwner msg,
@@ -1526,7 +1502,6 @@ void CControlPoint::SetOwner( int owner, BOOL bMakeSound, CBasePlayer *pPlayer )
 	m_fNextCapTime = gpGlobals->time + m_fCapDelayTime;
 }
 
-// .text:00159980 CControlPoint::SendCapString(int, CBasePlayer *) (file:triggers.cpp:4049)
 void CControlPoint::SendCapString( int team, CBasePlayer *pPlayer )
 {
 	if ( sz_WinString[0] == 0 )
@@ -1538,8 +1513,6 @@ void CControlPoint::SendCapString( int team, CBasePlayer *pPlayer )
 	MESSAGE_END();
 }
 
-// .text:0015a4e0 CControlPoint::Reset() (file:triggers.cpp:4175)
-// .text:0015a050 CControlPoint::RoundRespawn() (file:triggers.cpp:4196)
 // Active: SetOwner(m_iDefaultOwner, FALSE, NULL) (verified by disasm:
 // EDX=[this+0x184], ECX=EAX=0, JMP SetOwner). Inactive: reset model.
 void CControlPoint::Reset()
@@ -1553,7 +1526,6 @@ void CControlPoint::Reset()
 	}
 }
 
-// .text:0015a050 CControlPoint::RoundRespawn() (file:triggers.cpp:4196)
 void CControlPoint::RoundRespawn()
 {
 	if ( m_bActive )
@@ -1565,7 +1537,6 @@ void CControlPoint::RoundRespawn()
 	}
 }
 
-// .text:0015a550 CControlPoint::SetIndex(int) (file:triggers.cpp:4183)
 void CControlPoint::SetIndex( int i_index )
 {
 	if ( g_pGameRules && m_iAlliesIcon == 1 && g_pGameRules->IsAlliesBrit() )
@@ -1573,7 +1544,6 @@ void CControlPoint::SetIndex( int i_index )
 	m_iIndex = i_index;
 }
 
-// .text:0015a640 CControlPoint::SetActive(bool) (file:triggers.cpp:4536)
 void CControlPoint::SetActive( bool active )
 {
 	m_bActive = active;
@@ -1583,10 +1553,8 @@ void CControlPoint::SetActive( bool active )
 		pev->effects &= ~EF_NODRAW;
 }
 
-// .text:0015a610 GetOwner / .text:0015a620 GetGroup / .text:0015a630 PointValue
 // trivial field readers (triggers.cpp:4295/4300/4310).
 
-// .text:001597d0 IsThisIndexUnique(CControlPoint *) (file:triggers.cpp:3925)
 BOOL IsThisIndexUnique( CControlPoint *pThis )
 {
 	CControlPoint *p = (CControlPoint *) UTIL_FindEntityByClassname( NULL, "dod_control_point" );
@@ -1607,9 +1575,7 @@ BOOL IsThisIndexUnique( CControlPoint *pThis )
 // point_give_delay_time => m_iGivePointsDelay | allies_capture_target,
 // axis_capture_target | main => m_iMainObjective | master => m_sMaster
 // cpm_group => m_szGroup (matched against point_group). Rest unhandled.
-// .text:00152640 KeyValue (file:triggers.cpp:4613)
 
-// .text:0014f3d0 CControlPointMaster::Spawn() (file:triggers.cpp:4571)
 void CControlPointMaster::Spawn()
 {
 	pev->solid = SOLID_NOT;
@@ -1626,7 +1592,6 @@ void CControlPointMaster::Spawn()
 	RoundStore();
 }
 
-// .text:0014fc10 CControlPointMaster::RoundRespawn() (file:triggers.cpp:4595)
 // Clan scoring active: next give = now + mp_clan_scoring_delay (default 30.0).
 // Else: now + m_iGivePointsDelay.
 void CControlPointMaster::RoundRespawn()
@@ -1642,15 +1607,10 @@ void CControlPointMaster::RoundRespawn()
 	m_fGivePointsTime = (float) m_iGivePointsDelay + gpGlobals->time;
 }
 
-// .text:0015a700 Reset (file:triggers.cpp:4650): m_bTeamHasWon = false.
-// .text:0015a810 GetPointOwner(int) (file:triggers.cpp:5089): team of slot,
 // 0 when slot empty/out of range.
-// .text:0015a9c0 IsMasteredOn() (file:triggers.cpp:5137): true when no master
 // or UTIL_IsMasterTriggered.
-// .text:0015a9f0 TeamOwnsAllPoints() (file:triggers.cpp:5158): common owner of
 // all slots, 0 when mixed.
 
-// .text:00151880 BecomeActive() (file:triggers.cpp:5044)
 // Activates every discovered point (m_bActive, clear EF_NODRAW) and broadcasts
 // InitObjDisplay to all.
 void CControlPointMaster::BecomeActive()
@@ -1664,7 +1624,6 @@ void CControlPointMaster::BecomeActive()
 	m_bActive = 1;
 }
 
-// .text:0015a7d0 BecomeInactive() (file:triggers.cpp:5079)
 void CControlPointMaster::BecomeInactive()
 {
 	for ( int i = 0; i < m_iNumPoints; i++ )
@@ -1675,7 +1634,6 @@ void CControlPointMaster::BecomeInactive()
 	m_bActive = 0;
 }
 
-// .text:0015a840 SendObjectiveStatus(CBasePlayer *) (file:triggers.cpp:5105)
 // Per player or broadcast InitObjDisplay: numPoints, then per point
 // edict index, m_iIndex, team, visible bit, 3 HUD icons, origin x/y.
 void CControlPointMaster::SendObjectiveStatus( CBasePlayer *pPlayer )
@@ -1701,7 +1659,6 @@ void CControlPointMaster::SendObjectiveStatus( CBasePlayer *pPlayer )
 	MESSAGE_END();
 }
 
-// .text:00154930 CPMThink() (file:triggers.cpp:4688), think every 0.5 s.
 // Stages:
 // 1. Master gate: m_sMaster via UTIL_IsMasterTriggered. While off, points
 //    forced inactive + hidden. When on and not active, BecomeActive.
@@ -2017,27 +1974,17 @@ void CControlPointMaster::CPMThink()
 // ---- dod_round_timer (CDodRoundTimer, triggers.cpp) ----
 // KeyValue: round_timer_length (int seconds) => m_fTimerLength,
 // master => m_sMaster. Rest unhandled.
-// .text:00151b50 KeyValue (file:triggers.cpp:6508)
-// .text:0014ef60 Spawn (file:triggers.cpp:6372): solid none, timer off,
 // think 0.1 s.
 // Think cadence 0.1 s (.text:001559f0, file:triggers.cpp:6380): counts down
 // m_fRoundTime; HUD TimerStatus(on, remaining) at most every 30.0 s and only
 // when spawnflags & 1 + master allows. At zero: timer off, zero status,
 // FireTargets(pev target). Only while m_bTimer.
-// .text:00154800 Use (file:triggers.cpp:6461): toggles m_bTimer with the same
 // gated status send (remaining on start, 0.0 on stop).
-// .text:0015c0b0 StartTimer (file:triggers.cpp:6412): on + status.
-// .text:0015c160 StopTimer (file:triggers.cpp:6422): off + zero status.
-// .text:0015c1e0 ResetTimer (file:triggers.cpp:6440): off, update 30.0,
 // m_fRoundTime = m_fTimerLength + status.
-// .text:0015c290 / .text:0015c320 SendStatus (file:triggers.cpp:6470/6489):
 // broadcast / unicast TimerStatus, same gates.
 
 // ---- dod_point_relay (CDodPointRelay, triggers.cpp) ----
 // KeyValue: dod_relay_team => m_nTeam (default -1), else unhandled.
-// .text:00151c10 (file:triggers.cpp:6348)
-// .text:0014ef30 Spawn (file:triggers.cpp:6288): solid none, Use = DodRelayUse.
-// .text:0015a2c0 DodRelayUse (file:triggers.cpp:6296): finds point by target.
 // USE_START (and point visible): StartProgressBar(index, m_nTeam, value).
 // USE_BREAK (and visible): CancelProgressBar. Else: SetOwner path when the
 // point is active: activator player + useType/value forwarded as
@@ -2085,14 +2032,12 @@ void CDodPointRelay::DodRelayUse( CBaseEntity *pA, CBaseEntity *pC, USE_TYPE u, 
 	p->SetOwner( owner, TRUE, pPlayer );
 }
 
-// .text:0014ef30 CDodPointRelay::Spawn (file:triggers.cpp:6288)
 void CDodPointRelay::Spawn()
 {
 	pev->solid = SOLID_NOT;
 	SetUse( &CDodPointRelay::DodRelayUse );
 }
 
-// .text:00151c10 CDodPointRelay::KeyValue (file:triggers.cpp:6348)
 void CDodPointRelay::KeyValue( KeyValueData *pkvd )
 {
 	m_nTeam = -1;
@@ -2105,7 +2050,6 @@ void CDodPointRelay::KeyValue( KeyValueData *pkvd )
 		pkvd->fHandled = FALSE;
 }
 
-// .text:0014f4e0 CLocation::Spawn (file:triggers.cpp:3872)
 void CLocation::Spawn()
 {
 	pev->solid = SOLID_NOT;
@@ -2117,14 +2061,12 @@ void CLocation::Spawn()
 	RoundStore();
 }
 
-// .text:0014f4a0 CLocation::RoundRespawn (file:triggers.cpp:3888)
 void CLocation::RoundRespawn()
 {
 	UTIL_SetSize( pev, g_vecZero, g_vecZero );
 	SetTouch( NULL );
 }
 
-// .text:00151d50 CLocation::KeyValue (file:triggers.cpp:3895)
 void CLocation::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "location_name" ) )
@@ -2141,7 +2083,6 @@ void CLocation::KeyValue( KeyValueData *pkvd )
 		pkvd->fHandled = FALSE;
 }
 
-// .text:0014ef60 CDodRoundTimer::Spawn (file:triggers.cpp:6372)
 void CDodRoundTimer::Spawn()
 {
 	m_bTimer = false;
@@ -2150,7 +2091,6 @@ void CDodRoundTimer::Spawn()
 	pev->nextthink = gpGlobals->time + 0.1;	 // _DAT_0018ee74
 }
 
-// .text:00151b50 CDodRoundTimer::KeyValue (file:triggers.cpp:6508)
 void CDodRoundTimer::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "round_timer_length" ) )
@@ -2167,7 +2107,6 @@ void CDodRoundTimer::KeyValue( KeyValueData *pkvd )
 		pkvd->fHandled = FALSE;
 }
 
-// .text:00154800 CDodRoundTimer::Use (file:triggers.cpp:6461)
 void CDodRoundTimer::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if ( !m_bTimer )
@@ -2197,7 +2136,6 @@ void CDodRoundTimer::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 	}
 }
 
-// .text:001559f0 CDodRoundTimer::Think (file:triggers.cpp:6380)
 void CDodRoundTimer::Think()
 {
 	pev->nextthink = gpGlobals->time + 0.1;	 // _DAT_0018ee74
@@ -2233,16 +2171,12 @@ void CDodRoundTimer::Think()
 
 // ---- dod_location (CLocation, triggers.cpp) ----
 // KeyValue: location_name => pev->netname, master => m_sMaster.
-// .text:00151d50 (file:triggers.cpp:3895)
-// .text:0014f4e0 Spawn (file:triggers.cpp:3872): solid/movetype none,
 // zero size, no touch. .text:0014f4a0 RoundRespawn (file:triggers.cpp:3888):
 // zero size, no touch. Pure position + name marker.
 
 // ---- dod_mapmarker (CMapMarker, mapmarker.cpp, 4 funcs) ----
-// .text:0016ff50 CreateMapMarker (file:mapmarker.cpp:20): edict alloc,
 // classname dod_mapmarker, icon => pev->body, owner/team from creator,
 // angles (0,90,0), fuser1 = now, static counter++.
-// .text:0016fdb0 Spawn (file:mapmarker.cpp:47): solid none, markernull
 // sprite, zero size, rehash classname, Think = Die at now + stay time
 // (max(mp_markerstaytime, 2.0)). .text:0016fda0 Die (file:mapmarker.cpp:70):
 // UpdateOnRemove + FL_KILLME + clear targetname.
@@ -2254,8 +2188,6 @@ void CDodRoundTimer::Think()
 // Ctor defaults (.text:000ee020, file:dod_gamerules.cpp:6387): infinite
 // lives both true, paras false, brit false, timer off, elim points 5/5,
 // timer-expire points 0, respawn factors 1.0, timer team 0.
-// .text:000ea0a0 Spawn: hash classname, solid none, DetectGameRules().
-// .text:000ee0b0 IsMasteredOn: no master or master triggered.
 // KeyValue (.text:000e5420, file:dod_gamerules.cpp:6403) table:
 // detect_axis_infinite / allies_infinite_lifes / axis_infinite_lifes (==1) /
 // detect_allies_infinite (==1) => infinite flags; detect_axis_paras /
@@ -2272,11 +2204,9 @@ void CDodRoundTimer::Think()
 // 0.1 s, timers cleared, update 30.0. .text:000eaa80 TimerThink: frame-delta
 // countdown; round not active => stop + status + Think NULL; 30 s status
 // refresh; expiry => CDoDTeamPlay::TimerExpired + stop + status.
-// .text:000ee150 Start / .text:000ee1f0 Stop / .text:000ee270 Reset
 // (240.0 s, on, update 30.0) / .text:000ee310 / .text:000ee380 SendStatus.
 
 // ---- gamerules hook ----
-// .text:000e8e90 CDoDTeamPlay::SendObjectiveStatus (dod_gamerules.cpp:5080):
 // RoundState to player, first mastered dod_control_point_master =>
 // SendObjectiveStatus, then per-player area_SendStatus for dod_capture_area,
 // dod_object_goal, func_breakable, plus dod_round_timer SendStatus and
@@ -2286,14 +2216,12 @@ void CDodRoundTimer::Think()
 // Additional capture member bodies ported from dod.so (Ghidra = link + 0x10000)
 // ============================================================================
 
-// .text:0014fc90 CAreaCapture::Precache (file:triggers.cpp:5447)
 void CAreaCapture::Precache()
 {
 	if ( sz_HudIcon[0] )
 		PRECACHE_MODEL( sz_HudIcon );
 }
 
-// .text:00157040 CAreaCapture::Spawn (file:triggers.cpp:5418)
 void CAreaCapture::Spawn()
 {
 	CBaseTrigger::InitTrigger();
@@ -2313,7 +2241,6 @@ void CAreaCapture::Spawn()
 	RoundStore();
 }
 
-// .text:00157920 CAreaCapture::RoundRespawn (file:triggers.cpp:6153)
 void CAreaCapture::RoundRespawn()
 {
 	CBaseTrigger::InitTrigger();
@@ -2332,7 +2259,6 @@ void CAreaCapture::RoundRespawn()
 	m_fTimeRemaining = 0.0;
 }
 
-// .text:0015ad10 CAreaCapture::SetOwner (file:triggers.cpp:5877)
 void CAreaCapture::SetOwner( int team )
 {
 	if ( m_bCapturing )
@@ -2340,7 +2266,6 @@ void CAreaCapture::SetOwner( int team )
 	m_nOwningTeam = team;
 }
 
-// .text:00153970 CAreaCapture::KeyValue (file:triggers.cpp:6180)
 void CAreaCapture::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "area_allies_cancap" ) )
@@ -2425,14 +2350,12 @@ void CAreaCapture::KeyValue( KeyValueData *pkvd )
 		CBaseTrigger::KeyValue( pkvd );
 }
 
-// .text:0014fbf0 CObjectCapture::Precache (file:triggers.cpp:3820)
 void CObjectCapture::Precache()
 {
 	if ( sz_HudIcon[0] )
 		PRECACHE_MODEL( sz_HudIcon );
 }
 
-// .text:00157260 CObjectCapture::Spawn (file:triggers.cpp:3646)
 void CObjectCapture::Spawn()
 {
 	UTIL_SetOrigin( pev, pev->origin );
@@ -2441,7 +2364,6 @@ void CObjectCapture::Spawn()
 	m_bCapped = false;
 }
 
-// .text:00157230 CObjectCapture::RoundRespawn (file:triggers.cpp:3656)
 void CObjectCapture::RoundRespawn()
 {
 	UTIL_SetOrigin( pev, pev->origin );
@@ -2449,7 +2371,6 @@ void CObjectCapture::RoundRespawn()
 	m_bCapped = false;
 }
 
-// .text:0015d5d0 CObjectCapture::KeyValue (file:triggers.cpp:3609)
 void CObjectCapture::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "capobj_group" ) )
@@ -2471,7 +2392,6 @@ void CObjectCapture::KeyValue( KeyValueData *pkvd )
 		CBaseTrigger::KeyValue( pkvd );
 }
 
-// .text:00155bf0 CControlPoint::KeyValue (file:triggers.cpp:4367)
 void CControlPoint::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "point_name" ) )
@@ -2633,7 +2553,6 @@ void CControlPoint::KeyValue( KeyValueData *pkvd )
 		pkvd->fHandled = FALSE;
 }
 
-// .text:00152640 CControlPointMaster::KeyValue (file:triggers.cpp:4613)
 void CControlPointMaster::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "point_give_delay_time" ) )
@@ -2670,7 +2589,6 @@ void CControlPointMaster::KeyValue( KeyValueData *pkvd )
 		pkvd->fHandled = FALSE;
 }
 
-// .text:0015a9c0 CControlPointMaster::IsMasteredOn (file:triggers.cpp:5137)
 bool CControlPointMaster::IsMasteredOn()
 {
 	if ( m_sMaster )
@@ -2678,7 +2596,6 @@ bool CControlPointMaster::IsMasteredOn()
 	return true;
 }
 
-// .text:0014a6e0 CControlPointMaster::CControlPointMaster (file:triggers.cpp:4565)
 CControlPointMaster::CControlPointMaster()
 {
 	m_szGroup[0] = 0;
@@ -2693,13 +2610,11 @@ LINK_ENTITY_TO_CLASS( dod_round_timer, CDodRoundTimer );
 LINK_ENTITY_TO_CLASS( dod_point_relay, CDodPointRelay );
 LINK_ENTITY_TO_CLASS( dod_location, CLocation );
 
-// .text:0015a700 CControlPointMaster::Reset (file:maprules.cpp)
 void CControlPointMaster::Reset( void )
 {
 	m_bTeamHasWon = false;
 }
 
-// .text:0010c6b0 CGameText::Spawn
 void CGameText::Spawn( void )
 {
 	pev->solid = SOLID_NOT;
@@ -2710,7 +2625,6 @@ void CGameText::Spawn( void )
 	m_iEnabled = 1;
 	RoundStore();
 }
-// .text:0010c710 CGameTeamMaster::Spawn
 void CGameTeamMaster::Spawn( void )
 {
 	pev->solid = SOLID_NOT;
@@ -2722,13 +2636,11 @@ void CGameTeamMaster::Spawn( void )
 	m_rrteamIndex = m_teamIndex;
 	RoundStore();
 }
-// .text:0010c770 CGameTeamMaster::RoundRespawn
 void CGameTeamMaster::RoundRespawn( void )
 {
 	m_iEnabled = 1;
 	m_teamIndex = m_rrteamIndex;
 }
-// .text:0010c790 CGameTeamSet::Spawn
 void CGameTeamSet::Spawn( void )
 {
 	pev->solid = SOLID_NOT;
@@ -2739,22 +2651,18 @@ void CGameTeamSet::Spawn( void )
 	m_iEnabled = 1;
 	RoundStore();
 }
-// .text:0010c860 CGameCounter::RoundRespawn
 void CGameCounter::RoundRespawn( void )
 {
 	pev->dmg = (float)(int)pev->frags;
 }
-// .text:0010c670 CGameText::RoundRespawn
 void CGameText::RoundRespawn( void )
 {
 	m_iEnabled = 1;
 }
-// .text:0010c7e0 CGameTeamSet::RoundRespawn
 void CGameTeamSet::RoundRespawn( void )
 {
 	m_iEnabled = 1;
 }
-// .text:0010c9a0 CGamePlayerHurt::Spawn
 void CGamePlayerHurt::Spawn( void )
 {
 	pev->solid = SOLID_NOT;
@@ -2765,17 +2673,14 @@ void CGamePlayerHurt::Spawn( void )
 	m_iEnabled = 1;
 	RoundStore();
 }
-// .text:0010ca00 CGamePlayerHurt::RoundRespawn
 void CGamePlayerHurt::RoundRespawn( void )
 {
 	m_iEnabled = 1;
 }
-// .text:0010ca10 CGameCounterSet::RoundRespawn
 void CGameCounterSet::RoundRespawn( void )
 {
 	m_iEnabled = 1;
 }
-// .text:0010c880 CGameCounterSet::Spawn
 void CGameCounterSet::Spawn( void )
 {
 	pev->solid = SOLID_NOT;

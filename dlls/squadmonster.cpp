@@ -612,7 +612,6 @@ Schedule_t *CSquadMonster::GetScheduleOfType( int iType )
 	}
 }
 
-// .text:001382c0 CSquadMonster::NoFriendlyFire(BOOL) (file:squadmonster.cpp)
 // DoD overload: with playerAlly==FALSE and no squad leader, always safe to fire;
 // otherwise the same "box in front" test as NoFriendlyFire(void).
 BOOL CSquadMonster::NoFriendlyFire( BOOL playerAlly )

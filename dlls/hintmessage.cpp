@@ -13,7 +13,6 @@
 #include "cbase.h"
 #include "player.h"
 #include "hintmessage.h"
-// .text:0010ac50 CHintMessageQueue::Reset (hintmessage.cpp:14)
 void CHintMessageQueue::Reset()
 {
 	m_iCount = 0;
@@ -29,7 +28,6 @@ void CHintMessageQueue::Reset()
 	m_iLastMessage = 1;
 	m_tmMessageEnd = 0.0;
 }
-// .text:0010ac80 CHintMessageQueue::Update (hintmessage.cpp:27)
 void CHintMessageQueue::Update( CBaseEntity &client )
 {
 	if ( m_tmMessageEnd < gpGlobals->time && m_iCount != 0 )
@@ -56,7 +54,6 @@ void CHintMessageQueue::Update( CBaseEntity &client )
 		}
 	}
 }
-// .text:0010ad80 CHintMessageQueue::AddMessage (hintmessage.cpp:61)
 bool CHintMessageQueue::AddMessage( const char *message )
 {
 	int last = m_iLastMessage;

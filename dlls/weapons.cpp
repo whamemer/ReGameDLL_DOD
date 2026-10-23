@@ -889,7 +889,6 @@ int CBasePlayerWeapon::UpdateClientData( CBasePlayer *pPlayer )
 	return 1;
 }
 
-// .text:0016aec0 SendWeaponAnim - DoD picks bodygroup by team/playerclass
 void CBasePlayerWeapon::SendWeaponAnim( int iAnim, int skiplocal )
 {
 	if ( !m_pPlayer )
@@ -1023,7 +1022,6 @@ int CBasePlayerWeapon::Classify( void )
 	return 0;
 }
 
-// .text:0016d5e0 DefaultDeploy(…, szAnimReloadExt, skiplocal)
 BOOL CBasePlayerWeapon ::DefaultDeploy( char *szViewModel, char *szWeaponModel, int iAnim, char *szAnimExt,
 										char *szAnimReloadExt, int skiplocal )
 {
@@ -1044,7 +1042,6 @@ BOOL CBasePlayerWeapon ::DefaultDeploy( char *szViewModel, char *szWeaponModel, 
 	return TRUE;
 }
 
-// .text:0016d700 TimedDeploy(…, idleTime, attackTime, skiplocal)
 BOOL CBasePlayerWeapon::TimedDeploy( char *szViewModel, char *szWeaponModel, int iAnim, char *szAnimExt,
 									 char *szAnimReloadExt, float idleTime, float attackTime, int skiplocal )
 {
@@ -1642,7 +1639,6 @@ void CBasePlayerWeapon::PrintState( void )
 // emitted) were removed so the DLL exports/imports match the shipped dod.so exactly.
 
 // DoD zoom/stamina/mortar/water-sniping impls
-// .text:0016acd0 UpdateZoomSpeed - only for CLASS_SCOPED_RIFLE(0x20)
 void CBasePlayerWeapon::UpdateZoomSpeed( void )
 {
 	if ( !m_pPlayer )
@@ -1681,13 +1677,11 @@ int CBasePlayerWeapon::ChangeFOV( int fov )
 
 	return fov;
 }
-// .text:0016d820 ThinkZoomOut
 void CBasePlayerWeapon::ThinkZoomOut( void )
 {
 	m_pPlayer->m_iFOV = ZoomOut();
 	UpdateZoomSpeed();
 }
-// .text:0016d860 ThinkZoomIn - only rezoom while slow and not firing
 void CBasePlayerWeapon::ThinkZoomIn( void )
 {
 	if ( m_pPlayer->pev->velocity.Length() <= 45.0f && !( m_pPlayer->pev->button & IN_ATTACK ) )
@@ -1696,7 +1690,6 @@ void CBasePlayerWeapon::ThinkZoomIn( void )
 		UpdateZoomSpeed();
 	}
 }
-// .text:0016afe0 RemoveStamina - skipped while ducking/prone; clamps fuser4 to [0,100]
 void CBasePlayerWeapon::RemoveStamina( float removeAmount, CBasePlayer *pOther )
 {
 	if ( !pOther )
@@ -1713,7 +1706,6 @@ void CBasePlayerWeapon::RemoveStamina( float removeAmount, CBasePlayer *pOther )
 		pOther->pev->fuser4 = f;
 	}
 }
-// .text:0016a910 PlayerIsWaterSniping - deep water, or wading while prone
 bool CBasePlayerWeapon::PlayerIsWaterSniping( void )
 {
 	if ( !m_pPlayer )
@@ -1753,7 +1745,6 @@ void CBasePlayerWeapon::SendMortarFireCommand( char *c )
 	return;
 }
 
-// .text:0015d240 CBasePlayerItem::SpawnReplacement (file:weapons.cpp)
 void CBasePlayerItem::SpawnReplacement( void )
 {
 	if ( !m_bTriggerSpawnOnDie )
@@ -1771,7 +1762,6 @@ void CBasePlayerItem::SpawnReplacement( void )
 	}
 }
 
-// .text:0015dbd0 CWeaponBox::ActivateThink (file:weapons.cpp)
 void CWeaponBox::ActivateThink( void )
 {
 	m_bTouch = TRUE;
@@ -1779,20 +1769,17 @@ void CWeaponBox::ActivateThink( void )
 	pev->nextthink = gpGlobals->time + 20.0f;
 }
 
-// .text:0016da60 CBasePlayerWeapon::GetRoundState (file:weapons.cpp)
 int CBasePlayerWeapon::GetRoundState( void )
 {
 	return g_pGameRules->RoundState();
 }
 
-// .text:0016a470 CDodAmmoBox::Precache (file:weapons.cpp)
 void CDodAmmoBox::Precache( void )
 {
 	PRECACHE_MODEL( "models/allied_ammo.mdl" );
 	PRECACHE_MODEL( "models/axis_ammo.mdl" );
 }
 
-// .text:0016a630 CDodAmmoBox::Spawn
 void CDodAmmoBox::Spawn( void )
 {
 	Precache();
@@ -1807,7 +1794,6 @@ void CDodAmmoBox::KillThink( void )
 	UTIL_Remove( this );
 }
 
-// .text:0016aba0 CBasePlayerItem::RoundRespawn (file:weapons.cpp)
 void CBasePlayerItem::RoundRespawn( void )
 {
 	if ( m_bReadyToRespawn )
@@ -1817,7 +1803,6 @@ void CBasePlayerItem::RoundRespawn( void )
 	}
 }
 
-// .text:0016b720 CDodAmmoBox::Touch (file:weapons.cpp)
 void CDodAmmoBox::Touch( CBaseEntity *pOther )
 {
 	if ( !( pev->flags & FL_ONGROUND ) )
@@ -1875,7 +1860,6 @@ void CWeaponBox::RoundRespawn( void )
 	Kill();
 }
 
-// .text:0015da80 CBasePlayerAmmo::GiveGenericAmmo (file:weapons.cpp)
 bool CBasePlayerAmmo::GiveGenericAmmo( CBaseEntity *pOther )
 {
 	if ( !pOther->IsPlayer() )
@@ -1904,7 +1888,6 @@ bool CBasePlayerAmmo::GiveGenericAmmo( CBaseEntity *pOther )
 	return false;
 }
 
-// .text:0015d100 CBasePlayerItem::PickupUse (file:weapons.cpp)
 void CBasePlayerItem::PickupUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if ( !pActivator->IsPlayer() )
@@ -1926,7 +1909,6 @@ void CBasePlayerItem::PickupUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 	}
 }
 
-// .text:00105760 CGrenade::PickupUse (file:weapons.cpp)
 void CGrenade::PickupUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if ( !pActivator->IsPlayer() )

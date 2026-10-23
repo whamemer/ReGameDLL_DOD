@@ -1585,7 +1585,6 @@ void CFuncTrainControls ::Spawn( void )
 	RoundStore();
 }
 
-// .text:001144c0 CFuncTrainControls::RoundRespawn (0x62)
 void CFuncTrainControls ::RoundRespawn( void )
 {
 	UTIL_SetSize( pev, pev->mins, pev->maxs );
@@ -2259,7 +2258,6 @@ void CGunTarget::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 	}
 }
 
-// .text:00116590 CFuncTrain::RoundRespawn (0x159)
 void CFuncTrain::RoundRespawn( void )
 {
 	STOP_SOUND( ENT( pev ), CHAN_STATIC, (char *)STRING( pev->noise ) );
@@ -2278,7 +2276,6 @@ void CFuncTrain::RoundRespawn( void )
 	SetThink( &CFuncTrain::Next );
 }
 
-// .text:00114780 CFuncTrackTrain::RoundRespawn (0x1fe)
 void CFuncTrackTrain::RoundRespawn( void )
 {
 	m_speed = pev->speed ? pev->speed : 100.0;
@@ -2305,7 +2302,6 @@ void CFuncTrackTrain::RoundRespawn( void )
 	SetThink( &CFuncTrackTrain::Find );
 }
 
-// .text:001186d0 CFuncTrackChange::RoundRespawn (0x100)
 void CFuncTrackChange::RoundRespawn( void )
 {
 	Setup();

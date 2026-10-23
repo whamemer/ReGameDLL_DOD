@@ -207,15 +207,11 @@ DEFINE_CUSTOM_SCHEDULES( CSarge )
 
 IMPLEMENT_CUSTOM_SCHEDULES( CSarge, CTalkMonster );
 
-// .text:000c2100 CSarge::StartTask (bot_barney.cpp:184)
-// .text:00139fe0 CSarge::StartTask (sarge.cpp:229)
 void CSarge :: StartTask( Task_t *pTask )
 {
 	CTalkMonster::StartTask( pTask );
 }
 
-// .text:000c2300 CSarge::RunTask (bot_barney.cpp:188)
-// .text:0013a1a0 CSarge::RunTask (sarge.cpp:233)
 void CSarge :: RunTask( Task_t *pTask )
 {
 	switch ( pTask->iTask )
@@ -240,8 +236,6 @@ void CSarge :: RunTask( Task_t *pTask )
 // ISoundMask - returns a bit mask indicating which types
 // of sounds this monster regards. 
 //=========================================================
-// .text:000c1a10 CSarge::ISoundMask (bot_barney.cpp:221)
-// .text:00139990 CSarge::ISoundMask (sarge.cpp:265)
 int CSarge :: ISoundMask ( void) 
 {
 	return	bits_SOUND_WORLD	|
@@ -257,8 +251,6 @@ int CSarge :: ISoundMask ( void)
 // Classify - indicates this monster's place in the 
 // relationship table.
 //=========================================================
-// .text:000c1a20 CSarge::Classify (bot_barney.cpp:229)
-// .text:001399a0 CSarge::Classify (sarge.cpp:274)
 int	CSarge :: Classify( void )
 {
 	return 11;
@@ -267,8 +259,6 @@ int	CSarge :: Classify( void )
 //=========================================================
 // ALertSound - barney says "Freeze!"
 //=========================================================
-// .text:000c21f0 CSarge::AlertSound (bot_barney.cpp:236)
-// .text:0013a030 CSarge::AlertSound (sarge.cpp:280)
 void CSarge :: AlertSound( void )
 {
 	if ( m_hEnemy != NULL )
@@ -284,8 +274,6 @@ void CSarge :: AlertSound( void )
 // SetYawSpeed - allows each sequence to have a different
 // turn rate associated with it.
 //=========================================================
-// .text:000c1a40 CSarge::SetYawSpeed (bot_barney.cpp:261)
-// .text:001399b0 CSarge::SetYawSpeed (sarge.cpp:295)
 void CSarge :: SetYawSpeed ( void )
 {
 	int ys;
@@ -315,8 +303,6 @@ void CSarge :: SetYawSpeed ( void )
 //=========================================================
 // CheckRangeAttack1
 //=========================================================
-// .text:000c25c0 CSarge::CheckRangeAttack1 (bot_barney.cpp:290)
-// .text:0013a460 CSarge::CheckRangeAttack1 (sarge.cpp:324)
 BOOL CSarge :: CheckRangeAttack1 ( float flDot, float flDist )
 {
 	if ( flDist <= 1024 && flDot >= 0.5 )
@@ -346,8 +332,6 @@ BOOL CSarge :: CheckRangeAttack1 ( float flDot, float flDist )
 // BarneyFirePistol - shoots one round from the pistol at
 // the enemy barney is facing.
 //=========================================================
-// .text:000c2ab0 CSarge::BarneyFirePistol (bot_barney.cpp:324)
-// .text:0013a9b0 CSarge::BarneyFirePistol (sarge.cpp:353)
 void CSarge :: BarneyFirePistol( void )
 {
 	Vector vecShootOrigin;
@@ -373,8 +357,6 @@ void CSarge :: BarneyFirePistol( void )
 //
 // Returns number of events handled, 0 if none.
 //=========================================================
-// .text:000c2c80 CSarge::HandleAnimEvent (bot_barney.cpp:360)
-// .text:0013ab80 CSarge::HandleAnimEvent (sarge.cpp:388)
 void CSarge :: HandleAnimEvent( MonsterEvent_t *pEvent )
 {
 	switch( pEvent->event )
@@ -399,8 +381,6 @@ void CSarge :: HandleAnimEvent( MonsterEvent_t *pEvent )
 //=========================================================
 // Spawn
 //=========================================================
-// .text:000c1f80 CSarge::Spawn (bot_barney.cpp:389)
-// .text:00139ec0 CSarge::Spawn (sarge.cpp:416)
 void CSarge :: Spawn( void )
 {
 	Precache();
@@ -424,8 +404,6 @@ void CSarge :: Spawn( void )
 //=========================================================
 // Precache - precaches all resources this monster needs
 //=========================================================
-// .text:000c2e50 CSarge::Precache (bot_barney.cpp:431)
-// .text:0013a7e0 CSarge::Precache (sarge.cpp:447)
 void CSarge :: Precache( void )
 {
 	PRECACHE_MODEL( "models/barney.mdl" );
@@ -442,8 +420,6 @@ void CSarge :: Precache( void )
 }	
 
 // Init talk data
-// .text:000c2ce0 CSarge::TalkInit (bot_barney.cpp:452)
-// .text:0013ac00 CSarge::TalkInit (sarge.cpp:471)
 void CSarge :: TalkInit( void )
 {
 	CTalkMonster::TalkInit();
@@ -489,8 +465,6 @@ static BOOL IsFacing( entvars_t *pevTest, const Vector &reference )
 }
 
 
-// .text:000c2770 CSarge::TakeDamage (bot_barney.cpp:526)
-// .text:00139e60 CSarge::TakeDamage (sarge.cpp:524)
 int CSarge :: TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType )
 {
 	int ret = CTalkMonster::TakeDamage( pevInflictor, pevAttacker, flDamage, bitsDamageType );
@@ -505,8 +479,6 @@ int CSarge :: TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float
 //=========================================================
 // PainSound
 //=========================================================
-// .text:000c24a0 CSarge::PainSound (bot_barney.cpp:570)
-// .text:0013a340 CSarge::PainSound (sarge.cpp:581)
 void CSarge :: PainSound ( void )
 {
 	if (gpGlobals->time < m_painTime)
@@ -525,8 +497,6 @@ void CSarge :: PainSound ( void )
 //=========================================================
 // DeathSound 
 //=========================================================
-// .text:000c1ea0 CSarge::DeathSound (bot_barney.cpp:588)
-// .text:00139d80 CSarge::DeathSound (sarge.cpp:599)
 void CSarge :: DeathSound ( void )
 {
 	switch (RANDOM_LONG(0,2))
@@ -538,8 +508,6 @@ void CSarge :: DeathSound ( void )
 }
 
 
-// .text:000c1dc0 CSarge::TraceAttack (bot_barney.cpp:599)
-// .text:00139ca0 CSarge::TraceAttack (sarge.cpp:610)
 void CSarge::TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType)
 {
 	switch( ptr->iHitgroup)
@@ -570,8 +538,6 @@ void CSarge::TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir,
 }
 
 
-// .text:000c1d10 CSarge::Killed (bot_barney.cpp:629)
-// .text:00139c80 CSarge::Killed (sarge.cpp:640)
 void CSarge :: Killed( entvars_t *pevAttacker, int iGib )
 {
 	SetUse( NULL );
@@ -582,8 +548,6 @@ void CSarge :: Killed( entvars_t *pevAttacker, int iGib )
 // AI Schedules Specific to this monster
 //=========================================================
 
-// .text:000c2110 CSarge::GetScheduleOfType (bot_barney.cpp:651)
-// .text:0013a0c0 CSarge::GetScheduleOfType (sarge.cpp:650)
 Schedule_t* CSarge :: GetScheduleOfType ( int Type )
 {
 	Schedule_t *psched;
@@ -714,8 +678,6 @@ Schedule_t *CSarge :: GetSchedule ( void )
 	return CTalkMonster::GetSchedule();
 }
 
-// .text:000c1ab0 CSarge::GetIdealState (bot_barney.cpp:782)
-// .text:00139a20 CSarge::GetIdealState (sarge.cpp:781)
 MONSTERSTATE CSarge :: GetIdealState( void )
 {
 	return CTalkMonster::GetIdealState();
@@ -723,8 +685,6 @@ MONSTERSTATE CSarge :: GetIdealState( void )
 
 
 
-// .text:000c1a70 CSarge::DeclineFollowing (bot_barney.cpp:788)
-// .text:001399e0 CSarge::DeclineFollowing (sarge.cpp:785)
 void CSarge :: DeclineFollowing( void )
 {
 	PlaySentence( "BA_POK", 2.0, VOL_NORM, ATTN_NORM );
@@ -746,14 +706,9 @@ void CSarge :: DeclineFollowing( void )
 //=========================================================
 
 
-// .text:000c2380 CSarge::ScheduleFromName (bot_barney.cpp:180)
 
-// .text:000c2ee0 CSarge::ResetAfterDoDMovie (bot_barney.cpp:794)
 
-// .text:000c2440 CSarge::Save (bot_barney.cpp:66)
-// .text:0013a2e0 CSarge::Save (sarge.cpp:111)
 
-// .text:000c23e0 CSarge::Restore (bot_barney.cpp:66)
 
 
 
@@ -797,7 +752,6 @@ CBaseEntity *CSarge :: BestVisibleEnemy( void )
 	}
 	return pReturn;
 }
-// .text:0013ace0 CSarge::GetEnemy (sarge.cpp:846)
 BOOL CSarge :: GetEnemy( void )
 {
 	CBaseEntity *pNewEnemy;
@@ -851,7 +805,6 @@ BOOL CSarge :: GetEnemy( void )
 
 	return FALSE;  // monster has no enemy
 }
-// .text:0013ae60 CSarge::RunAI (sarge.cpp:790)
 void CSarge :: RunAI( void )
 {
 	// to test model's eye height
@@ -895,7 +848,6 @@ void CSarge :: RunAI( void )
 
 	MaintainSchedule();
 }
-// .text:0013a610 CSarge::Touch (sarge.cpp:967)
 void CSarge :: Touch( CBaseEntity *pOther )
 {
 	if ( pOther->IsPlayer() )
@@ -907,19 +859,14 @@ void CSarge :: Touch( CBaseEntity *pOther )
 		}
 	}
 }
-// .text:0013b000 CSarge::GiveAdvice (sarge.cpp:992)
 void CSarge :: GiveAdvice( CBaseEntity *pPlayer )
 {
 }
 
 
 
-// .text:0013a940 monster_sarge_allies (sarge.cpp:101)
 LINK_ENTITY_TO_CLASS( monster_sarge_allies, CSarge );
 
-// .text:0013a220 CSarge::ScheduleFromName (sarge.cpp:225)
 
-// .text:0013a2e0 CSarge::Save (sarge.cpp:111)
 
-// .text:0013a280 CSarge::Restore (sarge.cpp:111)
 

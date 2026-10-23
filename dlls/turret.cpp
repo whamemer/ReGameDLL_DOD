@@ -1283,7 +1283,6 @@ void CSentry ::SentryDeath( void )
 	}
 }
 
-// .text:00150ad0 CBaseTurret::getState (file:turret.cpp)
 STATE CBaseTurret::getState( void )
 {
 	return ( m_iOn == 0 ) ? STATE_ON : STATE_OFF;

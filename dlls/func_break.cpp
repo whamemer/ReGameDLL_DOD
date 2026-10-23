@@ -1244,7 +1244,6 @@ void CBreakable::RespawnFadeThink( void )
 	else
 		pev->rendermode = m_iInitialRenderMode;
 }
-// .text:000ec3e0 CBreakable::RoundRespawn (0x94)
 void CBreakable::RoundRespawn( void )
 {
 	SetUse( &CBreakable::BreakUse );
@@ -1260,7 +1259,6 @@ void CBreakable::RoundRespawn( void )
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );
 }
 
-// .text:000ec480 CPushable::RoundRespawn (0x92)
 void CPushable::RoundRespawn( void )
 {
 	STOP_SOUND( ENT( pev ), CHAN_STATIC, m_soundNames[m_lastSound] );
@@ -1271,7 +1269,6 @@ void CPushable::RoundRespawn( void )
 	m_soundTime = 0;
 }
 
-// .text:000fdd30 CBreakable::BreakUse (file:func_break.cpp)
 // DoD respawn-breakable handler: re-applies facing, then either kills itself with
 // the activator (vtable[20] = Killed) or breaks via Die().
 void CBreakable::BreakUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
@@ -1289,7 +1286,6 @@ void CBreakable::BreakUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 	}
 }
 
-// .text:000ecf70 CBreakable::ObjectDie (file:func_break.cpp)
 void CBreakable::ObjectDie( void )
 {
 	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
@@ -1297,7 +1293,6 @@ void CBreakable::ObjectDie( void )
 	Die();
 }
 
-// .text:000ed910 CBreakable::GetState (file:func_break.cpp)
 STATE CBreakable::GetState( void )
 {
 	if ( m_iRespawnTime != 0 )
@@ -1305,7 +1300,6 @@ STATE CBreakable::GetState( void )
 	return STATE_OFF;
 }
 
-// .text:000fdc10 CBreakable::area_SetIndex (file:func_break.cpp)
 extern int gmsgClientAreas;
 
 void CBreakable::area_SetIndex( int index )
@@ -1320,7 +1314,6 @@ void CBreakable::area_SetIndex( int index )
 	MESSAGE_END();
 }
 
-// .text:000fdc90 CBreakable::area_SendStatus (file:func_break.cpp)
 void CBreakable::area_SendStatus( CBasePlayer *p )
 {
 	if ( sz_HudIcon != NULL && m_iAreaIndex < 0x81 )
@@ -1333,7 +1326,6 @@ void CBreakable::area_SendStatus( CBasePlayer *p )
 	}
 }
 
-// .text:000ecfa0 CBreakable::Killed (file:func_break.cpp)
 void CBreakable::Killed( entvars_t *pevAttacker, int iGib )
 {
 	int pitch;

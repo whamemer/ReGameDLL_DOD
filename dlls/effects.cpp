@@ -151,7 +151,6 @@ void CBubbling::FizzThink( void )
 		pev->nextthink = gpGlobals->time + 2.5 - ( 0.1 * m_frequency );
 }
 
-// .text:000fb690 CBubbling::GetState (effects.cpp:55)
 STATE CBubbling::GetState( void )
 {
 	return m_state ? STATE_ON : STATE_OFF;
@@ -1814,13 +1813,11 @@ void CShake::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useTyp
 	pev->nextthink = gpGlobals->time + Duration();
 }
 
-// .text:000fb6d0 CShake::GetState (effects.cpp:1917)
 STATE CShake::GetState( void )
 {
 	return m_iState;
 }
 
-// .text:000fb6e0 CShake::Think (effects.cpp:1918)
 void CShake::Think( void )
 {
 	m_iState = STATE_OFF;
@@ -1909,13 +1906,11 @@ void CFade::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType
 	SUB_UseTargets( this, USE_TOGGLE, 0 );
 }
 
-// .text:000fb6f0 CFade::GetState (effects.cpp:1991)
 STATE CFade::GetState( void )
 {
 	return m_iState;
 }
 
-// .text:000f4160 CFade::Think (effects.cpp:2073)
 void CFade::Think( void )
 {
 	if ( m_iState != STATE_TURN_ON )
@@ -2189,7 +2184,6 @@ void CEnvBeverage::Spawn( void )
 	}
 }
 
-// .text:000fb740 CEnvBeverage::GetState (effects.cpp:2623)
 STATE CEnvBeverage::GetState( void )
 {
 	return ( pev->health > 0 ) ? STATE_ON : STATE_OFF;
@@ -2301,13 +2295,11 @@ void CSprite::RoundRespawn( void )
 	}
 	pev->frame = 0;
 }
-// .text:000fb700 CFade::RoundRespawn() (effects.cpp:2002)
 // NEW in DoD.
 void CFade::RoundRespawn( void )
 {
 	m_iState = STATE_OFF;
 }
-// .text:000fb710 CMessage::RoundRespawn() (effects.cpp:2092)
 // NEW in DoD: re-arm once-only messages each round.
 void CMessage::RoundRespawn( void )
 {
@@ -2360,7 +2352,6 @@ void CLightning::BeamUpdatePoints( void )
 	RelinkBeam();
 }
 
-// .text:000fb6b0 CLightning::GetState (effects.cpp:432)
 STATE CLightning::GetState( void )
 {
 	return ( m_active == 0 ) ? STATE_ON : STATE_OFF;
@@ -2416,7 +2407,6 @@ IMPLEMENT_SAVERESTORE( CEnvRain, CBaseEntity );
 
 LINK_ENTITY_TO_CLASS( env_rain, CEnvRain );
 
-// .text:000f2880 CEnvRain::Spawn (effects.cpp:2459)
 void CEnvRain::Spawn( void )
 {
 	Precache();
@@ -2455,13 +2445,11 @@ void CEnvRain::Spawn( void )
 	}
 }
 
-// .text:000f2850 CEnvRain::Precache (effects.cpp:2393)
 void CEnvRain::Precache( void )
 {
 	m_spriteTexture = PRECACHE_MODEL( (char *) STRING( m_iszSpriteName ) );
 }
 
-// .text:000f2b90 CEnvRain::Think (effects.cpp:2486)
 void CEnvRain::Think( void )
 {
 	UTIL_MakeVectors( pev->angles );
@@ -2502,7 +2490,6 @@ void CEnvRain::Think( void )
 		pev->nextthink = gpGlobals->time + m_flUpdateTime;
 }
 
-// .text:000f3c70 CEnvRain::Use (effects.cpp:2441)
 void CEnvRain::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if ( ShouldToggle( useType, m_iState ) )
@@ -2520,7 +2507,6 @@ void CEnvRain::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useT
 	}
 }
 
-// .text:000f5460 CEnvRain::KeyValue (effects.cpp:2398)
 void CEnvRain::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "m_dripSize" ) )
@@ -2566,7 +2552,6 @@ void CEnvRain::KeyValue( KeyValueData *pkvd )
 	}
 }
 
-// .text:000fb720 CEnvRain::GetState (effects.cpp:2373)
 STATE CEnvRain::GetState( void )
 {
 	return m_iState;
@@ -2584,13 +2569,11 @@ class CEnvWarpBall : public CBaseEntity
 
 LINK_ENTITY_TO_CLASS( env_warpball, CEnvWarpBall );
 
-// .text:000fb730 CEnvWarpBall::Spawn (effects.cpp:2549)
 void CEnvWarpBall::Spawn( void )
 {
 	Precache();
 }
 
-// .text:000f2a00 CEnvWarpBall::Precache (effects.cpp:2557)
 void CEnvWarpBall::Precache( void )
 {
 	PRECACHE_MODEL( "sprites/lgtning.spr" );
@@ -2600,14 +2583,12 @@ void CEnvWarpBall::Precache( void )
 	PRECACHE_SOUND( "debris/beamstart7.wav" );
 }
 
-// .text:000f4470 CEnvWarpBall::Think (effects.cpp:2606)
 void CEnvWarpBall::Think( void )
 {
 	EMIT_SOUND_DYN( ENT( pev ), CHAN_ITEM, "debris/beamstart7.wav", 1.0, ATTN_NORM, 0, 100 );
 	SUB_UseTargets( this, USE_TOGGLE, 0 );
 }
 
-// .text:000f7880 CEnvWarpBall::Use (effects.cpp:2566)
 void CEnvWarpBall::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if ( pev->frags > 0 && pev->frags * 3.0 > 0 )
@@ -2711,7 +2692,6 @@ IMPLEMENT_SAVERESTORE( CEnvModel, CBaseAnimating );
 
 LINK_ENTITY_TO_CLASS( env_model, CEnvModel );
 
-// .text:000fb440 CEnvModel::Spawn (effects.cpp:2839)
 void CEnvModel::Spawn( void )
 {
 	Precache();
@@ -2742,13 +2722,11 @@ void CEnvModel::Spawn( void )
 	RoundStore();
 }
 
-// .text:000f2af0 CEnvModel::Precache (effects.cpp:2892)
 void CEnvModel::Precache( void )
 {
 	PRECACHE_MODEL( (char *) STRING( pev->model ) );
 }
 
-// .text:000fb300 CEnvModel::Use (effects.cpp:2904)
 void CEnvModel::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if ( ShouldToggle( useType, FBitSet( pev->spawnflags, 1 ) ? FALSE : TRUE ) )
@@ -2763,7 +2741,6 @@ void CEnvModel::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 	}
 }
 
-// .text:000fb250 CEnvModel::Think (effects.cpp:2919)
 void CEnvModel::Think( void )
 {
 	StudioFrameAdvance( 0.0 );
@@ -2786,13 +2763,11 @@ void CEnvModel::Think( void )
 	pev->nextthink = gpGlobals->time + 0.1;
 }
 
-// .text:000f2b20 CEnvModel::GetState (effects.cpp:2897)
 STATE CEnvModel::GetState( void )
 {
 	return ( pev->spawnflags & SF_ENVMODEL_OFF ) ? STATE_OFF : STATE_ON;
 }
 
-// .text:000f58e0 CEnvModel::KeyValue (effects.cpp:2786)
 void CEnvModel::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "m_iszSequence_On" ) )
@@ -2846,7 +2821,6 @@ void CEnvModel::KeyValue( KeyValueData *pkvd )
 	}
 }
 
-// .text:000fb0f0 CEnvModel::SetSequence (effects.cpp:2962)
 void CEnvModel::SetSequence( void )
 {
 	string_t iszSeq = FBitSet( pev->spawnflags, 1 ) ? m_iszSequence_Off : m_iszSequence_On;
@@ -2876,7 +2850,6 @@ void CEnvModel::SetSequence( void )
 		m_fSequenceLoops = ( m_iAction_On == 1 ) ? TRUE : FALSE;
 }
 
-// .text:000fb380 CEnvModel::RoundRespawn (effects.cpp:2875)
 void CEnvModel::RoundRespawn( void )
 {
 	Precache();
@@ -2908,13 +2881,11 @@ class CRocketShooter : public CBaseEntity
 
 LINK_ENTITY_TO_CLASS( env_rocketshooter, CRocketShooter );
 
-// .text:000f2b40 CRocketShooter::Spawn (effects.cpp:3036)
 void CRocketShooter::Spawn( void )
 {
 	m_iRocketsLeft = 0;
 }
 
-// .text:000f2e60 CRocketShooter::Precache (effects.cpp:3040)
 void CRocketShooter::Precache( void )
 {
 	UTIL_PrecacheOther( "shell_bazooka" );
@@ -2922,7 +2893,6 @@ void CRocketShooter::Precache( void )
 	UTIL_PrecacheOther( "shell_pschreck" );
 }
 
-// .text:000f2b50 CRocketShooter::Use (effects.cpp:3075)
 void CRocketShooter::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if ( m_iNumRockets > 0 )
@@ -2933,7 +2903,6 @@ void CRocketShooter::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 	}
 }
 
-// .text:000f5300 CRocketShooter::KeyValue (effects.cpp:3047)
 void CRocketShooter::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "rockettype" ) )
@@ -2964,7 +2933,6 @@ void CRocketShooter::KeyValue( KeyValueData *pkvd )
 	}
 }
 
-// .text:000f6520 CRocketShooter::FireThink (effects.cpp:3085)
 void CRocketShooter::FireThink( void )
 {
 	if ( m_iRocketsLeft == 0 )

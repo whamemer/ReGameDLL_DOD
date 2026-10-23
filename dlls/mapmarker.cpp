@@ -3,12 +3,8 @@
 #include "extdll.h"
 #include "util.h"
 #include "objective.h"
-// .text:0016ff50 CreateMapMarker - file:mapmarker.cpp:20
-// .text:0016fdb0 Spawn - file:mapmarker.cpp:47
-// .text:0016fda0 Die - file:mapmarker.cpp:70
 // Full bodies in restore/objectives/timers_relays.cpp comments - player side in player agent
 
-// .text:0016fdb0 Spawn body verified vs decompile: SOLID_NOT, markernull, zero size,
 // rehash classname dod_mapmarker, nextthink = time + max(mp_markerstaytime,2.0),
 // Think=Die, FL_CUSTOMENTITY.
 void CMapMarker::Spawn( void )
@@ -26,7 +22,6 @@ void CMapMarker::Spawn( void )
 	pev->flags |= FL_CUSTOMENTITY;
 }
 
-// .text:0016fda0 Die body verified vs decompile: UpdateOnRemove + FL_KILLME + clear targetname.
 void CMapMarker::Die( void )
 {
 	CBaseEntity::UpdateOnRemove();
@@ -34,7 +29,6 @@ void CMapMarker::Die( void )
 	pev->targetname = 0;
 }
 
-// .text:0016ff50 CreateMapMarker body verified vs decompile: alloc edict,
 // classname dod_mapmarker, body=icon, owner/team from creator, angles (0,90,0),
 // fuser1=now, counter++.
 CMapMarker *CMapMarker::CreateMapMarker( Vector origin, Vector angles, CBaseEntity *pOwner, int icon )

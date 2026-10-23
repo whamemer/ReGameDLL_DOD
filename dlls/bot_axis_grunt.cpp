@@ -5,7 +5,6 @@
 // Strings: models/axis_grunt.mdl, weapons/kar_shoot.wav, weapons/luger_shoot.wav,
 //   weapons/mp40_shoot.wav, weapons/mp44_shoot.wav, hgrunt/gr_die1-3.wav, hgrunt/gr_pain1-5.wav,
 //   hgrunt/gr_reload1.wav, zombie/claw_miss2.wav, sentences AXISG_* (see below)
-// .text:000c8e30 monster_axis_grunt (bot_axis_grunt.cpp:189)
 #include	"extdll.h"
 #include	"plane.h"
 #include	"util.h"
@@ -20,16 +19,12 @@
 #include	"effects.h"
 #include	"customentity.h"
 
-// .text:000c99f0 monster_axisgrunt_dead (bot_axis_grunt.cpp:2218)
 
 // Sentence table at 0x1d2bc0: index = AXISGRUNT_SENT_*
 // 0 AXISG_GREN, 1 AXISG_ALERT, 2 AXISG_MONSTER, 3 AXISG_COVER,
 // 4 AXISG_THROW, 5 AXISG_CHARGE, 6 AXISG_TAUNT
-// .text:000c8ea0 CAxisGrunt::SpeakSentence (bot_axis_grunt.cpp:245)
 extern char *pAxisGruntSentences[];
-// .text:000c7fa0 CAxisGrunt::IdleSound (bot_axis_grunt.cpp:632)
 // Idle uses AXISG_ANSWER, AXISG_CHECK, AXISG_CLEAR, AXISG_IDLE, AXISG_QUEST
-// .text:000c8610 CAxisGrunt::GetSchedule (bot_axis_grunt.cpp:1836)
 // GetSchedule sets m_iSentence: 3 = COVER, 5 = CHARGE, plus AXISG_ALERT/GREN/MONST/TAUNT/THROW
 
 // Schedules: externs from .data, same layout as SDK hgrunt sl* / tl*
@@ -240,7 +235,6 @@ enum
 // may still fail but in most cases, well after the grunt has 
 // started moving.
 //=========================================================
-// .text:000c8ea0 CAxisGrunt::SpeakSentence (bot_axis_grunt.cpp:245)
 void CAxisGrunt :: SpeakSentence( void )
 {
 	if ( m_iSentence == AXISGRUNT_SENT_NONE )
@@ -260,7 +254,6 @@ void CAxisGrunt :: SpeakSentence( void )
 // IRelationship - overridden because Alien Grunts are 
 // Human Grunt's nemesis.
 //=========================================================
-// .text:000c7570 CAxisGrunt::IRelationship (bot_axis_grunt.cpp:264)
 int CAxisGrunt :: IRelationship( CBaseEntity *pTarget )
 {
 	if ( FClassnameIs( pTarget->pev, "monster_allied_grunt" ) )
@@ -271,7 +264,6 @@ int CAxisGrunt :: IRelationship( CBaseEntity *pTarget )
 //=========================================================
 // GibMonster - make gun fly through the air.
 //=========================================================
-// .text:000c6f30 CAxisGrunt::GibMonster (bot_axis_grunt.cpp:277)
 void CAxisGrunt :: GibMonster( void )
 {
 	Vector vecGunPos;
@@ -302,7 +294,6 @@ void CAxisGrunt :: GibMonster( void )
 // hear the DANGER sound that is made by hand grenades and
 // other dangerous items.
 //=========================================================
-// .text:000c6530 CAxisGrunt::ISoundMask (bot_axis_grunt.cpp:318)
 int CAxisGrunt :: ISoundMask ( void )
 {
 	return	bits_SOUND_WORLD	|
@@ -314,7 +305,6 @@ int CAxisGrunt :: ISoundMask ( void )
 //=========================================================
 // someone else is talking - don't speak
 //=========================================================
-// .text:000c9040 CAxisGrunt::FOkToSpeak (bot_axis_grunt.cpp:326)
 BOOL CAxisGrunt :: FOkToSpeak( void )
 {
 // if someone else is talking, don't speak
@@ -339,7 +329,6 @@ BOOL CAxisGrunt :: FOkToSpeak( void )
 
 //=========================================================
 //=========================================================
-// .text:000c9080 CAxisGrunt::JustSpoke (bot_axis_grunt.cpp:348)
 void CAxisGrunt :: JustSpoke( void )
 {
 	CTalkMonster::g_talkWaitTime = gpGlobals->time + RANDOM_FLOAT(1.5, 2.0);
@@ -350,7 +339,6 @@ void CAxisGrunt :: JustSpoke( void )
 // PrescheduleThink - this function runs after conditions
 // are collected and before scheduling code is run.
 //=========================================================
-// .text:000c7ce0 CAxisGrunt::PrescheduleThink (bot_axis_grunt.cpp:358)
 void CAxisGrunt :: PrescheduleThink ( void )
 {
 	if ( InSquad() && m_hEnemy != NULL )
@@ -383,7 +371,6 @@ void CAxisGrunt :: PrescheduleThink ( void )
 // this is a bad bug. Friendly machine gun fire avoidance
 // will unecessarily prevent the throwing of a grenade as well.
 //=========================================================
-// .text:000c6540 CAxisGrunt::FCanCheckAttacks (bot_axis_grunt.cpp:393)
 BOOL CAxisGrunt :: FCanCheckAttacks ( void )
 {
 	if ( !HasConditions( bits_COND_ENEMY_TOOFAR ) )
@@ -400,7 +387,6 @@ BOOL CAxisGrunt :: FCanCheckAttacks ( void )
 //=========================================================
 // CheckMeleeAttack1
 //=========================================================
-// .text:000c68e0 CAxisGrunt::CheckMeleeAttack1 (bot_axis_grunt.cpp:406)
 BOOL CAxisGrunt :: CheckMeleeAttack1 ( float flDot, float flDist )
 {
 	CBaseMonster *pEnemy;
@@ -432,7 +418,6 @@ BOOL CAxisGrunt :: CheckMeleeAttack1 ( float flDot, float flDist )
 // occluded (throw grenade over wall, etc). We must 
 // disqualify the machine gun attack if the enemy is occluded.
 //=========================================================
-// .text:000c71b0 CAxisGrunt::CheckRangeAttack1 (bot_axis_grunt.cpp:437)
 BOOL CAxisGrunt :: CheckRangeAttack1 ( float flDot, float flDist )
 {
 	if ( !HasConditions( bits_COND_ENEMY_OCCLUDED ) && flDist <= 2048 && flDot >= 0.5 && NoFriendlyFire() )
@@ -463,7 +448,6 @@ BOOL CAxisGrunt :: CheckRangeAttack1 ( float flDot, float flDist )
 // CheckRangeAttack2 - this checks the Grunt's grenade
 // attack. 
 //=========================================================
-// .text:000c75e0 CAxisGrunt::CheckRangeAttack2 (bot_axis_grunt.cpp:467)
 BOOL CAxisGrunt :: CheckRangeAttack2 ( float flDot, float flDist )
 {
 	if (! FBitSet(pev->weapons, 0x10))
@@ -594,7 +578,6 @@ BOOL CAxisGrunt :: CheckRangeAttack2 ( float flDot, float flDist )
 //=========================================================
 // TraceAttack - make sure we're not taking it in the helmet
 //=========================================================
-// .text:000c70d0 CAxisGrunt::TraceAttack (bot_axis_grunt.cpp:552)
 void CAxisGrunt :: TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType)
 {
 	// check for helmet shot
@@ -623,7 +606,6 @@ void CAxisGrunt :: TraceAttack( entvars_t *pevAttacker, float flDamage, Vector v
 // needs to forget that he is in cover if he's hurt. (Obviously
 // not in a safe place anymore).
 //=========================================================
-// .text:000c6760 CAxisGrunt::TakeDamage (bot_axis_grunt.cpp:578)
 int CAxisGrunt :: TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType )
 {
 	Forget( bits_MEMORY_INCOVER );
@@ -635,7 +617,6 @@ int CAxisGrunt :: TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, f
 // SetYawSpeed - allows each sequence to have a different
 // turn rate associated with it.
 //=========================================================
-// .text:000c6560 CAxisGrunt::SetYawSpeed (bot_axis_grunt.cpp:589)
 void CAxisGrunt :: SetYawSpeed ( void )
 {
 	int ys;
@@ -679,7 +660,6 @@ void CAxisGrunt :: SetYawSpeed ( void )
 	pev->yaw_speed = ys;
 }
 
-// .text:000c7fa0 CAxisGrunt::IdleSound (bot_axis_grunt.cpp:632)
 void CAxisGrunt :: IdleSound( void )
 {
 	if (FOkToSpeak() && (g_fGruntQuestion || RANDOM_LONG(0,1)))
@@ -723,7 +703,6 @@ void CAxisGrunt :: IdleSound( void )
 // CheckAmmo - overridden for the grunt because he actually
 // uses ammo! (base class doesn't)
 //=========================================================
-// .text:000c65a0 CAxisGrunt::CheckAmmo (bot_axis_grunt.cpp:675)
 void CAxisGrunt :: CheckAmmo ( void )
 {
 	if ( m_cAmmoLoaded <= 0 )
@@ -736,7 +715,6 @@ void CAxisGrunt :: CheckAmmo ( void )
 // Classify - indicates this monster's place in the 
 // relationship table.
 //=========================================================
-// .text:000c72e0 CAxisGrunt::Classify (bot_axis_grunt.cpp:687)
 int CAxisGrunt :: Classify( void )
 {
 	if ( m_iClass == 0 )
@@ -774,7 +752,6 @@ CBaseEntity *CAxisGrunt :: Kick( void )
 // GetGunPosition	return the end of the barrel
 //=========================================================
 
-// .text:000c65c0 CAxisGrunt::GetGunPosition (bot_axis_grunt.cpp:724)
 Vector CAxisGrunt :: GetGunPosition( )
 {
 	if (m_fStanding )
@@ -790,8 +767,6 @@ Vector CAxisGrunt :: GetGunPosition( )
 //=========================================================
 // Shoot
 //=========================================================
-// .text:000c99c0 CAxisGrunt::Shoot (bot_axis_grunt.cpp:739)
-// .text:000b78e0 CAxisGrunt::Shoot part (bot_axis_grunt.cpp:738)
 void CAxisGrunt :: Shoot( void )
 {
 	if ( m_hEnemy == NULL )
@@ -833,7 +808,6 @@ void CAxisGrunt :: Shoot( void )
 // HandleAnimEvent - catches the monster-specific messages
 // that occur when tagged animation frames are played.
 //=========================================================
-// .text:000c9190 CAxisGrunt::HandleAnimEvent (bot_axis_grunt.cpp:778)
 void CAxisGrunt :: HandleAnimEvent( MonsterEvent_t *pEvent )
 {
 	Vector vecShootDir;
@@ -923,7 +897,6 @@ void CAxisGrunt :: HandleAnimEvent( MonsterEvent_t *pEvent )
 //=========================================================
 // Spawn
 //=========================================================
-// .text:000c6cd0 CAxisGrunt::Spawn (bot_axis_grunt.cpp:935)
 void CAxisGrunt::Spawn( void )
 {
 	Precache();
@@ -974,7 +947,6 @@ void CAxisGrunt::Spawn( void )
 //=========================================================
 // Precache - precaches all resources this monster needs
 //=========================================================
-// .text:000c6620 CAxisGrunt::Precache (bot_axis_grunt.cpp:999)
 void CAxisGrunt::Precache( void )
 {
 	PRECACHE_MODEL( "models/axis_grunt.mdl" );
@@ -1002,7 +974,6 @@ void CAxisGrunt::Precache( void )
 //=========================================================
 // start task
 //=========================================================
-// .text:000c8f60 CAxisGrunt::StartTask (bot_axis_grunt.cpp:1034)
 void CAxisGrunt :: StartTask ( Task_t *pTask )
 {
 	m_iTaskStatus = TASKSTATUS_RUNNING;
@@ -1054,7 +1025,6 @@ void CAxisGrunt :: StartTask ( Task_t *pTask )
 //=========================================================
 // RunTask
 //=========================================================
-// .text:000c7430 CAxisGrunt::RunTask (bot_axis_grunt.cpp:1085)
 void CAxisGrunt :: RunTask ( Task_t *pTask )
 {
 	switch ( pTask->iTask )
@@ -1082,7 +1052,6 @@ void CAxisGrunt :: RunTask ( Task_t *pTask )
 //=========================================================
 // PainSound
 //=========================================================
-// .text:000c7e90 CAxisGrunt::PainSound (bot_axis_grunt.cpp:1112)
 void CAxisGrunt :: PainSound ( void )
 {
 	if ( gpGlobals->time > m_flNextPainTime )
@@ -1125,7 +1094,6 @@ void CAxisGrunt :: PainSound ( void )
 //=========================================================
 // DeathSound 
 //=========================================================
-// .text:000c7db0 CAxisGrunt::DeathSound (bot_axis_grunt.cpp:1154)
 void CAxisGrunt :: DeathSound ( void )
 {
 	switch ( RANDOM_LONG(0,2) )
@@ -1788,7 +1756,6 @@ IMPLEMENT_CUSTOM_SCHEDULES( CAxisGrunt, CSquadMonster );
 //=========================================================
 // SetActivity 
 //=========================================================
-// .text:000c6970 CAxisGrunt::SetActivity (bot_axis_grunt.cpp:1731)
 void CAxisGrunt :: SetActivity ( Activity NewActivity )
 {
 	int	iSequence = ACTIVITY_NOT_AVAILABLE;
@@ -2158,7 +2125,6 @@ Schedule_t *CAxisGrunt :: GetSchedule( void )
 
 //=========================================================
 //=========================================================
-// .text:000c8200 CAxisGrunt::GetScheduleOfType (bot_axis_grunt.cpp:2069)
 Schedule_t* CAxisGrunt :: GetScheduleOfType ( int Type ) 
 {
 	switch	( Type )
@@ -2330,7 +2296,6 @@ public:
 
 const char *CDeadAxisGrunt::m_szPoses[] = { "deadstomach", "deadside", "deadsitting" };
 
-// .text:000c74e0 CDeadAxisGrunt::KeyValue (bot_axis_grunt.cpp:2208)
 void CDeadAxisGrunt::KeyValue( KeyValueData *pkvd )
 {
 	if (FStrEq(pkvd->szKeyName, "pose"))
@@ -2346,7 +2311,6 @@ void CDeadAxisGrunt::KeyValue( KeyValueData *pkvd )
 //=========================================================
 // ********** DeadHGrunt SPAWN **********
 //=========================================================
-// .text:000c6770 CDeadAxisGrunt::Spawn (bot_axis_grunt.cpp:2224)
 void CDeadAxisGrunt :: Spawn( void )
 {
 	PRECACHE_MODEL("models/axis_grunt.mdl");
@@ -2390,15 +2354,10 @@ void CDeadAxisGrunt :: Spawn( void )
 }
 
 
-// .text:000c8e30 monster_axis_grunt (bot_axis_grunt.cpp:189)
 LINK_ENTITY_TO_CLASS( monster_axis_grunt, CAxisGrunt );
 
-// .text:000c99f0 monster_axisgrunt_dead (bot_axis_grunt.cpp:2218)
 LINK_ENTITY_TO_CLASS( monster_axisgrunt_dead, CDeadAxisGrunt );
 
-// .text:000c7310 CAxisGrunt::ScheduleFromName (bot_axis_grunt.cpp:1725)
 
-// .text:000c73d0 CAxisGrunt::Save (bot_axis_grunt.cpp:207)
 
-// .text:000c7370 CAxisGrunt::Restore (bot_axis_grunt.cpp:207)
 

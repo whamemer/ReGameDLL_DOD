@@ -461,13 +461,11 @@ void CGrenade ::UseSatchelCharges( entvars_t *pevOwner, SATCHELCODE code )
 
 //======================end grenade
 
-// .text:001054b0 CGrenade::Precache (ggrenade.cpp:63)
 void CGrenade::Precache( void )
 {
 	m_iBodyGibs = PRECACHE_MODEL( "models/rockgibs.mdl" );
 }
 
-// .text:00106600 CGrenade::RemoveMe (ggrenade.cpp:46)
 void CGrenade::RemoveMe( void )
 {
 	pev->nextthink = gpGlobals->time;
@@ -481,9 +479,6 @@ void CGrenade::RemoveMe( void )
 
 // DoD grenade touches (restore/weapons/ggrenade.cpp: MortarShell/Rocket/ShootPickup PORTED)
 // SDK base (Bounce/Slide/Explode/Smoke/Tumble/Danger) untouched above.
-// .text:00106ae0 CGrenade::MortarShellExplodeTouch(CBaseEntity*) (ggrenade.cpp:310) size 1576
-// .text:00107140 CGrenade::RocketExplodeTouch(CBaseEntity*) (ggrenade.cpp:379) size 1613
-// .text:00107b50 CGrenade::ShootPickup(entvars_t*,Vector,Vector,float,grenType,float) (ggrenade.cpp:762) size 646
 #include "func_break.h"
 #include "combat.h"
 #include "enginecallback.h"

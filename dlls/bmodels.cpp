@@ -66,7 +66,6 @@ class CFuncWall : public CBaseEntity
 
 LINK_ENTITY_TO_CLASS( func_wall, CFuncWall );
 
-// .text:000c18c0 CFuncWall::GetState (0x22)
 STATE CFuncWall ::GetState( void )
 {
 	if ( pev->frame != 0 )
@@ -150,7 +149,6 @@ void CFuncWallToggle ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 	}
 }
 
-// .text:000c0aa0 CFuncWallToggle::RoundRespawn (0x83)
 void CFuncWallToggle ::RoundRespawn( void )
 {
 	if ( !FBitSet( pev->spawnflags, SF_WALL_START_OFF ) )
@@ -167,7 +165,6 @@ void CFuncWallToggle ::RoundRespawn( void )
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );
 }
 
-// .text:000c1900 CFuncWallToggle::GetState (0x16)
 STATE CFuncWallToggle ::GetState( void )
 {
 	if ( pev->solid == SOLID_NOT )
@@ -232,7 +229,6 @@ void CFuncConveyor ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 	UpdateSpeed( pev->speed );
 }
 
-// .text:000c19a0 CFuncConveyor::RoundRespawn (0x70)
 void CFuncConveyor ::RoundRespawn( void )
 {
 	int speedCode = (int) ( fabs( pev->speed ) * 16.0 );
@@ -557,7 +553,6 @@ void CFuncRotating ::Precache( void )
 	}
 }
 
-// .text:000bf1f0 CFuncRotating::RoundRespawn (0x16a)
 void CFuncRotating ::RoundRespawn( void )
 {
 	float flVolume = m_flVolume;
@@ -593,7 +588,6 @@ void CFuncRotating ::RoundRespawn( void )
 	}
 }
 
-// .text:000c1950 CFuncRotating::GetState (0xb)
 STATE CFuncRotating ::GetState( void )
 {
 	return m_iState;
@@ -905,7 +899,6 @@ void CPendulum ::Spawn( void )
 	}
 }
 
-// .text:000bf9e0 CPendulum::RoundRespawn (0x103)
 void CPendulum ::RoundRespawn( void )
 {
 	float flDistance = fabs( m_distance );
@@ -928,7 +921,6 @@ void CPendulum ::RoundRespawn( void )
 	}
 }
 
-// .text:000c1970 CPendulum::GetState (0x22)
 STATE CPendulum ::GetState( void )
 {
 	if ( pev->speed != 0 )

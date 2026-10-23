@@ -212,16 +212,12 @@ class GenericAmmoBritish : public GenericAmmoAmerican
 	void Spawn();
 };
 
-// .text:0016e110 ammo_generic_american (file:weapons.cpp:2104)
 // Factory only allocates the entity (GetClassPtr); Spawn is invoked by the
 // engine via DispatchSpawn. DoD binary factory does NOT call Spawn.
 LINK_ENTITY_TO_CLASS( ammo_generic_american, GenericAmmoAmerican );
-// .text:0016e180 ammo_generic_german (file:weapons.cpp:2105)
 LINK_ENTITY_TO_CLASS( ammo_generic_german, GenericAmmoGerman );
-// .text:0016e1f0 ammo_generic_british (file:weapons.cpp:2106)
 LINK_ENTITY_TO_CLASS( ammo_generic_british, GenericAmmoBritish );
 
-// .text:0016e4f0 GenericAmmoAmerican::Spawn (file:weapons.h:1498)
 void GenericAmmoAmerican::Spawn()
 {
 	Precache();
@@ -234,7 +230,6 @@ void GenericAmmoAmerican::Spawn()
 	pev->team = TEAM_ALLIES;	// Allies
 }
 
-// .text:0016e340 GenericAmmoAmerican::Precache (file:weapons.h:1519)
 void GenericAmmoAmerican::Precache()
 {
 	PRECACHE_MODEL( "models/allied_ammo.mdl" );
@@ -242,7 +237,6 @@ void GenericAmmoAmerican::Precache()
 	PRECACHE_SOUND( "items/ammopickup.wav" );
 }
 
-// .text:0016e5b0 GenericAmmoAmerican::AddAmmo (file:weapons.h:1506)
 // Shared give logic lives in CBasePlayerAmmo::GiveGenericAmmo (weapons agent).
 BOOL GenericAmmoAmerican::AddAmmo( CBaseEntity *pOther )
 {
@@ -254,7 +248,6 @@ BOOL GenericAmmoAmerican::AddAmmo( CBaseEntity *pOther )
 	return FALSE;
 }
 
-// .text:0016e370 GenericAmmoGerman::Spawn (file:weapons.h:1530)
 void GenericAmmoGerman::Spawn()
 {
 	Precache();
@@ -267,7 +260,6 @@ void GenericAmmoGerman::Spawn()
 	pev->team = TEAM_AXIS;	// Axis
 }
 
-// .text:0016e430 GenericAmmoBritish::Spawn (file:weapons.h:1542)
 // QUIRK: British box uses the Allied model and team 1 (same as American).
 void GenericAmmoBritish::Spawn()
 {

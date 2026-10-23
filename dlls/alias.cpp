@@ -83,7 +83,6 @@ CBaseEntity *UTIL_FollowAliasReference( CBaseEntity *pStartEntity, const char *s
 CBaseEntity *UTIL_FollowGroupReference( CBaseEntity *pStartEntity, const char *szGroupName, const char *szMemberName );
 CBaseEntity *UTIL_FollowReference( CBaseEntity *pStartEntity, const char *szName );
 
-// .text:00161bc0 UTIL_FollowAliasReference (util.cpp:800, helper for alias, provided for link)
 CBaseEntity *UTIL_FollowAliasReference( CBaseEntity *pStartEntity, const char *szValue )
 {
 	CBaseEntity *pBest = 0;
@@ -126,7 +125,6 @@ CBaseEntity *UTIL_FollowAliasReference( CBaseEntity *pStartEntity, const char *s
 	}
 	return pBest;
 }
-// .text:00161d60 UTIL_FollowGroupReference (util.cpp:810, helper for alias, provided for link)
 CBaseEntity *UTIL_FollowGroupReference( CBaseEntity *pStartEntity, const char *szGroupName, const char *szMemberName )
 {
 	char buf[80];
@@ -186,7 +184,6 @@ CBaseEntity *UTIL_FollowGroupReference( CBaseEntity *pStartEntity, const char *s
 	}
 	return pBest;
 }
-// .text:00161f40 UTIL_FollowReference (util.cpp:822, helper for alias, provided for link)
 CBaseEntity *UTIL_FollowReference( CBaseEntity *pStartEntity, const char *szName )
 {
 	if ( szName == 0 || *szName == 0 )
@@ -209,7 +206,6 @@ CBaseEntity *UTIL_FollowReference( CBaseEntity *pStartEntity, const char *szName
 	return UTIL_FollowGroupReference( pStartEntity, root, szName + n + 1 );
 }
 
-// .text:000b9d10 CInfoAlias::Spawn (alias.cpp:47)
 void CInfoAlias::Spawn()
 {
 	RoundStore();
@@ -220,7 +216,6 @@ void CInfoAlias::Spawn()
 		pev->netname = tmp;
 	}
 }
-// .text:000b9d50 CInfoAlias::RoundRespawn (alias.cpp:60)
 void CInfoAlias::RoundRespawn()
 {
 	if ( pev->spawnflags & SF_ALIAS_OFF )
@@ -230,7 +225,6 @@ void CInfoAlias::RoundRespawn()
 		pev->netname = tmp;
 	}
 }
-// .text:000b98b0 CInfoAlias::Think (alias.cpp:79)
 void CInfoAlias::Think()
 {
 	if ( ( pev->spawnflags & SF_ALIAS_OFF ) == 0 )
@@ -255,24 +249,19 @@ void CInfoAlias::Think()
 	if ( pev->spawnflags & SF_ALIAS_DEBUG )
 		ALERT( at_console, ": target becomes %s", STRING( pev->target ) );
 }
-// .text:000ba0c0 CInfoAlias::Use (alias.cpp:71)
 void CInfoAlias::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if ( ShouldToggle( useType, GetState() ) )
 		pev->nextthink = gpGlobals->time;
 }
-// .text:000bad20 CInfoAlias::ObjectCaps (alias.cpp:36)
 int CInfoAlias::ObjectCaps()
 {
 	return 0;
 }
-// .text:000bad30 CInfoAlias::GetState (alias.cpp:41)
 STATE CInfoAlias::GetState()
 {
 	return ( pev->spawnflags & SF_ALIAS_OFF ) ? STATE_OFF : STATE_ON;
 }
-// .text:000ba100 info_alias (alias.cpp:44)
-// .text:000b9e50 CInfoGroup::KeyValue (alias.cpp:124)
 void CInfoGroup::KeyValue( KeyValueData *pkvd )
 {
 	if ( m_cMembers < 16 )
@@ -287,7 +276,6 @@ void CInfoGroup::KeyValue( KeyValueData *pkvd )
 	else
 		ALERT( at_error, "Too many members for info_group %s (limit is %d)", STRING( pev->targetname ), 16 );
 }
-// .text:000b9bd0 CInfoGroup::Think (alias.cpp:148)
 void CInfoGroup::Think()
 {
 	CBaseEntity *pT = UTIL_FindEntityByTargetname( 0, STRING( pev->target ) );
@@ -304,14 +292,10 @@ void CInfoGroup::Think()
 		ALERT( at_console, "info_group %s: alias %s was not found or not an alias!", STRING( pev->targetname ),
 			   STRING( pev->target ) );
 }
-// .text:000b99e0 CInfoGroup::Use (alias.cpp:144)
 void CInfoGroup::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	pev->nextthink = gpGlobals->time;
 }
-// .text:000ba060 CInfoGroup::Save (alias.cpp:121)
-// .text:000b9fa0 CInfoGroup::Restore (alias.cpp:121)
-// .text:000ba1e0 CInfoGroup::GetMember (alias.cpp:165)
 int CInfoGroup::GetMember( const char *szMemberName )
 {
 	if ( szMemberName == 0 )
@@ -327,8 +311,6 @@ int CInfoGroup::GetMember( const char *szMemberName )
 	ALERT( at_console, "info_group %s has no member called %s.", STRING( pev->targetname ), szMemberName );
 	return 0;
 }
-// .text:000ba170 info_group (alias.cpp:112)
-// .text:000b9d80 CMultiAlias::KeyValue (alias.cpp:203)
 void CMultiAlias::KeyValue( KeyValueData *pkvd )
 {
 	if ( m_cTargets < 16 )
@@ -342,15 +324,10 @@ void CMultiAlias::KeyValue( KeyValueData *pkvd )
 	else
 		ALERT( at_error, "Too many targets for multi_alias %s (limit is %d)", STRING( pev->targetname ), 16 );
 }
-// .text:000ba000 CMultiAlias::Save (alias.cpp:200)
-// .text:000b9f40 CMultiAlias::Restore (alias.cpp:200)
-// .text:000ba2a0 multi_alias (alias.cpp:192)
-// .text:000b9a00 CTriggerChangeAlias::Spawn (alias.cpp:241)
 void CTriggerChangeAlias::Spawn()
 {
 	return;
 }
-// .text:000b9a10 CTriggerChangeAlias::Use (alias.cpp:244)
 void CTriggerChangeAlias::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	CBaseEntity *pAlias = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ) );
@@ -381,10 +358,8 @@ void CTriggerChangeAlias::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, US
 		ALERT( at_console, "DEBUG: trigger_changealias %s activated: changed contents of alias \"%s\" to \"%s\"\n",
 			   STRING( pev->targetname ), STRING( pAlias->pev->targetname ), STRING( iNewValue ) );
 }
-// .text:000bad50 CTriggerChangeAlias::ObjectCaps (alias.cpp:235)
 int CTriggerChangeAlias::ObjectCaps()
 {
 	return 0;
 }
-// .text:000ba310 trigger_changealias (alias.cpp:237)
 // NOTE: CBaseEntity::Illumination (alias.cpp:270) skipped, already inline in cbase.h

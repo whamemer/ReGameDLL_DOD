@@ -349,9 +349,6 @@ class CDodParaRoundTimer : public CBaseEntity
 };
 
 // particle_shooter (CParticleShooter, objectives.cpp:661-775)
-// .text:0011f440 Precache, .text:0011fe20 KeyValue, .text:00120f00 FindTargetEntity,
-// .text:00121030 SendUpdate, .text:00121110 UpdateJoiningPlayer (thunk to SendUpdate),
-// .text:00121120 RoundRespawn, .text:00121190 Use
 class CParticleShooter : public CBaseDelay
 {
   public:
@@ -373,8 +370,6 @@ class CParticleShooter : public CBaseDelay
 };
 
 // env_weather (CWeatherSystem, objectives.cpp:813-855)
-// .text:0011f4c0 InitThink, .text:0011f520 Precache,
-// .text:0011fd20 KeyValue, .text:00121200 SendForecast, .text:00121270 SendData
 class CWeatherSystem : public CBaseEntity
 {
   public:
@@ -390,7 +385,6 @@ class CWeatherSystem : public CBaseEntity
 };
 
 // dod_score_ent (CScoreEvent, objectives.cpp:445-539)
-// .text:0011f5d0 ScoreEventUse, .text:0011ff20 KeyValue, .text:001200a0 ScoreThink
 class CScoreEvent : public CBaseEntity
 {
   public:

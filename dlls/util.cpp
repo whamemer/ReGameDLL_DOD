@@ -569,7 +569,6 @@ found:
 	return NULL;
 }
 
-// .text:00161990
 CBaseEntity *UTIL_FindEntityByString_Old( CBaseEntity *pStartEntity, const char *szKeyword, const char *szValue )
 {
 	edict_t *pentEntity = NULL;
@@ -1024,7 +1023,6 @@ void UTIL_SetOrigin( entvars_t *pev, const Vector &vecOrigin )
 		SET_ORIGIN( ent, vecOrigin );
 }
 
-// .text:001630c0
 void UTIL_SetEdictOrigin( edict_t *pEdict, const Vector &vecOrigin )
 {
 	SET_ORIGIN( pEdict, vecOrigin );
@@ -2516,7 +2514,6 @@ void UTIL_ShowMessageAll( const char *pString, BOOL bHintMsg )
 	}
 }
 
-// .text:0016a000
 void UTIL_SendDirectorMessage( CBaseEntity *pEntity, CBaseEntity *pOther, int msg )
 {
 	MESSAGE_BEGIN( MSG_SPEC, SVC_DIRECTOR, NULL, (edict_t *) NULL );
@@ -2534,7 +2531,6 @@ void UTIL_SendDirectorMessage( CBaseEntity *pEntity, CBaseEntity *pOther, int ms
 	MESSAGE_END();
 }
 
-// .text:00164690
 const char *GetStringForUseType( USE_TYPE useType )
 {
 	switch ( useType )
@@ -2555,7 +2551,6 @@ const char *GetStringForUseType( USE_TYPE useType )
 	return "USE_UNKNOWN!?";
 }
 
-// .text:00169cf0
 void UTIL_EffectPrint( CBasePlayer *pPlayer, int color, int effect, int channel, char *text )
 {
 	hudtextparms_t parms;

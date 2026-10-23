@@ -415,7 +415,6 @@ void CPathTrack ::Sparkle( void )
 }
 #endif
 
-// .text:00112600 CPathTrack::RoundRespawn (0x5a)
 void CPathTrack::RoundRespawn( void )
 {
 	UTIL_SetSize( pev, Vector( -8, -8, -8 ), Vector( 8, 8, 8 ) );
@@ -423,7 +422,6 @@ void CPathTrack::RoundRespawn( void )
 	m_pprevious = NULL;
 }
 
-// .text:001137b0 CPathCorner::RoundRespawn (file:pathcorner.cpp)
 void CPathCorner::RoundRespawn( void )
 {
 }

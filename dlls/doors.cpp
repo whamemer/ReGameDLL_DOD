@@ -1069,7 +1069,6 @@ void CMomentaryDoor::DoorMoveDone( void )
 	EMIT_SOUND( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseArrived ), 1, ATTN_NORM );
 }
 
-// .text:000dfdc0 CBaseDoor::RoundRespawn (0x1be)
 void CBaseDoor::RoundRespawn( void )
 {
 	STOP_SOUND( ENT( pev ), CHAN_STATIC, (char *)STRING( pev->noiseMoving ) );
@@ -1089,7 +1088,6 @@ void CBaseDoor::RoundRespawn( void )
 		SetTouch( NULL );
 }
 
-// .text:000df050 CRotDoor::RoundRespawn (0x122)
 void CRotDoor::RoundRespawn( void )
 {
 	m_vecAngle1 = pev->angles;
@@ -1113,7 +1111,6 @@ void CRotDoor::RoundRespawn( void )
 		SetTouch( NULL );
 }
 
-// .text:000f00a0 CMomentaryDoor::MomentaryMove (file:doors.cpp)
 void CMomentaryDoor::MomentaryMove( void )
 {
 	Vector vecDest = m_vecFinalDest;
@@ -1129,7 +1126,6 @@ void CMomentaryDoor::MomentaryMove( void )
 	pev->velocity = vecDestDelta / flTravelTime;
 }
 
-// .text:000eff80 CMomentaryDoor::MomentaryMoveDone (file:doors.cpp)
 void CMomentaryDoor::MomentaryMoveDone( void )
 {
 	ALERT( at_console, "THINK: MomentaryMove DONE\n" );
@@ -1143,17 +1139,14 @@ void CMomentaryDoor::MomentaryMoveDone( void )
 	EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, (char *)STRING( pev->noiseMoving ), 0.0, 0.0, 0x20, 100 );
 }
 
-// .text:000c9ed0 CBaseDoor::Activate (file:doors.cpp)
 void CBaseDoor::Activate( void )
 {
 }
 
-// .text:000b9ee0 CRotDoor::Activate (file:doors.cpp)
 void CRotDoor::Activate( void )
 {
 }
 
-// .text:000ef180 CMomentaryDoor::Activate (file:doors.cpp)
 void CMomentaryDoor::Activate( void )
 {
 }

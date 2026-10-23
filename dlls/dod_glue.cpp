@@ -61,7 +61,6 @@ cvar_t *pcvar_mp_axisclasses;
 
 #define PCVAR( name ) pcvar_##name = g_engfuncs.pfnCVarGetPointer( #name )
 
-// .text:0011d460 GetCVARPointers (dod/dlls/player.cpp:547)
 void GetCVARPointers( void )
 {
 	PCVAR( developer );
@@ -184,34 +183,29 @@ static CBasePlayer *DodPlayerFromEdict( const edict_t *pEdict )
 	return (CBasePlayer *)pEnt->pvPrivateData;
 }
 
-// .text:00124d30 GetPlayerGaitYaw
 float GetPlayerGaitYaw( const edict_t *pEdict )
 {
 	CBasePlayer *p = DodPlayerFromEdict( pEdict );
 	return p ? p->m_flGaityaw : 0.0f;
 }
 
-// .text:00124d80 GetPlayerPitch
 float GetPlayerPitch( const edict_t *pEdict )
 {
 	CBasePlayer *p = DodPlayerFromEdict( pEdict );
 	return p ? p->m_flPitch : 0.0f;
 }
 
-// .text:00124dd0 GetPlayerYaw
 float GetPlayerYaw( const edict_t *pEdict )
 {
 	CBasePlayer *p = DodPlayerFromEdict( pEdict );
 	return p ? p->m_flYaw : 0.0f;
 }
 
-// .text:00124d00 GetPlayerPitchBlend
 float GetPlayerPitchBlend( const edict_t *pEdict )
 {
 	return pEdict ? (float)pEdict->v.blending[1] : 0.0f;
 }
 
-// .text:00124e20 GetPlayerGaitsequence
 int GetPlayerGaitsequence( const edict_t *pEdict )
 {
 	CBasePlayer *p = DodPlayerFromEdict( pEdict );
@@ -234,7 +228,6 @@ LINK_ENTITY_TO_CLASS( info_initial_player_axis, CBaseEntity )
 #undef CREATE_ENTITY
 extern CBaseEntity *g_pLastSpawn;
 
-// .text:0012f6d0 ReturnSpot
 edict_t *ReturnSpot( CBaseEntity *pSpot, CBasePlayer *cbPlayer, BOOL bJustChecking )
 {
 	if ( pSpot != NULL && pSpot->pev->pContainingEntity != NULL &&
@@ -251,7 +244,6 @@ edict_t *ReturnSpot( CBaseEntity *pSpot, CBasePlayer *cbPlayer, BOOL bJustChecki
 	return NULL;
 }
 
-// .text:000d0370 CREATE_NAMED_ENTITY
 edict_t *CREATE_NAMED_ENTITY( string_t iClass )
 {
 	edict_t *named = ( *g_engfuncs.pfnCreateNamedEntity )( iClass );
@@ -260,7 +252,6 @@ edict_t *CREATE_NAMED_ENTITY( string_t iClass )
 	return named;
 }
 
-// .text:000d03e0 REMOVE_ENTITY
 void REMOVE_ENTITY( edict_t *e )
 {
 	( *g_engfuncs.pfnRemoveEntity )( e );
@@ -274,28 +265,23 @@ LINK_ENTITY_TO_CLASS( dod_ammo, CDodAmmoBox )
 // Debug / console helpers present in the shipped dod.so (cbase.cpp /
 // animation.cpp). Inert at runtime; provided for symbol/ABI parity.
 // ---------------------------------------------------------------------------
-// .text:000c03f0 printEntities()
 void printEntities( void )
 {
 }
 
-// .text:000c04e0 loopPerformance()
 void loopPerformance( void )
 {
 }
 
-// .text:000bfdb0 TestForEntityHashCollisions()
 void TestForEntityHashCollisions( void )
 {
 }
 
-// .text:000aeee0 DrawBox(float (*)[3], unsigned char, unsigned char, unsigned char)
 void DrawBox( float ( *rgflVertices )[3], unsigned char r, unsigned char g, unsigned char b )
 {
 	( void )rgflVertices; ( void )r; ( void )g; ( void )b;
 }
 
-// .text:000aee00 DrawLine(float*, float*, unsigned char, unsigned char, unsigned char)
 void DrawLine( float *rgflStart, float *rgflEnd, unsigned char r, unsigned char g, unsigned char b )
 {
 	( void )rgflStart; ( void )rgflEnd; ( void )r; ( void )g; ( void )b;

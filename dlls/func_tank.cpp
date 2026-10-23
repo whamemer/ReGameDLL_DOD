@@ -1026,7 +1026,6 @@ void CFuncTankControls::Spawn( void )
 	CBaseEntity::Spawn();
 }
 
-// .text:00101ff0 CFuncTank::BestVisibleEnemy (file:func_tank.cpp)
 CBaseEntity *CFuncTank::BestVisibleEnemy( void )
 {
 	int iLookDist = ( m_maxRange > 512.0f ) ? (int)m_maxRange : 512;
@@ -1061,7 +1060,6 @@ CBaseEntity *CFuncTank::BestVisibleEnemy( void )
 	return pReturn;
 }
 
-// .text:00101ea0 CFuncTank::IRelationship (file:func_tank.cpp)
 int CFuncTank::IRelationship( CBaseEntity *pTarget )
 {
 	int iOtherClass = pTarget->Classify();
@@ -1109,12 +1107,10 @@ int CFuncTank::IRelationship( CBaseEntity *pTarget )
 	return 0;
 }
 
-// .text:00101e70 CFuncTank::UpdateSpot (file:func_tank.cpp)
 void CFuncTank::UpdateSpot( void )
 {
 }
 
-// .text:001030f0 CFuncTank::TrackThink (file:func_tank.cpp)
 void CFuncTank::TrackThink( void )
 {
 	pev->avelocity = g_vecZero;
@@ -1135,7 +1131,6 @@ void CFuncTank::TrackThink( void )
 	}
 }
 
-// .text:00100c10 CFuncTankControls::OnControls (file:func_tank.cpp)
 BOOL CFuncTankControls::OnControls( entvars_t *pevTest )
 {
 	if ( pev->spawnflags & SF_TANK_CANCONTROL )

@@ -11,32 +11,26 @@
 #include "skill.h"
 #include "items.h"
 // SDK-IDENTICAL: dlls/singleplay_gamerules.cpp CHalfLifeRules Think empty
-// .text:00140fd0 void CSPDoDRules::Think() (dod/dlls/singleplay_gamerules.cpp:0)
 void CSPDoDRules::Think( void )
 {
 	return;
 }
-// .text:00141100 void CSPDoDRules::PlayerKilled(CBasePlayer*, entvars_t*, entvars_t*, int) (dod/dlls/singleplay_gamerules.cpp:0)
 void CSPDoDRules::PlayerKilled( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags )
 {
 	return;
 }
-// .text:00141110 void CSPDoDRules::DeathNotice(CBasePlayer*, entvars_t*, entvars_t*, int) (dod/dlls/singleplay_gamerules.cpp:0)
 void CSPDoDRules::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags )
 {
 	return;
 }
-// .text:001415e0 void CSPDoDRules::PlayerDeathThink(CBasePlayer*) (dod/dlls/singleplay_gamerules.cpp:0)
 void CSPDoDRules::PlayerDeathThink( CBasePlayer *pPlayer )
 {
 	return;
 }
-// .text:001410c0 void CSPDoDRules::PlayerThink(CBasePlayer*) (dod/dlls/singleplay_gamerules.cpp:0)
 void CSPDoDRules::PlayerThink( CBasePlayer *pPlayer )
 {
 	return;
 }
-// .text:00141600 void CSPDoDRules::PlayerSpawn(CBasePlayer*) (dod/dlls/singleplay_gamerules.cpp:0)
 void CSPDoDRules::PlayerSpawn( CBasePlayer *pPlayer )
 {
 	CBaseEntity *e = NULL;
@@ -46,28 +40,23 @@ void CSPDoDRules::PlayerSpawn( CBasePlayer *pPlayer )
 	pPlayer->m_iClassSpeed = 600;
 	pPlayer->SetSpeed( 600 );
 }
-// .text:00141780 void CSPDoDRules::CSPDoDRules() (dod/dlls/singleplay_gamerules.cpp:0)
 CSPDoDRules::CSPDoDRules( void )
 {
 	CGameRules::RefreshSkillData();
 }
-// .text:00141050 BOOL CSPDoDRules::ClientConnected(edict_t*, char*, char*, char*) (dod/dlls/singleplay_gamerules.cpp:0)
 BOOL CSPDoDRules::ClientConnected( edict_t *pEntity, char *pszName, char *pszAddress, char *szRejectReason )
 {
 	return TRUE;
 }
-// .text:00141060 void CSPDoDRules::InitHUD(CBasePlayer*) (dod/dlls/singleplay_gamerules.cpp:0)
 void CSPDoDRules::InitHUD( CBasePlayer *pPlayer )
 {
 	return;
 }
-// .text:00141070 void CSPDoDRules::ClientDisconnected(edict_t*) (dod/dlls/singleplay_gamerules.cpp:0)
 void CSPDoDRules::ClientDisconnected( edict_t *pClient )
 {
 	return;
 }
 
-// .text:00141010 BOOL CSPDoDRules::FShouldSwitchWeapon(CBasePlayer*,CBasePlayerItem*) (dod/dlls/singleplay_gamerules.cpp:80)
 BOOL CSPDoDRules::FShouldSwitchWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon )
 {
 	if ( !pPlayer->m_pActiveItem )
@@ -76,33 +65,27 @@ BOOL CSPDoDRules::FShouldSwitchWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pW
 		return FALSE;
 	return TRUE;
 }
-// .text:00141080 float CSPDoDRules::FlPlayerFallDamage(CBasePlayer*) (dod/dlls/singleplay_gamerules.cpp:122)
 float CSPDoDRules::FlPlayerFallDamage( CBasePlayer *pPlayer )
 {
 	pPlayer->m_flFallVelocity -= 500.0f;
 	return pPlayer->m_flFallVelocity * 100.0f / 400.0f;
 }
-// .text:00141150 Vector CSPDoDRules::VecWeaponRespawnSpot(CBasePlayerItem*) (dod/dlls/singleplay_gamerules.cpp:232)
 Vector CSPDoDRules::VecWeaponRespawnSpot( CBasePlayerItem *pWeapon )
 {
 	return pWeapon->pev->origin;
 }
-// .text:001411c0 Vector CSPDoDRules::VecItemRespawnSpot(CItem*) (dod/dlls/singleplay_gamerules.cpp:279)
 Vector CSPDoDRules::VecItemRespawnSpot( CItem *pItem )
 {
 	return pItem->pev->origin;
 }
-// .text:00141220 Vector CSPDoDRules::VecAmmoRespawnSpot(CBasePlayerAmmo*) (dod/dlls/singleplay_gamerules.cpp:313)
 Vector CSPDoDRules::VecAmmoRespawnSpot( CBasePlayerAmmo *pAmmo )
 {
 	return pAmmo->pev->origin;
 }
-// .text:001410b0 BOOL CSPDoDRules::AllowAutoTargetCrosshair() (dod/dlls/singleplay_gamerules.cpp:152)
 BOOL CSPDoDRules::AllowAutoTargetCrosshair( void )
 {
 	return ( g_iSkillLevel == SKILL_EASY );
 }
-// .text:00141660 BOOL CSPDoDRules::CanHavePlayerItem(CBasePlayer*,CBasePlayerItem*) (dod/dlls/singleplay_gamerules.cpp:572)
 BOOL CSPDoDRules::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon )
 {
 	int wid = pWeapon->m_iId;

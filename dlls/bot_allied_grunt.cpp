@@ -5,7 +5,6 @@
 // Strings: models/allied_grunt.mdl, weapons/garand_shoot.wav, weapons/bar_shoot.wav,
 //   weapons/thompson_shoot.wav, weapons/colt_shoot.wav, hgrunt/gr_die1-3.wav, hgrunt/gr_pain1-5.wav,
 //   hgrunt/gr_reload1.wav, zombie/claw_miss2.wav, sentences ALLIEDG_* (see below)
-// .text:000c5900 monster_allied_grunt (bot_allied_grunt.cpp:189)
 #include	"extdll.h"
 #include	"plane.h"
 #include	"util.h"
@@ -20,16 +19,12 @@
 #include	"effects.h"
 #include	"customentity.h"
 
-// .text:000c6430 monster_alliedgrunt_dead (bot_allied_grunt.cpp:2218)
 
 // Sentence table at 0x1d2bc0: index = ALLIEDGRUNT_SENT_*
 // 0 ALLIEDG_GREN, 1 ALLIEDG_ALERT, 2 ALLIEDG_MONSTER, 3 ALLIEDG_COVER,
 // 4 ALLIEDG_THROW, 5 ALLIEDG_CHARGE, 6 ALLIEDG_TAUNT
-// .text:000c5970 CAlliedGrunt::SpeakSentence (bot_allied_grunt.cpp:245)
 extern char *pAlliedGruntSentences[];
-// .text:000c4af0 CAlliedGrunt::IdleSound (bot_allied_grunt.cpp:632)
 // Idle uses ALLIEDG_ANSWER, ALLIEDG_CHECK, ALLIEDG_CLEAR, ALLIEDG_IDLE, ALLIEDG_QUEST
-// .text:000c50e0 CAlliedGrunt::GetSchedule (bot_allied_grunt.cpp:1836)
 // GetSchedule sets m_iSentence: 3 = COVER, 5 = CHARGE, plus ALLIEDG_ALERT/GREN/MONST/TAUNT/THROW
 
 // Schedules: externs from .data, same layout as SDK hgrunt sl* / tl*
@@ -240,7 +235,6 @@ enum
 // may still fail but in most cases, well after the grunt has 
 // started moving.
 //=========================================================
-// .text:000c5970 CAlliedGrunt::SpeakSentence (bot_allied_grunt.cpp:245)
 void CAlliedGrunt :: SpeakSentence( void )
 {
 	if ( m_iSentence == ALLIEDGRUNT_SENT_NONE )
@@ -260,7 +254,6 @@ void CAlliedGrunt :: SpeakSentence( void )
 // IRelationship - overridden because Alien Grunts are 
 // Human Grunt's nemesis.
 //=========================================================
-// .text:000c4050 CAlliedGrunt::IRelationship (bot_allied_grunt.cpp:264)
 int CAlliedGrunt :: IRelationship( CBaseEntity *pTarget )
 {
 	if ( FClassnameIs( pTarget->pev, "monster_axis_grunt" ) )
@@ -271,7 +264,6 @@ int CAlliedGrunt :: IRelationship( CBaseEntity *pTarget )
 //=========================================================
 // GibMonster - make gun fly through the air.
 //=========================================================
-// .text:000c3a40 CAlliedGrunt::GibMonster (bot_allied_grunt.cpp:277)
 void CAlliedGrunt :: GibMonster( void )
 {
 	Vector vecGunPos;
@@ -300,7 +292,6 @@ void CAlliedGrunt :: GibMonster( void )
 // hear the DANGER sound that is made by hand grenades and
 // other dangerous items.
 //=========================================================
-// .text:000c30f0 CAlliedGrunt::ISoundMask (bot_allied_grunt.cpp:318)
 int CAlliedGrunt :: ISoundMask ( void )
 {
 	return	bits_SOUND_WORLD	|
@@ -312,7 +303,6 @@ int CAlliedGrunt :: ISoundMask ( void )
 //=========================================================
 // someone else is talking - don't speak
 //=========================================================
-// .text:000c5b10 CAlliedGrunt::FOkToSpeak (bot_allied_grunt.cpp:326)
 BOOL CAlliedGrunt :: FOkToSpeak( void )
 {
 // if someone else is talking, don't speak
@@ -337,7 +327,6 @@ BOOL CAlliedGrunt :: FOkToSpeak( void )
 
 //=========================================================
 //=========================================================
-// .text:000c5b50 CAlliedGrunt::JustSpoke (bot_allied_grunt.cpp:348)
 void CAlliedGrunt :: JustSpoke( void )
 {
 	CTalkMonster::g_talkWaitTime = gpGlobals->time + RANDOM_FLOAT(1.5, 2.0);
@@ -348,7 +337,6 @@ void CAlliedGrunt :: JustSpoke( void )
 // PrescheduleThink - this function runs after conditions
 // are collected and before scheduling code is run.
 //=========================================================
-// .text:000c4830 CAlliedGrunt::PrescheduleThink (bot_allied_grunt.cpp:358)
 void CAlliedGrunt :: PrescheduleThink ( void )
 {
 	if ( InSquad() && m_hEnemy != NULL )
@@ -381,7 +369,6 @@ void CAlliedGrunt :: PrescheduleThink ( void )
 // this is a bad bug. Friendly machine gun fire avoidance
 // will unecessarily prevent the throwing of a grenade as well.
 //=========================================================
-// .text:000c3100 CAlliedGrunt::FCanCheckAttacks (bot_allied_grunt.cpp:393)
 BOOL CAlliedGrunt :: FCanCheckAttacks ( void )
 {
 	if ( !HasConditions( bits_COND_ENEMY_TOOFAR ) )
@@ -398,7 +385,6 @@ BOOL CAlliedGrunt :: FCanCheckAttacks ( void )
 //=========================================================
 // CheckMeleeAttack1
 //=========================================================
-// .text:000c34a0 CAlliedGrunt::CheckMeleeAttack1 (bot_allied_grunt.cpp:406)
 BOOL CAlliedGrunt :: CheckMeleeAttack1 ( float flDot, float flDist )
 {
 	CBaseMonster *pEnemy;
@@ -430,7 +416,6 @@ BOOL CAlliedGrunt :: CheckMeleeAttack1 ( float flDot, float flDist )
 // occluded (throw grenade over wall, etc). We must 
 // disqualify the machine gun attack if the enemy is occluded.
 //=========================================================
-// .text:000c3c90 CAlliedGrunt::CheckRangeAttack1 (bot_allied_grunt.cpp:437)
 BOOL CAlliedGrunt :: CheckRangeAttack1 ( float flDot, float flDist )
 {
 	if ( !HasConditions( bits_COND_ENEMY_OCCLUDED ) && flDist <= 2048 && flDot >= 0.5 && NoFriendlyFire() )
@@ -461,7 +446,6 @@ BOOL CAlliedGrunt :: CheckRangeAttack1 ( float flDot, float flDist )
 // CheckRangeAttack2 - this checks the Grunt's grenade
 // attack. 
 //=========================================================
-// .text:000c40c0 CAlliedGrunt::CheckRangeAttack2 (bot_allied_grunt.cpp:467)
 BOOL CAlliedGrunt :: CheckRangeAttack2 ( float flDot, float flDist )
 {
 	if (! FBitSet(pev->weapons, 0x10))
@@ -592,7 +576,6 @@ BOOL CAlliedGrunt :: CheckRangeAttack2 ( float flDot, float flDist )
 //=========================================================
 // TraceAttack - make sure we're not taking it in the helmet
 //=========================================================
-// .text:000c3bb0 CAlliedGrunt::TraceAttack (bot_allied_grunt.cpp:552)
 void CAlliedGrunt :: TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType)
 {
 	// check for helmet shot
@@ -621,7 +604,6 @@ void CAlliedGrunt :: TraceAttack( entvars_t *pevAttacker, float flDamage, Vector
 // needs to forget that he is in cover if he's hurt. (Obviously
 // not in a safe place anymore).
 //=========================================================
-// .text:000c3320 CAlliedGrunt::TakeDamage (bot_allied_grunt.cpp:578)
 int CAlliedGrunt :: TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType )
 {
 	Forget( bits_MEMORY_INCOVER );
@@ -633,7 +615,6 @@ int CAlliedGrunt :: TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker,
 // SetYawSpeed - allows each sequence to have a different
 // turn rate associated with it.
 //=========================================================
-// .text:000c3120 CAlliedGrunt::SetYawSpeed (bot_allied_grunt.cpp:589)
 void CAlliedGrunt :: SetYawSpeed ( void )
 {
 	int ys;
@@ -677,7 +658,6 @@ void CAlliedGrunt :: SetYawSpeed ( void )
 	pev->yaw_speed = ys;
 }
 
-// .text:000c4af0 CAlliedGrunt::IdleSound (bot_allied_grunt.cpp:632)
 void CAlliedGrunt :: IdleSound( void )
 {
 	if (FOkToSpeak() && (g_fAlliedGruntQuestion || RANDOM_LONG(0,1)))
@@ -721,7 +701,6 @@ void CAlliedGrunt :: IdleSound( void )
 // CheckAmmo - overridden for the grunt because he actually
 // uses ammo! (base class doesn't)
 //=========================================================
-// .text:000c3160 CAlliedGrunt::CheckAmmo (bot_allied_grunt.cpp:675)
 void CAlliedGrunt :: CheckAmmo ( void )
 {
 	if ( m_cAmmoLoaded <= 0 )
@@ -734,7 +713,6 @@ void CAlliedGrunt :: CheckAmmo ( void )
 // Classify - indicates this monster's place in the 
 // relationship table.
 //=========================================================
-// .text:000c3dc0 CAlliedGrunt::Classify (bot_allied_grunt.cpp:687)
 int CAlliedGrunt :: Classify( void )
 {
 	if ( m_iClass == 0 )
@@ -772,7 +750,6 @@ CBaseEntity *CAlliedGrunt :: Kick( void )
 // GetGunPosition	return the end of the barrel
 //=========================================================
 
-// .text:000c3180 CAlliedGrunt::GetGunPosition (bot_allied_grunt.cpp:724)
 Vector CAlliedGrunt :: GetGunPosition( )
 {
 	if (m_fStanding )
@@ -788,8 +765,6 @@ Vector CAlliedGrunt :: GetGunPosition( )
 //=========================================================
 // Shoot
 //=========================================================
-// .text:000c6400 CAlliedGrunt::Shoot (bot_allied_grunt.cpp:739)
-// .text:000b43c0 CAlliedGrunt::Shoot part (bot_allied_grunt.cpp:738)
 void CAlliedGrunt :: Shoot( void )
 {
 	if ( m_hEnemy == NULL )
@@ -831,7 +806,6 @@ void CAlliedGrunt :: Shoot( void )
 // HandleAnimEvent - catches the monster-specific messages
 // that occur when tagged animation frames are played.
 //=========================================================
-// .text:000c5c60 CAlliedGrunt::HandleAnimEvent (bot_allied_grunt.cpp:778)
 void CAlliedGrunt :: HandleAnimEvent( MonsterEvent_t *pEvent )
 {
 	Vector vecShootDir;
@@ -913,7 +887,6 @@ void CAlliedGrunt :: HandleAnimEvent( MonsterEvent_t *pEvent )
 //=========================================================
 // Spawn
 //=========================================================
-// .text:000c37f0 CAlliedGrunt::Spawn (bot_allied_grunt.cpp:935)
 void CAlliedGrunt::Spawn( void )
 {
 	Precache();
@@ -962,7 +935,6 @@ void CAlliedGrunt::Spawn( void )
 //=========================================================
 // Precache - precaches all resources this monster needs
 //=========================================================
-// .text:000c31e0 CAlliedGrunt::Precache (bot_allied_grunt.cpp:999)
 void CAlliedGrunt::Precache( void )
 {
 	PRECACHE_MODEL( "models/allied_grunt.mdl" );
@@ -990,7 +962,6 @@ void CAlliedGrunt::Precache( void )
 //=========================================================
 // start task
 //=========================================================
-// .text:000c5a30 CAlliedGrunt::StartTask (bot_allied_grunt.cpp:1034)
 void CAlliedGrunt :: StartTask ( Task_t *pTask )
 {
 	m_iTaskStatus = TASKSTATUS_RUNNING;
@@ -1042,7 +1013,6 @@ void CAlliedGrunt :: StartTask ( Task_t *pTask )
 //=========================================================
 // RunTask
 //=========================================================
-// .text:000c3f10 CAlliedGrunt::RunTask (bot_allied_grunt.cpp:1085)
 void CAlliedGrunt :: RunTask ( Task_t *pTask )
 {
 	switch ( pTask->iTask )
@@ -1070,7 +1040,6 @@ void CAlliedGrunt :: RunTask ( Task_t *pTask )
 //=========================================================
 // PainSound
 //=========================================================
-// .text:000c49e0 CAlliedGrunt::PainSound (bot_allied_grunt.cpp:1112)
 void CAlliedGrunt :: PainSound ( void )
 {
 	if ( gpGlobals->time > m_flNextPainTime )
@@ -1113,7 +1082,6 @@ void CAlliedGrunt :: PainSound ( void )
 //=========================================================
 // DeathSound 
 //=========================================================
-// .text:000c4900 CAlliedGrunt::DeathSound (bot_allied_grunt.cpp:1154)
 void CAlliedGrunt :: DeathSound ( void )
 {
 	switch ( RANDOM_LONG(0,2) )
@@ -1708,7 +1676,6 @@ IMPLEMENT_CUSTOM_SCHEDULES( CAlliedGrunt, CSquadMonster );
 //=========================================================
 // SetActivity 
 //=========================================================
-// .text:000c3530 CAlliedGrunt::SetActivity (bot_allied_grunt.cpp:1731)
 void CAlliedGrunt :: SetActivity ( Activity NewActivity )
 {
 	int	iSequence = ACTIVITY_NOT_AVAILABLE;
@@ -2058,7 +2025,6 @@ Schedule_t *CAlliedGrunt :: GetSchedule( void )
 
 //=========================================================
 //=========================================================
-// .text:000c4d50 CAlliedGrunt::GetScheduleOfType (bot_allied_grunt.cpp:2069)
 Schedule_t* CAlliedGrunt :: GetScheduleOfType ( int Type ) 
 {
 	switch	( Type )
@@ -2214,7 +2180,6 @@ public:
 
 const char *CDeadAlliedGrunt::m_szPoses[] = { "deadstomach", "deadside", "deadsitting" };
 
-// .text:000c3fc0 CDeadAlliedGrunt::KeyValue (bot_allied_grunt.cpp:2208)
 void CDeadAlliedGrunt::KeyValue( KeyValueData *pkvd )
 {
 	if (FStrEq(pkvd->szKeyName, "pose"))
@@ -2230,7 +2195,6 @@ void CDeadAlliedGrunt::KeyValue( KeyValueData *pkvd )
 //=========================================================
 // ********** DeadHGrunt SPAWN **********
 //=========================================================
-// .text:000c3330 CDeadAlliedGrunt::Spawn (bot_allied_grunt.cpp:2224)
 void CDeadAlliedGrunt :: Spawn( void )
 {
 	PRECACHE_MODEL("models/allied_grunt.mdl");
@@ -2274,15 +2238,10 @@ void CDeadAlliedGrunt :: Spawn( void )
 }
 
 
-// .text:000c5900 monster_allied_grunt (bot_allied_grunt.cpp:189)
 LINK_ENTITY_TO_CLASS( monster_allied_grunt, CAlliedGrunt );
 
-// .text:000c6430 monster_alliedgrunt_dead (bot_allied_grunt.cpp:2218)
 LINK_ENTITY_TO_CLASS( monster_alliedgrunt_dead, CDeadAlliedGrunt );
 
-// .text:000c3df0 CAlliedGrunt::ScheduleFromName (bot_allied_grunt.cpp:1725)
 
-// .text:000c3eb0 CAlliedGrunt::Save (bot_allied_grunt.cpp:207)
 
-// .text:000c3e50 CAlliedGrunt::Restore (bot_allied_grunt.cpp:207)
 

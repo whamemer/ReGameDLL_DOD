@@ -2117,7 +2117,6 @@ void CBaseMonster ::StartMonster( void )
 //=========================================================
 // StartPatrol - DoD refactor extracted from StartMonster
 //=========================================================
-// .text:00113a70 CBaseMonster::StartPatrol (monsters.cpp)
 void CBaseMonster ::StartPatrol( CBaseEntity *path )
 {
 	m_pGoalEnt = path;
@@ -3432,7 +3431,6 @@ void CBaseMonster::DoDSetScriptReset( void )
 	*(int *) ( (char *) this + 0x39c ) = 2;
 }
 
-// .text:0010fe40 CBaseMonster::PlaySentence (file:monsters.cpp)
 void CBaseMonster::PlaySentence( const char *pszSentence, float duration, float volume, float attenuation )
 {
 	if ( pszSentence != NULL && IsAlive() )
@@ -3444,13 +3442,11 @@ void CBaseMonster::PlaySentence( const char *pszSentence, float duration, float 
 	}
 }
 
-// .text:00110160 CBaseMonster::SentenceStop (file:monsters.cpp)
 void CBaseMonster::SentenceStop( void )
 {
 	EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "common/null.wav", 1.0, ATTN_NORM, 0, 100 );
 }
 
-// .text:0010ec60 CBaseMonster::PlayScriptedSentence (file:monsters.cpp)
 void CBaseMonster::PlayScriptedSentence( const char *pszSentence, float duration, float volume, float attenuation, BOOL bConcurrent, CBaseEntity *pListener )
 {
 	PlaySentence( pszSentence, duration, volume, attenuation );

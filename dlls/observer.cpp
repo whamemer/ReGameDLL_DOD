@@ -30,13 +30,11 @@ extern cvar_t cvar_fadetoblack;
 extern cvar_t cvar_forcechasecam;
 extern cvar_t cvar_forcecamera;
 
-// .text:001212b0 IsTeamInfinite (observer.cpp:35)
 BOOL IsTeamInfinite( int team )
 {
 	return ( (CDoDTeamPlay *)g_pGameRules )->IsTeamInfinite( team );
 }
 
-// .text:001212d0 GetForceCamera (observer.cpp:55)
 int GetForceCamera( void )
 {
 	if ( cvar_fadetoblack.value != 0.0f )
@@ -48,7 +46,6 @@ int GetForceCamera( void )
 	return 0;
 }
 
-// .text:00121330 CBasePlayer::Observer_PlayerValidTarget (observer.cpp:67)
 bool CBasePlayer::Observer_PlayerValidTarget( CBaseEntity *pEnt, bool bSameTeam )
 {
 	bool bRet = false;
@@ -67,7 +64,6 @@ bool CBasePlayer::Observer_PlayerValidTarget( CBaseEntity *pEnt, bool bSameTeam 
 	return bRet;
 }
 
-// .text:00121400 CBasePlayer::Observer_FindNextPlayer (observer.cpp:109)
 void CBasePlayer::Observer_FindNextPlayer( bool bReverse )
 {
 	int iStart;
@@ -129,7 +125,6 @@ void CBasePlayer::Observer_FindNextPlayer( bool bReverse )
 	}
 }
 
-// .text:00121730 CBasePlayer::SendObserverTargetWeaponAnim (observer.cpp:164)
 void CBasePlayer::SendObserverTargetWeaponAnim()
 {
 	if ( !m_hObserverTarget )
@@ -146,7 +141,6 @@ void CBasePlayer::SendObserverTargetWeaponAnim()
 	MESSAGE_END();
 }
 
-// .text:00121800 CBasePlayer::Observer_CheckProperties (observer.cpp:283)
 void CBasePlayer::Observer_CheckProperties()
 {
 	// try to find a target if we have no current one
@@ -194,7 +188,6 @@ void CBasePlayer::Observer_CheckProperties()
 	}
 }
 
-// .text:00121970 CBasePlayer::Observer_SetMode (observer.cpp:332)
 void CBasePlayer::Observer_SetMode( int iMode )
 {
 	// Just abort if we're changing to the mode we're already in
@@ -271,7 +264,6 @@ void CBasePlayer::Observer_SetMode( int iMode )
 		SendObserverTargetWeaponAnim();
 }
 
-// .text:00121cf0 CBasePlayer::Observer_CheckTarget (observer.cpp:239)
 void CBasePlayer::Observer_CheckTarget()
 {
 	if ( pev->iuser1 == OBS_ROAMING )
@@ -315,7 +307,6 @@ void CBasePlayer::Observer_CheckTarget()
 	}
 }
 
-// .text:00121dc0 CBasePlayer::Observer_HandleButtons (observer.cpp:191)
 void CBasePlayer::Observer_HandleButtons()
 {
 	// Slow down mouse clicks
@@ -354,7 +345,6 @@ void CBasePlayer::Observer_HandleButtons()
 	}
 }
 
-// .text:00121ee0 CBasePlayer::StartObserver (observer.cpp:424)
 void CBasePlayer::StartObserver( Vector vecPosition, Vector vecViewAngle )
 {
 	MESSAGE_BEGIN( MSG_PAS, SVC_TEMPENTITY, pev->origin );
@@ -412,7 +402,6 @@ void CBasePlayer::StartObserver( Vector vecPosition, Vector vecViewAngle )
 	MESSAGE_END();
 }
 
-// .text:001221f0 CBasePlayer::StopObserver (observer.cpp:495)
 void CBasePlayer::StopObserver()
 {
 	if ( pev->iuser1 == 0 && pev->iuser2 == 0 && !m_bIsObserver )
@@ -435,7 +424,6 @@ void CBasePlayer::StopObserver()
 	m_iHideHUD = 0;
 }
 
-// .text:001222e0 CBasePlayer::Observer_SpectatePlayer (observer.cpp:518)
 void CBasePlayer::Observer_SpectatePlayer( int iCurrent )
 {
 	if ( pev->iuser1 == 0 )

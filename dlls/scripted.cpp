@@ -134,7 +134,6 @@ TYPEDESCRIPTION CCineMonster::m_SaveData[] = {
 IMPLEMENT_SAVERESTORE( CCineMonster, CBaseMonster );
 
 LINK_ENTITY_TO_CLASS( scripted_sequence, CCineMonster );
-// .text:0012f480 scripted_action LINK-factory (same vtable/size as scripted_sequence)
 LINK_ENTITY_TO_CLASS( scripted_action, CCineMonster );
 #define CLASSNAME "scripted_sequence"
 
