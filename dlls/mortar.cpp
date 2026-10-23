@@ -173,7 +173,7 @@ void CFuncMortarField ::FieldUse( CBaseEntity *pActivator, CBaseEntity *pCaller,
 
 	EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "weapons/mortar.wav", 1.0, ATTN_NONE, 0, pitch );
 
-	float t = 2.5;
+	float t = 4.0;
 	for ( int i = 0; i < m_iCount; i++ )
 	{
 		Vector vecSpot = vecStart;

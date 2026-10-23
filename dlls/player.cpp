@@ -5074,18 +5074,18 @@ bool CBasePlayer::ShouldGunLower()
 {
 	if ( !m_pActiveItem )
 		return true;
-	int wpnClass = m_pActiveItem->iItemSlot();
-	if ( wpnClass == 0x20 )
+	int wpnClass = m_pActiveItem->Classify();
+	if ( wpnClass == CLASS_SCOPED_RIFLE )
 	{
 		if ( m_iFOV > 0 )
 			return false;
 	}
-	else if ( wpnClass < 0x21 )
+	else if ( wpnClass < CLASS_SCOPED_RIFLE )
 	{
-		if ( wpnClass != 8 && wpnClass != 0x10 )
+		if ( wpnClass != CLASS_PISTOL && wpnClass != CLASS_RIFLE )
 			return true;
 	}
-	else if ( wpnClass != 0x80 && wpnClass != 0x100 && wpnClass != 0x40 )
+	else if ( wpnClass != CLASS_UNUSED_128 && wpnClass != CLASS_MACHINEGUN && wpnClass != CLASS_SMG )
 	{
 		return true;
 	}
@@ -5505,21 +5505,23 @@ void CBasePlayer::DropObject()
 }
 void CBasePlayer::StudioPlayerBlend( int *pBlend, float *pPitch )
 {
-	float range = (float) (int) -( 0.6f * *pPitch );
-	if ( range < -45.0f )
+	// calc up/down pointing
+	*pBlend = (int)( -( 3.0f * *pPitch ) );
+
+	if ( *pBlend < -45 )
 	{
-		*pPitch -= 45.0f;
+		*pPitch = *pPitch - 15;
 		*pBlend = 0;
 	}
-	else if ( range <= 45.0f )
+	else if ( *pBlend > 45 )
 	{
-		*pBlend = (int) ( ( range + 45.0f ) * 255.0f / 90.0f );
-		*pPitch = 0;
+		*pPitch = *pPitch + 15;
+		*pBlend = 255;
 	}
 	else
 	{
-		*pPitch += 45.0f;
-		*pBlend = 255;
+		*pBlend = (int)( ( *pBlend + 45.0 ) * 255.0 / 90.0 );
+		*pPitch = 0;
 	}
 }
 void CBasePlayer::CalculatePitchBlend()

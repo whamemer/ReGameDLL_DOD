@@ -27,6 +27,7 @@
 #define CLASS_RIFLE				16	// CM1Carbine, CGarand, CKAR, CK43, CENFIELD
 #define CLASS_SCOPED_RIFLE		32	// CScopedKar, CSPRING, CENFIELD and CFG42 while scoped
 #define CLASS_SMG				64	// CThompson, CMP40, CGreaseGun, CSTEN and the assault rifle CMP44
+#define CLASS_UNUSED_128		128	// no weapon returns it, CBasePlayer::ShouldGunLower still accepts it
 #define CLASS_MACHINEGUN		256	// the weapons with a bipod: CBAR, CMG42, CMG34, C30CAL, CBREN, CFG42
 #define CLASS_ROCKET			512
 

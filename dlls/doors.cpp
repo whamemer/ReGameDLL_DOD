@@ -900,7 +900,6 @@ class CMomentaryDoor : public CBaseToggle
 {
 	void EXPORT MomentaryMove( void );
 	void EXPORT MomentaryMoveDone( void );
-	STATE m_iState;  // DoD CMomentaryDoor moving state
   public:
 	void Spawn( void );
 	void Precache( void );
@@ -914,9 +913,8 @@ class CMomentaryDoor : public CBaseToggle
 	virtual int Restore( CRestore &restore );
 	static TYPEDESCRIPTION m_SaveData[];
 
-	void EXPORT DoorMoveDone( void );
-
 	BYTE m_bMoveSnd;  // sound a door makes while moving
+	STATE m_iState;	  // moving state
 	void Activate( void );
 };
 
@@ -924,6 +922,7 @@ LINK_ENTITY_TO_CLASS( momentary_door, CMomentaryDoor );
 
 TYPEDESCRIPTION CMomentaryDoor::m_SaveData[] = {
 	DEFINE_FIELD( CMomentaryDoor, m_bMoveSnd, FIELD_CHARACTER ),
+	DEFINE_FIELD( CMomentaryDoor, m_iState, FIELD_INTEGER ),
 };
 
 IMPLEMENT_SAVERESTORE( CMomentaryDoor, CBaseToggle );
@@ -938,10 +937,10 @@ void CMomentaryDoor::Spawn( void )
 	UTIL_SetOrigin( pev, pev->origin );
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );
 
-	if ( pev->speed == 0 )
-		pev->speed = 100;
 	if ( pev->dmg == 0 )
 		pev->dmg = 2;
+
+	m_iState = STATE_OFF;
 
 	m_vecPosition1 = pev->origin;
 	// Subtract 2 from size because the engine expands bboxes by 1 in all directions making the size too big
@@ -1003,36 +1002,31 @@ void CMomentaryDoor::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 
 	if ( value > 1.0 )
 		value = 1.0;
-	if ( value < 0.0 )
-		value = 0.0;
 
 	Vector move = m_vecPosition1 + ( value * ( m_vecPosition2 - m_vecPosition1 ) );
+	float speed = pev->speed;
 
-	Vector delta = move - pev->origin;
-	//float speed = delta.Length() * 10;
-	float speed = delta.Length() / 0.1;	 // move there in 0.1 sec
 	if ( speed == 0 )
-		return;
+	{
+		Vector delta = move - pev->origin;
+		speed = delta.Length() * 10;
+	}
 
-	// This entity only thinks when it moves, so if it's thinking, it's in the process of moving
-	// play the sound when it starts moving (not yet thinking)
-	if ( pev->nextthink < pev->ltime || pev->nextthink == 0 )
-		EMIT_SOUND( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseMoving ), 1, ATTN_NORM );
-	// If we already moving to designated point, return
-	else if ( move == m_vecFinalDest )
-		return;
+	if ( m_iState == STATE_OFF )
+	{
+		// play the sound when it starts moving
+		m_iState = STATE_ON;
+		EMIT_SOUND( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseMoving ), 1.0, ATTN_NORM );
+		pev->nextthink = pev->ltime + 0.01;
+	}
+	else if ( pev->nextthink > pev->ltime + 1.0 )
+	{
+		pev->nextthink = pev->ltime + 1.0;
+	}
 
-	SetMoveDone( &CMomentaryDoor::DoorMoveDone );
-	LinearMove( move, speed );
-}
-
-//
-// The door has reached needed position.
-//
-void CMomentaryDoor::DoorMoveDone( void )
-{
-	STOP_SOUND( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseMoving ) );
-	EMIT_SOUND( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseArrived ), 1, ATTN_NORM );
+	SetThink( &CMomentaryDoor::MomentaryMove );
+	m_vecFinalDest = move;
+	m_flLinearMoveSpeed = speed;
 }
 
 void CBaseDoor::RoundRespawn( void )
@@ -1095,14 +1089,18 @@ void CMomentaryDoor::MomentaryMove( void )
 void CMomentaryDoor::MomentaryMoveDone( void )
 {
 	ALERT( at_console, "THINK: MomentaryMove DONE\n" );
-	UTIL_SetOrigin( pev, m_vecFinalDest );
+
+	Vector vecDest = m_vecFinalDest;
 	pev->velocity = g_vecZero;
+	UTIL_SetOrigin( pev, vecDest );
 	SetThink( NULL );
 	pev->nextthink = -1;
+
 	if ( m_pfnCallWhenMoveDone )
 		( this->*m_pfnCallWhenMoveDone )();
+
 	m_iState = STATE_OFF;
-	EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, (char *)STRING( pev->noiseMoving ), 0.0, 0.0, 0x20, 100 );
+	STOP_SOUND( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseMoving ) );
 }
 
 void CBaseDoor::Activate( void )
