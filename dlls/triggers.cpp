@@ -102,6 +102,7 @@ void CFrictionModifier ::KeyValue( KeyValueData *pkvd )
 // It will check a global state before firing.  It supports delay and killtargets
 
 #define SF_AUTO_FIREONCE 0x0001
+#define SF_AUTO_ROUNDRESTART 0x0200
 
 class CAutoTrigger : public CBaseDelay
 {
@@ -164,7 +165,12 @@ void CAutoTrigger::KeyValue( KeyValueData *pkvd )
 
 void CAutoTrigger::Spawn( void )
 {
+	m_iEnabled = 1;
+	b_isRoundRestart = false;
+
 	Precache();
+
+	RoundStore();
 }
 
 void CAutoTrigger::Precache( void )
@@ -174,21 +180,29 @@ void CAutoTrigger::Precache( void )
 
 void CAutoTrigger::Think( void )
 {
-	if ( !m_globalstate || gGlobalState.EntityGetState( m_globalstate ) == GLOBAL_ON )
+	if ( m_iEnabled &&
+		 ( !( pev->spawnflags & SF_AUTO_ROUNDRESTART ) || g_pGameRules->IsMultiplayer() != TRUE || b_isRoundRestart ) &&
+		 ( !m_globalstate || gGlobalState.EntityGetState( m_globalstate ) == GLOBAL_ON ) )
 	{
 		SUB_UseTargets( this, triggerType, 0 );
+
 		if ( pev->spawnflags & SF_AUTO_FIREONCE )
-			UTIL_Remove( this );
+			m_iEnabled = 0;
 	}
 }
 
 #define SF_RELAY_FIREONCE 0x0001
+#define SF_RELAY_DEBUG 0x0002
+#define SF_RELAY_USETYPE 0x80000000
+
+extern const char *GetStringForUseType( USE_TYPE useType );
 
 class CTriggerRelay : public CBaseDelay
 {
   public:
 	void KeyValue( KeyValueData *pkvd );
 	void Spawn( void );
+	void RoundRespawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 
 	int ObjectCaps( void ) { return CBaseDelay::ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
@@ -198,12 +212,15 @@ class CTriggerRelay : public CBaseDelay
 	static TYPEDESCRIPTION m_SaveData[];
 
   private:
-	USE_TYPE triggerType;
+	int m_iEnabled;
+	USE_TYPE m_triggerType;
+	string_t m_sMaster;
 };
 LINK_ENTITY_TO_CLASS( trigger_relay, CTriggerRelay );
 
 TYPEDESCRIPTION CTriggerRelay::m_SaveData[] = {
-	DEFINE_FIELD( CTriggerRelay, triggerType, FIELD_INTEGER ),
+	DEFINE_FIELD( CTriggerRelay, m_triggerType, FIELD_INTEGER ),
+	DEFINE_FIELD( CTriggerRelay, m_sMaster, FIELD_STRING ),
 };
 
 // .text:0014ffb0 CTriggerRelay::Restore (file:triggers.cpp:318)
@@ -211,19 +228,30 @@ IMPLEMENT_SAVERESTORE( CTriggerRelay, CBaseDelay );
 
 void CTriggerRelay::KeyValue( KeyValueData *pkvd )
 {
-	if ( FStrEq( pkvd->szKeyName, "triggerstate" ) )
+	if ( FStrEq( pkvd->szKeyName, "master" ) )
+	{
+		m_sMaster = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "triggerstate" ) )
 	{
 		int type = atoi( pkvd->szValue );
 		switch ( type )
 		{
 		case 0:
-			triggerType = USE_OFF;
+			m_triggerType = USE_OFF;
 			break;
 		case 2:
-			triggerType = USE_TOGGLE;
+			m_triggerType = USE_TOGGLE;
+			break;
+		case 4:
+			m_triggerType = USE_KILL;
+			break;
+		case 5:
+			pev->spawnflags |= SF_RELAY_USETYPE;
 			break;
 		default:
-			triggerType = USE_ON;
+			m_triggerType = USE_ON;
 			break;
 		}
 		pkvd->fHandled = TRUE;
@@ -232,13 +260,73 @@ void CTriggerRelay::KeyValue( KeyValueData *pkvd )
 		CBaseDelay::KeyValue( pkvd );
 }
 
-void CTriggerRelay::Spawn( void ) {}
+void CTriggerRelay::Spawn( void )
+{
+	m_iEnabled = 1;
+
+	RoundStore();
+}
+
+void CTriggerRelay::RoundRespawn( void )
+{
+	m_iEnabled = 1;
+}
 
 void CTriggerRelay::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	SUB_UseTargets( this, triggerType, 0 );
+	if ( !m_iEnabled )
+		return;
+
+	if ( !UTIL_IsMasterTriggered( m_sMaster, pActivator ) )
+	{
+		if ( pev->spawnflags & SF_RELAY_DEBUG )
+		{
+			if ( pev->targetname )
+				ALERT( at_console, "DEBUG: trigger_relay %s wasn't activated: locked by master %s\n", STRING( pev->targetname ),
+					   STRING( m_sMaster ) );
+			else
+				ALERT( at_console, "DEBUG: unnamed trigger_relay wasn't activated: locked by master %s\n", STRING( m_sMaster ) );
+		}
+
+		return;
+	}
+
+	if ( pev->spawnflags & SF_RELAY_DEBUG )
+	{
+		if ( pev->targetname )
+			ALERT( at_console, "DEBUG: trigger_relay %s was activated: ", STRING( pev->targetname ) );
+		else
+			ALERT( at_console, "DEBUG: unnamed trigger_relay was activated: " );
+	}
+
+	if ( pev->spawnflags & SF_RELAY_USETYPE )
+	{
+		// pass on the way the relay was used
+		if ( pev->spawnflags & SF_RELAY_DEBUG )
+		{
+			if ( m_flDelay == 0 )
+				ALERT( at_console, "sending %s now.\n", GetStringForUseType( useType ) );
+			else
+				ALERT( at_console, "will send %s in %f seconds.\n", GetStringForUseType( useType ), m_flDelay );
+		}
+
+		SUB_UseTargets( this, useType, value );
+	}
+	else
+	{
+		if ( pev->spawnflags & SF_RELAY_DEBUG )
+		{
+			if ( m_flDelay == 0 )
+				ALERT( at_console, "sending %s now.\n", GetStringForUseType( m_triggerType ) );
+			else
+				ALERT( at_console, "will send %s in %f seconds.\n", GetStringForUseType( m_triggerType ), m_flDelay );
+		}
+
+		SUB_UseTargets( this, m_triggerType, 0 );
+	}
+
 	if ( pev->spawnflags & SF_RELAY_FIREONCE )
-		UTIL_Remove( this );
+		m_iEnabled = 0;
 }
 
 //**********************************************************
@@ -249,8 +337,12 @@ void CTriggerRelay::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 
 #define SF_MULTIMAN_CLONE 0x80000000
 #define SF_MULTIMAN_THREAD 0x00000001
+#define SF_MULTIMAN_LOOP 0x00000002
+#define SF_MULTIMAN_ONLYONCE 0x00000004
+#define SF_MULTIMAN_TRIGGERTYPE 0x20000000
+#define SF_MULTIMAN_USETYPE 0x40000000
 
-class CMultiManager : public CBaseToggle
+class CMultiManager : public CBaseEntity
 {
   public:
 	void KeyValue( KeyValueData *pkvd );
@@ -258,19 +350,16 @@ class CMultiManager : public CBaseToggle
 	void EXPORT ManagerThink( void );
 	void EXPORT ManagerUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 
-#if _DEBUG
-	void EXPORT ManagerReport( void );
-#endif
+	virtual BOOL HasTarget( string_t targetname );
 
-	BOOL HasTarget( string_t targetname );
-	virtual STATE GetState();
-
-	int ObjectCaps( void ) { return CBaseToggle::ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
+	int ObjectCaps( void ) { return CBaseEntity::ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
 
 	virtual int Save( CSave &save );
 	virtual int Restore( CRestore &restore );
 
 	static TYPEDESCRIPTION m_SaveData[];
+
+	virtual STATE GetState();
 
 	STATE m_iState;
 	int m_cTargets;							   // the total number of targets in this manager's fire list.
@@ -278,6 +367,22 @@ class CMultiManager : public CBaseToggle
 	float m_startTime;						   // Time we started firing
 	int m_iTargetName[MAX_MULTI_TARGETS];	   // list if indexes into global string array
 	float m_flTargetDelay[MAX_MULTI_TARGETS];  // delay (in seconds) from time of manager fire to target fire
+	float m_flWait;
+	float m_flMaxWait;
+	string_t m_sMaster;
+	int m_iMode;
+	int m_rscTargets;
+	int m_rsindex;
+	float m_rsstartTime;
+	int m_rsiTargetName[MAX_MULTI_TARGETS];
+	float m_rsflTargetDelay[MAX_MULTI_TARGETS];
+	float m_rsflWait;
+	float m_rsflMaxWait;
+	string_t m_rssMaster;
+	int m_rsiMode;
+	EHANDLE m_hActivator;
+	USE_TYPE m_triggerType;
+
   private:
 	inline BOOL IsClone( void ) { return ( pev->spawnflags & SF_MULTIMAN_CLONE ) ? TRUE : FALSE; }
 	inline BOOL ShouldClone( void )
@@ -290,20 +395,6 @@ class CMultiManager : public CBaseToggle
 
 	CMultiManager *Clone( void );
 
-	int m_rscTargets;
-	int m_rsindex;
-	float m_rsstartTime;
-	float m_rsflWait;
-	float m_rsflMaxWait;
-	string_t m_rssMaster;
-	int m_rsiMode;
-	int m_rsiTargetName[MAX_MULTI_TARGETS];
-	float m_rsflTargetDelay[MAX_MULTI_TARGETS];
-	float m_flWait;
-	float m_flMaxWait;
-	string_t m_sMaster;
-	int m_iMode;
-	USE_TYPE m_triggerType;
 	void RoundRespawn( void );
 };
 LINK_ENTITY_TO_CLASS( multi_manager, CMultiManager );
@@ -312,24 +403,67 @@ LINK_ENTITY_TO_CLASS( multi_manager, CMultiManager );
 TYPEDESCRIPTION CMultiManager::m_SaveData[] = {
 	DEFINE_FIELD( CMultiManager, m_cTargets, FIELD_INTEGER ),
 	DEFINE_FIELD( CMultiManager, m_index, FIELD_INTEGER ),
+	DEFINE_FIELD( CMultiManager, m_iState, FIELD_INTEGER ),
+	DEFINE_FIELD( CMultiManager, m_iMode, FIELD_INTEGER ),
 	DEFINE_FIELD( CMultiManager, m_startTime, FIELD_TIME ),
+	DEFINE_FIELD( CMultiManager, m_triggerType, FIELD_INTEGER ),
 	DEFINE_ARRAY( CMultiManager, m_iTargetName, FIELD_STRING, MAX_MULTI_TARGETS ),
 	DEFINE_ARRAY( CMultiManager, m_flTargetDelay, FIELD_FLOAT, MAX_MULTI_TARGETS ),
+	DEFINE_FIELD( CMultiManager, m_sMaster, FIELD_STRING ),
+	DEFINE_FIELD( CMultiManager, m_hActivator, FIELD_EHANDLE ),
+	DEFINE_FIELD( CMultiManager, m_flWait, FIELD_FLOAT ),
+	DEFINE_FIELD( CMultiManager, m_flMaxWait, FIELD_FLOAT ),
 };
 
 // .text:0014ff50 CMultiManager::Restore (file:triggers.cpp:511)
-IMPLEMENT_SAVERESTORE( CMultiManager, CBaseToggle );
+IMPLEMENT_SAVERESTORE( CMultiManager, CBaseEntity );
 
 void CMultiManager ::KeyValue( KeyValueData *pkvd )
 {
-	// UNDONE: Maybe this should do something like this:
-	//CBaseToggle::KeyValue( pkvd );
-	// if ( !pkvd->fHandled )
-	// ... etc.
-
 	if ( FStrEq( pkvd->szKeyName, "wait" ) )
 	{
 		m_flWait = atof( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "maxwait" ) )
+	{
+		m_flMaxWait = atof( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "master" ) )
+	{
+		m_sMaster = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "mode" ) )
+	{
+		m_iMode = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "triggerstate" ) )
+	{
+		int type = atoi( pkvd->szValue );
+
+		switch ( type )
+		{
+		case 1:
+			m_triggerType = USE_ON;
+			break;
+		case 2:
+			m_triggerType = USE_OFF;
+			break;
+		case 3:
+			m_triggerType = USE_KILL;
+			break;
+		case 4:
+			pev->spawnflags |= SF_MULTIMAN_USETYPE;
+			break;
+		default:
+			m_triggerType = USE_TOGGLE;
+			break;
+		}
+
+		pev->spawnflags |= SF_MULTIMAN_TRIGGERTYPE;
 		pkvd->fHandled = TRUE;
 	}
 	else  // add this field to the target list
@@ -345,14 +479,37 @@ void CMultiManager ::KeyValue( KeyValueData *pkvd )
 			m_cTargets++;
 			pkvd->fHandled = TRUE;
 		}
+		else
+		{
+			ALERT( at_error, "Too many targets on multi_manager %s\n", STRING( pev->targetname ) );
+		}
 	}
 }
 
 void CMultiManager ::Spawn( void )
 {
 	pev->solid = SOLID_NOT;
+	m_iState = STATE_OFF;
 	SetUse( &CMultiManager::ManagerUse );
 	SetThink( &CMultiManager::ManagerThink );
+
+	if ( !( pev->spawnflags & SF_MULTIMAN_TRIGGERTYPE ) )
+		m_triggerType = USE_TOGGLE;
+
+	// the state to go back to when the round restarts
+	m_rsindex = m_index;
+	m_rscTargets = m_cTargets;
+	m_rsstartTime = m_startTime;
+	m_rsflWait = m_flWait;
+	m_rsflMaxWait = m_flMaxWait;
+	m_rssMaster = m_sMaster;
+	m_rsiMode = m_iMode;
+
+	for ( int i = 0; i < MAX_MULTI_TARGETS; i++ )
+	{
+		m_rsiTargetName[i] = m_iTargetName[i];
+		m_rsflTargetDelay[i] = m_flTargetDelay[i];
+	}
 
 	// Sort targets
 	// Quick and dirty bubble sort
@@ -376,6 +533,8 @@ void CMultiManager ::Spawn( void )
 			}
 		}
 	}
+
+	RoundStore();
 }
 
 BOOL CMultiManager::HasTarget( string_t targetname )
@@ -392,26 +551,103 @@ BOOL CMultiManager::HasTarget( string_t targetname )
 void CMultiManager ::ManagerThink( void )
 {
 	float time;
+	int i;
 
-	time = gpGlobals->time - m_startTime;
-	while ( m_index < m_cTargets && m_flTargetDelay[m_index] <= time )
+	if ( m_iMode == 0 )
 	{
-		FireTargets( STRING( m_iTargetName[m_index] ), m_hActivator, this, USE_TOGGLE, 0 );
-		m_index++;
-	}
+		// fire the targets one after the other at their delays
+		time = gpGlobals->time - m_startTime;
 
-	if ( m_index >= m_cTargets )  // have we fired all targets?
-	{
-		SetThink( NULL );
-		if ( IsClone() )
+		while ( m_index < m_cTargets )
 		{
-			UTIL_Remove( this );
+			if ( time < m_flTargetDelay[m_index] )
+			{
+				m_iState = STATE_ON;
+				pev->nextthink = m_startTime + m_flTargetDelay[m_index];
+				return;
+			}
+
+			FireTargets( STRING( m_iTargetName[m_index] ), m_hActivator, this, m_triggerType, 0 );
+			m_index++;
+		}
+
+		if ( pev->spawnflags & SF_MULTIMAN_LOOP )
+		{
+			// all targets fired, start over
+			m_index = 0;
+
+			if ( m_flMaxWait == 0 )
+			{
+				if ( m_flWait == 0 )
+				{
+					m_startTime = gpGlobals->time;
+					m_iState = STATE_ON;
+				}
+				else
+				{
+					m_startTime = m_flWait + gpGlobals->time;
+					m_iState = STATE_TURN_ON;
+				}
+			}
+			else
+			{
+				m_iState = STATE_TURN_ON;
+				m_startTime = RANDOM_FLOAT( m_flWait, m_flMaxWait ) + gpGlobals->time;
+			}
+
+			pev->nextthink = m_startTime;
 			return;
 		}
-		SetUse( &CMultiManager::ManagerUse );  // allow manager re-use
+	}
+	else if ( m_iMode == 1 )
+	{
+		// fire one of the targets, the delays are the chances
+		float flTotal = 0;
+
+		for ( i = 0; i < m_cTargets; i++ )
+			flTotal += m_flTargetDelay[i];
+
+		if ( m_cTargets <= 0 || flTotal == 0 )
+		{
+			FireTargets( STRING( m_iTargetName[RANDOM_LONG( 0, m_cTargets - 1 )] ), m_hActivator, this, m_triggerType, 0 );
+		}
+		else
+		{
+			float flRand = RANDOM_FLOAT( 0, flTotal );
+			float flSum = 0;
+
+			for ( i = 0; i < m_cTargets; i++ )
+			{
+				flSum += m_flTargetDelay[i];
+
+				if ( flSum >= flRand )
+				{
+					FireTargets( STRING( m_iTargetName[i] ), m_hActivator, this, m_triggerType, 0 );
+					break;
+				}
+			}
+		}
 	}
 	else
-		pev->nextthink = m_startTime + m_flTargetDelay[m_index];
+	{
+		// every target is fired with its own chance in percent
+		for ( i = 0; i < m_cTargets; i++ )
+		{
+			if ( m_flTargetDelay[i] >= RANDOM_LONG( 0, 100 ) )
+				FireTargets( STRING( m_iTargetName[i] ), m_hActivator, this, m_triggerType, 0 );
+		}
+	}
+
+	m_iState = STATE_OFF;
+	SetThink( NULL );
+
+	if ( !IsClone() && !( pev->spawnflags & SF_MULTIMAN_ONLYONCE ) )
+	{
+		SetUse( &CMultiManager::ManagerUse );  // allow manager re-use
+		return;
+	}
+
+	UTIL_Remove( this );
 }
 
 CMultiManager *CMultiManager::Clone( void )
@@ -424,6 +660,8 @@ CMultiManager *CMultiManager::Clone( void )
 
 	pMulti->pev->spawnflags |= SF_MULTIMAN_CLONE;
 	pMulti->m_cTargets = m_cTargets;
+	pMulti->m_triggerType = m_triggerType;
+	pMulti->m_iMode = m_iMode;
 	memcpy( pMulti->m_iTargetName, m_iTargetName, sizeof( m_iTargetName ) );
 	memcpy( pMulti->m_flTargetDelay, m_flTargetDelay, sizeof( m_flTargetDelay ) );
 
@@ -433,36 +671,69 @@ CMultiManager *CMultiManager::Clone( void )
 // The USE function builds the time table and starts the entity thinking.
 void CMultiManager ::ManagerUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	// In multiplayer games, clone the MM and execute in the clone (like a thread)
-	// to allow multiple players to trigger the same multimanager
-	if ( ShouldClone() )
+	CMultiManager *pManager = this;
+
+	while ( 1 )
 	{
-		CMultiManager *pClone = Clone();
-		pClone->ManagerUse( pActivator, pCaller, useType, value );
-		return;
+		BOOL bLoop = ( pManager->pev->spawnflags & SF_MULTIMAN_LOOP ) ? TRUE : FALSE;
+
+		// a looping manager is stopped by the use
+		if ( useType == USE_OFF ? bLoop : ( bLoop && pManager->m_iState != STATE_OFF ) )
+		{
+			if ( useType == USE_OFF ? pManager->m_iState == STATE_OFF : useType == USE_ON )
+				return;
+
+			pManager->m_iState = STATE_OFF;
+			pManager->SetThink( NULL );
+			return;
+		}
+
+		if ( !UTIL_IsMasterTriggered( pManager->m_sMaster, pActivator ) )
+			return;
+
+		// In multiplayer games, clone the MM and execute in the clone (like a thread)
+		// to allow multiple players to trigger the same multimanager
+		if ( !pManager->ShouldClone() )
+			break;
+
+		pManager = pManager->Clone();
 	}
 
-	m_hActivator = pActivator;
-	m_index = 0;
-	m_startTime = gpGlobals->time;
+	pManager->m_hActivator = pActivator;
+	pManager->m_index = 0;
 
-	SetUse( NULL );	 // disable use until all targets have fired
-
-	SetThink( &CMultiManager::ManagerThink );
-	pev->nextthink = gpGlobals->time;
-}
-
-#if _DEBUG
-void CMultiManager ::ManagerReport( void )
-{
-	int cIndex;
-
-	for ( cIndex = 0; cIndex < m_cTargets; cIndex++ )
+	if ( pManager->m_flMaxWait == 0 )
 	{
-		ALERT( at_console, "%s %f\n", STRING( m_iTargetName[cIndex] ), m_flTargetDelay[cIndex] );
+		if ( pManager->m_flWait == 0 )
+		{
+			pManager->m_startTime = gpGlobals->time;
+			pManager->m_iState = STATE_ON;
+		}
+		else
+		{
+			pManager->m_startTime = pManager->m_flWait + gpGlobals->time;
+			pManager->m_iState = STATE_TURN_ON;
+		}
 	}
+	else
+	{
+		pManager->m_iState = STATE_TURN_ON;
+		pManager->m_startTime = RANDOM_FLOAT( pManager->m_flWait, pManager->m_flMaxWait ) + gpGlobals->time;
+	}
+
+	// a negative delay of the first target starts the manager earlier
+	if ( pManager->m_cTargets > 0 && pManager->m_flTargetDelay[0] < 0 )
+		pManager->m_startTime = pManager->m_startTime + pManager->m_flTargetDelay[0];
+
+	if ( pManager->pev->spawnflags & SF_MULTIMAN_USETYPE )
+		pManager->m_triggerType = useType;
+
+	if ( !( pManager->pev->spawnflags & SF_MULTIMAN_LOOP ) )
+		pManager->SetUse( NULL );  // disable use until all targets have fired
+
+	pManager->SetThink( &CMultiManager::ManagerThink );
+	pManager->pev->nextthink = pManager->m_startTime;
 }
-#endif
 
 //***********************************************************
 

@@ -93,7 +93,12 @@ typedef enum
 	USE_OFF = 0,
 	USE_ON = 1,
 	USE_SET = 2,
-	USE_TOGGLE = 3
+	USE_TOGGLE = 3,
+	USE_KILL = 4,
+	USE_NOT = 6,
+	USE_START = 7,
+	USE_BREAK = 8,
+	USE_UPDATE = 9
 } USE_TYPE;
 
 // Canonical DoD entity state. Binary enum STATE:

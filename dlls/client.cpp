@@ -2356,7 +2356,7 @@ void ResetEnt( const char *classname )
 {
 	CBaseEntity *pEnt = NULL;
 	while ( ( pEnt = UTIL_FindEntityByClassname( pEnt, classname ) ) != NULL )
-		pEnt->Spawn();
+		pEnt->RoundRespawnEnt();
 }
 
 // .text:000d6220 CallRoundRespawn(char*) size 0x3f link 0x0c6220 (dod/dlls/client.cpp:2529)

@@ -232,7 +232,7 @@ void FireTargets( const char *targetName, CBaseEntity *pActivator, CBaseEntity *
 	edict_t *pentTarget = NULL;
 	if ( !targetName )
 		return;
-	if ( useType == 6 )
+	if ( useType == USE_NOT )
 		return;	 // binary-verified 0x13a400 no-op
 
 	ALERT( at_aiconsole, "Firing: (%s)\n", targetName );
@@ -247,7 +247,7 @@ void FireTargets( const char *targetName, CBaseEntity *pActivator, CBaseEntity *
 		if ( pTarget && !( pTarget->pev->flags & FL_KILLME ) )	// Don't use dying ents
 		{
 			ALERT( at_aiconsole, "Found: %s, firing (%s)\n", STRING( pTarget->pev->classname ), targetName );
-			if ( useType == 4 )
+			if ( useType == USE_KILL )
 			{
 				ALERT( at_aiconsole, "Use_kill on %s\n", STRING( pTarget->pev->classname ) );
 				UTIL_Remove( pTarget );
@@ -646,7 +646,7 @@ void FireDODCameraTargets( const char *targetName, CBaseEntity *pActivator, CBas
 	// binary-verified 0x14a450 subs.cpp:338: sets iuser2 from targetname vs szCutsceneNames, honors KILL + 6 no-op
 	if ( !targetName )
 		return;
-	if ( useType == 6 )
+	if ( useType == USE_NOT )
 		return;
 	edict_t *pentT = NULL;
 	ALERT( at_aiconsole, "Firing: (%s)\n", targetName );
@@ -658,7 +658,7 @@ void FireDODCameraTargets( const char *targetName, CBaseEntity *pActivator, CBas
 		CBaseEntity *pT = CBaseEntity::Instance( pentT );
 		if ( !pT || ( pT->pev->flags & FL_KILLME ) )
 			continue;
-		if ( useType == 4 )
+		if ( useType == USE_KILL )
 		{
 			ALERT( at_aiconsole, "Use_kill on %s\n", STRING( pT->pev->classname ) );
 			UTIL_Remove( pT );

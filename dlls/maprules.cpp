@@ -1983,7 +1983,7 @@ void CDodPointRelay::DodRelayUse( CBaseEntity *pA, CBaseEntity *pC, USE_TYPE u, 
 	CControlPoint *p = (CControlPoint *) UTIL_FindEntityByTargetname( NULL, STRING( pev->target ) );
 	if ( !p )
 		return;
-	if ( u == (USE_TYPE) 7 )  // USE_START (DWARF enum)
+	if ( u == USE_START )
 	{
 		if ( p->pev->spawnflags & 1 )
 			return;
@@ -1994,7 +1994,7 @@ void CDodPointRelay::DodRelayUse( CBaseEntity *pA, CBaseEntity *pC, USE_TYPE u, 
 		MESSAGE_END();
 		return;
 	}
-	if ( u == (USE_TYPE) 8 )  // USE_BREAK (DWARF enum)
+	if ( u == USE_BREAK )
 	{
 		if ( p->pev->spawnflags & 1 )
 			return;

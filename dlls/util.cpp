@@ -2537,9 +2537,9 @@ const char *GetStringForUseType( USE_TYPE useType )
 	default:
 		break;
 	}
-	if ( (int) useType == 4 )
+	if ( useType == USE_KILL )
 		return "USE_KILL";
-	if ( (int) useType == 6 )
+	if ( useType == USE_NOT )
 		return "USE_NOT";
 	return "USE_UNKNOWN!?";
 }

@@ -1792,14 +1792,14 @@ void CEnvState::KeyValue( KeyValueData *pkvd )
 	{
 		int tmp = atoi( pkvd->szValue );
 		if ( tmp <= 4 )  // USE_KILL
-			m_iOnMode = (USE_TYPE) 6;  // USE_NOT
+			m_iOnMode = USE_NOT;
 		pkvd->fHandled = TRUE;
 	}
 	else if ( FStrEq( pkvd->szKeyName, "offmode" ) )
 	{
 		int tmp = atoi( pkvd->szValue );
 		if ( tmp <= 4 )  // USE_KILL
-			m_iOffMode = (USE_TYPE) 6;  // USE_NOT
+			m_iOffMode = USE_NOT;
 		pkvd->fHandled = TRUE;
 	}
 	else if ( FStrEq( pkvd->szKeyName, "master" ) )
