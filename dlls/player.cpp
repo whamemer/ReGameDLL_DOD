@@ -50,6 +50,7 @@ void UTIL_EdictScreenFadeBuild( ScreenFade &fade, const Vector &color, float fad
 void UTIL_EdictScreenFadeWrite( const ScreenFade &fade, edict_t *pEntity );
 void UTIL_DodBloodPuff( Vector &origin );
 extern cvar_t *pcvar_mp_friendlyfire;
+extern cvar_t *pcvar_mp_nummapmarkers;
 
 // #define DUCKFIX
 
@@ -3034,7 +3035,6 @@ Reset stuff so that the state is transmitted.
 void CBasePlayer ::ForceClientDllUpdate( void )
 {
 	m_iClientHealth = -1;
-	m_iTrain |= TRAIN_NEW;	// Force new train message.
 	m_fWeapon = FALSE;		// Force weapon send
 	m_fKnownItem = FALSE;	// Force weaponinit messages.
 	m_fInitHUD = TRUE;		// Force HUD gmsgResetHUD message
@@ -3042,6 +3042,40 @@ void CBasePlayer ::ForceClientDllUpdate( void )
 	// Now force all the necessary messages
 	//  to be sent.
 	UpdateClientData();
+
+	if ( m_pActiveItem )
+	{
+		CBasePlayerWeapon *pWeapon = (CBasePlayerWeapon *) m_pActiveItem;
+		int iClip = pWeapon->m_iClip;
+
+		if ( iClip == WEAPON_NOCLIP )
+			iClip = AmmoInventory( GetAmmoIndex( CBasePlayerItem::ItemInfoArray[pWeapon->m_iId].pszAmmo1 ) );
+
+		MESSAGE_BEGIN( MSG_ONE, gmsgCurWeapon, NULL, pev );
+			WRITE_BYTE( 1 );
+			WRITE_BYTE( pWeapon->m_iId );
+			WRITE_BYTE( iClip );
+		MESSAGE_END();
+	}
+
+	if ( g_pGameRules )
+		( (CDoDTeamPlay *) g_pGameRules )->SendObjectiveStatus( this );
+
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
+
+		if ( pPlayer )
+		{
+			MESSAGE_BEGIN( MSG_ONE, gmsgPTeam, NULL, pev );
+				WRITE_BYTE( ENTINDEX( pPlayer->edict() ) );
+				WRITE_BYTE( pPlayer->pev->team );
+			MESSAGE_END();
+		}
+	}
+
+	MESSAGE_BEGIN( MSG_ONE, gmsgInitHUD, NULL, pev );
+	MESSAGE_END();
 }
 
 /*
@@ -5034,23 +5068,62 @@ void CBasePlayer::SetMapMarker( int marker )
 	if ( (unsigned) marker < 0xf )
 		m_iMapMarker = marker;
 }
-// .text:00135f80 link 0x135f80 (minimal port)
 void CBasePlayer::FireMapMarker()
 {
-	if ( !IsAlive() || pev->iuser1 != 0 || pev->iuser2 != 0 || g_fGameOver ||
-		 m_flNextMapMarkerTime > gpGlobals->time )
+	if ( !IsAlive() || pev->iuser1 != 0 || pev->iuser2 != 0 || g_fGameOver || m_flNextMapMarkerTime > gpGlobals->time )
 		return;
-	UTIL_MakeVectors( pev->v_angle );
-	Vector vecSrc = GetGunPosition();
-	Vector vecEnd = vecSrc + gpGlobals->v_forward * 8192.0f;
-	TraceResult tr;
-	UTIL_TraceLine( vecSrc, vecEnd, ignore_monsters, edict(), &tr );
-	if ( tr.flFraction < 1.0f )
+
+	// the oldest marker of the player goes away when the limit is reached
+	CBaseEntity *pMarker = UTIL_FindEntityByClassname( NULL, "dod_mapmarker" );
+	float flMaxMarkers = 1;
+
+	if ( pcvar_mp_nummapmarkers )
 	{
-		Vector vecOrigin = tr.vecEndPos;
-		CMapMarker::CreateMapMarker( vecOrigin, pev->angles, this, m_iMapMarker );
+		flMaxMarkers = 1;
+
+		if ( pcvar_mp_nummapmarkers->value >= 1 )
+			flMaxMarkers = pcvar_mp_nummapmarkers->value;
 	}
-	m_flNextMapMarkerTime = gpGlobals->time + 1.0f;
+
+	if ( pMarker )
+	{
+		int iCount = 1;
+		CBaseEntity *pOldest = NULL;
+		float flOldestCreatedTime = 1000000000;
+
+		do
+		{
+			if ( pMarker->pev->owner == edict() )
+			{
+				iCount++;
+
+				if ( flOldestCreatedTime > pMarker->pev->fuser1 )
+				{
+					flOldestCreatedTime = pMarker->pev->fuser1;
+					pOldest = pMarker;
+				}
+			}
+
+			pMarker = UTIL_FindEntityByClassname( pMarker, "dod_mapmarker" );
+		}
+		while ( pMarker );
+
+		if ( iCount > flMaxMarkers && pOldest )
+			UTIL_Remove( pOldest );
+	}
+
+	UTIL_MakeVectors( pev->v_angle );
+
+	Vector vecOrg = GetGunPosition();
+	Vector vecEnd = vecOrg + gpGlobals->v_forward * 4096;
+	TraceResult tr;
+
+	UTIL_TraceLine( vecOrg, vecEnd, ignore_monsters, edict(), &tr );
+
+	if ( tr.flFraction < 1.0 )
+		CMapMarker::CreateMapMarker( tr.vecEndPos, Vector( 0, 0, 0 ), this, m_iMapMarker );
+
+	m_flNextMapMarkerTime = gpGlobals->time + 1.0;
 }
 void CBasePlayer::PopHelmet( Vector *vecdir )
 {
