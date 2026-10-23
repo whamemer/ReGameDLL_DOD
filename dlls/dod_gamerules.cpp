@@ -2513,27 +2513,45 @@ int CountTeamMembers( int team )
 	}
 	return n;
 }
-int DeadTeammates( entvars_t *pevOrg )
+int DeadTeammates( entvars_t *pevPlr )
 {
-	int n = 0;
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	int iDead = 0;
+
+	if ( pevPlr )
 	{
-		CBaseEntity *p = UTIL_PlayerByIndex( i );
-		if ( p && p->pev->team == pevOrg->team && p->pev->deadflag != DEAD_NO )
-			n++;
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
+
+			if ( pPlayer && !pPlayer->has_disconnected && pPlayer->pev->team == pevPlr->team && pPlayer->pev != pevPlr )
+			{
+				if ( !pPlayer->IsAlive() )
+					iDead++;
+			}
+		}
 	}
-	return n;
+
+	return iDead;
 }
-int AliveTeammates( entvars_t *pevOrg )
+int AliveTeammates( entvars_t *pevPlr )
 {
-	int n = 0;
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	int iAlive = 0;
+
+	if ( pevPlr )
 	{
-		CBaseEntity *p = UTIL_PlayerByIndex( i );
-		if ( p && p->pev->team == pevOrg->team && p->pev->deadflag == DEAD_NO )
-			n++;
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
+
+			if ( pPlayer && !pPlayer->has_disconnected && pPlayer->pev->team == pevPlr->team && pPlayer->pev != pevPlr )
+			{
+				if ( pPlayer->IsAlive() )
+					iAlive++;
+			}
+		}
 	}
-	return n;
+
+	return iAlive;
 }
 BOOL CDoDTeamPlay::IsTeamPara( int team )
 {

@@ -844,6 +844,24 @@ int CBaseEntity::ShouldToggle( USE_TYPE useType, BOOL currentState )
 	return 1;
 }
 
+int CBaseEntity::ShouldToggle( USE_TYPE useType )
+{
+	STATE state = GetState();
+
+	if ( useType == USE_TOGGLE || useType == USE_SET )
+		return 1;
+
+	// turned on or turning on: only the off use makes sense
+	if ( state == STATE_TURN_ON || state == STATE_ON )
+		return useType != USE_ON;
+
+	// turned off or turning off: only the on use makes sense
+	if ( state == STATE_OFF || state == STATE_TURN_OFF )
+		return useType != USE_OFF;
+
+	return 1;
+}
+
 int CBaseEntity ::DamageDecal( int bitsDamageType )
 {
 	if ( pev->rendermode == kRenderTransAlpha )

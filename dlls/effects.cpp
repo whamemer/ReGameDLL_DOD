@@ -1005,10 +1005,12 @@ void CLaser::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useTyp
 		return;
 	if ( active )
 	{
+		SUB_UseTargets( this, USE_OFF, 0 );
 		TurnOff();
 	}
 	else
 	{
+		SUB_UseTargets( this, USE_ON, 0 );
 		TurnOn();
 	}
 }

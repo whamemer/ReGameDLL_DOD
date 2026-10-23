@@ -361,7 +361,7 @@ class CBaseEntity
 	void EXPORT SUB_FadeOut( void );
 	void EXPORT SUB_CallUseToggle( void ) { this->Use( this, this, USE_TOGGLE, 0 ); }
 	int ShouldToggle( USE_TYPE useType, BOOL currentState );
-	int ShouldToggle( USE_TYPE useType ) { return ShouldToggle( useType, GetState() ); }
+	int ShouldToggle( USE_TYPE useType );
 	void FireBullets( ULONG cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance,
 					  int iBulletType, int iTracerFreq = 4, int iDamage = 0, entvars_t *pevAttacker = NULL );
 	Vector FireBulletsPlayer( ULONG cShots, Vector vecSrc, Vector vecDirShooting, Vector vecSpread, float flDistance,
