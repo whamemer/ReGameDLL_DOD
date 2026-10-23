@@ -597,47 +597,97 @@ BOOL CanAttack( float attack_time, float curtime, BOOL isPredicted )
 
 void CBasePlayerWeapon::ItemPostFrame( void )
 {
-	if ( ( m_fInReload ) && ( m_pPlayer->m_flNextAttack <= UTIL_WeaponTimeBase() ) )
+	if ( m_pPlayer->pev->flags & FL_IMMUNE_LAVA )
+		return;
+
+	if ( ( m_fInReload ) && ( UTIL_WeaponTimeBase() >= m_flNextPrimaryAttack ) )
 	{
 		// complete the reload.
-		int j = min( iMaxClip() - m_iClip, m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] );
+		int j;
+
+		if ( m_iId == WEAPON_ENFIELD )
+		{
+			j = 10 - m_iClip;
+
+			if ( j > 5 )
+				j = 5;
+		}
+		else
+		{
+			j = min( CBasePlayerItem::ItemInfoArray[m_iId].iMaxClip - m_iClip, m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] );
+		}
+
+		if ( Classify() == CLASS_ROCKET )
+		{
+			if ( m_iWeaponState & WPNSTATE_ROCKET_SLOW )
+			{
+				m_iWeaponState &= ~WPNSTATE_ROCKET_SLOW;
+				( (CRocketWeapon *) this )->ReSlow();
+			}
+		}
 
 		// Add them to the clip
 		m_iClip += j;
+
+		MESSAGE_BEGIN( MSG_ONE, gmsgReloadDone, NULL, m_pPlayer->pev );
+		MESSAGE_END();
+
 		m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] -= j;
 
 		m_pPlayer->TabulateAmmo();
 
 		m_fInReload = FALSE;
+
+		m_flTimeWeaponIdle = UTIL_WeaponTimeBase();
 	}
 
-	if ( ( m_pPlayer->pev->button & IN_ATTACK2 ) &&
-		 CanAttack( m_flNextSecondaryAttack, gpGlobals->time, UseDecrement() ) )
+	if ( m_fInAttack && !( m_pPlayer->pev->button & IN_ATTACK ) )
+		m_fInAttack = 0;
+
+	if ( ( m_pPlayer->pev->button & IN_ATTACK2 ) && UTIL_WeaponTimeBase() >= m_flNextSecondaryAttack )
 	{
-		if ( pszAmmo2() && !m_pPlayer->m_rgAmmo[SecondaryAmmoIndex()] )
+		if ( CBasePlayerItem::ItemInfoArray[m_iId].pszAmmo2 && !m_pPlayer->m_rgAmmo[SecondaryAmmoIndex()] )
 		{
 			m_fFireOnEmpty = TRUE;
 		}
 
 		m_pPlayer->TabulateAmmo();
-		SecondaryAttack();
+
+		if ( g_pGameRules->RoundState() == 1 )
+			SecondaryAttack();
+
 		m_pPlayer->pev->button &= ~IN_ATTACK2;
 	}
 	else if ( ( m_pPlayer->pev->button & IN_ATTACK ) &&
-			  CanAttack( m_flNextPrimaryAttack, gpGlobals->time, UseDecrement() ) )
+			  ( m_iId == WEAPON_HANDGRENADE || m_iId == WEAPON_STICKGRENADE || m_iId == WEAPON_STICKGRENADEX ||
+				m_iId == WEAPON_HANDGRENADEX ) &&
+			  gpGlobals->time >= m_flNextPrimaryAttack )
 	{
-		if ( ( m_iClip == 0 && pszAmmo1() ) || ( iMaxClip() == -1 && !m_pPlayer->m_rgAmmo[PrimaryAmmoIndex()] ) )
+		// the grenades are not predicted, they work on the real time
+		m_pPlayer->TabulateAmmo();
+
+		if ( g_pGameRules->RoundState() == 1 )
+			PrimaryAttack();
+	}
+	else if ( ( m_pPlayer->pev->button & IN_ATTACK ) && UTIL_WeaponTimeBase() >= m_flNextPrimaryAttack )
+	{
+		if ( ( !m_iClip && CBasePlayerItem::ItemInfoArray[m_iId].pszAmmo1 ) ||
+			 ( CBasePlayerItem::ItemInfoArray[m_iId].iMaxClip == -1 && !m_pPlayer->m_rgAmmo[PrimaryAmmoIndex()] ) )
 		{
 			m_fFireOnEmpty = TRUE;
 		}
 
 		m_pPlayer->TabulateAmmo();
-		PrimaryAttack();
+
+		if ( g_pGameRules->RoundState() == 1 )
+			PrimaryAttack();
 	}
-	else if ( m_pPlayer->pev->button & IN_RELOAD && iMaxClip() != WEAPON_NOCLIP && !m_fInReload )
+	else if ( ( m_pPlayer->pev->button & IN_RELOAD ) && CBasePlayerItem::ItemInfoArray[m_iId].iMaxClip != WEAPON_NOCLIP &&
+			  !m_fInReload )
 	{
 		// reload when reload is pressed, or if no buttons are down and weapon is empty.
-		Reload();
+		if ( m_pPlayer->pev->waterlevel <= 2 )
+			Reload();
 	}
 	else if ( !( m_pPlayer->pev->button & ( IN_ATTACK | IN_ATTACK2 ) ) )
 	{
@@ -645,24 +695,13 @@ void CBasePlayerWeapon::ItemPostFrame( void )
 
 		m_fFireOnEmpty = FALSE;
 
-		if ( !IsUseable() && m_flNextPrimaryAttack < ( UseDecrement() ? 0.0 : gpGlobals->time ) )
+		if ( !m_iClip && !( CBasePlayerItem::ItemInfoArray[m_iId].iFlags & ITEM_FLAG_NOAUTORELOAD ) &&
+			 m_flNextPrimaryAttack < 0 && m_pPlayer->m_bAutoReload &&
+			 ( ( !m_pPlayer->IsProneDeployed() && !m_pPlayer->IsSandbagDeployed() ) || Classify() != CLASS_MACHINEGUN ) &&
+			 m_pPlayer->pev->waterlevel <= 2 )
 		{
-			// weapon isn't useable, switch.
-			if ( !( iFlags() & ITEM_FLAG_NOAUTOSWITCHEMPTY ) && g_pGameRules->GetNextBestWeapon( m_pPlayer, this ) )
-			{
-				m_flNextPrimaryAttack = ( UseDecrement() ? 0.0 : gpGlobals->time ) + 0.3;
-				return;
-			}
-		}
-		else
-		{
-			// weapon is useable. Reload if empty and weapon has waited as long as it has to after firing
-			if ( m_iClip == 0 && !( iFlags() & ITEM_FLAG_NOAUTORELOAD ) &&
-				 m_flNextPrimaryAttack < ( UseDecrement() ? 0.0 : gpGlobals->time ) )
-			{
-				Reload();
-				return;
-			}
+			Reload();
+			return;
 		}
 
 		WeaponIdle();
@@ -1029,22 +1068,39 @@ BOOL CBasePlayerWeapon::TimedDeploy( char *szViewModel, char *szWeaponModel, int
 
 BOOL CBasePlayerWeapon ::DefaultReload( int iClipSize, int iAnim, float fDelay )
 {
-	if ( m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] <= 0 )
+	int iAmmo = m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType];
+
+	if ( iAmmo <= 0 )
 		return FALSE;
 
-	int j = min( iClipSize - m_iClip, m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] );
+	int j;
 
-	if ( j == 0 )
+	if ( m_iId == WEAPON_ENFIELD )
+		j = min( 2 * iClipSize - m_iClip, iAmmo );
+	else
+		j = min( iClipSize - m_iClip, iAmmo );
+
+	if ( j == 0 || iAmmo <= m_iClip )
 		return FALSE;
 
-	m_pPlayer->m_flNextAttack = UTIL_WeaponTimeBase() + fDelay;
+	EMIT_SOUND_DYN( ENT( pev ), CHAN_WEAPON, "weapons/reloadgarand.wav", RANDOM_FLOAT( 0.8, 0.9 ), ATTN_NORM, 0, PITCH_NORM );
 
-	//!!UNDONE -- reload sound goes here !!!
+	m_pPlayer->SetAnimation( PLAYER_RELOAD );
+
+	m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + fDelay;
+	m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + fDelay;
+
 	SendWeaponAnim( iAnim, UseDecrement() ? 1 : 0 );
 
 	m_fInReload = TRUE;
 
-	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 3;
+	ItemInfo ii;
+	GetItemInfo( &ii );
+
+	if ( ii.iFlags & ITEM_FLAG_HEAT )
+		m_flWeaponHeat = 0;
+
+	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + max( 3.0f, fDelay );
 	return TRUE;
 }
 
@@ -1123,15 +1179,26 @@ void CBasePlayerAmmo::Materialize( void )
 
 void CBasePlayerAmmo ::DefaultTouch( CBaseEntity *pOther )
 {
+	if ( !( pev->flags & FL_ONGROUND ) )
+		return;
+
 	if ( !pOther->IsPlayer() )
+		return;
+
+	if ( pev->team && pev->team != pOther->pev->team )
+		return;
+
+	if ( !FNullEnt( pev->owner ) && pOther->pev->pContainingEntity == pev->owner )
 	{
-		return;
+		// the owner takes his own dropped ammo back
+		( (CBasePlayer *) pOther )->m_nGenericAmmoCount++;
+
+		EMIT_SOUND_DYN( pOther->edict(), CHAN_ITEM, "items/weaponpickup.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+
+		SetTouch( NULL );
+		UTIL_Remove( this );
 	}
-
-	if ( IsPlayerBusting( pOther ) )
-		return;
-
-	if ( AddAmmo( pOther ) )
+	else if ( AddAmmo( pOther ) )
 	{
 		if ( g_pGameRules->AmmoShouldRespawn( this ) == GR_AMMO_RESPAWN_YES )
 		{
@@ -1141,7 +1208,7 @@ void CBasePlayerAmmo ::DefaultTouch( CBaseEntity *pOther )
 		{
 			SetTouch( NULL );
 			SetThink( &CBasePlayerAmmo::SUB_Remove );
-			pev->nextthink = gpGlobals->time + .1;
+			pev->nextthink = UTIL_WeaponTimeBase() + .1;
 		}
 	}
 	else if ( gEvilImpulse101 )
@@ -1149,7 +1216,7 @@ void CBasePlayerAmmo ::DefaultTouch( CBaseEntity *pOther )
 		// evil impulse 101 hack, kill always
 		SetTouch( NULL );
 		SetThink( &CBasePlayerAmmo::SUB_Remove );
-		pev->nextthink = gpGlobals->time + .1;
+		pev->nextthink = UTIL_WeaponTimeBase() + .1;
 	}
 }
 
@@ -1237,7 +1304,8 @@ IMPLEMENT_SAVERESTORE( CWeaponBox, CBaseEntity );
 //=========================================================
 void CWeaponBox::Precache( void )
 {
-	PRECACHE_MODEL( "models/w_weaponbox.mdl" );
+	PRECACHE_MODEL( "models/allied_ammo.mdl" );
+	PRECACHE_MODEL( "models/axis_ammo.mdl" );
 }
 
 //=========================================================
@@ -1266,10 +1334,11 @@ void CWeaponBox::Spawn( void )
 
 	pev->movetype = MOVETYPE_TOSS;
 	pev->solid = SOLID_TRIGGER;
+	m_bTouch = TRUE;
 
 	UTIL_SetSize( pev, g_vecZero, g_vecZero );
 
-	SET_MODEL( ENT( pev ), "models/w_weaponbox.mdl" );
+	SET_MODEL( ENT( pev ), "models/allied_ammo.mdl" );
 }
 
 //=========================================================
@@ -1281,6 +1350,8 @@ void CWeaponBox::Kill( void )
 	CBasePlayerItem *pWeapon;
 	int i;
 
+	ALERT( at_aiconsole, "weapon box killed.\n" );
+
 	// destroy the weapons
 	for ( i = 0; i < MAX_ITEM_TYPES; i++ )
 	{
@@ -1288,8 +1359,27 @@ void CWeaponBox::Kill( void )
 
 		while ( pWeapon )
 		{
+			// another weapon of this kind that is waiting for the death of this one comes back
+			if ( pWeapon->m_bTriggerSpawnOnDie )
+			{
+				CBasePlayerItem *pItem =
+					(CBasePlayerItem *) UTIL_FindEntityByClassname( NULL, STRING( pWeapon->pev->classname ) );
+
+				while ( pItem )
+				{
+					if ( pItem->m_bReadyToRespawn )
+					{
+						pItem->SetThink( &CBasePlayerItem::AttemptToMaterialize );
+						pItem->pev->nextthink = gpGlobals->time + 0.1;
+						break;
+					}
+
+					pItem = (CBasePlayerItem *) UTIL_FindEntityByClassname( pItem, STRING( pWeapon->pev->classname ) );
+				}
+			}
+
 			pWeapon->SetThink( &CBasePlayerItem::SUB_Remove );
-			pWeapon->pev->nextthink = gpGlobals->time + 0.1;
+			pWeapon->pev->nextthink = UTIL_WeaponTimeBase() + 0.1;
 			pWeapon = pWeapon->m_pNext;
 		}
 	}
@@ -1321,53 +1411,57 @@ void CWeaponBox::Touch( CBaseEntity *pOther )
 		return;
 	}
 
+	if ( !m_bTouch )
+		return;
+
 	CBasePlayer *pPlayer = (CBasePlayer *) pOther;
+	BOOL bGotWeapon = FALSE;
 	int i;
 
-	// dole out ammo
-	for ( i = 0; i < MAX_AMMO_SLOTS; i++ )
-	{
-		if ( !FStringNull( m_rgiszAmmo[i] ) )
-		{
-			// there's some ammo of this type.
-			pPlayer->GiveAmmo( m_rgAmmo[i], (char *) STRING( m_rgiszAmmo[i] ), MaxAmmoCarry( m_rgiszAmmo[i] ) );
-
-			//ALERT ( at_console, "Gave %d rounds of %s\n", m_rgAmmo[i], STRING(m_rgiszAmmo[i]) );
-
-			// now empty the ammo from the weaponbox since we just gave it to the player
-			m_rgiszAmmo[i] = iStringNull;
-			m_rgAmmo[i] = 0;
-		}
-	}
-
 	// go through my weapons and try to give the usable ones to the player.
-	// it's important the the player be given ammo first, so the weapons code doesn't refuse
-	// to deploy a better weapon that the player may pick up because he has no ammo for it.
 	for ( i = 0; i < MAX_ITEM_TYPES; i++ )
 	{
-		if ( m_rgpPlayerItems[i] )
+		CBasePlayerItem *pItem = m_rgpPlayerItems[i];
+
+		while ( pItem )
 		{
-			CBasePlayerItem *pItem;
+			CBasePlayerItem *pNext = pItem->m_pNext;
 
-			// have at least one weapon in this slot
-			while ( m_rgpPlayerItems[i] )
+			if ( g_pGameRules->CanHavePlayerItem( pPlayer, pItem ) )
 			{
-				//ALERT ( at_console, "trying to give %s\n", STRING( m_rgpPlayerItems[ i ]->pev->classname ) );
-
-				pItem = m_rgpPlayerItems[i];
-				m_rgpPlayerItems[i] = m_rgpPlayerItems[i]->m_pNext;	 // unlink this weapon from the box
-
 				if ( pPlayer->AddPlayerItem( pItem ) )
-				{
 					pItem->AttachToPlayer( pPlayer );
-				}
+
+				bGotWeapon = TRUE;
+
+				// unlink this weapon from the box
+				m_rgpPlayerItems[i] = m_rgpPlayerItems[i]->m_pNext;
 			}
+
+			pItem = pNext;
 		}
 	}
 
-	EMIT_SOUND( pOther->edict(), CHAN_ITEM, "items/gunpickup2.wav", 1, ATTN_NORM );
-	SetTouch( NULL );
-	UTIL_Remove( this );
+	if ( bGotWeapon )
+	{
+		// dole out ammo
+		for ( i = 0; i < MAX_AMMO_SLOTS; i++ )
+		{
+			if ( !FStringNull( m_rgiszAmmo[i] ) )
+			{
+				// there's some ammo of this type.
+				pPlayer->GiveAmmo( m_rgAmmo[i], (char *) STRING( m_rgiszAmmo[i] ), m_rgAmmo[i] );
+
+				// now empty the ammo from the weaponbox since we just gave it to the player
+				m_rgiszAmmo[i] = iStringNull;
+				m_rgAmmo[i] = 0;
+			}
+		}
+
+		EMIT_SOUND_DYN( pOther->edict(), CHAN_ITEM, "items/weaponpickup.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+		SetTouch( NULL );
+		UTIL_Remove( this );
+	}
 }
 
 //=========================================================
@@ -1794,35 +1888,9 @@ void CDodAmmoBox::Touch( CBaseEntity *pOther )
 	UTIL_Remove( this );
 }
 
-// .text:0016bec0 CWeaponBox::RoundRespawn (file:weapons.cpp)
 void CWeaponBox::RoundRespawn( void )
 {
-	ALERT( at_aiconsole, "weapon box killed.\n" );
-
-	for ( int i = 0; i < 6; i++ )
-	{
-		CBasePlayerItem *pItem = m_rgpPlayerItems[i];
-		while ( pItem != NULL )
-		{
-			if ( pItem->m_bTriggerSpawnOnDie )
-			{
-				for ( CBaseEntity *pEnt = UTIL_FindEntityByClassname( NULL, STRING( pItem->pev->classname ) );
-					  pEnt != NULL; pEnt = UTIL_FindEntityByClassname( pEnt, STRING( pItem->pev->classname ) ) )
-				{
-					if ( ( (CBasePlayerItem *)pEnt )->m_bTriggerSpawnOnDie == 0 )
-					{
-						pEnt->SetThink( &CBasePlayerItem::AttemptToMaterialize );
-						pEnt->pev->nextthink = gpGlobals->time + 0.1f;
-						break;
-					}
-				}
-			}
-			pItem->SetThink( &CBaseEntity::SUB_Remove );
-			pItem->pev->nextthink = UTIL_WeaponTimeBase() + 0.1f;
-			pItem = pItem->m_pNext;
-		}
-	}
-	UTIL_Remove( this );
+	Kill();
 }
 
 // .text:0015da80 CBasePlayerAmmo::GiveGenericAmmo (file:weapons.cpp)

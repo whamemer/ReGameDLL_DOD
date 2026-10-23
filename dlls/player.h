@@ -448,6 +448,7 @@ extern int gmsgScope;
 extern int gmsgFrags;
 extern int gmsgObjScore;
 extern int gmsgObject;
+extern int gmsgReloadDone;
 extern int gmsgClientAreas;
 extern int gmsgYouDied;
 extern int gmsgBloodPuff;
