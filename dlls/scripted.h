@@ -53,6 +53,7 @@ class CCineMonster : public CBaseMonster
 	virtual void Touch( CBaseEntity *pOther );
 	virtual int ObjectCaps( void ) { return ( CBaseMonster ::ObjectCaps() & ~FCAP_ACROSS_TRANSITION ); }
 	virtual void Activate( void );
+	virtual STATE GetState( void ) { return (STATE)m_iState; }
 
 	virtual int Save( CSave &save );
 	virtual int Restore( CRestore &restore );

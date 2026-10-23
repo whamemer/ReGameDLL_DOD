@@ -23,6 +23,7 @@ class CInfoAlias : public CBaseEntity
 class CInfoGroup : public CBaseEntity
 {
   public:
+	virtual int ObjectCaps( void ) { return 0; }
 	void KeyValue( KeyValueData *pkvd );
 	void EXPORT Think();
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -38,6 +39,7 @@ class CInfoGroup : public CBaseEntity
 class CMultiAlias : public CBaseEntity
 {
   public:
+	virtual int ObjectCaps( void ) { return 0; }
 	void KeyValue( KeyValueData *pkvd );
 	int Save( CSave &save );
 	int Restore( CRestore &restore );

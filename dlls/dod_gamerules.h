@@ -35,11 +35,12 @@ class CDoDStatMgr : public CBaseEntity
 	void PrintPlayerStats( int index );
 	DoDPlayerStats_t m_PlayerStats[32];
 };
-class CDoDPreRound : public CBaseEntity
+class CDoDPreRound : public CPointEntity
 {
   public:
 	void Launch( int state );
 	void KeyValue( KeyValueData *pkvd );
+	int m_roundstate;
 	string_t m_allieswin;
 	string_t m_alliesloose;
 	string_t m_axiswin;

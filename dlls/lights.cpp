@@ -380,7 +380,7 @@ const char *GetStdLightStyle( int iStyle )
 	return "m";
 }
 
-class CTriggerLightstyle : public CPointEntity
+class CTriggerLightstyle : public CBaseEntity
 {
   public:
 	void Spawn( void );
@@ -476,5 +476,5 @@ TYPEDESCRIPTION CTriggerLightstyle::m_SaveData[] = {
 	DEFINE_FIELD( CTriggerLightstyle, m_iszPattern, FIELD_STRING ),
 	DEFINE_FIELD( CTriggerLightstyle, m_iWait, FIELD_INTEGER ),
 };
-IMPLEMENT_SAVERESTORE( CTriggerLightstyle, CPointEntity );
+IMPLEMENT_SAVERESTORE( CTriggerLightstyle, CBaseEntity );
 LINK_ENTITY_TO_CLASS( trigger_lightstyle, CTriggerLightstyle );

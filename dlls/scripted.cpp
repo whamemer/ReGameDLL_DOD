@@ -922,6 +922,7 @@ class CScriptedSentence : public CBaseToggle
 	void EXPORT FindThink( void );
 	void EXPORT DelayThink( void );
 	int ObjectCaps( void ) { return ( CBaseToggle ::ObjectCaps() & ~FCAP_ACROSS_TRANSITION ); }
+	virtual STATE GetState( void ) { return m_playing ? STATE_ON : STATE_OFF; }
 
 	virtual int Save( CSave &save );
 	virtual int Restore( CRestore &restore );
@@ -941,6 +942,7 @@ class CScriptedSentence : public CBaseToggle
 	float m_flAttenuation;
 	float m_flVolume;
 	BOOL m_active;
+	BOOL m_playing;
 	int m_iszListener;	// name of entity to look at while talking
 };
 
@@ -958,6 +960,7 @@ TYPEDESCRIPTION CScriptedSentence::m_SaveData[] = {
 	DEFINE_FIELD( CScriptedSentence, m_flAttenuation, FIELD_FLOAT ),
 	DEFINE_FIELD( CScriptedSentence, m_flVolume, FIELD_FLOAT ),
 	DEFINE_FIELD( CScriptedSentence, m_active, FIELD_BOOLEAN ),
+	DEFINE_FIELD( CScriptedSentence, m_playing, FIELD_BOOLEAN ),
 	DEFINE_FIELD( CScriptedSentence, m_iszListener, FIELD_STRING ),
 };
 
@@ -1024,6 +1027,7 @@ void CScriptedSentence ::Spawn( void )
 {
 	pev->solid = SOLID_NOT;
 
+	m_playing = FALSE;
 	m_active = TRUE;
 	// if no targetname, start now
 	if ( !pev->targetname )
@@ -1060,22 +1064,38 @@ void CScriptedSentence ::Spawn( void )
 
 void CScriptedSentence ::FindThink( void )
 {
-	CBaseToggle *pEnt = FindEntity();
-	if ( pEnt )
+	if ( m_iszEntity )
 	{
-		StartSentence( pEnt );
+		CBaseToggle *pEnt = FindEntity();
+		if ( pEnt )
+		{
+			m_playing = TRUE;
+			StartSentence( pEnt );
+			if ( pev->spawnflags & SF_SENTENCE_ONCE )
+				UTIL_Remove( this );
+			SetThink( &CScriptedSentence::DurationThink );
+			pev->nextthink = gpGlobals->time + m_flDuration;
+			m_active = FALSE;
+			//		ALERT( at_console, "%s: found monster %s\n", STRING(m_iszSentence), STRING(m_iszEntity) );
+		}
+		else
+		{
+			//		ALERT( at_console, "%s: can't find monster %s\n", STRING(m_iszSentence), STRING(m_iszEntity) );
+			pev->nextthink = gpGlobals->time + m_flRepeat + 0.5;
+		}
+	}
+	else if ( UTIL_FindEntityByClassname( NULL, "player" ) )
+	{
+		// no speaker named, the sentence goes to the player
+		m_playing = TRUE;
 		if ( pev->spawnflags & SF_SENTENCE_ONCE )
 			UTIL_Remove( this );
-		SetThink( &CScriptedSentence::DelayThink );
-		pev->nextthink = gpGlobals->time + m_flDuration + m_flRepeat;
+		SetThink( &CScriptedSentence::DurationThink );
+		pev->nextthink = gpGlobals->time + m_flDuration;
 		m_active = FALSE;
-		//		ALERT( at_console, "%s: found monster %s\n", STRING(m_iszSentence), STRING(m_iszEntity) );
 	}
 	else
-	{
-		//		ALERT( at_console, "%s: can't find monster %s\n", STRING(m_iszSentence), STRING(m_iszEntity) );
-		pev->nextthink = gpGlobals->time + m_flRepeat + 0.5;
-	}
+		ALERT( at_console, "ScriptedSentence: can't find \"player\" to play HEV sentence!?\n" );
 }
 
 void CScriptedSentence ::DelayThink( void )
@@ -1274,10 +1294,9 @@ void CCineMonster::DoDReset( void )
 	}
 }
 
-// .text:0012e230 CScriptedSentence::DurationThink (file:scripted.cpp)
-void CScriptedSentence::DurationThink( void )
+void CScriptedSentence ::DurationThink( void )
 {
-	m_active = FALSE;
+	m_playing = FALSE;
 	pev->nextthink = gpGlobals->time + m_flRepeat;
 	SetThink( &CScriptedSentence::DelayThink );
 }

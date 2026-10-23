@@ -908,6 +908,7 @@ class CMomentaryDoor : public CBaseToggle
 	void KeyValue( KeyValueData *pkvd );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	virtual int ObjectCaps( void ) { return CBaseToggle ::ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
+	virtual STATE GetState( void ) { return m_iState; }
 
 	virtual int Save( CSave &save );
 	virtual int Restore( CRestore &restore );
