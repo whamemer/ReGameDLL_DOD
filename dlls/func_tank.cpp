@@ -1074,13 +1074,13 @@ int CFuncTank::IRelationship( CBaseEntity *pTarget )
 	if ( c == 0xe )
 	{
 		if ( iOtherClass == CLASS_PLAYER )
-			return ( pTarget->pev->team != 1 ) ? 2 : -2;
+			return ( pTarget->pev->team != TEAM_ALLIES ) ? 2 : -2;
 		return 2;
 	}
 	if ( c == 0xf )
 	{
 		if ( iOtherClass == CLASS_PLAYER )
-			return ( pTarget->pev->team != 2 ) ? 2 : -2;
+			return ( pTarget->pev->team != TEAM_AXIS ) ? 2 : -2;
 		return 2;
 	}
 	if ( c == 0xb )
@@ -1122,15 +1122,15 @@ void CFuncTank::TrackThink( void )
 
 	if ( fabs( pev->avelocity.x ) <= 1.0 && fabs( pev->avelocity.y ) <= 1.0 )
 	{
-		if ( pev->spawnflags & 0x8000 )
+		if ( pev->spawnflags & SF_TANK_SOUNDON )
 			EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, (char *)STRING( pev->noise ), 0.0, 0.0, 0x20, 100 );
 		pev->spawnflags &= ~0x8000;
 		return;
 	}
 
-	if ( pev->noise != 0 && !( pev->spawnflags & 0x8000 ) )
+	if ( pev->noise != 0 && !( pev->spawnflags & SF_TANK_SOUNDON ) )
 	{
-		pev->spawnflags |= 0x8000;
+		pev->spawnflags |= SF_TANK_SOUNDON;
 		EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, (char *)STRING( pev->noise ), 0.85, 0.8, 0, 100 );
 	}
 }
@@ -1138,7 +1138,7 @@ void CFuncTank::TrackThink( void )
 // .text:00100c10 CFuncTankControls::OnControls (file:func_tank.cpp)
 BOOL CFuncTankControls::OnControls( entvars_t *pevTest )
 {
-	if ( pev->spawnflags & 0x20 )
+	if ( pev->spawnflags & SF_TANK_CANCONTROL )
 		return ( m_vecControllerUsePos - pevTest->origin ).Length() < 30.0f;
 	return FALSE;
 }

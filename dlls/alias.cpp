@@ -9,6 +9,10 @@
 #include "cbase.h"
 #include "saverestore.h"
 
+#define SF_ALIAS_OFF 0x0001		// info_alias starts switched off (target and netname are swapped)
+#define SF_ALIAS_DEBUG 0x0002	// the alias entities print what they change
+#define SF_CHANGEALIAS_FOLLOW 0x0001	// trigger_changealias takes the name of the entity its netname refers to
+
 class CInfoAlias : public CBaseEntity
 {
   public:
@@ -209,7 +213,7 @@ CBaseEntity *UTIL_FollowReference( CBaseEntity *pStartEntity, const char *szName
 void CInfoAlias::Spawn()
 {
 	RoundStore();
-	if ( pev->spawnflags & 1 )
+	if ( pev->spawnflags & SF_ALIAS_OFF )
 	{
 		int tmp = pev->target;
 		pev->target = pev->netname;
@@ -219,7 +223,7 @@ void CInfoAlias::Spawn()
 // .text:000b9d50 CInfoAlias::RoundRespawn (alias.cpp:60)
 void CInfoAlias::RoundRespawn()
 {
-	if ( pev->spawnflags & 1 )
+	if ( pev->spawnflags & SF_ALIAS_OFF )
 	{
 		int tmp = pev->target;
 		pev->target = pev->netname;
@@ -229,26 +233,26 @@ void CInfoAlias::RoundRespawn()
 // .text:000b98b0 CInfoAlias::Think (alias.cpp:79)
 void CInfoAlias::Think()
 {
-	if ( ( pev->spawnflags & 1 ) == 0 )
+	if ( ( pev->spawnflags & SF_ALIAS_OFF ) == 0 )
 	{
-		if ( ( pev->spawnflags & 2 ) == 0 )
-			pev->spawnflags |= 1;
+		if ( ( pev->spawnflags & SF_ALIAS_DEBUG ) == 0 )
+			pev->spawnflags |= SF_ALIAS_OFF;
 		else
 		{
 			ALERT( at_console, "DEBUG: info_alias %s turns off", STRING( pev->targetname ) );
-			pev->spawnflags |= 1;
+			pev->spawnflags |= SF_ALIAS_OFF;
 		}
 	}
 	else
 	{
-		if ( pev->spawnflags & 2 )
+		if ( pev->spawnflags & SF_ALIAS_DEBUG )
 			ALERT( at_console, "DEBUG: info_alias %s turns on", STRING( pev->targetname ) );
-		pev->spawnflags &= 0xFFFFFFFE;
+		pev->spawnflags &= ~SF_ALIAS_OFF;
 	}
 	int tmp = pev->netname;
 	pev->netname = pev->target;
 	pev->target = tmp;
-	if ( pev->spawnflags & 2 )
+	if ( pev->spawnflags & SF_ALIAS_DEBUG )
 		ALERT( at_console, ": target becomes %s", STRING( pev->target ) );
 }
 // .text:000ba0c0 CInfoAlias::Use (alias.cpp:71)
@@ -265,7 +269,7 @@ int CInfoAlias::ObjectCaps()
 // .text:000bad30 CInfoAlias::GetState (alias.cpp:41)
 STATE CInfoAlias::GetState()
 {
-	return ( pev->spawnflags & 1 ) ? STATE_OFF : STATE_ON;
+	return ( pev->spawnflags & SF_ALIAS_OFF ) ? STATE_OFF : STATE_ON;
 }
 // .text:000ba100 info_alias (alias.cpp:44)
 // .text:000b9e50 CInfoGroup::KeyValue (alias.cpp:124)
@@ -290,7 +294,7 @@ void CInfoGroup::Think()
 	if ( pT != 0 && FClassnameIs( pT->pev, "info_alias" ) )
 	{
 		pT->pev->target = pev->targetname;
-		if ( ( pev->spawnflags & 2 ) == 0 )
+		if ( ( pev->spawnflags & SF_ALIAS_DEBUG ) == 0 )
 			return;
 		ALERT( at_console, "info_group %s changed the contents of alias %s to %s", STRING( pev->targetname ),
 			   STRING( pT->pev->targetname ), STRING( pT->pev->target ) );
@@ -349,24 +353,33 @@ void CTriggerChangeAlias::Spawn()
 // .text:000b9a10 CTriggerChangeAlias::Use (alias.cpp:244)
 void CTriggerChangeAlias::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	CBaseEntity *pT = UTIL_FindEntityByTargetname( 0, STRING( pev->target ) );
-	if ( pT != 0 && FClassnameIs( pT->pev, "info_alias" ) )
+	CBaseEntity *pAlias = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ) );
+
+	if ( !pAlias || !FClassnameIs( pAlias->pev, "info_alias" ) )
 	{
-		int newVal = 0;
-		if ( pev->spawnflags & 1 )
-		{
-			CBaseEntity *pF = UTIL_FollowReference( 0, STRING( pev->netname ) );
-			if ( pF != 0 )
-				newVal = pF->pev->targetname;
-		}
-		if ( newVal == 0 )
-			newVal = pev->netname;
-		pT->pev->target = newVal;
-		if ( pev->spawnflags & 2 )
-			ALERT( at_console, "DEBUG: trigger_changealias %s activated: changed contents of alias %s to %s" );
+		ALERT( at_console, "trigger_changealias %s: alias \"%s\" was not found or not an alias!", STRING( pev->targetname ),
+			   STRING( pev->target ) );
 		return;
 	}
-	ALERT( at_console, "trigger_changealias %s: alias %s was not found or not an alias!" );
+
+	int iNewValue = 0;
+
+	if ( pev->spawnflags & SF_CHANGEALIAS_FOLLOW )
+	{
+		CBaseEntity *pFollow = UTIL_FollowReference( NULL, STRING( pev->netname ) );
+
+		if ( pFollow )
+			iNewValue = pFollow->pev->targetname;
+	}
+
+	if ( !iNewValue )
+		iNewValue = pev->netname;
+
+	pAlias->pev->target = iNewValue;
+
+	if ( pev->spawnflags & SF_ALIAS_DEBUG )
+		ALERT( at_console, "DEBUG: trigger_changealias %s activated: changed contents of alias \"%s\" to \"%s\"\n",
+			   STRING( pev->targetname ), STRING( pAlias->pev->targetname ), STRING( iNewValue ) );
 }
 // .text:000bad50 CTriggerChangeAlias::ObjectCaps (alias.cpp:235)
 int CTriggerChangeAlias::ObjectCaps()

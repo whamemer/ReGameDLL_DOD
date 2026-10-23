@@ -65,7 +65,7 @@ int CMeleeWeapon::AddToPlayer( CBasePlayer *pPlayer )
 		return FALSE;
 
 	// the Axis knife on the floor looks like the one the player has
-	if( pPlayer->pev->team == 2 )
+	if( pPlayer->pev->team == TEAM_AXIS )
 	{
 		if( pPlayer->IsParatrooper() )
 		{
@@ -95,7 +95,7 @@ BOOL CMeleeWeapon::Deploy( void )
 
 #if !CLIENT_DLL
 	// the British have their own knife in their hands
-	if( g_pGameRules && ( (CDoDTeamPlay *)g_pGameRules )->IsAlliesBrit() && m_pPlayer->pev->team == 1 )
+	if( g_pGameRules && ( (CDoDTeamPlay *)g_pGameRules )->IsAlliesBrit() && m_pPlayer->pev->team == TEAM_ALLIES )
 		iModel = WEAPON_FAIRBAIRN;
 #endif
 

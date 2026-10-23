@@ -505,6 +505,12 @@ extern DLL_GLOBAL int g_Language;
 #define SVC_ROOMTYPE 37
 #define SVC_DIRECTOR 51
 
+// the teams of the players, pev->team
+#define TEAM_UNASSIGNED 0
+#define TEAM_ALLIES 1
+#define TEAM_AXIS 2
+#define TEAM_SPECTATOR 3
+
 // triggers
 #define SF_TRIGGER_ALLOWMONSTERS 1	// monsters allowed to fire this trigger
 #define SF_TRIGGER_NOCLIENTS 2		// players not allowed to fire this trigger
@@ -517,7 +523,12 @@ extern DLL_GLOBAL int g_Language;
 #define SF_BREAK_TRIGGER_ONLY 1	 // may only be broken by trigger
 #define SF_BREAK_TOUCH 2		 // can be 'crashed through' by running player (plate glass)
 #define SF_BREAK_PRESSURE 4		 // can be broken by a player standing on it
-#define SF_BREAK_CROWBAR 256	 // instant break if hit with crowbar
+#define SF_BREAK_ONLY_NOBLOOD 8		// DoD: hurt only by damage with DMG_DOD_NOBLOOD
+#define SF_BREAK_ALLIES_ONLY 16		// DoD: only the Allies can hurt it or break it with an object
+#define SF_BREAK_AXIS_ONLY 32		// DoD: only the Axis can
+#define SF_BREAK_INVULNERABLE 64	// DoD: takes no damage at all
+#define SF_BREAK_ONLY_SONIC_OR_NOBLOOD 256	// DoD: hurt only by DMG_SONIC or DMG_DOD_NOBLOOD
+#define SF_BREAK_ONLY_SONIC 512		// DoD: hurt only by DMG_SONIC
 
 // func_pushable (it's also func_breakable, so don't collide with those flags)
 #define SF_PUSH_BREAKABLE 128

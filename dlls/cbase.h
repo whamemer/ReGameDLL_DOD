@@ -595,6 +595,8 @@ inline void MAKE_STRING_CLASS( const char *str, entvars_t *pev )
 
 #endif
 
+#define SF_POINT_NULL_SPRITE 0x0001	// the point entity gets the null sprite, so the clients know it
+
 class CPointEntity : public CBaseEntity
 {
   public:
@@ -644,6 +646,8 @@ void PlayLockSounds( entvars_t *pev, locksound_t *pls, int flocked, int fbutton 
 
 #define MAX_MULTI_TARGETS 16  // maximum number of targets a single multi_manager entity may be assigned.
 #define MS_MAX_TARGETS 32
+
+#define SF_MULTI_INIT 0x0002	// multisource: the list of the triggers is not made yet
 
 class CMultiSource : public CPointEntity
 {

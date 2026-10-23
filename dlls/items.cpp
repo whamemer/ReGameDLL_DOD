@@ -231,7 +231,7 @@ void GenericAmmoAmerican::Spawn()
 	UTIL_SetSize( pev, Vector( -16, -16, 0 ), Vector( 16, 16, 16 ) );
 	UTIL_SetOrigin( pev, pev->origin );
 	SetTouch( &CBasePlayerAmmo::DefaultTouch );
-	pev->team = 1;	// Allies
+	pev->team = TEAM_ALLIES;	// Allies
 }
 
 // .text:0016e340 GenericAmmoAmerican::Precache (file:weapons.h:1519)
@@ -264,7 +264,7 @@ void GenericAmmoGerman::Spawn()
 	UTIL_SetSize( pev, Vector( -16, -16, 0 ), Vector( 16, 16, 16 ) );
 	UTIL_SetOrigin( pev, pev->origin );
 	SetTouch( &CBasePlayerAmmo::DefaultTouch );
-	pev->team = 2;	// Axis
+	pev->team = TEAM_AXIS;	// Axis
 }
 
 // .text:0016e430 GenericAmmoBritish::Spawn (file:weapons.h:1542)
@@ -278,7 +278,7 @@ void GenericAmmoBritish::Spawn()
 	UTIL_SetSize( pev, Vector( -16, -16, 0 ), Vector( 16, 16, 16 ) );
 	UTIL_SetOrigin( pev, pev->origin );
 	SetTouch( &CBasePlayerAmmo::DefaultTouch );
-	pev->team = 1;	// Allies (shared box)
+	pev->team = TEAM_ALLIES;	// Allies (shared box)
 }
 
 // ---- dod/dlls/items.cpp: SDK-IDENTICAL, bodies NOT ported ----

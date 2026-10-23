@@ -18,6 +18,16 @@ class CBasePlayerAmmo;
 #define MAX_CONTROL_POINTS 20
 #define MAX_AREA_INDEX 0x80
 
+// spawnflags of the DoD objective entities
+#define SF_AREA_CATCHUP 0x0001			// dod_capture_area: the capture may speed up when the whole team stands in it (catchup)
+#define SF_CONTROLPOINT_HIDDEN 0x0001	// dod_control_point: no HUD icon and no progress bar
+#define SF_ROUNDTIMER_SHOW 0x0001		// dod_round_timer: the timer status goes to the HUD
+#define SF_ROUNDTIMER_MANUAL 0x0002		// dod_round_timer: not started at the start of the round
+#define SF_OBJECT_ANNOUNCE 0x0001		// dod_object: the pick up and the loss are printed to everybody
+#define SF_OBJECTGOAL_ONE_IS_ENOUGH 0x0001	// dod_object_goal: finished by the first object that arrives
+#define SF_OBJECTGOAL_ONCE 0x0002		// dod_object_goal: works only once
+#define SF_PARTICLESHOOTER_STARTON 0x0020	// particle_shooter: shoots from the start of the round
+
 // dod_control_point - DWARF-canonical (gdb ptype CControlPoint @ dod.so)
 // field order/sizes match DWARF 1:1; all public for TU access (DWARF privates kept public)
 class CControlPoint : public CBaseAnimating

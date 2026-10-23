@@ -874,7 +874,7 @@ void CLightning::BeamUpdateVars( void )
  	pev->rendermode = ( pev->rendermode & 0x0F ) | BEAM_FSHADEIN;
 	else if ( !( pev->spawnflags & SF_BEAM_SHADEOUT ) )
 	{
-		if ( pev->spawnflags & 0x200 )
+		if ( pev->spawnflags & SF_BEAM_SOLID )
  			pev->rendermode = ( pev->rendermode & 0x0F ) | BEAM_FSOLID;
 	}
 	else
@@ -2035,12 +2035,12 @@ void CMessage::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useT
 		return;
 	if ( FBitSet( pev->spawnflags, 0x10 ) )
 	{
-		if ( pActivator && pActivator->IsPlayer() && pActivator->pev->team == 1 )
+		if ( pActivator && pActivator->IsPlayer() && pActivator->pev->team == TEAM_ALLIES )
 			UTIL_ShowMessage( STRING( pev->message ), pActivator, m_bHintMsg );
 	}
 	else if ( FBitSet( pev->spawnflags, 0x20 ) )
 	{
-		if ( pActivator && pActivator->IsPlayer() && pActivator->pev->team == 2 )
+		if ( pActivator && pActivator->IsPlayer() && pActivator->pev->team == TEAM_AXIS )
 			UTIL_ShowMessage( STRING( pev->message ), pActivator, m_bHintMsg );
 	}
 	else if ( FBitSet( pev->spawnflags, SF_MESSAGE_AXIS ) )
@@ -2048,7 +2048,7 @@ void CMessage::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useT
 		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 		{
 			CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
-			if ( pPlayer && pPlayer->IsPlayer() && pPlayer->pev->team == 2 )
+			if ( pPlayer && pPlayer->IsPlayer() && pPlayer->pev->team == TEAM_AXIS )
 				UTIL_ShowMessage( STRING( pev->message ), pPlayer, m_bHintMsg );
 		}
 	}
@@ -2057,7 +2057,7 @@ void CMessage::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useT
 		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 		{
 			CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
-			if ( pPlayer && pPlayer->IsPlayer() && pPlayer->pev->team == 1 )
+			if ( pPlayer && pPlayer->IsPlayer() && pPlayer->pev->team == TEAM_ALLIES )
 				UTIL_ShowMessage( STRING( pev->message ), pPlayer, m_bHintMsg );
 		}
 	}
@@ -2672,6 +2672,7 @@ void CEnvWarpBall::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 }
 
 // ---- CEnvModel (env_model) ----
+#define SF_ENVMODEL_OFF 0x0001		// env_model is switched off (GetState reports STATE_OFF)
 #define SF_ENVMODEL_DROPT_OFLOOR 0x0002
 
 class CEnvModel : public CBaseAnimating
@@ -2788,7 +2789,7 @@ void CEnvModel::Think( void )
 // .text:000f2b20 CEnvModel::GetState (effects.cpp:2897)
 STATE CEnvModel::GetState( void )
 {
-	return ( pev->spawnflags & 1 ) ? STATE_OFF : STATE_ON;
+	return ( pev->spawnflags & SF_ENVMODEL_OFF ) ? STATE_OFF : STATE_ON;
 }
 
 // .text:000f58e0 CEnvModel::KeyValue (effects.cpp:2786)

@@ -41,7 +41,7 @@ void CHintMessageQueue::Update( CBaseEntity &client )
 		m_tmMessageEnd = gpGlobals->time + 6.0;
 		if ( m_aszMessage[m_iCurrentMessage] != 0 )
 		{
-			MESSAGE_BEGIN( 1, gmsgHudText, 0, client.pev->pContainingEntity );
+			MESSAGE_BEGIN( MSG_ONE, gmsgHudText, 0, client.pev->pContainingEntity );
 			const char *msg = m_aszMessage[m_iCurrentMessage];
 			if ( strlen( msg ) > 499 )
 			{

@@ -106,6 +106,38 @@ enum sbar_data
 
 #define CHAT_INTERVAL 1.0f
 
+// the stance of the player, pev->iuser3 (STANCE_PRONE, STANCE_PRONE_DEPLOYED and STANCE_MORTAR are in dod_shared.h)
+#define STANCE_STANDING 0
+// the player lies on the ground, with the bipod deployed or not
+#define STANCE_IS_PRONE( iStance ) ( (unsigned int)( ( iStance ) - STANCE_PRONE ) <= ( STANCE_PRONE_DEPLOYED - STANCE_PRONE ) )
+
+// the state of the sandbag, pev->vuser1.x (SANDBAG_DEPLOYED is in dod_shared.h)
+#define SANDBAG_NONE 0
+#define SANDBAG_ZONE 1	// the player stands in a sandbag zone
+
+// the areas the player stands in, bits of CUnifiedSignals (HandleSignals reports the changes)
+#define SIGNAL_SANDBAG 0x01		// a dod_trigger_sandbag
+#define SIGNAL_CAPTUREAREA 0x02	// a dod_capture_area
+#define SIGNAL_OBJECTAREA 0x04	// a dod_object_goal or a breakable that waits for an object
+
+// the hints that were shown to the player (bits of m_flDisplayHistory), each one is shown only once
+#define HINT_SPOTTED_FRIEND 0x00002
+#define HINT_SPOTTED_ENEMY 0x00004
+#define HINT_INJURED_TEAMMATE 0x00008
+#define HINT_CAREFUL_AROUND_TEAMMATES 0x00010
+#define HINT_KILLING_ENEMIES 0x00020
+#define HINT_TOUCHED_AREA_CAPTURE 0x00040
+#define HINT_TOUCHED_CONTROL_POINT 0x00080
+#define HINT_PICKED_UP_OBJECT 0x00100
+#define HINT_MG_FIRE_BETTER_DEPLOYED 0x00200
+#define HINT_OUT_OF_AMMO 0x01000
+#define HINT_PRONE 0x02000
+#define HINT_LOW_STAMINA 0x04000
+#define HINT_AREA_REQUIRES_OBJECT 0x08000
+#define HINT_KILLED_WAVETIME_FIRST 0x10000
+#define HINT_KILLED_WAVETIME_AGAIN 0x20000
+#define HINT_MG_OVERHEAT 0x40000
+
 // DoD DWARF player.h: CUnifiedSignals (methods are inlined in dod.so - no symbols).
 class CUnifiedSignals
 {

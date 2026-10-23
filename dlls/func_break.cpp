@@ -172,7 +172,7 @@ void CBreakable::Spawn( void )
 	else
 		pev->takedamage = DAMAGE_YES;
 
-	if ( pev->spawnflags & ( SF_BREAK_CROWBAR | 0x200 ) )
+	if ( pev->spawnflags & ( SF_BREAK_ONLY_SONIC_OR_NOBLOOD | SF_BREAK_ONLY_SONIC ) )
 		pev->flags |= FL_IMMUNE_WATER;
 
 	pev->solid = SOLID_BSP;
@@ -452,7 +452,7 @@ void CBreakable::BreakTouch( CBaseEntity *pOther )
 	entvars_t *pevToucher = pOther->pev;
 
 	// only living players can break these, and only while the round is running
-	if ( g_pGameRules->RoundState() != 1 || !pOther->IsPlayer() || m_Material == matUnbreakableGlass || !pOther->IsAlive() )
+	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING || !pOther->IsPlayer() || m_Material == matUnbreakableGlass || !pOther->IsAlive() )
 	{
 		return;
 	}
@@ -461,7 +461,7 @@ void CBreakable::BreakTouch( CBaseEntity *pOther )
 
 	if ( sz_Group[0] )
 	{
-		pPlayer->m_signals.m_flSignal |= 4;
+		pPlayer->m_signals.m_flSignal |= SIGNAL_OBJECTAREA;
 		pPlayer->m_iObjectAreaIndex = m_iAreaIndex;
 		pPlayer->SetClientAreaIcon( m_iAreaIndex, true );
 	}
@@ -471,10 +471,10 @@ void CBreakable::BreakTouch( CBaseEntity *pOther )
 		// the player carries an object of the group this breakable is waiting for
 		if ( strcmp( sz_Group, pPlayer->m_pObject->sz_Group ) == 0 )
 		{
-			if ( ( pev->spawnflags & 0x20 ) && pOther->pev->team != 2 )
+			if ( ( pev->spawnflags & SF_BREAK_AXIS_ONLY ) && pOther->pev->team != TEAM_AXIS )
 				return;
 
-			if ( ( pev->spawnflags & 0x10 ) && pOther->pev->team != 1 )
+			if ( ( pev->spawnflags & SF_BREAK_ALLIES_ONLY ) && pOther->pev->team != TEAM_ALLIES )
 				return;
 
 			CDoDTeamPlay *pRules = (CDoDTeamPlay *) g_pGameRules;
@@ -532,7 +532,7 @@ void CBreakable::BreakTouch( CBaseEntity *pOther )
 				}
 			}
 
-			const char *pszTeam = ( pOther->pev->team == 1 ) ? "Allies" : "Axis";
+			const char *pszTeam = ( pOther->pev->team == TEAM_ALLIES ) ? "Allies" : "Axis";
 
 			UTIL_LogPrintf( "\"%s<%i><%s><%s>\" triggered a \"dod_object_goal\"\n", STRING( pOther->pev->netname ),
 							GETPLAYERUSERID( pOther->edict() ), GETPLAYERAUTHID( pOther->edict() ), pszTeam );
@@ -644,30 +644,26 @@ int CBreakable ::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, fl
 	if ( g_fGameOver )
 		return 0;
 
-	if ( g_pGameRules && g_pGameRules->RoundState() != 1 )
+	if ( g_pGameRules && g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
 		return 0;
 
-	// 0x40: takes no damage at all
-	if ( FBitSet( pev->spawnflags, 0x40 ) )
+	if ( FBitSet( pev->spawnflags, SF_BREAK_INVULNERABLE ) )
 		return 0;
 
-	// 0x100: only sonic or no-blood damage hurts it
-	if ( FBitSet( pev->spawnflags, 0x100 ) && !( bitsDamageType & DMG_SONIC ) && !( bitsDamageType & DMG_DOD_NOBLOOD ) )
+	if ( FBitSet( pev->spawnflags, SF_BREAK_ONLY_SONIC_OR_NOBLOOD ) && !( bitsDamageType & DMG_SONIC ) && !( bitsDamageType & DMG_DOD_NOBLOOD ) )
 		return 0;
 
-	// 0x200: needs sonic damage
-	if ( FBitSet( pev->spawnflags, 0x200 ) && !( bitsDamageType & DMG_SONIC ) )
+	if ( FBitSet( pev->spawnflags, SF_BREAK_ONLY_SONIC ) && !( bitsDamageType & DMG_SONIC ) )
 		return 0;
 
-	// 8: needs no-blood damage
-	if ( FBitSet( pev->spawnflags, 8 ) && !( bitsDamageType & DMG_DOD_NOBLOOD ) )
+	if ( FBitSet( pev->spawnflags, SF_BREAK_ONLY_NOBLOOD ) && !( bitsDamageType & DMG_DOD_NOBLOOD ) )
 		return 0;
 
-	// 0x20 and 0x10: only the Axis (2) or the Allies (1) can hurt it
-	if ( FBitSet( pev->spawnflags, 0x20 ) && pevAttacker->team != 2 )
+	// only the Axis or the Allies can hurt it
+	if ( FBitSet( pev->spawnflags, SF_BREAK_AXIS_ONLY ) && pevAttacker->team != TEAM_AXIS )
 		return 0;
 
-	if ( FBitSet( pev->spawnflags, 0x10 ) && pevAttacker->team != 1 )
+	if ( FBitSet( pev->spawnflags, SF_BREAK_ALLIES_ONLY ) && pevAttacker->team != TEAM_ALLIES )
 		return 0;
 
 	// if Attacker == Inflictor, the attack was a melee or other instant-hit attack.
@@ -1296,7 +1292,7 @@ void CBreakable::BreakUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 // .text:000ecf70 CBreakable::ObjectDie (file:func_break.cpp)
 void CBreakable::ObjectDie( void )
 {
-	if ( g_pGameRules->RoundState() != 1 )
+	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
 		return;
 	Die();
 }
@@ -1305,7 +1301,7 @@ void CBreakable::ObjectDie( void )
 STATE CBreakable::GetState( void )
 {
 	if ( m_iRespawnTime != 0 )
-		return ( pev->effects & 0x80 ) ? STATE_OFF : STATE_ON;
+		return ( pev->effects & EF_NODRAW ) ? STATE_OFF : STATE_ON;
 	return STATE_OFF;
 }
 
@@ -1430,10 +1426,10 @@ void CBreakable::Killed( entvars_t *pevAttacker, int iGib )
 		Vector mins = pev->absmin;
 		Vector maxs = pev->absmax;
 		mins.z = pev->absmax.z + 1.0f;
-		int count = UTIL_EntitiesInBox( pList, 256, mins, maxs, 0x200 );
+		int count = UTIL_EntitiesInBox( pList, 256, mins, maxs, FL_ONGROUND );
 		for ( int i = 0; i < count; i++ )
 		{
-			pList[i]->pev->flags &= ~0x200;
+			pList[i]->pev->flags &= ~FL_ONGROUND;
 			pList[i]->pev->groundentity = NULL;
 		}
 	}

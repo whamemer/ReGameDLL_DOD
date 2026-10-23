@@ -2300,7 +2300,7 @@ void CFuncTrackTrain::RoundRespawn( void )
 	m_controlMins = pev->mins;
 	m_controlMaxs = pev->maxs;
 	m_controlMaxs.z += 72.0;
-	pev->flags &= ~0x200000;
+	pev->flags &= ~FL_ALWAYSTHINK;
 	pev->nextthink = pev->ltime + 0.1;
 	SetThink( &CFuncTrackTrain::Find );
 }

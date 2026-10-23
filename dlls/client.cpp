@@ -549,7 +549,7 @@ void Host_Say( edict_t *pEntity, int teamonly )
 						for ( CControlPoint *pCP = (CControlPoint *) UTIL_FindEntityByClassname( NULL, "dod_control_point" );
 							  pCP != NULL; pCP = (CControlPoint *) UTIL_FindEntityByClassname( pCP, "dod_control_point" ) )
 						{
-							if ( UTIL_IsMasterTriggered( pCP->m_sMaster, pCP ) && ( pCP->pev->spawnflags & 1 ) == 0 )
+							if ( UTIL_IsMasterTriggered( pCP->m_sMaster, pCP ) && ( pCP->pev->spawnflags & SF_CONTROLPOINT_HIDDEN ) == 0 )
 							{
 								float flDist = ( pSender->pev->origin - pCP->pev->origin ).Length();
 
@@ -610,7 +610,7 @@ void Host_Say( edict_t *pEntity, int teamonly )
 	}
 
 	// turn on color set 2  (color on,  no sound)
-	if ( pSender->pev->deadflag != 0 && !g_fGameOver )
+	if ( pSender->pev->deadflag != DEAD_NO && !g_fGameOver )
 	{
 		if ( teamonly )
 			sprintf( text, "%c(DEAD)(TEAM) %s: ", 2, STRING( pEntity->v.netname ) );
@@ -664,12 +664,12 @@ void Host_Say( edict_t *pEntity, int teamonly )
 				continue;
 
 			// dead players cannot talk to the living
-			if ( pSender->pev->deadflag != 0 && client->pev->deadflag == 0 )
+			if ( pSender->pev->deadflag != DEAD_NO && client->pev->deadflag == DEAD_NO )
 				continue;
 		}
 		else
 		{
-			if ( pSender->pev->deadflag != 0 && client->pev->deadflag == 0 && !g_fGameOver )
+			if ( pSender->pev->deadflag != DEAD_NO && client->pev->deadflag == DEAD_NO && !g_fGameOver )
 				continue;
 		}
 
@@ -680,7 +680,7 @@ void Host_Say( edict_t *pEntity, int teamonly )
 	}
 
 	// server log
-	const char *pszTeam = ( pSender->pev->team == 1 ) ? "Allies" : "Axis";
+	const char *pszTeam = ( pSender->pev->team == TEAM_ALLIES ) ? "Allies" : "Axis";
 
 	if ( teamonly )
 	{
@@ -766,7 +766,7 @@ void ClientUserInfoChanged( edict_t *pEntity, char *infobuffer )
 			UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_changed_name", STRING( pEntity->v.netname ),
 								 g_engfuncs.pfnInfoKeyValue( infobuffer, "name" ) );
 
-			const char *pszTeam = ( pEntity->v.team == 1 ) ? "Allies" : "Axis";
+			const char *pszTeam = ( pEntity->v.team == TEAM_ALLIES ) ? "Allies" : "Axis";
 			UTIL_LogPrintf( "\"%s<%i><%s><%s>\" changed name to \"%s\"\n", STRING( pEntity->v.netname ),
 							GETPLAYERUSERID( pEntity ), GETPLAYERAUTHID( pEntity ), pszTeam,
 							g_engfuncs.pfnInfoKeyValue( infobuffer, "name" ) );
@@ -1515,7 +1515,7 @@ int AddToFullPack( struct entity_state_s *state, int e, edict_t *ent, edict_t *h
 	CBasePlayer *pHost = (CBasePlayer *) GET_PRIVATE( host );
 
 	bool bSendMinimapData = ( pHost != NULL && pHost->m_iMinimap > 0 );
-	bool bTeammate = ( player != 0 && ( ent->v.team == host->v.team || host->v.team == 3 ) && ent->v.health > 0 );
+	bool bTeammate = ( player != 0 && ( ent->v.team == host->v.team || host->v.team == TEAM_SPECTATOR ) && ent->v.health > 0 );
 	bool bTeamMarker = false;
 
 	if ( ( ent->v.flags & FL_CUSTOMENTITY ) && ent->v.team != 0 )
@@ -1687,7 +1687,7 @@ int AddToFullPack( struct entity_state_s *state, int e, edict_t *ent, edict_t *h
 		state->gravity = ent->v.gravity;
 		state->team = ent->v.team;
 		// DoD: return 1 (prone/crouch hull) when pev->iuser3 set, else duck hull flag
-		state->usehull = ( ent->v.iuser3 == 0 ) ? ( ( ent->v.flags & FL_DUCKING ) ? 1 : 0 ) : 1;
+		state->usehull = ( ent->v.iuser3 == STANCE_STANDING ) ? ( ( ent->v.flags & FL_DUCKING ) ? 1 : 0 ) : 1;
 		state->health = ent->v.health;
 	}
 

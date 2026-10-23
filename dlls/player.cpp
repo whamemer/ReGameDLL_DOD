@@ -550,9 +550,9 @@ int CBasePlayer ::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, f
 	{
 		if ( pAttacker != this && pAttacker->pev->team == pev->team )
 		{
-			if ( !( pAttacker->m_flDisplayHistory & 8 ) )
+			if ( !( pAttacker->m_flDisplayHistory & HINT_INJURED_TEAMMATE ) )
 			{
-				pAttacker->m_flDisplayHistory |= 8;
+				pAttacker->m_flDisplayHistory |= HINT_INJURED_TEAMMATE;
 				pAttacker->HintMessage( "#Hint_try_not_to_injure_teammates", 0 );
 			}
 		}
@@ -911,7 +911,7 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 	m_iClientFOV = 0;
 	m_iFOV = 0;
 	( (CDoDTeamPlay *) g_pGameRules )->CheckOneLifeRoundConditions();
-	pev->vuser1.x = 0;
+	pev->vuser1.x = SANDBAG_NONE;
 	pev->vuser1.y = 0;
 	SetThink( &CBasePlayer::PlayerDeathThink );
 	pev->nextthink = gpGlobals->time + 0.1;
@@ -938,7 +938,7 @@ void CBasePlayer::SetAnimation( PLAYER_ANIM playerAnim )
 
 	speed = pev->velocity.Length2D();
 
-	BOOL bProne = !pev->deadflag && (unsigned int) ( pev->iuser3 - 1 ) <= 1;
+	BOOL bProne = !pev->deadflag && STANCE_IS_PRONE( pev->iuser3 );
 
 	if ( pev->flags & FL_FROZEN )
 	{
@@ -1022,7 +1022,7 @@ void CBasePlayer::SetAnimation( PLAYER_ANIM playerAnim )
 		{
 			if ( pev->waterlevel <= 1 || pev->watertype == -19 || pev->movetype == MOVETYPE_FLY )
 			{
-				if ( pev->deadflag || (unsigned int) ( pev->iuser3 - 1 ) > 1 )
+				if ( pev->deadflag || !STANCE_IS_PRONE( pev->iuser3 ) )
 					m_IdealActivity = ACT_WALK;
 				else
 					m_IdealActivity = DOD_PRONE_IDLE;
@@ -1068,7 +1068,7 @@ void CBasePlayer::SetAnimation( PLAYER_ANIM playerAnim )
 					else
 						iState = 9;
 				}
-				else if ( pev->iuser3 == 2 )
+				else if ( pev->iuser3 == STANCE_PRONE_DEPLOYED )
 				{
 					iState = 5;
 				}
@@ -1083,7 +1083,7 @@ void CBasePlayer::SetAnimation( PLAYER_ANIM playerAnim )
 				{
 					iState = 6;
 
-					if ( pev->vuser1.x != 2.0 )
+					if ( pev->vuser1.x != SANDBAG_DEPLOYED )
 					{
 						if ( ( pev->button & IN_RUN ) && speed > 250.0 )
 						{
@@ -1102,7 +1102,7 @@ void CBasePlayer::SetAnimation( PLAYER_ANIM playerAnim )
 							iState = 1;
 
 							if ( speed == 0.0 && bTimeToDeepIdle )
-								iState = pev->deadflag == 0 ? 20 : 1;
+								iState = pev->deadflag == DEAD_NO ? 20 : 1;
 						}
 						else
 						{
@@ -1150,7 +1150,7 @@ void CBasePlayer::SetAnimation( PLAYER_ANIM playerAnim )
 
 		case ACT_SIGNAL1:
 		{
-			if ( pev->deadflag || (unsigned int) ( pev->iuser3 - 1 ) > 1 )
+			if ( pev->deadflag || !STANCE_IS_PRONE( pev->iuser3 ) )
 				strcpy( szAnim, "hs_" );
 			else
 				strcpy( szAnim, "hs_prone_" );
@@ -1201,7 +1201,7 @@ void CBasePlayer::SetAnimation( PLAYER_ANIM playerAnim )
 				{
 					iState = 12;
 				}
-				else if ( pev->iuser3 == 2 )
+				else if ( pev->iuser3 == STANCE_PRONE_DEPLOYED )
 				{
 					iState = 14;
 				}
@@ -1209,7 +1209,7 @@ void CBasePlayer::SetAnimation( PLAYER_ANIM playerAnim )
 				{
 					iState = 15;
 
-					if ( pev->vuser1.x != 2.0 )
+					if ( pev->vuser1.x != SANDBAG_DEPLOYED )
 					{
 						iState = 10;
 
@@ -1294,11 +1294,11 @@ void CBasePlayer::SetAnimation( PLAYER_ANIM playerAnim )
 			{
 				iState = 25;
 
-				if ( pev->vuser1.x != 2.0 )
+				if ( pev->vuser1.x != SANDBAG_DEPLOYED )
 				{
 					iState = 24;
 
-					if ( pev->iuser3 != 2 )
+					if ( pev->iuser3 != STANCE_PRONE_DEPLOYED )
 					{
 						if ( !bProne )
 							iState = ( pev->flags & FL_DUCKING ) ? 22 : 21;
@@ -1398,7 +1398,7 @@ void CBasePlayer::SetAnimation( PLAYER_ANIM playerAnim )
 	}
 
 	// gait sequence
-	if ( pev->deadflag || (unsigned int) ( pev->iuser3 - 1 ) > 1 )
+	if ( pev->deadflag || !STANCE_IS_PRONE( pev->iuser3 ) )
 	{
 		if ( pev->flags & FL_DUCKING )
 		{
@@ -1851,9 +1851,9 @@ void CBasePlayer::Jump()
 	if ( FBitSet( pev->flags, FL_WATERJUMP ) )
 		return;
 	if ( !( ( pev->waterlevel < 2 || pev->watertype == -19 ) && ( m_afButtonPressed & IN_JUMP ) &&
-			FBitSet( pev->flags, FL_ONGROUND ) && pev->groundentity && pev->iuser3 != 3 ) )
+			FBitSet( pev->flags, FL_ONGROUND ) && pev->groundentity && pev->iuser3 != STANCE_MORTAR ) )
 		return;
-	if ( pev->deadflag == 0 && (unsigned) ( pev->iuser3 - 1 ) < 2 )
+	if ( pev->deadflag == DEAD_NO && STANCE_IS_PRONE( pev->iuser3 ) )
 	{
 		float f = pev->fuser4 - 40.0f;
 		if ( f < 0.0f )
@@ -1868,7 +1868,7 @@ void CBasePlayer::Jump()
 		{
 			for ( CBasePlayerItem *pItem = m_rgpPlayerItems[i]; pItem; pItem = pItem->m_pNext )
 			{
-				if ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & 0x80 )
+				if ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & ITEM_FLAG_PRIMARY )
 				{
 					m_iFOV = ( (CBasePlayerWeapon *) pItem )->GetFOV();
 					goto done;
@@ -2024,11 +2024,11 @@ void CBasePlayer::UpdateStatusBar()
 
 		if ( pev->team == pEntity->pev->team || pev->iuser1 > 0 )
 		{
-			if ( !( m_flDisplayHistory & 2 ) )
+			if ( !( m_flDisplayHistory & HINT_SPOTTED_FRIEND ) )
 			{
 				if ( IsAlive() )
 				{
-					m_flDisplayHistory |= 2;
+					m_flDisplayHistory |= HINT_SPOTTED_FRIEND;
 
 					if ( m_bShowHints )
 					{
@@ -2048,9 +2048,9 @@ void CBasePlayer::UpdateStatusBar()
 		{
 			if ( (unsigned int) ( pEntity->pev->team - 1 ) <= 1 )
 			{
-				if ( m_flDisplayHistory & 4 )
+				if ( m_flDisplayHistory & HINT_SPOTTED_ENEMY )
 				{
-					m_flDisplayHistory |= 4;
+					m_flDisplayHistory |= HINT_SPOTTED_ENEMY;
 					HintMessage( "#Hint_spotted_an_enemy", FALSE );
 				}
 			}
@@ -2142,7 +2142,7 @@ void CBasePlayer::PreThink( void )
 		return;
 	}
 
-	if ( pev->deadflag > 0 )
+	if ( pev->deadflag > DEAD_NO )
 	{
 		if ( m_iJoiningState == JOINED )
 			PlayerDeathThink();
@@ -2220,7 +2220,7 @@ void CBasePlayer::PreThink( void )
 	}
 
 	// If trying to duck, already ducked, or in the process of ducking
-	if ( ( pev->button & IN_DUCK ) || ( ( pev->flags & FL_DUCKING ) && ( pev->deadflag || (unsigned int) ( pev->iuser3 - 1 ) > 1 ) ) ||
+	if ( ( pev->button & IN_DUCK ) || ( ( pev->flags & FL_DUCKING ) && ( pev->deadflag || !STANCE_IS_PRONE( pev->iuser3 ) ) ) ||
 		 ( m_afPhysicsFlags & PFLAG_DUCKING ) )
 		Duck();
 
@@ -2553,7 +2553,7 @@ void CBasePlayer::PostThink()
 
 			if ( IsAlive() )
 			{
-				if ( pev->deadflag || (unsigned int) ( pev->iuser3 - 1 ) > 1 )
+				if ( pev->deadflag || !STANCE_IS_PRONE( pev->iuser3 ) )
 				{
 					if ( m_IdealActivity != DOD_PRONE_GETUP || m_fSequenceFinished )
 						SetAnimation( PLAYER_WALK );
@@ -2577,9 +2577,9 @@ void CBasePlayer::PostThink()
 	}
 
 	// a prone player that ends up deep in the water gets up
-	if ( pev->waterlevel > 2 && !pev->deadflag && pev->iuser3 == 1 )
+	if ( pev->waterlevel > 2 && !pev->deadflag && pev->iuser3 == STANCE_PRONE )
 	{
-		pev->iuser3 = 0;
+		pev->iuser3 = STANCE_STANDING;
 		m_ianimupdate = 1;
 		SetAnimation( PLAYER_PRONE3 );
 		m_inextprone = gpGlobals->time + 1.0;
@@ -2606,7 +2606,7 @@ void CBasePlayer::PostThink()
 		{
 			if ( FBitSet( pev->flags, FL_ONGROUND ) )
 			{
-				if ( !pev->deadflag && (unsigned int) ( pev->iuser3 - 1 ) <= 1 )
+				if ( !pev->deadflag && STANCE_IS_PRONE( pev->iuser3 ) )
 				{
 					pev->angles.x = 0;
 
@@ -2623,7 +2623,7 @@ void CBasePlayer::PostThink()
 			}
 			else if ( pev->waterlevel > 1 )
 			{
-				if ( !pev->deadflag && (unsigned int) ( pev->iuser3 - 1 ) <= 1 )
+				if ( !pev->deadflag && STANCE_IS_PRONE( pev->iuser3 ) )
 				{
 					pev->button &= ~IN_JUMP;
 					pev->button &= ~IN_DUCK;
@@ -2634,7 +2634,7 @@ void CBasePlayer::PostThink()
 				SetAnimation( PLAYER_WALK );
 			}
 		}
-		else if ( !pev->deadflag && (unsigned int) ( pev->iuser3 - 1 ) <= 1 )
+		else if ( !pev->deadflag && STANCE_IS_PRONE( pev->iuser3 ) )
 		{
 			if ( m_fSequenceFinished )
 				SetAnimation( PLAYER_PRONE2 );
@@ -2763,9 +2763,9 @@ edict_t *EntSelectSpawnPoint( CBaseEntity *pPlayer, BOOL bJustChecking )
 	if ( g_pLastSpawn && !FNullEnt( g_pLastSpawn->edict() ) )
 		pSpot = g_pLastSpawn;
 
-	if ( pPlayer->pev->team == 1 || pPlayer->pev->team == 2 )
+	if ( pPlayer->pev->team == TEAM_ALLIES || pPlayer->pev->team == TEAM_AXIS )
 	{
-		if ( pPlayer->pev->team == 1 )
+		if ( pPlayer->pev->team == TEAM_ALLIES )
 			pszClassname = "info_player_allies";
 		else
 			pszClassname = "info_player_axis";
@@ -2838,7 +2838,7 @@ void CBasePlayer::Spawn( void )
 	m_prevgaitorigin = pev->origin;
 
 	m_hintMessageQueue.Reset();
-	m_flDisplayHistory &= ~0x10;
+	m_flDisplayHistory &= ~HINT_CAREFUL_AROUND_TEAMMATES;
 
 	MAKE_STRING_CLASS( "player", pev );
 
@@ -2875,8 +2875,8 @@ void CBasePlayer::Spawn( void )
 
 	pev->iuser1 = 0;
 	pev->iuser2 = 0;
-	pev->iuser3 = 0;
-	pev->vuser1.x = 0;
+	pev->iuser3 = STANCE_STANDING;
+	pev->vuser1.x = SANDBAG_NONE;
 	pev->vuser1.y = 0;
 
 	m_bIsObserver = 0;
@@ -3916,12 +3916,12 @@ void CBasePlayer ::UpdateClientData( void )
 
 		FireTargets( "game_playerspawn", this, this, USE_TOGGLE, 0 );
 
-		if ( pev->team == 1 )
+		if ( pev->team == TEAM_ALLIES )
 		{
 			if ( !pev->iuser1 && !pev->iuser2 )
 				FireTargets( "dod_alliespawn", this, this, USE_TOGGLE, 0 );
 		}
-		else if ( pev->team == 2 && !pev->iuser1 && !pev->iuser2 )
+		else if ( pev->team == TEAM_AXIS && !pev->iuser1 && !pev->iuser2 )
 		{
 			FireTargets( "dod_axisspawn", this, this, USE_TOGGLE, 0 );
 		}
@@ -3932,7 +3932,7 @@ void CBasePlayer ::UpdateClientData( void )
 
 		int iSleeve = 2;
 
-		if ( pev->team == 1 )
+		if ( pev->team == TEAM_ALLIES )
 			iSleeve = (unsigned int) ( pev->playerclass - 21 ) <= 5;
 
 		MESSAGE_BEGIN( MSG_ONE, SVC_WEAPONANIM, NULL, pev );
@@ -4036,14 +4036,14 @@ void CBasePlayer ::UpdateClientData( void )
 		m_flNextSBarUpdateTime = gpGlobals->time + 0.5;
 	}
 
-	if ( !( m_flDisplayHistory & 0x1000 ) && m_pActiveItem &&
+	if ( !( m_flDisplayHistory & HINT_OUT_OF_AMMO ) && m_pActiveItem &&
 		 !( CBasePlayerItem::ItemInfoArray[m_pActiveItem->m_iId].iFlags & ITEM_FLAG_EXHAUSTIBLE ) )
 	{
 		CBasePlayerWeapon *pWeapon = (CBasePlayerWeapon *) m_pActiveItem;
 
 		if ( pWeapon->m_iPrimaryAmmoType != -1 && !m_rgAmmo[pWeapon->m_iPrimaryAmmoType] && !pWeapon->m_iClip )
 		{
-			m_flDisplayHistory |= 0x1000;
+			m_flDisplayHistory |= HINT_OUT_OF_AMMO;
 			HintMessage( "#Hint_out_of_ammo", 0 );
 		}
 	}
@@ -4584,11 +4584,11 @@ void CBasePlayer::Stamina( void )
 		return;
 
 	// .text:00121c00 link 0x121c00 size 0x118 - low stamina hint (fuser4 < 25, bit 0x4000)
-	if ( !( m_flDisplayHistory & 0x4000 ) && pev->fuser4 < 25.0f )
+	if ( !( m_flDisplayHistory & HINT_LOW_STAMINA ) && pev->fuser4 < 25.0f )
 	{
 		if ( m_bShowHints )
 			HintMessage( "#Hint_low_stamina", 0 );
-		m_flDisplayHistory |= 0x4000;
+		m_flDisplayHistory |= HINT_LOW_STAMINA;
 	}
 
 	if ( m_fNextStamina > gpGlobals->time )
@@ -4624,7 +4624,7 @@ bool CBasePlayer::CheckPlayerSpeed( void )
 		speed = 1;
 		if ( !( (CDoDTeamPlay *) g_pGameRules )->IsRoundFrozen() )
 		{
-			if ( pev->vuser1.x != 2.0f )
+			if ( pev->vuser1.x != SANDBAG_DEPLOYED )
 			{
 				int iUser3 = pev->iuser3;
 				speed = 1;
@@ -4708,7 +4708,7 @@ bool CBasePlayer::HintMessage( const char *pMessage, BOOL bOverride )
 // .text:00137660 CBasePlayer::GoProne() size 0xac link 0x127660 (dod/dlls/player.cpp:6642)
 void CBasePlayer::GoProne( void )
 {
-	pev->iuser3 = 1;
+	pev->iuser3 = STANCE_PRONE;
 	m_flNextAttack = 0.1f;
 	SetAnimation( PLAYER_PRONE1 );
 	m_inextprone = gpGlobals->time + 1.0f;
@@ -4718,7 +4718,7 @@ void CBasePlayer::GoProne( void )
 	{
 		for ( CBasePlayerItem *pItem = m_rgpPlayerItems[i]; pItem; pItem = pItem->m_pNext )
 		{
-			if ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & 0x80 )
+			if ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & ITEM_FLAG_PRIMARY )
 			{
 				m_iFOV = ( (CBasePlayerWeapon *)pItem )->GetFOV();
 				return;
@@ -4730,9 +4730,9 @@ void CBasePlayer::GoProne( void )
 // .text:001377d0 CBasePlayer::MortarDeploy() size 0xe0 link 0x1277d0 (dod/dlls/player.cpp:6662)
 void CBasePlayer::MortarDeploy( void )
 {
-	if ( pev->deadflag == DEAD_NO && ( (unsigned)( pev->iuser3 - 1 ) < 2 ) )
+	if ( pev->deadflag == DEAD_NO && ( STANCE_IS_PRONE( pev->iuser3 ) ) )
 	{
-		pev->iuser3 = 0;
+		pev->iuser3 = STANCE_STANDING;
 		m_ianimupdate = 1;
 		m_flNextAttack = 0.1f;
 		SetAnimation( PLAYER_PRONE3 );
@@ -4744,7 +4744,7 @@ void CBasePlayer::MortarDeploy( void )
 				BOOL fFound = FALSE;
 				for ( CBasePlayerItem *pItem = m_rgpPlayerItems[i]; pItem; pItem = pItem->m_pNext )
 				{
-					if ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & 0x80 )
+					if ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & ITEM_FLAG_PRIMARY )
 					{
 						m_iFOV = ( (CBasePlayerWeapon *)pItem )->GetFOV();
 						fFound = TRUE;
@@ -4756,7 +4756,7 @@ void CBasePlayer::MortarDeploy( void )
 			}
 		}
 	}
-	pev->iuser3 = 3;
+	pev->iuser3 = STANCE_MORTAR;
 	CheckPlayerSpeed();
 }
 
@@ -4774,7 +4774,7 @@ void CBasePlayer::VoiceCom( int command )
 	if ( m_flNextVoice > gpGlobals->time )
 		return;
 	CDoDTeamPlay *pRules = (CDoDTeamPlay *)g_pGameRules;
-	if ( pev->team == 1 && pRules->IsAlliesBrit() )
+	if ( pev->team == TEAM_ALLIES && pRules->IsAlliesBrit() )
 	{
 		unsigned short evt = pRules->usVoice();
 		PLAYBACK_EVENT_FULL( 0, ENT( pev ), evt, 0.0f, g_vecZero, g_vecZero, 0.0f, 0.0f, command, 1, 0, 0 );
@@ -4846,7 +4846,7 @@ const char *g_PlayerAnimationList[88] = {
 // .text:001378f0 link 0x1278f0
 bool CBasePlayer::IsInMGDeploy()
 {
-	return pev->iuser3 == 2 || pev->vuser1.x == 2.0f;
+	return pev->iuser3 == STANCE_PRONE_DEPLOYED || pev->vuser1.x == SANDBAG_DEPLOYED;
 }
 
 // .text:00132270 link 0x122270
@@ -4961,7 +4961,7 @@ void CBasePlayer::GetObject( CObject *pObject )
 	if ( pObject->m_szObjectHIcon )
 		AddObjectIcon( pObject->m_szObjectHIcon );
 	pObject->SendPickupMsg( this );
-	const char *pszTeam = ( pev->team == 1 ) ? "Allies" : "Axis";
+	const char *pszTeam = ( pev->team == TEAM_ALLIES ) ? "Allies" : "Axis";
 	UTIL_LogPrintf( "\"%s<%i><%s><%s>\" triggered a \"dod_object\"\n", STRING( pev->netname ),
 					GETPLAYERUSERID( edict() ), GETPLAYERAUTHID( edict() ), pszTeam );
 	EMIT_SOUND_DYN( edict(), CHAN_ITEM, "items/ammopickup.wav", 1.0, 0.8, 0, 100 );
@@ -4984,7 +4984,7 @@ CBasePlayerWeapon *CBasePlayer::GetPrimaryWeapon()
 {
 	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
 		for ( CBasePlayerItem *pItem = m_rgpPlayerItems[i]; pItem; pItem = pItem->m_pNext )
-			if ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & 0x80 )
+			if ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & ITEM_FLAG_PRIMARY )
 				return (CBasePlayerWeapon *) pItem;
 	return NULL;
 }
@@ -4992,7 +4992,7 @@ CBasePlayerWeapon *CBasePlayer::GetPrimaryWeapon()
 // .text:001222e0 link 0x1222e0
 int CBasePlayer::PlayerStatus()
 {
-	if ( HasObject && pev->deadflag == 0 )
+	if ( HasObject && pev->deadflag == DEAD_NO )
 		return 5;
 	if ( pev->iuser1 >= 1 )
 		return 1;
@@ -5007,21 +5007,21 @@ void CBasePlayer::HandleSignals()
 	m_signals.m_flSignal = 0;
 	m_signals.m_flState = sig;
 	int changed = sig ^ old;
-	if ( changed & 1 )
+	if ( changed & SIGNAL_SANDBAG )
 	{
-		if ( !( sig & 1 ) )
-			pev->vuser1.x = 0;
-		else if ( pev->vuser1.x != 2.0f )
-			pev->vuser1.x = 1;
+		if ( !( sig & SIGNAL_SANDBAG ) )
+			pev->vuser1.x = SANDBAG_NONE;
+		else if ( pev->vuser1.x != SANDBAG_DEPLOYED )
+			pev->vuser1.x = SANDBAG_ZONE;
 	}
-	if ( ( changed & 2 ) && !( sig & 2 ) )
+	if ( ( changed & SIGNAL_CAPTUREAREA ) && !( sig & SIGNAL_CAPTUREAREA ) )
 	{
 		if ( m_iCapAreaIconIndex < 0x81 )
 			SetClientAreaIcon( m_iCapAreaIconIndex, false );
 		m_iCapAreaIndex = -1;
 		m_iCapAreaIconIndex = -1;
 	}
-	if ( ( changed & 4 ) && !( sig & 4 ) )
+	if ( ( changed & SIGNAL_OBJECTAREA ) && !( sig & SIGNAL_OBJECTAREA ) )
 	{
 		if ( m_iObjectAreaIndex < 0x81 )
 			SetClientAreaIcon( m_iObjectAreaIndex, false );
@@ -5030,13 +5030,13 @@ void CBasePlayer::HandleSignals()
 }
 
 // .text:00137930 link 0x137930
-bool CBasePlayer::IsProneDeployed() { return pev->iuser3 == 2; }
+bool CBasePlayer::IsProneDeployed() { return pev->iuser3 == STANCE_PRONE_DEPLOYED; }
 // .text:00137950 link 0x137950
 bool CBasePlayer::IsInSandbagZone() { return pev->vuser1.x == 1.0f; }
 // .text:00137980 link 0x137980
-bool CBasePlayer::IsSandbagDeployed() { return pev->vuser1.x == 2.0f; }
+bool CBasePlayer::IsSandbagDeployed() { return pev->vuser1.x == SANDBAG_DEPLOYED; }
 // .text:001379b0 link 0x1379b0
-bool CBasePlayer::IsProne() { return pev->deadflag == 0 && (unsigned) ( pev->iuser3 - 1 ) < 2; }
+bool CBasePlayer::IsProne() { return pev->deadflag == DEAD_NO && STANCE_IS_PRONE( pev->iuser3 ); }
 // .text:001379e0 link 0x1379e0
 bool CBasePlayer::IsInMortarDeploy() { return pev->iuser3 == 3; }
 // .text:00137a00 link 0x137a00
@@ -5064,7 +5064,7 @@ void CBasePlayer::MortarUnDeploy()
 // .text:00137710 link 0x137710
 void CBasePlayer::UnProne()
 {
-	pev->iuser3 = 0;
+	pev->iuser3 = STANCE_STANDING;
 	m_ianimupdate = 1;
 	m_flNextAttack = 0.1f;
 	SetAnimation( PLAYER_PRONE3 );
@@ -5235,9 +5235,9 @@ void CBasePlayer::DropGenericAmmo()
 	if ( pev->iuser1 != 0 || pev->iuser2 != 0 || pev->health <= 0.0f || m_nGenericAmmoCount <= 0 )
 		return;
 	const char *szName = "ammo_generic_german";
-	if ( pev->team != 2 && (unsigned) ( pev->playerclass - 0x15 ) >= 6 )
+	if ( pev->team != TEAM_AXIS && (unsigned) ( pev->playerclass - 0x15 ) >= 6 )
 		szName = "ammo_generic_american";
-	else if ( pev->team != 2 )
+	else if ( pev->team != TEAM_AXIS )
 		szName = "ammo_generic_british";
 	CBaseEntity *pAmmo = CBaseEntity::Create( szName, pev->origin, pev->angles, edict() );
 	pAmmo->pev->owner = edict();
@@ -5247,7 +5247,7 @@ void CBasePlayer::DropGenericAmmo()
 	pAmmo->pev->velocity = gpGlobals->v_forward * 200.0f;
 	pAmmo->SetThink( &CBaseEntity::SUB_Remove );
 	pAmmo->pev->nextthink = gpGlobals->time + 10.0f;
-	pAmmo->pev->spawnflags |= 0x40000000;
+	pAmmo->pev->spawnflags |= SF_NORESPAWN;
 	m_nGenericAmmoCount--;
 }
 // .text:00131e60 link 0x131e60
@@ -5292,7 +5292,7 @@ void CBasePlayer::VoiceMenu( int menuNum )
 
 	if ( menuNum == 1 )
 	{
-		if ( pev->team != 1 )
+		if ( pev->team != TEAM_ALLIES )
 			strcpy( szText, "#Menu_GerVoice1" );
 		else if ( ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
 			strcpy( szText, "#Menu_BritVoice1" );
@@ -5301,7 +5301,7 @@ void CBasePlayer::VoiceMenu( int menuNum )
 	}
 	else if ( menuNum == 2 )
 	{
-		if ( pev->team != 1 )
+		if ( pev->team != TEAM_ALLIES )
 			strcpy( szText, "#Menu_GerVoice2" );
 		else if ( ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
 			strcpy( szText, "#Menu_BritVoice2" );
@@ -5310,7 +5310,7 @@ void CBasePlayer::VoiceMenu( int menuNum )
 	}
 	else
 	{
-		if ( pev->team != 1 )
+		if ( pev->team != TEAM_ALLIES )
 			strcpy( szText, "#Menu_GerVoice3" );
 		else if ( ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
 			strcpy( szText, "#Menu_BritVoice3" );
@@ -5456,7 +5456,7 @@ void CBasePlayer::PopHelmet( Vector *vecdir )
 	if ( g_pGameRules )
 		bIsPara = ( (CDoDTeamPlay *) g_pGameRules )->IsTeamPara( pev->team );
 
-	if ( pev->team == 1 )
+	if ( pev->team == TEAM_ALLIES )
 	{
 		if ( bIsPara )
 		{
@@ -5483,7 +5483,7 @@ void CBasePlayer::PopHelmet( Vector *vecdir )
 			iHelmet = 3;
 		}
 	}
-	else if ( pev->team == 2 )
+	else if ( pev->team == TEAM_AXIS )
 	{
 		if ( bIsPara )
 		{
@@ -5657,7 +5657,7 @@ void CBasePlayer::StudioEstimateGait()
 	m_flGaitMovement = delta.Length();
 	if ( m_flGaitMovement / dt < 1.0f )
 		m_flGaitMovement = 0;
-	if ( ( pev->deadflag == 0 && (unsigned) ( pev->iuser3 - 1 ) < 2 ) || pev->vuser1.x == 2.0f )
+	if ( ( pev->deadflag == DEAD_NO && STANCE_IS_PRONE( pev->iuser3 ) ) || pev->vuser1.x == SANDBAG_DEPLOYED )
 	{
 		m_flGaityaw = pev->angles.y;
 	}

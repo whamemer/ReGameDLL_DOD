@@ -173,7 +173,6 @@ void CMultiSource::KeyValue( KeyValueData *pkvd )
 		CPointEntity::KeyValue( pkvd );
 }
 
-#define SF_MULTI_INIT 2
 
 void CMultiSource::Spawn()
 {
@@ -704,12 +703,12 @@ void CBaseButton::ButtonUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_
 	// the team the button is closed for can't use it
 	if ( pActivator->IsPlayer() )
 	{
-		if ( pActivator->pev->team == 1 )
+		if ( pActivator->pev->team == TEAM_ALLIES )
 		{
 			if ( FBitSet( pev->spawnflags, SF_BUTTON_NO_ALLIES ) )
 				return;
 		}
-		else if ( pActivator->pev->team == 2 && FBitSet( pev->spawnflags, SF_BUTTON_NO_AXIS ) )
+		else if ( pActivator->pev->team == TEAM_AXIS && FBitSet( pev->spawnflags, SF_BUTTON_NO_AXIS ) )
 			return;
 	}
 
@@ -758,12 +757,12 @@ void CBaseButton::ButtonTouch( CBaseEntity *pOther )
 		return;
 
 	// the team the button is closed for can't touch it
-	if ( pOther->pev->team == 1 )
+	if ( pOther->pev->team == TEAM_ALLIES )
 	{
 		if ( FBitSet( pev->spawnflags, SF_BUTTON_NO_ALLIES ) )
 			return;
 	}
-	else if ( pOther->pev->team == 2 && FBitSet( pev->spawnflags, SF_BUTTON_NO_AXIS ) )
+	else if ( pOther->pev->team == TEAM_AXIS && FBitSet( pev->spawnflags, SF_BUTTON_NO_AXIS ) )
 		return;
 
 	m_hActivator = pOther;

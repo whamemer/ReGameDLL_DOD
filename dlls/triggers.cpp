@@ -40,6 +40,15 @@
 #define SF_TRIGGER_HURT_NO_ALLIES 64		// the Allies are not hurt
 #define SF_TRIGGER_HURT_NO_AXIS 128		// the Axis are not hurt
 
+#define SF_LADDER_SILENT 0x0001		// the climbing makes no step sounds, pm_shared reads it from iuser1
+#define SF_DODCAMERA_NO_DAMPING 0x0004	// the camera does not slow down while it turns
+#define SF_WATCHER_TOGGLE 0x0001	// the watcher fires USE_TOGGLE for both changes
+#define SF_WATCHER_NO_ON 0x0002		// no targets when the logic turns on
+#define SF_WATCHER_NO_OFF 0x0004	// no targets when the logic turns off
+#define SF_WATCHER_STATE 0x0200		// set by the watcher itself: the last result of the logic
+#define SF_CUSTOMIZE_DEAD 0x0001	// env_customize changes a dead monster too
+#define SF_CUSTOMIZE_ONCE 0x0002	// env_customize removes itself after it was used
+
 extern DLL_GLOBAL BOOL g_fGameOver;
 extern int gmsgCameraView;
 
@@ -1180,12 +1189,12 @@ void CBaseTrigger ::HurtTouch( CBaseEntity *pOther )
 		return;
 
 	// the team the trigger is closed for isn't hurt
-	if ( pOther->pev->team == 1 )
+	if ( pOther->pev->team == TEAM_ALLIES )
 	{
 		if ( pev->spawnflags & SF_TRIGGER_HURT_NO_ALLIES )
 			return;
 	}
-	else if ( pOther->pev->team == 2 && ( pev->spawnflags & SF_TRIGGER_HURT_NO_AXIS ) )
+	else if ( pOther->pev->team == TEAM_AXIS && ( pev->spawnflags & SF_TRIGGER_HURT_NO_AXIS ) )
 		return;
 
 	// HACKHACK -- In multiplayer, players touch this based on packet receipt.
@@ -1326,7 +1335,7 @@ void CTriggerMultiple ::RoundRespawn( void )
 	InitTrigger();
 	SetTouch( &CTriggerMultiple::MultiTouch );
 
-	if ( pev->spawnflags & 0x200 )  // DoD: re-arm countdown triggers on round restart
+	if ( pev->spawnflags & SF_TRIGGER_ROUND )  // DoD: re-arm countdown triggers on round restart
 		pev->nextthink = gpGlobals->time;
 }
 
@@ -1360,7 +1369,7 @@ void CTriggerOnce::Spawn( void )
 // .text:0014eb00 CTriggerOnce::RoundRespawn (file:triggers.cpp:2106)
 void CTriggerOnce::RoundRespawn( void )
 {
-	if ( pev->spawnflags & 0x200 )  // DoD: re-arm once-triggers on round restart
+	if ( pev->spawnflags & SF_TRIGGER_ROUND )  // DoD: re-arm once-triggers on round restart
 		SetTouch( &CBaseTrigger::MultiTouch );
 }
 
@@ -1371,19 +1380,19 @@ void CBaseTrigger ::MultiTouch( CBaseEntity *pOther )
 	pevToucher = pOther->pev;
 
 	// the team the trigger is closed for can't fire it
-	if ( FBitSet( pev->spawnflags, SF_TRIGGER_NO_ALLIES ) && pOther->IsPlayer() && pOther->pev->team == 1 )
+	if ( FBitSet( pev->spawnflags, SF_TRIGGER_NO_ALLIES ) && pOther->IsPlayer() && pOther->pev->team == TEAM_ALLIES )
 		return;
 
-	if ( FBitSet( pev->spawnflags, SF_TRIGGER_NO_AXIS ) && pOther->IsPlayer() && pOther->pev->team == 2 )
+	if ( FBitSet( pev->spawnflags, SF_TRIGGER_NO_AXIS ) && pOther->IsPlayer() && pOther->pev->team == TEAM_AXIS )
 		return;
 
 	// teamonly: 1 for the Allies, 2 for the Axis
 	if ( m_team == 1 )
 	{
-		if ( pevToucher->team == 2 )
+		if ( pevToucher->team == TEAM_AXIS )
 			return;
 	}
-	else if ( m_team == 2 && pevToucher->team == 1 )
+	else if ( m_team == 2 && pevToucher->team == TEAM_ALLIES )
 		return;
 
 	// Only touch clients, monsters, or pushables (depending on flags)
@@ -1420,7 +1429,7 @@ void CBaseTrigger ::ActivateMultiTrigger( CBaseEntity *pActivator )
 		return;
 
 	// a round trigger only works while the round is running
-	if ( FBitSet( pev->spawnflags, SF_TRIGGER_ROUND ) && g_pGameRules->RoundState() != 1 )
+	if ( FBitSet( pev->spawnflags, SF_TRIGGER_ROUND ) && g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
 		return;
 
 	if ( FClassnameIs( pev, "trigger_secret" ) )
@@ -2046,7 +2055,7 @@ void CLadder ::Spawn( void )
 {
 	Precache();
 
-	pev->iuser1 = pev->spawnflags & 1;
+	pev->iuser1 = pev->spawnflags & SF_LADDER_SILENT;
 
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );	// set size and link into world
 	pev->movetype = MOVETYPE_PUSH;
@@ -3121,7 +3130,7 @@ void CDoDCamera::FollowTarget()
 			dy -= 360.0;
 		pev->avelocity.x = dx * 40.0 * gpGlobals->frametime;
 		pev->avelocity.y = dy * 40.0 * gpGlobals->frametime;
-		if ( !( pev->spawnflags & 4 ) )
+		if ( !( pev->spawnflags & SF_DODCAMERA_NO_DAMPING ) )
 		{
 			pev->velocity = pev->velocity * 0.8;
 			if ( pev->velocity.Length() < 10.0 )
@@ -3250,7 +3259,7 @@ void CDoDCamera::Move()
 		if ( pPath->pev->message )
 		{
 			FireTargets( STRING( pPath->pev->message ), this, this, USE_TOGGLE, 0 );
-			if ( pPath->pev->spawnflags & 4 )
+			if ( pPath->pev->spawnflags & SF_CORNER_FIREONCE )
 				pPath->pev->message = 0;
 		}
 		if ( !strcmp( STRING( pPath->pev->classname ), "path_corner" ) )
@@ -3368,9 +3377,9 @@ int GetClanScoringValues( int team, int cp )
 {
 	const char *szValues;
 
-	if ( team != 1 )
+	if ( team != TEAM_ALLIES )
 	{
-		if ( team != 2 )
+		if ( team != TEAM_AXIS )
 			return 0;
 
 		szValues = CVAR_GET_STRING( "mp_clan_scoring_values_axis" );
@@ -3514,9 +3523,9 @@ void CAreaCapture::GetNumRequiredPlayers( int *reqAllies, int *reqAxis )
 
 		if ( pPlayer )
 		{
-			if ( pPlayer->pev->team == 1 )
+			if ( pPlayer->pev->team == TEAM_ALLIES )
 				numAllies++;
-			else if ( pPlayer->pev->team == 2 )
+			else if ( pPlayer->pev->team == TEAM_AXIS )
 				numAxis++;
 
 			if ( numAllies > m_nAlliesNumCap && numAxis > m_nAxisNumCap )
@@ -3547,7 +3556,7 @@ bool CAreaCapture::CanUseCatchup()
 			bCatchup = !pRules->IsAxisInfinite();
 	}
 
-	return ( pev->spawnflags & 1 ) && bCatchup;
+	return ( pev->spawnflags & SF_AREA_CATCHUP ) && bCatchup;
 }
 // .text:0015ac80 CAreaCapture::GetNumAlive (file:triggers.cpp:5860)
 int CAreaCapture::GetNumAlive( int team )
@@ -3571,13 +3580,13 @@ void CAreaCapture::SendNumPlayers( CBasePlayer *pPlayer )
 	int req = -1;
 	int allies = m_nNumAllies;
 	int axis = m_nNumAxis;
-	if ( allies > 0 && axis < 1 && m_nOwningTeam != 1 )
+	if ( allies > 0 && axis < 1 && m_nOwningTeam != TEAM_ALLIES )
 	{
 		int ra = 1, rx = 1;
 		GetNumRequiredPlayers( &ra, &rx );
 		team = 1; num = allies; req = ra;
 	}
-	else if ( axis > 0 && allies < 1 && m_nOwningTeam != 2 )
+	else if ( axis > 0 && allies < 1 && m_nOwningTeam != TEAM_AXIS )
 	{
 		int ra = 1, rx = 1;
 		GetNumRequiredPlayers( &ra, &rx );
@@ -3608,7 +3617,7 @@ void CAreaCapture::ReSendSwipeInfo()
 {
 	if ( !m_pPoint )
 		return;
-	if ( m_pPoint->pev->spawnflags & 1 )
+	if ( m_pPoint->pev->spawnflags & SF_CONTROLPOINT_HIDDEN )
 		return;
 	// nobody is capturing, nothing to divide by
 	if ( m_iCappingPlayers < 1 )
@@ -3628,12 +3637,12 @@ void CAreaCapture::BreakCapture( int team )
 	m_iCappingRequired = 0;
 	m_iCappingPlayers = 0;
 
-	if ( m_nCapturingTeam == 1 )
+	if ( m_nCapturingTeam == TEAM_ALLIES )
 		FireTargets( sz_AlliesBreak, NULL, this, USE_BREAK, 0 );
-	else if ( m_nCapturingTeam == 2 )
+	else if ( m_nCapturingTeam == TEAM_AXIS )
 		FireTargets( sz_AxisBreak, NULL, this, USE_BREAK, 0 );
 
-	if ( team == 1 )
+	if ( team == TEAM_ALLIES )
 		UTIL_ClientPrintAll( HUD_PRINTCENTER, "#game_capture_broken_allie" );
 	else
 		UTIL_ClientPrintAll( HUD_PRINTCENTER, "#game_capture_broken_axis" );
@@ -3681,7 +3690,7 @@ void CObjectCapture::area_SendStatus( CBasePlayer *p )
 void CDodRoundTimer::StartTimer()
 {
 	m_bTimer = 1;
-	if ( !( pev->spawnflags & 1 ) )
+	if ( !( pev->spawnflags & SF_ROUNDTIMER_SHOW ) )
 		return;
 	if ( !UTIL_IsMasterTriggered( m_sMaster, this ) )
 		return;
@@ -3696,7 +3705,7 @@ void CDodRoundTimer::StartTimer()
 void CDodRoundTimer::StopTimer()
 {
 	m_bTimer = 0;
-	if ( !( pev->spawnflags & 1 ) )
+	if ( !( pev->spawnflags & SF_ROUNDTIMER_SHOW ) )
 		return;
 	if ( !UTIL_IsMasterTriggered( m_sMaster, this ) )
 		return;
@@ -3711,7 +3720,7 @@ void CDodRoundTimer::ResetTimer()
 	m_bTimer = 0;
 	m_fUpdateTimer = 30.0;
 	m_fRoundTime = m_fTimerLength;
-	if ( !( pev->spawnflags & 1 ) )
+	if ( !( pev->spawnflags & SF_ROUNDTIMER_SHOW ) )
 		return;
 	if ( !UTIL_IsMasterTriggered( m_sMaster, this ) )
 		return;
@@ -3723,7 +3732,7 @@ void CDodRoundTimer::ResetTimer()
 // .text:0015c290 CDodRoundTimer::SendStatus (file:triggers.cpp:6470)
 void CDodRoundTimer::SendStatus()
 {
-	if ( !( pev->spawnflags & 1 ) )
+	if ( !( pev->spawnflags & SF_ROUNDTIMER_SHOW ) )
 		return;
 	if ( !UTIL_IsMasterTriggered( m_sMaster, this ) )
 		return;
@@ -3739,7 +3748,7 @@ void CDodRoundTimer::SendStatus( CBasePlayer *pPlayer )
 {
 	if ( !pPlayer )
 		return;
-	if ( !( pev->spawnflags & 1 ) )
+	if ( !( pev->spawnflags & SF_ROUNDTIMER_SHOW ) )
 		return;
 	if ( !UTIL_IsMasterTriggered( m_sMaster, this ) )
 		return;
@@ -3844,21 +3853,21 @@ void CStateWatcher::Think( void )
 {
 	pev->nextthink = gpGlobals->time + 0.1;
 
-	BOOL oldflag = ( pev->spawnflags & 0x200 );
+	BOOL oldflag = ( pev->spawnflags & SF_WATCHER_STATE );
 	BOOL on = EvalLogic();
 
 	if ( on )
-		pev->spawnflags |= 0x200;
+		pev->spawnflags |= SF_WATCHER_STATE;
 	else
-		pev->spawnflags &= ~0x200;
+		pev->spawnflags &= ~SF_WATCHER_STATE;
 
-	if ( ( pev->spawnflags & 0x200 ) != oldflag )
+	if ( ( pev->spawnflags & SF_WATCHER_STATE ) != oldflag )
 	{
 		if ( oldflag == 0 )
 		{
-			if ( pev->spawnflags & 2 )
+			if ( pev->spawnflags & SF_WATCHER_NO_ON )
 				return;
-			if ( !( pev->spawnflags & 1 ) )
+			if ( !( pev->spawnflags & SF_WATCHER_TOGGLE ) )
 			{
 				SUB_UseTargets( this, USE_ON, 0 );
 				return;
@@ -3866,9 +3875,9 @@ void CStateWatcher::Think( void )
 		}
 		else
 		{
-			if ( pev->spawnflags & 4 )
+			if ( pev->spawnflags & SF_WATCHER_NO_OFF )
 				return;
-			if ( !( pev->spawnflags & 1 ) )
+			if ( !( pev->spawnflags & SF_WATCHER_TOGGLE ) )
 			{
 				SUB_UseTargets( this, USE_OFF, 0 );
 				return;
@@ -4086,7 +4095,7 @@ void CEnvCustomize::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 
 	CBaseMonster *pMonster = pTarget->MyMonsterPointer();
 
-	if ( !( pev->spawnflags & 1 ) && pMonster && pMonster->m_MonsterState == 8 )
+	if ( !( pev->spawnflags & SF_CUSTOMIZE_DEAD ) && pMonster && pMonster->m_MonsterState == MONSTERSTATE_DEAD )
 		return;
 
 	if ( m_iszModel )
@@ -4126,15 +4135,15 @@ void CEnvCustomize::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 
 	if ( m_iSolid != 0 )
 	{
-		if ( pTarget->pev->solid != 0 )
+		if ( pTarget->pev->solid != SOLID_NOT )
 		{
 			if ( m_iSolid != 2 )
-				pTarget->pev->solid = 0;
+				pTarget->pev->solid = SOLID_NOT;
 		}
 		else
 		{
 			if ( m_iSolid - 2 > 1 )
-				pTarget->pev->solid = 0;
+				pTarget->pev->solid = SOLID_NOT;
 			else
 				pTarget->pev->solid = pMonster ? 3 : 4;
 		}
@@ -4200,7 +4209,7 @@ void CEnvCustomize::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 		}
 	}
 
-	if ( pev->spawnflags & 2 )
+	if ( pev->spawnflags & SF_CUSTOMIZE_ONCE )
 		UTIL_Remove( this );
 }
 
@@ -4276,7 +4285,7 @@ void CTriggerSetPatrol::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_
 void CAutoTrigger::RoundRespawn( void )
 {
 	m_iEnabled = 1;
-	if ( pev->spawnflags & 0x200 )
+	if ( pev->spawnflags & SF_AUTO_ROUNDRESTART )
 	{
 		pev->nextthink = gpGlobals->time + 0.1f;
 		b_isRoundRestart = true;
@@ -4314,7 +4323,7 @@ void CMultiManager::RoundRespawn( void )
 	m_iState = STATE_OFF;
 	SetUse( &CMultiManager::ManagerUse );
 	SetThink( &CMultiManager::ManagerThink );
-	if ( !( pev->spawnflags & 0x20000000 ) )
+	if ( !( pev->spawnflags & SF_MULTIMAN_TRIGGERTYPE ) )
 		m_triggerType = USE_TOGGLE;
 
 	bool swapped;

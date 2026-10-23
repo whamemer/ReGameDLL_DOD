@@ -384,7 +384,7 @@ void CWreckage::Spawn( void )
 {
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NONE;
-	pev->takedamage = 0;
+	pev->takedamage = DAMAGE_NO;
 	pev->effects = 0;
 
 	pev->frame = 0;

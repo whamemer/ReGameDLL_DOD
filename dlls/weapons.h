@@ -93,6 +93,9 @@ public:
 #define ITEM_FLAG_NOAUTOSWITCHEMPTY	4
 #define ITEM_FLAG_LIMITINWORLD		8
 #define ITEM_FLAG_EXHAUSTIBLE		16 // A player can totally exhaust their ammo supply and lose this weapon
+// the single bits behind the ITEM_FLAG_* combinations of dod_shared.h
+#define ITEM_FLAG_PRIMARY			128 // DoD: a primary weapon of the player, GetPrimaryWeapon looks for it
+#define ITEM_FLAG_LAUNCHER			512 // DoD: a rocket launcher, it comes back as a weapon of its own time
 
 #define WEAPON_IS_ONTARGET 0x40
 

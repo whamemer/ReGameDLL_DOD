@@ -163,7 +163,7 @@ void CObject::Precache()
 // Same-team dropped object + object_resetontouch => ResetObject.
 void CObject::ObjectTouch( CBaseEntity *pOther )
 {
-	if ( g_pGameRules->RoundState() != 1 )
+	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
 		return;
 	if ( !UTIL_IsMasterTriggered( m_sMaster, this ) )
 		return;
@@ -175,9 +175,9 @@ void CObject::ObjectTouch( CBaseEntity *pOther )
 		return;
 	int taker = 0;
 	BOOL any = FALSE;
-	if ( m_iTeam == 2 )
+	if ( m_iTeam == TEAM_AXIS )
 		taker = 1;
-	else if ( m_iTeam == 1 )
+	else if ( m_iTeam == TEAM_ALLIES )
 		taker = 2;
 	else
 		any = TRUE;
@@ -193,9 +193,9 @@ void CObject::ObjectTouch( CBaseEntity *pOther )
 		SetThink( &CObject::AbsentPlayerThink );
 		pev->nextthink = gpGlobals->time + 0.1;
 		m_bDropped = 0;
-		if ( ( ( (CBasePlayer *) pOther )->m_flDisplayHistory & 0x100 ) == 0 )
+		if ( ( ( (CBasePlayer *) pOther )->m_flDisplayHistory & HINT_PICKED_UP_OBJECT ) == 0 )
 		{
-			( (CBasePlayer *) pOther )->m_flDisplayHistory |= 0x100;
+			( (CBasePlayer *) pOther )->m_flDisplayHistory |= HINT_PICKED_UP_OBJECT;
 			( (CBasePlayer *) pOther )->HintMessage( "#Hint_picked_up_object", 0 );
 		}
 		if ( pev->noise )
@@ -306,15 +306,15 @@ void CObject::Disappear()
 // .text:00120d40 CObject::SendDroppedMsg (file:objectives.cpp:394)
 void CObject::SendDroppedMsg( CBasePlayer *pPlayer )
 {
-	if ( pPlayer && ( pev->spawnflags & 1 ) )
-		UTIL_ClientPrintAll( 3, "#game_lost_object", STRING( pPlayer->pev->netname ), sz_Name );
+	if ( pPlayer && ( pev->spawnflags & SF_OBJECT_ANNOUNCE ) )
+		UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_lost_object", STRING( pPlayer->pev->netname ), sz_Name );
 }
 
 // .text:00120db0 CObject::SendPickupMsg (file:objectives.cpp:402)
 void CObject::SendPickupMsg( CBasePlayer *pPlayer )
 {
-	if ( pPlayer && ( pev->spawnflags & 1 ) )
-		UTIL_ClientPrintAll( 3, "#game_has_object", STRING( pPlayer->pev->netname ), sz_Name );
+	if ( pPlayer && ( pev->spawnflags & SF_OBJECT_ANNOUNCE ) )
+		UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_has_object", STRING( pPlayer->pev->netname ), sz_Name );
 }
 
 // CObjectCapture KeyValue: capobj_group | capobj_donetarget |
@@ -329,25 +329,25 @@ void CObject::SendPickupMsg( CBasePlayer *pPlayer )
 // link 0x141310 size 0x56a Ghidra 0x151310
 void CObjectCapture::Touch( CBaseEntity *pOther )
 {
-	if ( g_pGameRules->RoundState() != 1 )
+	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
 		return;
 	if ( !UTIL_IsMasterTriggered( m_sMaster, pOther ) )
 		return;
-	if ( g_pGameRules != NULL && g_pGameRules->RoundState() != 1 )
+	if ( g_pGameRules != NULL && g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
 		return;
 	if ( !pOther->IsPlayer() || !pOther->IsAlive() )
 		return;
 	if ( m_bCapped )
 		return;
 	CBasePlayer *pPlayer = (CBasePlayer *)pOther;
-	pPlayer->m_signals.m_flSignal |= 4;
+	pPlayer->m_signals.m_flSignal |= SIGNAL_OBJECTAREA;
 	pPlayer->m_iObjectAreaIndex = m_iAreaIndex;
 	pPlayer->SetClientAreaIcon( m_iAreaIndex, true );
 	if ( !pPlayer->HasObject || !pPlayer->m_pObject )
 	{
-		if ( ( pPlayer->m_flDisplayHistory & 0x8000 ) == 0 )
+		if ( ( pPlayer->m_flDisplayHistory & HINT_AREA_REQUIRES_OBJECT ) == 0 )
 		{
-			pPlayer->m_flDisplayHistory |= 0x8000;
+			pPlayer->m_flDisplayHistory |= HINT_AREA_REQUIRES_OBJECT;
 			pPlayer->HintMessage( "#Hint_area_requires_object", 0 );
 		}
 		return;
@@ -376,12 +376,12 @@ void CObjectCapture::Touch( CBaseEntity *pOther )
 	CDoDTeamPlay *pRules = (CDoDTeamPlay *)g_pGameRules;
 	if ( pRules->m_RoundDoesCount )
 		pPlayer->AddObjScore( pObj->m_iCapPoints, TRUE );
-	if ( NumObjects == 0 || ( pev->spawnflags & 1 ) )
+	if ( NumObjects == 0 || ( pev->spawnflags & SF_OBJECTGOAL_ONE_IS_ENOUGH ) )
 	{
 		FireTargets( sz_DoneTarget, pOther, this, USE_ON, 0.0 );
 		if ( pObj->sz_DoneTarget[0] )
 			FireTargets( pObj->sz_DoneTarget, pOther, this, USE_ON, 0.0 );
-		if ( pev->spawnflags & 2 )
+		if ( pev->spawnflags & SF_OBJECTGOAL_ONCE )
 			m_bCapped = true;
 		int idx = ENTINDEX( pOther->edict() );
 		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
@@ -399,9 +399,9 @@ void CObjectCapture::Touch( CBaseEntity *pOther )
 	else
 	{
 		if ( NumObjects == 1 )
-			UTIL_ClientPrintAll( 3, "#game_left_object", UTIL_dtos1( 1 ), 0, 0, 0 );
+			UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_left_object", UTIL_dtos1( 1 ), 0, 0, 0 );
 		else
-			UTIL_ClientPrintAll( 3, "#game_left_plural_object", UTIL_dtos1( NumObjects ), 0, 0, 0 );
+			UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_left_plural_object", UTIL_dtos1( NumObjects ), 0, 0, 0 );
 		if ( pev->target )
 			FireTargets( STRING( pev->target ), pOther, this, USE_TOGGLE, 0.0 );
 		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
@@ -411,7 +411,7 @@ void CObjectCapture::Touch( CBaseEntity *pOther )
 				pPlr->AddObjScore( pObj->m_iOtherPoints, TRUE );
 		}
 	}
-	const char *teamName = ( pOther->pev->team == 1 ) ? "Allies" : "Axis";
+	const char *teamName = ( pOther->pev->team == TEAM_ALLIES ) ? "Allies" : "Axis";
 	UTIL_LogPrintf( "\"%s<%i><%s><%s>\" triggered a \"dod_object_goal\"\n", STRING( pOther->pev->netname ),
 		GETPLAYERUSERID( pOther->edict() ), GETPLAYERAUTHID( pOther->edict() ), teamName );
 	if ( pLast && pLast->pev->noise1 )
@@ -502,7 +502,7 @@ void CParticleShooter::UpdateJoiningPlayer( CBasePlayer *pPlayer )
 // .text:00121120 CParticleShooter::RoundRespawn (file:objectives.cpp:734)
 void CParticleShooter::RoundRespawn()
 {
-	if ( pev->spawnflags & 32 )
+	if ( pev->spawnflags & SF_PARTICLESHOOTER_STARTON )
 	{
 		m_iState = 1;
 		FindTargetEntity();
@@ -693,11 +693,11 @@ void CScoreEvent::ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 	{
 		int team = pev->team;
 		if ( team == 0 )
-			( (CDoDTeamPlay *)g_pGameRules )->SetRoundState( 5 );
-		else if ( team == 1 )
-			( (CDoDTeamPlay *)g_pGameRules )->SetRoundState( 3 );
-		else if ( team == 2 )
-			( (CDoDTeamPlay *)g_pGameRules )->SetRoundState( 4 );
+			( (CDoDTeamPlay *)g_pGameRules )->SetRoundState( ROUNDSTATE_DRAW );
+		else if ( team == TEAM_ALLIES )
+			( (CDoDTeamPlay *)g_pGameRules )->SetRoundState( ROUNDSTATE_ALLIES_WON );
+		else if ( team == TEAM_AXIS )
+			( (CDoDTeamPlay *)g_pGameRules )->SetRoundState( ROUNDSTATE_AXIS_WON );
 		// slot 0x41 single-float timer set approx restart time
 		( (CDoDTeamPlay *)g_pGameRules )->m_flRestartTime = (float)m_iResetPlayersTime + gpGlobals->time;
 	}
@@ -720,7 +720,7 @@ void CScoreEvent::ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 	{
 		if ( pcvar_mp_clan_scoring->value > 0.0 )
 		{
-			if ( team == 1 && pcvar_mp_clan_scoring_bonus_allies && pcvar_mp_clan_scoring_bonus_allies->value >= 0.0 )
+			if ( team == TEAM_ALLIES && pcvar_mp_clan_scoring_bonus_allies && pcvar_mp_clan_scoring_bonus_allies->value >= 0.0 )
 			{
 				int pts = (int)pcvar_mp_clan_scoring_bonus_allies->value;
 				if ( pts > 1000 )
@@ -731,7 +731,7 @@ void CScoreEvent::ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 				UTIL_LogPrintf( "Team \"%s\" won the round. Scores: Allies: %d, Axis: %d\n", "Allies", allies, axis );
 				bGiveRegular = FALSE;
 			}
-			else if ( team == 2 && pcvar_mp_clan_scoring_bonus_axis && pcvar_mp_clan_scoring_bonus_axis->value >= 0.0 )
+			else if ( team == TEAM_AXIS && pcvar_mp_clan_scoring_bonus_axis && pcvar_mp_clan_scoring_bonus_axis->value >= 0.0 )
 			{
 				int pts = (int)pcvar_mp_clan_scoring_bonus_axis->value;
 				if ( pts > 1000 )
@@ -748,7 +748,7 @@ void CScoreEvent::ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 	{
 		if ( team < 2 )
 			pRules->AddToTeamScores( 1, m_iTeamPoints );
-		if ( team == 0 || team == 2 )
+		if ( team == 0 || team == TEAM_AXIS )
 			pRules->AddToTeamScores( 2, m_iTeamPoints );
 		team = pev->team;
 	}
@@ -758,7 +758,7 @@ void CScoreEvent::ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 		FireDODCamera( "axis_loose_cut", NULL, NULL, USE_TOGGLE, 0.0 );
 		team = pev->team;
 	}
-	if ( team == 0 || team == 2 )
+	if ( team == 0 || team == TEAM_AXIS )
 	{
 		FireDODCamera( "axis_win_cut", NULL, NULL, USE_TOGGLE, 0.0 );
 		FireDODCamera( "allies_loose_cut", NULL, NULL, USE_TOGGLE, 0.0 );
@@ -858,7 +858,7 @@ void CDodParaRoundTimer::TimerThink( void )
 	m_fLastThinkTime = now;
 	pev->nextthink = now + 0.1f;
 
-	if ( g_pGameRules->RoundState() != 1 )
+	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
 	{
 		if ( !m_bTimer )
 			return;

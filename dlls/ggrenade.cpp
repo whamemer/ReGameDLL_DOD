@@ -83,7 +83,7 @@ void CGrenade::Explode( TraceResult *pTrace, int bitsDamageType )
 
 	PLAYBACK_EVENT_FULL( 0, ENT( pev ), g_pGameRules->Explosion(), 0, (float *)&g_vecZero, (float *)&g_vecZero,
 						 ( pev->dmg - 100 ) * 0.6, 10.0, g_sModelIndexFireball, 0, iContents == CONTENTS_WATER,
-						 bitsDamageType & 0x800000 );
+						 bitsDamageType & DMG_MORTAR );
 
 	entvars_t *pevOwner;
 	if ( pev->owner )

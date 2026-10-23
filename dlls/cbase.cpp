@@ -1088,7 +1088,7 @@ void InitHashTable( void )
 // .text:00139380 CPointEntity::Precache (file:cbase.cpp)
 void CPointEntity::Precache( void )
 {
-	if ( pev->spawnflags & 1 )
+	if ( pev->spawnflags & SF_POINT_NULL_SPRITE )
 		PRECACHE_MODEL( "sprites/null.spr" );
 }
 
@@ -1096,6 +1096,6 @@ void CPointEntity::Precache( void )
 void CMultiSource::RoundRespawn( void )
 {
 	pev->nextthink = gpGlobals->time + 0.1f;
-	pev->spawnflags |= 2;
+	pev->spawnflags |= SF_MULTI_INIT;
 	SetThink( &CMultiSource::Register );
 }

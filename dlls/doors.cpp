@@ -1083,7 +1083,7 @@ void CBaseDoor::RoundRespawn( void )
 		m_vecPosition1 = vecTemp;
 	}
 	m_toggle_state = TS_AT_BOTTOM;
-	if ( ( pev->spawnflags & 0x500 ) != 0x100 )
+	if ( ( pev->spawnflags & ( SF_DOOR_USE_ONLY | SF_DOOR_TOUCH_ONLY_CLIENTS ) ) != SF_DOOR_USE_ONLY )
 		SetTouch( &CBaseDoor::DoorTouch );
 	else
 		SetTouch( NULL );
@@ -1107,7 +1107,7 @@ void CRotDoor::RoundRespawn( void )
 		pev->movedir = pev->movedir * -1;
 	}
 	m_toggle_state = TS_AT_BOTTOM;
-	if ( ( pev->spawnflags & 0x500 ) != 0x100 )
+	if ( ( pev->spawnflags & ( SF_DOOR_USE_ONLY | SF_DOOR_TOUCH_ONLY_CLIENTS ) ) != SF_DOOR_USE_ONLY )
 		SetTouch( &CBaseDoor::DoorTouch );
 	else
 		SetTouch( NULL );

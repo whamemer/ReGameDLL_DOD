@@ -60,6 +60,13 @@ enum
 // Virtual declaration order below is the EXACT binary vtable order of the original
 // DoD CGameRules (verified via `gdb ptype CGameRules` + `_ZTV10CGameRules`/`_ZTV12CDoDTeamPlay`
 // relocations). Slots with `= 0` are __cxa_pure_virtual in the reference binary.
+// the state of the round, CGameRules::RoundState
+#define ROUNDSTATE_PREROUND 0	// the players wait for the start of the round
+#define ROUNDSTATE_RUNNING 1
+#define ROUNDSTATE_ALLIES_WON 3	// the round is over, the next one comes after the pause
+#define ROUNDSTATE_AXIS_WON 4
+#define ROUNDSTATE_DRAW 5
+
 class CGameRules
 {
   public:

@@ -54,9 +54,9 @@ bool CBasePlayer::Observer_PlayerValidTarget( CBaseEntity *pEnt, bool bSameTeam 
 	bool bRet = false;
 
 	if ( pEnt && pEnt != this && !( ( (CBasePlayer *)pEnt )->has_disconnected )
-		&& pEnt->pev->deadflag < 2 && pEnt->pev->iuser1 < 1 && !( pEnt->pev->effects & EF_NODRAW ) )
+		&& pEnt->pev->deadflag < DEAD_DEAD && pEnt->pev->iuser1 < 1 && !( pEnt->pev->effects & EF_NODRAW ) )
 	{
-		if ( !IsTeamInfinite( pev->team ) || pev->team == 3 || pev->team == pEnt->pev->team )
+		if ( !IsTeamInfinite( pev->team ) || pev->team == TEAM_SPECTATOR || pev->team == pEnt->pev->team )
 		{
 			bRet = true;
 			if ( bSameTeam )
@@ -81,7 +81,7 @@ void CBasePlayer::Observer_FindNextPlayer( bool bReverse )
 
 	bool bForceSameTeam = false;
 	if ( cvar_fadetoblack.value != 0.0f || cvar_forcechasecam.value != 0.0f || cvar_forcecamera.value != 0.0f )
-		bForceSameTeam = ( pev->team != 3 );
+		bForceSameTeam = ( pev->team != TEAM_SPECTATOR );
 
 	int iDir = bReverse ? -1 : 1;
 
@@ -104,7 +104,7 @@ void CBasePlayer::Observer_FindNextPlayer( bool bReverse )
 		if ( pEnt->pev->effects & EF_NODRAW )
 			continue;
 
-		if ( IsTeamInfinite( pev->team ) && pev->team != 3 && pEnt->pev->team != pev->team )
+		if ( IsTeamInfinite( pev->team ) && pev->team != TEAM_SPECTATOR && pEnt->pev->team != pev->team )
 			continue;
 		if ( bForceSameTeam && pEnt->pev->team != pev->team )
 			continue;
@@ -137,7 +137,7 @@ void CBasePlayer::SendObserverTargetWeaponAnim()
 
 	int team = m_hObserverTarget->pev->team;
 	int body = 2;
-	if ( team == 1 )
+	if ( team == TEAM_ALLIES )
 		body = ( ( m_hObserverTarget->pev->playerclass - 0x15 ) < 6 ) ? 1 : 0;
 
 	MESSAGE_BEGIN( MSG_ONE, 0x23, NULL, pev );
@@ -211,7 +211,7 @@ void CBasePlayer::Observer_SetMode( int iMode )
 		iMode = OBS_IN_EYE;	 // now it is
 
 	// TEAM_SPECTATOR = 3 in DoD; forcecamera restricts roaming/chase
-	if ( pev->team != 3 )
+	if ( pev->team != TEAM_SPECTATOR )
 	{
 		if ( iMode == OBS_ROAMING && forcecamera == 1 )
 			iMode = OBS_CHASE_LOCKED;
@@ -385,7 +385,7 @@ void CBasePlayer::StartObserver( Vector vecPosition, Vector vecViewAngle )
 	MESSAGE_END();
 
 	CheckPlayerSpeed();
-	m_iHideHUD = 9;
+	m_iHideHUD = HIDEHUD_WEAPONS | HIDEHUD_HEALTH;
 	m_afPhysicsFlags |= PFLAG_OBSERVER;
 	pev->effects = EF_NODRAW;
 	pev->view_ofs = g_vecZero;
@@ -443,13 +443,13 @@ void CBasePlayer::Observer_SpectatePlayer( int iCurrent )
 
 	bool bForceSameTeam = false;
 	if ( cvar_fadetoblack.value != 0.0f || cvar_forcechasecam.value != 0.0f || cvar_forcecamera.value != 0.0f )
-		bForceSameTeam = ( pev->team != 3 );
+		bForceSameTeam = ( pev->team != TEAM_SPECTATOR );
 
 	CBaseEntity *pEnt = UTIL_PlayerByIndex( iCurrent );
 	if ( pEnt && pEnt != this && !( ( (CBasePlayer *)pEnt )->has_disconnected )
-		&& pEnt->pev->deadflag < 2 && pEnt->pev->iuser1 < 1 && !( pEnt->pev->effects & EF_NODRAW ) )
+		&& pEnt->pev->deadflag < DEAD_DEAD && pEnt->pev->iuser1 < 1 && !( pEnt->pev->effects & EF_NODRAW ) )
 	{
-		if ( ( !IsTeamInfinite( pev->team ) || pev->team == 3 || pev->team == pEnt->pev->team )
+		if ( ( !IsTeamInfinite( pev->team ) || pev->team == TEAM_SPECTATOR || pev->team == pEnt->pev->team )
 			&& ( !bForceSameTeam || pEnt->pev->team == pev->team ) )
 		{
 			m_hObserverTarget = pEnt;

@@ -194,7 +194,7 @@ void CBaseMonster::FadeMonster( void )
 void CBaseMonster::GibMonster( void )
 {
 	EMIT_SOUND_DYN( ENT( pev ), CHAN_WEAPON, "common/bodysplat.wav", 1.0, ATTN_NORM, 0, 100 );
-	CGib::SpawnHeadGib( pev, ( pev->team == 1 ) );	// 1 = allies
+	CGib::SpawnHeadGib( pev, ( pev->team == TEAM_ALLIES ) );	// 1 = allies
 	if ( !IsPlayer() )
 	{
 		SetThink( &CBaseEntity::SUB_Remove );
@@ -1035,7 +1035,7 @@ void CBaseEntity::FireBullets( ULONG cShots, Vector vecSrc, Vector vecDirShootin
 
 	if (
 		g_pGameRules->RoundState() !=
-		1 )	 // binary: vtbl+0x3d RoundState()==1 (CALL [EDX+0xF4] + DEC/JZ @000db22a, decompile CDoDTeamPlay::RoundState returns m_RoundState @000e36e0)
+		1 )	 // binary: vtbl+0x3d RoundState()==ROUNDSTATE_RUNNING (CALL [EDX+0xF4] + DEC/JZ @000db22a, decompile CDoDTeamPlay::RoundState returns m_RoundState @000e36e0)
 		return;
 	if ( pevAttacker == NULL )
 		pevAttacker = pev;
@@ -1190,7 +1190,7 @@ void CBaseEntity::FireBullets( ULONG cShots, Vector vecSrc, Vector vecDirShootin
 			TEXTURETYPE_PlaySound( &tr, vecSrc, vecSrc + vecDir * flDistance * 2, iBulletType );
 			DecalGunshot( &tr, iBulletType );
 		}
-		if ( bPenetrate && g_pGameRules->RoundState() == 1 )  // binary: RoundState vtbl+0x3d (see above)
+		if ( bPenetrate && g_pGameRules->RoundState() == ROUNDSTATE_RUNNING )  // binary: RoundState vtbl+0x3d (see above)
 			FireTWalls( flDmg, iBulletType, pevAttacker, vecDir, vecSrc, vecRight, vecUp, vecEnd );
 	}
 	ApplyMultiDamage( pev, pevAttacker );
@@ -1608,7 +1608,7 @@ Vector CBaseEntity::FireBulletsNC( Vector vecSrc, Vector vecDirShooting, float f
 
 	Vector vecDir = vecDirShooting + x * flSpread * vecRight + y * flSpread * vecUp;
 
-	if ( g_pGameRules->RoundState() == 1 )
+	if ( g_pGameRules->RoundState() == ROUNDSTATE_RUNNING )
 	{
 		CBaseEntity *pLastPlayerHit = NULL;
 		int iLastHitgroup = -1;
@@ -1725,7 +1725,7 @@ Vector CBaseEntity::FireBulletsNC( Vector vecSrc, Vector vecDirShooting, float f
 
 void CBaseEntity::RifleMeleeAttack( CBasePlayer *pPlayer, int weapon_id )
 {
-	if ( g_pGameRules->RoundState() != 1 )
+	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
 		return;
 
 	UTIL_MakeVectors( pPlayer->pev->v_angle );

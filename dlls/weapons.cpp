@@ -653,7 +653,7 @@ void CBasePlayerWeapon::ItemPostFrame( void )
 
 		m_pPlayer->TabulateAmmo();
 
-		if ( g_pGameRules->RoundState() == 1 )
+		if ( g_pGameRules->RoundState() == ROUNDSTATE_RUNNING )
 			SecondaryAttack();
 
 		m_pPlayer->pev->button &= ~IN_ATTACK2;
@@ -666,7 +666,7 @@ void CBasePlayerWeapon::ItemPostFrame( void )
 		// the grenades are not predicted, they work on the real time
 		m_pPlayer->TabulateAmmo();
 
-		if ( g_pGameRules->RoundState() == 1 )
+		if ( g_pGameRules->RoundState() == ROUNDSTATE_RUNNING )
 			PrimaryAttack();
 	}
 	else if ( ( m_pPlayer->pev->button & IN_ATTACK ) && UTIL_WeaponTimeBase() >= m_flNextPrimaryAttack )
@@ -679,7 +679,7 @@ void CBasePlayerWeapon::ItemPostFrame( void )
 
 		m_pPlayer->TabulateAmmo();
 
-		if ( g_pGameRules->RoundState() == 1 )
+		if ( g_pGameRules->RoundState() == ROUNDSTATE_RUNNING )
 			PrimaryAttack();
 	}
 	else if ( ( m_pPlayer->pev->button & IN_RELOAD ) && CBasePlayerItem::ItemInfoArray[m_iId].iMaxClip != WEAPON_NOCLIP &&
@@ -900,7 +900,7 @@ void CBasePlayerWeapon::SendWeaponAnim( int iAnim, int skiplocal )
 	if ( skiplocal && ENGINE_CANSKIP( m_pPlayer->edict() ) )
 		return;
 
-	if ( m_pPlayer->pev->team == 1 )
+	if ( m_pPlayer->pev->team == TEAM_ALLIES )
 	{
 		if ( (unsigned) ( m_pPlayer->pev->playerclass - 0x15 ) < 6 )
 			pev->body = 1;

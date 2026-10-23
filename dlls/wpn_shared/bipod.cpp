@@ -106,9 +106,9 @@ void CBipodWeapon::PrimaryAttack( void )
 		if( m_flWeaponHeat >= 99.0f )
 		{
 #if !CLIENT_DLL
-			if( !( m_pPlayer->m_flDisplayHistory & 0x40000 ) )
+			if( !( m_pPlayer->m_flDisplayHistory & HINT_MG_OVERHEAT ) )
 			{
-				m_pPlayer->m_flDisplayHistory |= 0x40000;
+				m_pPlayer->m_flDisplayHistory |= HINT_MG_OVERHEAT;
 				m_pPlayer->HintMessage( "#Hint_mg_overheat", 0 );
 			}
 #endif
@@ -139,9 +139,9 @@ void CBipodWeapon::PrimaryAttack( void )
 	// the machine guns aren't accurate when they are not deployed
 	if( m_pPlayer->pev->iuser3 != STANCE_PRONE_DEPLOYED && m_pPlayer->pev->vuser1.x != SANDBAG_DEPLOYED )
 	{
-		if( m_iId != WEAPON_BREN && m_iId != WEAPON_BAR && !( m_pPlayer->m_flDisplayHistory & 0x200 ) )
+		if( m_iId != WEAPON_BREN && m_iId != WEAPON_BAR && !( m_pPlayer->m_flDisplayHistory & HINT_MG_FIRE_BETTER_DEPLOYED ) )
 		{
-			m_pPlayer->m_flDisplayHistory |= 0x200;
+			m_pPlayer->m_flDisplayHistory |= HINT_MG_FIRE_BETTER_DEPLOYED;
 			m_pPlayer->HintMessage( "#Hint_mgs_fire_better_deployed", 0 );
 		}
 	}

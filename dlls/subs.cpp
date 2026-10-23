@@ -40,7 +40,7 @@ void CPointEntity ::Spawn( void )
 	pev->solid = SOLID_NOT;
 
 	// the point entity has to be seen by the clients
-	if ( pev->spawnflags & 1 )
+	if ( pev->spawnflags & SF_POINT_NULL_SPRITE )
 	{
 		PRECACHE_MODEL( "sprites/null.spr" );
 		SET_MODEL( ENT( pev ), "sprites/null.spr" );
@@ -126,17 +126,17 @@ int CBaseDMStart::GetState( CBaseEntity *pEntity )
 		team = pEntity->pev->team;
 	if ( owner == 1 )
 	{
-		if ( team == 1 )
+		if ( team == TEAM_ALLIES )
 			return m_bInControl ? 2 : 0;
-		if ( team == 2 )
+		if ( team == TEAM_AXIS )
 			return m_bNotInControl ? 2 : 0;
 		return 2;
 	}
 	if ( owner == 2 )
 	{
-		if ( team == 2 )
+		if ( team == TEAM_AXIS )
 			return m_bInControl ? 2 : 0;
-		if ( team == 1 )
+		if ( team == TEAM_ALLIES )
 			return m_bNotInControl ? 2 : 0;
 		return 2;
 	}
