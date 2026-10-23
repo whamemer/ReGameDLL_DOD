@@ -18,8 +18,8 @@ extern DodClassInfo_t g_ClassInfo[];
 extern DodClassInfo_t g_ParaClassInfo[];
 extern DLL_GLOBAL CGameRules *g_pGameRules;
 extern DLL_GLOBAL BOOL g_fGameOver;
-extern float g_flIntermissionStartTime;
-extern int m_SaveRoundState;
+float g_flIntermissionStartTime;
+int m_SaveRoundState;
 #define MAX_RULE_BUFFER 1024
 
 struct mapcycle_item_s
@@ -50,15 +50,12 @@ struct TESTSTATS
 	float lastGameTime;
 };
 extern TESTSTATS gStats;
-extern void SET_CLIENT_KEYVALUE( int idx, char *buf, const char *key, const char *val );
 extern void Host_Say( edict_t *pEntity, int teamonly );
-extern char *GET_INFOKEYBUFFER( edict_t *pEntity );
-extern char *INFOKEY_VALUE( char *buf, const char *key );
 extern void UpdateStatsFile( float t, char *m, float h, float a, int s );
 extern float AmmoDamage( const char *psz );
 extern void FireDODCamera( const char *p1, CBaseEntity *p2, CBaseEntity *p3, USE_TYPE t, float f );
 extern int get_maptime_left( void );
-extern CVoiceGameMgr g_VoiceGameMgr;
+CVoiceGameMgr g_VoiceGameMgr;
 extern cvar_t *pcvar_mp_clan_match;
 extern cvar_t *pcvar_mp_log_scores;
 extern cvar_t *pcvar_mp_timelimit;

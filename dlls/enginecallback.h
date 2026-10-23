@@ -43,8 +43,9 @@ extern enginefuncs_t g_engfuncs;
 #define CHANGE_PITCH	(*g_engfuncs.pfnChangePitch)
 #define MAKE_VECTORS	(*g_engfuncs.pfnMakeVectors)
 #define CREATE_ENTITY	(*g_engfuncs.pfnCreateEntity)
-#define REMOVE_ENTITY	(*g_engfuncs.pfnRemoveEntity)
-#define CREATE_NAMED_ENTITY		(*g_engfuncs.pfnCreateNamedEntity)
+void REMOVE_ENTITY( edict_t *e );
+edict_t *CREATE_NAMED_ENTITY( string_t iClass );
+void CONSOLE_ECHO( char *pszMsg, ... );
 #define MAKE_STATIC		(*g_engfuncs.pfnMakeStatic)
 #define ENT_IS_ON_FLOOR	(*g_engfuncs.pfnEntIsOnFloor)
 #define DROP_TO_FLOOR	(*g_engfuncs.pfnDropToFloor)
@@ -71,6 +72,9 @@ extern enginefuncs_t g_engfuncs;
 #define RANDOM_LONG		(*g_engfuncs.pfnRandomLong)
 #define RANDOM_FLOAT	(*g_engfuncs.pfnRandomFloat)
 #define GETPLAYERAUTHID	(*g_engfuncs.pfnGetPlayerAuthId)
+#define GET_INFOKEYBUFFER	(*g_engfuncs.pfnGetInfoKeyBuffer)
+#define INFOKEY_VALUE		(*g_engfuncs.pfnInfoKeyValue)
+#define SET_CLIENT_KEYVALUE	(*g_engfuncs.pfnSetClientKeyValue)
 
 inline void MESSAGE_BEGIN( int msg_dest, int msg_type, const float *pOrigin = NULL, edict_t *ed = NULL )
 {

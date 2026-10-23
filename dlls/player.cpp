@@ -66,7 +66,6 @@ extern void respawn( entvars_t *pev, BOOL fCopyCorpse );
 extern Vector VecBModelOrigin( entvars_t *pevBModel );
 extern edict_t *EntSelectSpawnPoint( CBaseEntity *pPlayer, BOOL bJustChecking );
 
-extern bool IsBustingGame();
 extern cvar_t cvar_fadetoblack;
 
 // the world node graph
@@ -196,6 +195,68 @@ extern const char *sIdleAnimations[5];
 extern char *sHandSignals[30];	// defined in dod_shared.cpp
 extern const char *g_PlayerAnimationList[88];
 
+
+cvar_t *pcvar_developer;
+cvar_t *pcvar_sv_gravity;
+cvar_t *pcvar_mp_chatmsg;
+cvar_t *pcvar_mp_log_scores_delay;
+cvar_t *pcvar_mp_log_scores;
+cvar_t *pcvar_mp_chattime;
+cvar_t *pcvar_mp_combinemglimits;
+cvar_t *pcvar_mp_deathmsg;
+cvar_t *pcvar_mp_tkpenalty;
+cvar_t *pcvar_mp_friendlyfire;
+cvar_t *pcvar_mp_timelimit;
+cvar_t *pcvar_mp_spawnbazookas;
+cvar_t *pcvar_mp_teamlimit;
+cvar_t *pcvar_mp_allowspectators;
+cvar_t *pcvar_mp_nummapmarkers;
+cvar_t *pcvar_mp_markerstaytime;
+cvar_t *pcvar_mp_clan_match;
+cvar_t *pcvar_mp_clan_restartround;
+cvar_t *pcvar_mp_clan_readyrestart;
+cvar_t *pcvar_mp_clan_match_warmup;
+cvar_t *pcvar_mp_clan_respawntime;
+cvar_t *pcvar_mp_clan_scoring;
+cvar_t *pcvar_mp_clan_scoring_delay;
+cvar_t *pcvar_mp_clan_timer;
+cvar_t *pcvar_mp_clan_scoring_bonus_allies;
+cvar_t *pcvar_mp_clan_scoring_bonus_axis;
+cvar_t *pcvar_mp_alliesclasses;
+cvar_t *pcvar_mp_axisclasses;
+
+#define PCVAR( name ) pcvar_##name = g_engfuncs.pfnCVarGetPointer( #name )
+
+void GetCVARPointers( void )
+{
+	PCVAR( developer );
+	PCVAR( sv_gravity );
+	PCVAR( mp_chatmsg );
+	PCVAR( mp_log_scores_delay );
+	PCVAR( mp_log_scores );
+	PCVAR( mp_chattime );
+	PCVAR( mp_combinemglimits );
+	PCVAR( mp_deathmsg );
+	PCVAR( mp_tkpenalty );
+	PCVAR( mp_friendlyfire );
+	PCVAR( mp_timelimit );
+	PCVAR( mp_teamlimit );
+	PCVAR( mp_allowspectators );
+	PCVAR( mp_nummapmarkers );
+	PCVAR( mp_markerstaytime );
+	PCVAR( mp_clan_match );
+	PCVAR( mp_clan_restartround );
+	PCVAR( mp_clan_readyrestart );
+	PCVAR( mp_clan_match_warmup );
+	PCVAR( mp_clan_respawntime );
+	PCVAR( mp_clan_scoring );
+	PCVAR( mp_clan_scoring_delay );
+	PCVAR( mp_clan_timer );
+	PCVAR( mp_clan_scoring_bonus_allies );
+	PCVAR( mp_clan_scoring_bonus_axis );
+	PCVAR( mp_alliesclasses );
+	PCVAR( mp_axisclasses );
+}
 
 void LinkUserMessages( void )
 {
@@ -625,25 +686,13 @@ void CBasePlayer::PackDeadPlayerItems( void )
 				case GR_PLR_DROP_GUN_ACTIVE:
 					if ( m_pActiveItem && pPlayerItem == m_pActiveItem )
 					{
-						CBasePlayerWeapon *pWeapon = (CBasePlayerWeapon *) pPlayerItem;
-						int nIndex = iPW++;
-
 						// this is the active item. Pack it.
-						rgpPackWeapons[nIndex] = pWeapon;
-
-						//Reload the weapon before dropping it if we have ammo
-						int j = min( pWeapon->iMaxClip() - pWeapon->m_iClip, m_rgAmmo[pWeapon->m_iPrimaryAmmoType] );
-
-						// Add them to the clip
-						pWeapon->m_iClip += j;
-						m_rgAmmo[pWeapon->m_iPrimaryAmmoType] -= j;
-
-						TabulateAmmo();
+						rgpPackWeapons[iPW++] = (CBasePlayerWeapon *)pPlayerItem;
 					}
 					break;
 
 				case GR_PLR_DROP_GUN_ALL:
-					rgpPackWeapons[iPW++] = (CBasePlayerWeapon *) pPlayerItem;
+					rgpPackWeapons[iPW++] = (CBasePlayerWeapon *)pPlayerItem;
 					break;
 
 				default:
@@ -690,7 +739,7 @@ void CBasePlayer::PackDeadPlayerItems( void )
 	}
 
 	// create a box to pack the stuff into.
-	CWeaponBox *pWeaponBox = (CWeaponBox *) CBaseEntity::Create( "weaponbox", pev->origin, pev->angles, edict() );
+	CWeaponBox *pWeaponBox = (CWeaponBox *)CBaseEntity::Create( "weaponbox", pev->origin, pev->angles, edict() );
 
 	pWeaponBox->pev->angles.x = 0;	// don't let weaponbox tilt.
 	pWeaponBox->pev->angles.z = 0;
@@ -702,68 +751,23 @@ void CBasePlayer::PackDeadPlayerItems( void )
 	iPA = 0;
 	iPW = 0;
 
-	if ( IsBustingGame() )
+	// pack the ammo
+	while ( iPackAmmo[iPA] != -1 )
 	{
-		if ( HasNamedPlayerItem( "weapon_egon" ) )
-		{
-			for ( i = 0; i < MAX_ITEM_TYPES; i++ )
-			{
-				CBasePlayerItem *pItem = m_rgpPlayerItems[i];
-
-				if ( pItem )
-				{
-					if ( !strcmp( "weapon_egon", STRING( pItem->pev->classname ) ) )
-					{
-						pWeaponBox->PackWeapon( pItem );
-
-						SET_MODEL( ENT( pWeaponBox->pev ), "models/w_egon.mdl" );
-
-						pWeaponBox->pev->velocity = vec3_t( 0, 0, 0 );
-						pWeaponBox->pev->renderfx = kRenderFxGlowShell;
-						pWeaponBox->pev->renderamt = 25;
-						pWeaponBox->pev->rendercolor = Vector( 0, 75, 250 );
-
-						break;
-					}
-				}
-			}
-		}
+		pWeaponBox->PackAmmo( MAKE_STRING( CBasePlayerItem::AmmoInfoArray[iPackAmmo[iPA]].pszName ), m_rgAmmo[iPackAmmo[iPA]] );
+		iPA++;
 	}
-	else
+
+	// now pack all of the items in the lists
+	while ( rgpPackWeapons[iPW] )
 	{
-		bool bPackItems = TRUE;
+		// weapon unhooked from the player. Pack it into der box.
+		pWeaponBox->PackWeapon( rgpPackWeapons[iPW] );
 
-		if ( iAmmoRules == GR_PLR_DROP_AMMO_ACTIVE && iWeaponRules == GR_PLR_DROP_GUN_ACTIVE )
-		{
-			if ( rgpPackWeapons[0] == nullptr || ( FClassnameIs( rgpPackWeapons[0]->pev, "weapon_satchel" ) &&
-												   ( iPackAmmo[0] == -1 || ( m_rgAmmo[iPackAmmo[0]] == 0 ) ) ) )
-			{
-				bPackItems = FALSE;
-			}
-		}
-
-		if ( bPackItems )
-		{
-			// pack the ammo
-			while ( iPackAmmo[iPA] != -1 )
-			{
-				pWeaponBox->PackAmmo( MAKE_STRING( CBasePlayerItem::AmmoInfoArray[iPackAmmo[iPA]].pszName ),
-									  m_rgAmmo[iPackAmmo[iPA]] );
-				iPA++;
-			}
-
-			// now pack all of the items in the lists
-			while ( rgpPackWeapons[iPW] )
-			{
-				// weapon unhooked from the player. Pack it into der box.
-				pWeaponBox->PackWeapon( rgpPackWeapons[iPW] );
-
-				iPW++;
-			}
-		}
-
-		pWeaponBox->pev->velocity = pev->velocity * 1.2;  // weaponbox has player's velocity, then some.
+		iPW++;
 	}
+
+	pWeaponBox->pev->velocity = pev->velocity * 1.2;  // weaponbox has player's velocity, then some.
 
 	RemoveAllItems( TRUE );	 // now strip off everything that wasn't handled by the code above.
 }
@@ -2733,7 +2737,6 @@ BOOL IsSpawnPointValid( CBaseEntity *pPlayer, CBaseEntity *pSpot )
 }
 
 DLL_GLOBAL CBaseEntity *g_pLastSpawn;
-edict_t *ReturnSpot( CBaseEntity *pSpot, CBasePlayer *cbPlayer, BOOL bJustChecking );
 inline int FNullEnt( CBaseEntity *ent )
 {
 	return ( ent == NULL ) || FNullEnt( ent->edict() );
@@ -2748,6 +2751,22 @@ Returns the entity to spawn at
 USES AND SETS GLOBAL g_pLastSpawn
 ============
 */
+
+edict_t *ReturnSpot( CBaseEntity *pSpot, CBasePlayer *cbPlayer, BOOL bJustChecking )
+{
+	if ( pSpot != NULL && pSpot->pev->pContainingEntity != NULL &&
+		 ( *g_engfuncs.pfnEntOffsetOfPEntity )( pSpot->pev->pContainingEntity ) != 0 )
+	{
+		if ( !bJustChecking )
+		{
+			g_pLastSpawn = pSpot;
+			pSpot->pev->fuser1 = gpGlobals->time + 0.5f;
+		}
+		return pSpot->pev->pContainingEntity;
+	}
+	ALERT( at_console, "PutClientInServer: ReturnSpot: passed a null pSpot" );
+	return NULL;
+}
 
 edict_t *EntSelectSpawnPoint( CBaseEntity *pPlayer, BOOL bJustChecking )
 {
@@ -5674,4 +5693,64 @@ BOOL CBasePlayer::HasObjectOfGroup( const char *grp )
 BOOL CBasePlayer::IsCarryingObject( void )
 {
 	return m_pObject != NULL;
+}
+
+float GetPlayerGaitYaw( const edict_t *pEdict )
+{
+	if ( pEdict )
+	{
+		CBasePlayer *pPlayer = (CBasePlayer *)CBaseEntity::Instance( pEdict->v.pContainingEntity );
+
+		if ( pPlayer )
+			return pPlayer->m_flGaityaw;
+	}
+
+	return 0;
+}
+
+float GetPlayerPitch( const edict_t *pEdict )
+{
+	if ( pEdict )
+	{
+		CBasePlayer *pPlayer = (CBasePlayer *)CBaseEntity::Instance( pEdict->v.pContainingEntity );
+
+		if ( pPlayer )
+			return pPlayer->m_flPitch;
+	}
+
+	return 0;
+}
+
+float GetPlayerYaw( const edict_t *pEdict )
+{
+	if ( pEdict )
+	{
+		CBasePlayer *pPlayer = (CBasePlayer *)CBaseEntity::Instance( pEdict->v.pContainingEntity );
+
+		if ( pPlayer )
+			return pPlayer->m_flYaw;
+	}
+
+	return 0;
+}
+
+float GetPlayerPitchBlend( const edict_t *pEdict )
+{
+	if ( pEdict )
+		return pEdict->v.blending[1];
+
+	return 0;
+}
+
+int GetPlayerGaitsequence( const edict_t *pEdict )
+{
+	if ( pEdict )
+	{
+		CBasePlayer *pPlayer = (CBasePlayer *)CBaseEntity::Instance( pEdict->v.pContainingEntity );
+
+		if ( pPlayer )
+			return pPlayer->m_iGaitsequence;
+	}
+
+	return 1;
 }

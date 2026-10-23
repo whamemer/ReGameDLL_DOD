@@ -715,3 +715,6 @@ STATE CBaseToggle::GetState( void )
 	}
 	return STATE_OFF;
 }
+
+LINK_ENTITY_TO_CLASS( info_initial_player_allies, CBaseEntity )
+LINK_ENTITY_TO_CLASS( info_initial_player_axis, CBaseEntity )

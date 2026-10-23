@@ -43,7 +43,6 @@ extern int gmsgTimerStatus;
 extern cvar_t *pcvar_mp_clan_match;
 extern cvar_t *pcvar_mp_clan_scoring;
 extern cvar_t *pcvar_mp_clan_scoring_delay;
-const char *PlayerLogLine( CBaseEntity *pEntity );
 
 class CRuleEntity : public CBaseEntity
 {

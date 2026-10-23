@@ -913,6 +913,8 @@ class CMomentaryDoor : public CBaseToggle
 	virtual int Restore( CRestore &restore );
 	static TYPEDESCRIPTION m_SaveData[];
 
+	void EXPORT DoorMoveDone( void );
+
 	BYTE m_bMoveSnd;  // sound a door makes while moving
 	STATE m_iState;	  // moving state
 	void Activate( void );
@@ -1101,6 +1103,15 @@ void CMomentaryDoor::MomentaryMoveDone( void )
 
 	m_iState = STATE_OFF;
 	STOP_SOUND( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseMoving ) );
+}
+
+//
+// The door has reached needed position.
+//
+void CMomentaryDoor::DoorMoveDone( void )
+{
+	STOP_SOUND( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseMoving ) );
+	EMIT_SOUND( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseArrived ), 1, ATTN_NORM );
 }
 
 void CBaseDoor::Activate( void )

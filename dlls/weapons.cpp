@@ -56,8 +56,6 @@ unsigned short m_usPlayWhizz;
 
 #define TRACER_FREQ 4  // Tracers fire every fourth bullet
 
-extern bool IsBustingGame();
-extern bool IsPlayerBusting( CBaseEntity *pPlayer );
 
 //=========================================================
 // MaxAmmoCarry - pass in a name and this function will tell
@@ -1908,3 +1906,4 @@ void CBasePlayerItem::PickupUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 	}
 }
 
+LINK_ENTITY_TO_CLASS( dod_ammo, CDodAmmoBox )

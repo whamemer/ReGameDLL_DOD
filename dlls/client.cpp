@@ -61,7 +61,7 @@ extern int g_teamplay;
 
 extern cvar_t cvar_timelimit;
 extern cvar_t cvar_teamplay;
-extern float g_flTimeLimit;
+float g_flTimeLimit;
 extern cvar_t *pcvar_mp_clan_match;
 extern cvar_t *pcvar_mp_chatmsg;
 extern void GetCVARPointers( void );

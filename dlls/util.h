@@ -258,6 +258,7 @@ extern float UTIL_AngleDiff( float destAngle, float srcAngle );
 
 extern CBaseEntity *UTIL_FindEntityInSphere( CBaseEntity *pStartEntity, const Vector &vecCenter, float flRadius );
 extern CBaseEntity *UTIL_FindEntityByString( CBaseEntity *pStartEntity, const char *szKeyword, const char *szValue );
+extern CBaseEntity *UTIL_FindEntityByString_Old( CBaseEntity *pStartEntity, const char *szKeyword, const char *szValue );
 extern CBaseEntity *UTIL_FindEntityByClassname( CBaseEntity *pStartEntity, const char *szName );
 extern CBaseEntity *UTIL_FindEntityByTargetname( CBaseEntity *pStartEntity, const char *szName );
 extern CBaseEntity *UTIL_FindEntityByTarget( CBaseEntity *pStartEntity, const char *szName );

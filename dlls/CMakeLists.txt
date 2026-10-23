@@ -60,7 +60,6 @@ set (SVDLL_SOURCES
 	controller.cpp
 	defaultai.cpp
 	dod_gamerules.cpp
-	dod_glue.cpp
 	dod_shared.cpp
 	dod_stats.cpp
 	doors.cpp

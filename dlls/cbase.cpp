@@ -16,6 +16,7 @@
 #include "util.h"
 #include "cbase.h"
 #include "MemPool.h"
+#include "perf_counter.h"
 #include "saverestore.h"
 #include "client.h"
 #include "decals.h"
@@ -884,6 +885,71 @@ CUtlVector_Hash stringsHashTable;
 // _GLOBAL__sub_I_stringsHashTable @0x0a9603 (mov $0x10 blockSize, mov $0x100 numElements).
 CMemoryPool hashItemMemPool( sizeof( hash_item_t ), 256 );
 
+char *pszDodEntityNames[243] = {
+	"info_alias", "info_group", "multi_alias", "trigger_changealias",
+	"func_wall", "func_wall_toggle", "func_conveyor", "func_illusionary",
+	"func_monsterclip", "func_rotating", "func_wall", "func_wall_toggle",
+	"func_conveyor", "func_illusionary", "func_monsterclip", "func_rotating",
+	"func_pendulum", "env_global", "env_state", "multisource",
+	"func_button", "func_rot_button", "momentary_rot_button", "env_spark",
+	"env_debris", "button_target", "info_doddetect", "para_roundtimer",
+	"dod_preround", "dod_stats", "func_door", "func_water",
+	"func_door_rotating", "momentary_door", "info_target", "env_bubbles",
+	"beam", "env_laser", "env_glow", "env_sprite",
+	"gibshooter", "env_shooter", "test_effect", "env_blood",
+	"env_shake", "env_fade", "env_message", "env_funnel",
+	"env_rain", "env_warpball", "env_beverage", "item_sodacan",
+	"env_model", "env_rocketshooter", "spark_shower", "env_explosion",
+	"func_breakable", "func_pushable", "func_tank", "func_tanklaser",
+	"func_tankrocket", "func_tankmortar", "func_tankcontrols", "monster_generic",
+	"grenade", "cine_blood", "cycler", "cycler_prdroid",
+	"cycler_sprite", "cycler_weapon", "cycler_wreckage", "light",
+	"light_spot", "light_environment", "trigger_lightstyle", "dod_mapmarker",
+	"game_score", "game_end", "game_text", "game_team_master",
+	"game_team_set", "game_zone_player", "game_player_hurt", "game_counter",
+	"game_counter_set", "game_player_equip", "game_player_team", "func_mortar_field",
+	"monster_mortar", "info_node", "info_node_air", "testhull",
+	"node_viewer", "node_viewer_human", "node_viewer_fly", "node_viewer_large",
+	"dod_object", "dod_score_ent", "particle_shooter", "path_corner",
+	"path_track", "func_plat", "func_platrot", "func_train",
+	"func_tracktrain", "func_traincontrols", "func_trackchange", "func_trackautochange",
+	"func_guntarget", "player", "monster_hevsuit_dead", "player_weaponstrip",
+	"player_loadsaved", "info_intermission", "scripted_sequence", "scripted_action",
+	"aiscripted_sequence", "scripted_sentence", "monster_furniture", "ambient_generic",
+	"env_sound", "speaker", "soundent", "info_null",
+	"info_player_deathmatch", "info_player_axis", "info_player_allies", "info_player_observer",
+	"info_initial_player_axis", "info_initial_player_allies", "info_player_start", "info_landmark",
+	"DelayedUse", "weapon_stickgrenade", "func_friction", "trigger_auto",
+	"trigger_relay", "multi_manager", "multi_watcher", "watcher",
+	"env_render", "env_customize", "trigger", "trigger_hurt",
+	"trigger_monsterjump", "trigger_cdaudio", "target_cdaudio", "trigger_multiple",
+	"trigger_once", "trigger_counter", "trigger_transition", "fireanddie",
+	"trigger_changelevel", "func_ladder", "trigger_push", "trigger_teleport",
+	"info_teleport_destination", "trigger_autosave", "trigger_endsection", "trigger_gravity",
+	"trigger_startpatrol", "trigger_changetarget", "trigger_camera", "dod_object_goal",
+	"dod_location", "dod_control_point", "dod_control_point_master", "dod_trigger_sandbag",
+	"dod_capture_area", "dod_point_relay", "dod_round_timer", "dod_camera",
+	"monster_turret", "monster_miniturret", "monster_sentry", "weaponbox",
+	"dod_ammo", "ammo_generic_american", "ammo_generic_german", "ammo_generic_british",
+	"infodecal", "worldspawn", "weapon_30cal", "ammo_30cal",
+	"weapon_amerknife", "weapon_bar", "ammo_bar", "weapon_bazooka",
+	"shell_bazooka", "ammo_bazooka", "weapon_bren", "ammo_bren",
+	"weapon_colt", "ammo_colt", "weapon_enfield", "weapon_scopedenfield",
+	"ammo_enfield", "weapon_fg42", "weapon_scopedfg42", "ammo_fg42",
+	"weapon_garand", "ammo_garand", "weapon_gerknife", "weapon_greasegun",
+	"ammo_greasegun", "weapon_handgrenade", "weapon_handgrenade_ex", "weapon_k43",
+	"ammo_k43", "weapon_kar", "ammo_kar", "weapon_luger",
+	"ammo_luger", "weapon_m1carbine", "ammo_m1carbine", "weapon_mg34",
+	"ammo_mg34", "weapon_mg42", "ammo_mg42", "weapon_mp40",
+	"ammo_mp40", "weapon_mp44", "ammo_mp44", "weapon_piat",
+	"shell_piat", "ammo_piat", "weapon_pschreck", "shell_pschreck",
+	"ammo_pschreck", "weapon_scopedkar", "ammo_scopedkar", "weapon_spade",
+	"weapon_spring", "ammo_spring", "weapon_sten", "ammo_sten",
+	"weapon_stickgrenade", "weapon_stickgrenade_ex", "weapon_thompson", "ammo_thompson",
+	"weapon_webley", "ammo_webley",
+	NULL
+};
+
 int CaseInsensitiveHash( const char *s, int size )
 {
 	unsigned int hash = 0;
@@ -1035,20 +1101,21 @@ void RemoveEntityHashValue( entvars_t *pev, const char *value, hash_types_e fiel
 
 void EmptyEntityHashTable( void )
 {
-	if ( stringsHashTable.m_Memory.m_pMemory == NULL )
-		return;
-	for ( int i = 0; i < stringsHashTable.m_Size + 1; i++ )
+	for ( int i = 0; i < stringsHashTable.m_Size; i++ )
 	{
 		hash_item_t *next = stringsHashTable.m_Memory.m_pMemory[i].next;
+
 		stringsHashTable.m_Memory.m_pMemory[i].pev = NULL;
 		stringsHashTable.m_Memory.m_pMemory[i].pevIndex = 0;
 		stringsHashTable.m_Memory.m_pMemory[i].lastHash = NULL;
 		stringsHashTable.m_Memory.m_pMemory[i].next = NULL;
+
 		while ( next )
 		{
-			hash_item_t *tmp = next->next;
+			hash_item_t *temp = next->next;
+
 			hashItemMemPool.Free( next );
-			next = tmp;
+			next = temp;
 		}
 	}
 }
@@ -1083,4 +1150,133 @@ void InitHashTable( void )
 	}
 }
 
+edict_t *CREATE_NAMED_ENTITY( string_t iClass )
+{
+	edict_t *named = ( *g_engfuncs.pfnCreateNamedEntity )( iClass );
 
+	if ( named != NULL && ( *g_engfuncs.pfnEntOffsetOfPEntity )( named ) != 0 )
+		AddEntityHashValue( &named->v, STRING( iClass ), CLASSNAME );
+
+	return named;
+}
+
+void REMOVE_ENTITY( edict_t *e )
+{
+	( *g_engfuncs.pfnRemoveEntity )( e );
+}
+
+void TestForEntityHashCollisions( void )
+{
+	EmptyEntityHashTable();
+
+	for ( int i = 0; pszDodEntityNames[i]; i++ )
+	{
+		char *pEntityName = pszDodEntityNames[i];
+
+		edict_t *edict = CREATE_NAMED_ENTITY( MAKE_STRING( pEntityName ) );
+
+		if ( edict )
+		{
+			CBaseEntity *pEntity = CBaseEntity::Instance( edict );
+
+			UTIL_Remove( pEntity );
+		}
+	}
+
+	EmptyEntityHashTable();
+}
+
+void CONSOLE_ECHO( char *pszMsg, ... )
+{
+	static char szStr[1024];
+	va_list argptr;
+
+	va_start( argptr, pszMsg );
+	vsprintf( szStr, pszMsg, argptr );
+	va_end( argptr );
+
+	( *g_engfuncs.pfnServerPrint )( szStr );
+}
+
+void printEntities( void )
+{
+	int ents = 0;
+
+	for ( int i = 0; i < stringsHashTable.m_Size; i++ )
+	{
+		hash_item_t *item = &stringsHashTable.m_Memory.m_pMemory[i];
+
+		if ( item->pev )
+		{
+			CONSOLE_ECHO( "%i - %i: Head: %s %i %p\n", i, ents++, STRING( item->pev->classname ), ENTINDEX( item->pev->pContainingEntity ), item->pev );
+			item = &stringsHashTable.m_Memory.m_pMemory[i];
+		}
+
+		for ( hash_item_t *child = item->next; child; child = child->next )
+			CONSOLE_ECHO( "%i - %i: Child: %s %i %p\n", i, ents++, STRING( child->pev->classname ), ENTINDEX( child->pev->pContainingEntity ), child->pev );
+	}
+}
+
+void loopPerformance( void )
+{
+	CPerformanceCounter loopCounter;
+	int i;
+
+	double start = loopCounter.GetCurTime();
+
+	for ( i = 0; i < 100; i++ )
+	{
+		CBaseEntity *pSpot = NULL;
+
+		while ( ( pSpot = UTIL_FindEntityByString_Old( pSpot, "classname", "info_player_allies" ) ) != NULL )
+			;
+
+		pSpot = NULL;
+
+		while ( ( pSpot = UTIL_FindEntityByString_Old( pSpot, "classname", "info_player_axis" ) ) != NULL )
+			;
+
+		pSpot = NULL;
+
+		while ( ( pSpot = UTIL_FindEntityByString_Old( pSpot, "classname", "player" ) ) != NULL )
+			;
+
+		pSpot = NULL;
+
+		while ( ( pSpot = UTIL_FindEntityByString_Old( pSpot, "classname", "dod_control_point" ) ) != NULL )
+			;
+	}
+
+	double end = loopCounter.GetCurTime();
+
+	CONSOLE_ECHO( " Time in old search loop %.4f\n", ( end - start ) * 1000.0 );
+
+	start = loopCounter.GetCurTime();
+
+	for ( i = 0; i < 100; i++ )
+	{
+		CBaseEntity *pSpot = NULL;
+
+		while ( ( pSpot = UTIL_FindEntityByString( pSpot, "classname", "info_player_allies" ) ) != NULL )
+			;
+
+		pSpot = NULL;
+
+		while ( ( pSpot = UTIL_FindEntityByString( pSpot, "classname", "info_player_axis" ) ) != NULL )
+			;
+
+		pSpot = NULL;
+
+		while ( ( pSpot = UTIL_FindEntityByString( pSpot, "classname", "player" ) ) != NULL )
+			;
+
+		pSpot = NULL;
+
+		while ( ( pSpot = UTIL_FindEntityByString( pSpot, "classname", "dod_control_point" ) ) != NULL )
+			;
+	}
+
+	end = loopCounter.GetCurTime();
+
+	CONSOLE_ECHO( " Time in new search loop %.4f\n", ( end - start ) * 1000.0 );
+}
