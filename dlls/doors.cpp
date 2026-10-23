@@ -963,48 +963,14 @@ void CMomentaryDoor::Spawn( void )
 
 void CMomentaryDoor::Precache( void )
 {
-
-	// set the door's "in-motion" sound
-	switch ( m_bMoveSnd )
+	if ( m_bMoveSnd )
 	{
-	case 0:
+		PRECACHE_SOUND( "doors/doormove.wav" );
+		pev->noiseMoving = ALLOC_STRING( "doors/doormove.wav" );
+	}
+	else
+	{
 		pev->noiseMoving = ALLOC_STRING( "common/null.wav" );
-		break;
-	case 1:
-		PRECACHE_SOUND( "doors/doormove1.wav" );
-		pev->noiseMoving = ALLOC_STRING( "doors/doormove1.wav" );
-		break;
-	case 2:
-		PRECACHE_SOUND( "doors/doormove2.wav" );
-		pev->noiseMoving = ALLOC_STRING( "doors/doormove2.wav" );
-		break;
-	case 3:
-		PRECACHE_SOUND( "doors/doormove3.wav" );
-		pev->noiseMoving = ALLOC_STRING( "doors/doormove3.wav" );
-		break;
-	case 4:
-		PRECACHE_SOUND( "doors/doormove4.wav" );
-		pev->noiseMoving = ALLOC_STRING( "doors/doormove4.wav" );
-		break;
-	case 5:
-		PRECACHE_SOUND( "doors/doormove5.wav" );
-		pev->noiseMoving = ALLOC_STRING( "doors/doormove5.wav" );
-		break;
-	case 6:
-		PRECACHE_SOUND( "doors/doormove6.wav" );
-		pev->noiseMoving = ALLOC_STRING( "doors/doormove6.wav" );
-		break;
-	case 7:
-		PRECACHE_SOUND( "doors/doormove7.wav" );
-		pev->noiseMoving = ALLOC_STRING( "doors/doormove7.wav" );
-		break;
-	case 8:
-		PRECACHE_SOUND( "doors/doormove8.wav" );
-		pev->noiseMoving = ALLOC_STRING( "doors/doormove8.wav" );
-		break;
-	default:
-		pev->noiseMoving = ALLOC_STRING( "common/null.wav" );
-		break;
 	}
 }
 

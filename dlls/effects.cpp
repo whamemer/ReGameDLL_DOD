@@ -620,7 +620,7 @@ int IsPointEntity( CBaseEntity *pEnt )
 
 void CLightning::StrikeThink( void )
 {
-	if ( m_life != 0 )
+	if ( m_life != 0 && m_restrike != -1.0f )
 	{
 		if ( pev->spawnflags & SF_BEAM_RANDOM )
 			pev->nextthink = gpGlobals->time + m_life + RANDOM_FLOAT( 0, m_restrike );

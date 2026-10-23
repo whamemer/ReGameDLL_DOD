@@ -2409,11 +2409,11 @@ int CDoDTeamPlay::ItemShouldRespawn( CItem *pItem )
 }
 void CDoDTeamPlay::ClientUserInfoChanged( CBasePlayer *pPlayer, char *infobuffer )
 {
-	char *mdls = INFOKEY_VALUE( infobuffer, "model" );
-	if ( mdls && mdls[0] )
+	// the model follows the class, whatever the client asks for
+	if ( pPlayer->m_sPlayerModel )
 	{
 		char *buf = GET_INFOKEYBUFFER( pPlayer->edict() );
-		SET_CLIENT_KEYVALUE( ENTINDEX( pPlayer->edict() ), buf, "model", mdls );
+		SET_CLIENT_KEYVALUE( ENTINDEX( pPlayer->edict() ), buf, "model", pPlayer->m_sPlayerModel );
 	}
 	char *lw = INFOKEY_VALUE( infobuffer, "cl_lw" );
 	if ( lw[0] < '1' )
@@ -2839,7 +2839,7 @@ BOOL CDoDTeamPlay::CanPlayerJoinClass( int playerclass )
 		return FALSE;
 	if ( (unsigned)( playerclass - 10 ) < 11 )
 	{
-		int v = (int)CVAR_GET_FLOAT( "mp_axisclasses" );
+		int v = (int)pcvar_mp_axisclasses->value;
 		int mask = ( v > -1 ) ? v : -1;
 		int shift = playerclass - 10;
 		if ( ( ( mask >> ( shift & 31 ) ) & 1 ) == 0 )
@@ -2848,7 +2848,7 @@ BOOL CDoDTeamPlay::CanPlayerJoinClass( int playerclass )
 			return TRUE;
 		return (unsigned)( playerclass - 15 ) > 1;
 	}
-	int v = (int)CVAR_GET_FLOAT( "mp_alliesclasses" );
+	int v = (int)pcvar_mp_alliesclasses->value;
 	int mask = ( v > -1 ) ? v : -1;
 	int shift = m_GamePlayRules.m_bAlliesAreBrit ? playerclass - 21 : playerclass - 1;
 	if ( ( ( mask >> ( shift & 31 ) ) & 1 ) == 0 )
@@ -3047,7 +3047,10 @@ void CDoDTeamPlay::ShowClassSelectMenu( CBasePlayer *pPlayer )
 }
 BOOL CDoDTeamPlay::AllowSpawnableBazookas( void )
 {
-	return (int)CVAR_GET_FLOAT( "mp_spawnbazookas" ) != 0;
+	if ( !pcvar_mp_spawnbazookas )
+		pcvar_mp_spawnbazookas = CVAR_GET_POINTER( "mp_spawnbazookas" );
+
+	return pcvar_mp_spawnbazookas->value > 0.0f;
 }
 // NOTE: CDoDDetect ctor lives in objective.h zone (not our files) - see binary 000ee020 sz=132
 class CMultiplayGameMgrHelper : public IVoiceGameMgrHelper
