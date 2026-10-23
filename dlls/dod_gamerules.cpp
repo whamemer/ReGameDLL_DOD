@@ -171,100 +171,354 @@ edict_t *CDoDTeamPlay::GetPlayerSpawnSpot( CBasePlayer *pPlayer )
 		FireTargets( STRING( spot->v.target ), pPlayer, pPlayer, USE_TOGGLE, 0.0f );
 	return spot;
 }
-// .text:000e4240 void CDoDTeamPlay::PlayerKilled(CBasePlayer*, entvars_t*, entvars_t*, int) (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::PlayerKilled( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags )
 {
-	if ( flags < 3 || flags > 6 )
+	if ( (unsigned int)( flags - 3 ) >= 4 )
 		flags = 0;
+
 	int team = pVictim->pev->team;
-	BOOL infinite = ( team == 1 ) ? m_GamePlayRules.m_bAlliesInfiniteLives : m_GamePlayRules.m_bAxisInfiniteLives;
-	if ( ( team == 1 || team == 2 ) && infinite )
+
+	if ( ( team == 1 && m_GamePlayRules.m_bAlliesInfiniteLives ) || ( team == 2 && m_GamePlayRules.m_bAxisInfiniteLives ) )
 	{
-		if ( ( pVictim->m_flDisplayHistory & 0x10000 ) == 0 )
+		if ( !( pVictim->m_flDisplayHistory & 0x10000 ) )
 		{
 			pVictim->m_flDisplayHistory |= 0x10000;
 			pVictim->HintMessage( "#Hint_player_killed_wavetime", 0 );
 		}
 	}
-	else if ( ( pVictim->m_flDisplayHistory & 0x20000 ) == 0 )
+	else if ( !( pVictim->m_flDisplayHistory & 0x20000 ) )
 	{
 		pVictim->m_flDisplayHistory |= 0x20000;
 		pVictim->HintMessage( "#Hint_player_killed_onelife", 0 );
 	}
+
 	if ( m_DisableDeathPenalty )
 		return;
-	CGameRules::PlayerKilled( pVictim, pKiller, pInflictor, flags );
+
+	DeathNotice( pVictim, pKiller, pInflictor, flags );
+
 	if ( !m_RoundDoesCount )
 		return;
+
 	pVictim->m_iDeaths++;
+
 	MESSAGE_BEGIN( MSG_ALL, gmsgScoreShort );
-	WRITE_BYTE( ENTINDEX( pVictim->edict() ) );
-	WRITE_SHORT( pVictim->m_iObjScore );
-	WRITE_SHORT( (int) pVictim->pev->frags );
-	WRITE_SHORT( pVictim->m_iDeaths );
-	WRITE_BYTE( 1 );
+		WRITE_BYTE( ENTINDEX( pVictim->edict() ) );
+		WRITE_SHORT( pVictim->m_iObjScore );
+		WRITE_SHORT( (int)pVictim->pev->frags );
+		WRITE_SHORT( pVictim->m_iDeaths );
+		WRITE_BYTE( 1 );
 	MESSAGE_END();
-	float tkPenalty = pcvar_mp_tkpenalty ? pcvar_mp_tkpenalty->value : -1.0f;
-	FireTargets( "game_playerdie", pVictim, pVictim, USE_TOGGLE, 0.0f );
+
+	float flTKPenalty = -1.0f;
+
+	if ( pcvar_mp_tkpenalty )
+		flTKPenalty = pcvar_mp_tkpenalty->value;
+
+	FireTargets( "game_playerdie", pVictim, pVictim, USE_TOGGLE, 0 );
+
+	CBasePlayer *pAttacker = (CBasePlayer *)CBaseEntity::Instance( pKiller );
+
+	if ( !pAttacker || pAttacker->Classify() != CLASS_PLAYER || !pAttacker->IsPlayer() )
+		return;
+
 	if ( pVictim->pev == pKiller )
 		return;
-	CBaseEntity *pEnt = pKiller->pContainingEntity ? (CBaseEntity *) GET_PRIVATE( pKiller->pContainingEntity ) : NULL;
-	if ( !pEnt || !pEnt->IsPlayer() )
-		return;
-	CBasePlayer *pk = (CBasePlayer *) pEnt;
-	if ( pVictim->pev->team == pk->pev->team )
+
+	pAttacker->AddFrags( IPointsForKill( pAttacker, pVictim ), 1 );
+
+	FireTargets( "game_playerkill", pAttacker, pAttacker, USE_TOGGLE, 0 );
+
+	BOOL bTeamKill = pVictim->pev->team == pAttacker->pev->team;
+	BOOL bPenalty = flTKPenalty > 0;
+
+	if ( bTeamKill && bPenalty )
 	{
-		if ( tkPenalty > 0.0f )
-			pk->m_iNumTKs++;
-		if ( ( pk->m_flDisplayHistory & 0x10 ) == 0 )
+		// counted here and once more below, as the original does
+		pAttacker->m_iNumTKs++;
+	}
+	else
+	{
+		pAttacker->m_iNumTKs = 0;
+	}
+
+	if ( bTeamKill )
+	{
+		if ( bPenalty )
+			pAttacker->m_iNumTKs++;
+
+		if ( !( pAttacker->m_flDisplayHistory & 0x10 ) )
 		{
-			pk->m_flDisplayHistory |= 0x10;
-			pk->HintMessage( "#Hint_careful_around_teammates", 1 );
-		}
-		if ( tkPenalty > 0.0f && (float) pk->m_iNumTKs >= tkPenalty )
-		{
-			const char *nn = "unconnected";
-			if ( pk->pev->netname != 0 && STRING( pk->pev->netname )[0] != 0 )
-				nn = STRING( pk->pev->netname );
-			UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_kick_tk", (char *) nn, 0, 0, 0 );
-			UTIL_LogPrintf( "%s<%i> has been auto kicked from the game for TKing\n", nn,
-							GETPLAYERUSERID( pk->edict() ) );
-			ClientPrint( pk->pev, HUD_PRINTCONSOLE, "#dod_kicked_reason_tk", 0, 0, 0, 0 );
-			CLIENT_COMMAND( pk->edict(), "disconnect\n" );
-			return;
+			pAttacker->m_flDisplayHistory |= 0x10;
+			pAttacker->HintMessage( "#Hint_careful_around_teammates", 1 );
 		}
 	}
 	else
 	{
-		pk->m_iNumTKs = 0;
-		if ( ( pk->m_flDisplayHistory & 0x20 ) == 0 )
+		pAttacker->m_iNumTKs = 0;
+
+		if ( !( pAttacker->m_flDisplayHistory & 0x20 ) )
 		{
-			pk->m_flDisplayHistory |= 0x20;
-			pk->HintMessage( "#Hint_killing_enemies_is_good", 0 );
+			pAttacker->m_flDisplayHistory |= 0x20;
+			pAttacker->HintMessage( "#Hint_killing_enemies_is_good", 0 );
 		}
 	}
-	int pts = IPointsForKill( pk, pVictim );
-	pk->AddFrags( pts, 1 );
-	FireTargets( "game_playerkill", pk, pk, USE_TOGGLE, 0.0f );
-	pk->m_flNextDecalTime = gpGlobals->time;
+
+	pAttacker->m_flNextDecalTime = gpGlobals->time;
+
+	if ( bTeamKill && bPenalty && (float)pAttacker->m_iNumTKs >= flTKPenalty )
+	{
+		// the host of a listen server is never kicked
+		if ( ENTINDEX( pAttacker->edict() ) != 1 || IS_DEDICATED_SERVER() )
+		{
+			const char *pszName = "unconnected";
+
+			if ( pAttacker->pev->netname )
+			{
+				pszName = STRING( pAttacker->pev->netname );
+
+				if ( !*pszName )
+					pszName = "unconnected";
+			}
+
+			UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_kick_tk", (char *)pszName, NULL, NULL, NULL );
+
+			UTIL_LogPrintf( "\"%s<%i>\" has been auto kicked from the game for TKing\n", STRING( pAttacker->pev->netname ),
+							GETPLAYERUSERID( pAttacker->edict() ) );
+
+			ClientPrint( pAttacker->pev, HUD_PRINTCONSOLE, "#dod_kicked_reason_tk" );
+
+			CLIENT_COMMAND( pAttacker->edict(), "disconnect\n" );
+		}
+	}
 }
-// .text:000e5c80 void CDoDTeamPlay::DeathNotice(CBasePlayer*, entvars_t*, entvars_t*, int) (dod/dlls/dod_gamerules.cpp:0)
-void CDoDTeamPlay::DeathNotice( CBasePlayer *pVictim, entvars_t *pevKiller, entvars_t *pevInflictor, int flags )
+void CDoDTeamPlay::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pevInflictor, int flags )
 {
-	CGameRules::DeathNotice( pVictim, pevKiller, pevInflictor, flags );
-	const char *vic = GetPlayerClassName( pVictim->pev->playerclass );
-	const char *kil = "";
-	CBaseEntity *ke =
-		pevKiller && pevKiller->pContainingEntity ? (CBaseEntity *) GET_PRIVATE( pevKiller->pContainingEntity ) : NULL;
-	if ( ke && ke->IsPlayer() )
-		kil = GetPlayerClassName( ( (CBasePlayer *) ke )->pev->playerclass );
-	MESSAGE_BEGIN( MSG_ALL, gmsgDeathMsg );
-	WRITE_BYTE( ENTINDEX( pVictim->edict() ) );
-	WRITE_BYTE( ke ? ENTINDEX( ke->edict() ) : -1 );
-	WRITE_STRING( kil );
-	WRITE_STRING( vic ? vic : "" );
-	WRITE_BYTE( flags );
-	MESSAGE_END();
+	BOOL bDeathMsg = FALSE;
+
+	if ( pcvar_mp_deathmsg )
+		bDeathMsg = pcvar_mp_deathmsg->value > 0.0;
+
+	// what killed the victim: the index of the killer, the id and the name of the weapon
+	int iKillerIndex = 0;
+	int iKillerWeapon = 0;
+	const char *pszKillerWeapon = "world";
+	const char *pszClassname = NULL;
+	CBasePlayerWeapon *pWpn = NULL;
+
+	if ( pKiller->flags & FL_CLIENT )
+	{
+		iKillerIndex = ENTINDEX( pKiller->pContainingEntity );
+
+		if ( pevInflictor )
+		{
+			if ( pevInflictor == pKiller )
+			{
+				// the killer used his own weapon
+				pWpn = (CBasePlayerWeapon *)( (CBasePlayer *)CBaseEntity::Instance( pKiller ) )->m_pActiveItem;
+
+				if ( pWpn )
+				{
+					iKillerWeapon = pWpn->m_iId;
+					pszClassname = CBasePlayerItem::ItemInfoArray[iKillerWeapon].pszName;
+				}
+			}
+			else
+			{
+				pszClassname = STRING( pevInflictor->classname );
+
+				if ( !strcmp( pszClassname, "grenade" ) )
+					iKillerWeapon = 13;
+				else
+					iKillerWeapon = !strcmp( pszClassname, "grenade2" ) ? 14 : 0;
+			}
+		}
+	}
+
+	if ( pszClassname )
+	{
+		if ( !memcmp( pszClassname, "weapon_", 7 ) )
+			pszKillerWeapon = pszClassname + 7;
+		else if ( !strncmp( pszClassname, "monster_", 8 ) )
+			pszKillerWeapon = pszClassname + 8;
+		else if ( !strncmp( pszClassname, "func_", 5 ) )
+			pszKillerWeapon = pszClassname + 5;
+		else
+			pszKillerWeapon = strncmp( pszClassname, "shell_", 6 ) ? pszClassname : pszClassname + 6;
+	}
+
+	// the name and the id the death message uses depend on how the weapon was used
+	BOOL bResolved = FALSE;
+	BOOL bSkipBayonet = FALSE;
+
+	if ( pszClassname && iKillerWeapon == 15 )
+	{
+		pszKillerWeapon = "stick";
+		bSkipBayonet = TRUE;
+	}
+	else if ( pszClassname && iKillerWeapon == 6 )
+	{
+		pszKillerWeapon = "scopedkar";
+		bSkipBayonet = TRUE;
+	}
+
+	if ( !bSkipBayonet && !strcmp( pszKillerWeapon, "kar" ) && flags == 3 )
+	{
+		iKillerWeapon = 37;
+		pszKillerWeapon = "bayonet";
+		bResolved = TRUE;
+	}
+
+	if ( !bResolved && !strcmp( pszKillerWeapon, "garand" ) && flags == 4 )
+	{
+		iKillerWeapon = 42;
+		pszKillerWeapon = "garandbutt";
+		bResolved = TRUE;
+	}
+
+	if ( !bResolved && !strcmp( pszKillerWeapon, "k43" ) && flags == 6 )
+	{
+		iKillerWeapon = 42;
+		pszKillerWeapon = "k43butt";
+		bResolved = TRUE;
+	}
+
+	BOOL bNotEnfield = strcmp( pszKillerWeapon, "enfield" ) != 0;
+
+	if ( !bResolved && !bNotEnfield && flags == 5 )
+	{
+		iKillerWeapon = 43;
+		pszKillerWeapon = "enf_bayonet";
+		bResolved = TRUE;
+	}
+
+	if ( !bResolved && !strcmp( pszKillerWeapon, "m1carbine" ) &&
+		 ( ( pKiller->team == 1 && m_GamePlayRules.m_bAlliesArePara ) ||
+		   ( pKiller->team == 2 && m_GamePlayRules.m_bAxisArePara ) ) )
+	{
+		iKillerWeapon = 36;
+		pszKillerWeapon = "fcarbine";
+		bResolved = TRUE;
+	}
+
+	if ( !bResolved )
+	{
+		if ( pWpn && !strcmp( pszKillerWeapon, "fg42" ) )
+		{
+			if ( pWpn->m_iWeaponState & 1 )
+			{
+				iKillerWeapon = 35;
+				pszKillerWeapon = "scoped_fg42";
+			}
+		}
+		else if ( pWpn && !bNotEnfield )
+		{
+			if ( pWpn->m_iWeaponState & 1 )
+			{
+				iKillerWeapon = 38;
+				pszKillerWeapon = "scoped_enfield";
+			}
+		}
+		else if ( !strcmp( pszKillerWeapon, "grenade" ) && m_GamePlayRules.m_bAlliesAreBrit )
+		{
+			iKillerWeapon = 39;
+			pszKillerWeapon = "mills_bomb";
+		}
+		else if ( !strcmp( pszKillerWeapon, "amerknife" ) && m_GamePlayRules.m_bAlliesAreBrit )
+		{
+			iKillerWeapon = 40;
+			pszKillerWeapon = "brit_knife";
+		}
+		else if ( !strcmp( pszKillerWeapon, "bazooka" ) )
+		{
+			iKillerWeapon = 29;
+		}
+		else if ( FStrEq( pszKillerWeapon, "pschreck" ) )
+		{
+			iKillerWeapon = 30;
+		}
+		else if ( FStrEq( pszKillerWeapon, "piat" ) )
+		{
+			iKillerWeapon = 31;
+		}
+		else if ( FStrEq( pszKillerWeapon, "mortar" ) )
+		{
+			iKillerWeapon = 32;
+		}
+	}
+
+	if ( bDeathMsg )
+	{
+		MESSAGE_BEGIN( MSG_ALL, gmsgDeathMsg );
+			WRITE_BYTE( iKillerIndex );
+			WRITE_BYTE( ENTINDEX( pVictim->edict() ) );
+			WRITE_BYTE( iKillerWeapon );
+		MESSAGE_END();
+	}
+
+	// the log and the code of the director message
+	int iDirectorMsg;
+
+	if ( pVictim->pev == pKiller )
+	{
+		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" committed suicide with \"%s\"\n", STRING( pVictim->pev->netname ),
+						GETPLAYERUSERID( pVictim->edict() ), GETPLAYERAUTHID( pKiller->pContainingEntity ),
+						pKiller->team == 1 ? "Allies" : "Axis", pszKillerWeapon );
+
+		iDirectorMsg = 0;
+	}
+	else if ( !( pKiller->flags & FL_CLIENT ) )
+	{
+		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" committed suicide with \"%s\" (world)\n", STRING( pVictim->pev->netname ),
+						GETPLAYERUSERID( pVictim->edict() ), GETPLAYERAUTHID( pVictim->edict() ),
+						pVictim->pev->team == 1 ? "Allies" : "Axis", pszKillerWeapon );
+
+		iDirectorMsg = 4;
+	}
+	else
+	{
+		CBasePlayer *pKillerPlayer = (CBasePlayer *)CBaseEntity::Instance( pKiller );
+
+		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" killed \"%s<%i><%s><%s>\" with \"%s\"\n", STRING( pKillerPlayer->pev->netname ),
+						GETPLAYERUSERID( pKillerPlayer->pev->pContainingEntity ),
+						GETPLAYERAUTHID( pKillerPlayer->pev->pContainingEntity ), pKiller->team == 1 ? "Allies" : "Axis",
+						STRING( pVictim->pev->netname ), GETPLAYERUSERID( pVictim->edict() ),
+						GETPLAYERAUTHID( pVictim->edict() ), pVictim->pev->team == 1 ? "Allies" : "Axis", pszKillerWeapon );
+
+		if ( !pevInflictor )
+		{
+			iDirectorMsg = 0;
+		}
+		else if ( !pKillerPlayer->m_pActiveItem )
+		{
+			iDirectorMsg = 0;
+		}
+		else if ( (unsigned int)pKillerPlayer->m_pActiveItem->m_iId > 19 )
+		{
+			iDirectorMsg = 4;
+		}
+		else
+		{
+			int iMask = 1 << pKillerPlayer->m_pActiveItem->m_iId;
+
+			if ( iMask & 0x1E240 )
+				iDirectorMsg = 5;
+			else if ( iMask & 0x80006 )
+				iDirectorMsg = 7;
+			else
+				iDirectorMsg = 4;
+		}
+	}
+
+	// the director follows the inflictor, or the killer when there is none
+	CBaseEntity *pOther = NULL;
+
+	if ( pevInflictor && g_engfuncs.pfnEntOffsetOfPEntity( pevInflictor->pContainingEntity ) )
+		pOther = CBaseEntity::Instance( pevInflictor );
+	else if ( g_engfuncs.pfnEntOffsetOfPEntity( pKiller->pContainingEntity ) )
+		pOther = CBaseEntity::Instance( pKiller );
+
+	UTIL_SendDirectorMessage( pVictim, pOther, iDirectorMsg );
 }
 // .text:000ee590 void CDoDTeamPlay::RestartRound() (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::RestartRound( void )
