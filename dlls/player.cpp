@@ -192,6 +192,7 @@ int gmsgAmmoShort = 0;
 
 extern const char *g_PlayerAnimationNames[34];
 extern const char *sIdleAnimations[5];
+extern char *sHandSignals[30];	// defined in dod_shared.cpp
 extern const char *g_PlayerAnimationList[88];
 
 
@@ -886,329 +887,523 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 
 // Set the activity based on an event or current state
 
-// .text:00132bd0 link 0x122bd0 (dod/dlls/player.cpp:1381) - DoD activity machine.
 void CBasePlayer::SetAnimation( PLAYER_ANIM playerAnim )
 {
-	float speed = pev->velocity.Length2D();
-	int animDesired = 0;
+	int animDesired;
+	float speed;
 	char szAnim[64];
+	char szHS[60];
 	bool bTimeToDeepIdle = false;
-	int newAnimState = 0;
+	bool bIdle = false;
+	int iState;
 
-	if ( m_flIdleTimer < gpGlobals->time )
+	if ( gpGlobals->time > m_flIdleTimer )
 	{
 		bTimeToDeepIdle = true;
-		m_flIdleTimer = gpGlobals->time + RANDOM_LONG( 20, 30 );
-	}
-	if ( FBitSet( pev->flags, FL_FROZEN ) )
-	{
-		speed = 0;
-		playerAnim = PLAYER_IDLE;
+		m_flIdleTimer = RANDOM_LONG( 20, 30 ) + gpGlobals->time;
 	}
 
-	bool bIdlePath = FBitSet( pev->flags, FL_DUCKING ) != 0;
-	if ( !bIdlePath )
+	speed = pev->velocity.Length2D();
+
+	BOOL bProne = !pev->deadflag && (unsigned int) ( pev->iuser3 - 1 ) <= 1;
+
+	if ( pev->flags & FL_FROZEN )
+	{
+		speed = 0;
+		bIdle = true;
+	}
+	else
 	{
 		switch ( playerAnim )
 		{
 		case PLAYER_IDLE:
 		case PLAYER_WALK:
-			bIdlePath = true;
+			bIdle = true;
 			break;
-		case PLAYER_JUMP: m_IdealActivity = ACT_HOP; break;
-		case PLAYER_SUPERJUMP: m_IdealActivity = ACT_LEAP; break;
-		case PLAYER_DIE: m_IdealActivity = GetDeathActivity(); break;
-		case PLAYER_ATTACK1: m_IdealActivity = SetIdealActivity( ACT_RANGE_ATTACK1 ); break;
-		case PLAYER_PRONE1: m_IdealActivity = DOD_PRONE_GETDOWN; break;
-		case PLAYER_PRONE2: m_IdealActivity = DOD_PRONE_IDLE; break;
-		case PLAYER_PRONE3: m_IdealActivity = DOD_PRONE_GETUP; break;
-		case PLAYER_RELOAD: m_IdealActivity = SetIdealActivity( ACT_RELOAD ); break;
-		case PLAYER_SIGNAL: m_IdealActivity = SetIdealActivity( ACT_SIGNAL1 ); break;
-		case PLAYER_ATTACK2: m_IdealActivity = SetIdealActivity( ACT_RANGE_ATTACK2 ); break;
-		case PLAYER_ROLLGRENADE: m_IdealActivity = SetIdealActivity( ACT_SPECIAL_ATTACK1 ); break;
-		case PLAYER_EXPLODE_BACK: m_IdealActivity = DOD_EXPLOSION_BACK; break;
-		case PLAYER_EXPLODE_FORWARD: m_IdealActivity = DOD_EXPLOSION_FORWARD; break;
-		case PLAYER_BUT_SWING: m_IdealActivity = SetIdealActivity( ACT_SPECIAL_ATTACK2 ); break;
+
+		case PLAYER_JUMP:
+			m_IdealActivity = ACT_HOP;
+			break;
+
+		case PLAYER_SUPERJUMP:
+			m_IdealActivity = ACT_LEAP;
+			break;
+
+		case PLAYER_DIE:
+			m_IdealActivity = GetDeathActivity();
+			break;
+
+		case PLAYER_ATTACK1:
+			m_IdealActivity = SetIdealActivity( ACT_RANGE_ATTACK1 );
+			break;
+
+		case PLAYER_PRONE1:
+			m_IdealActivity = DOD_PRONE_GETDOWN;
+			break;
+
+		case PLAYER_PRONE2:
+			m_IdealActivity = DOD_PRONE_IDLE;
+			break;
+
+		case PLAYER_PRONE3:
+			m_IdealActivity = DOD_PRONE_GETUP;
+			break;
+
+		case PLAYER_RELOAD:
+			m_IdealActivity = SetIdealActivity( ACT_RELOAD );
+			break;
+
+		case PLAYER_SIGNAL:
+			m_IdealActivity = SetIdealActivity( ACT_SIGNAL1 );
+			break;
+
+		case PLAYER_ATTACK2:
+			m_IdealActivity = SetIdealActivity( ACT_RANGE_ATTACK2 );
+			break;
+
+		case PLAYER_ROLLGRENADE:
+			m_IdealActivity = SetIdealActivity( ACT_SPECIAL_ATTACK1 );
+			break;
+
+		case PLAYER_EXPLODE_BACK:
+			m_IdealActivity = DOD_EXPLOSION_BACK;
+			break;
+
+		case PLAYER_EXPLODE_FORWARD:
+			m_IdealActivity = DOD_EXPLOSION_FORWARD;
+			break;
+
+		case PLAYER_BUT_SWING:
+			m_IdealActivity = SetIdealActivity( ACT_SPECIAL_ATTACK2 );
+			break;
+
+		default:
+			break;
 		}
 	}
-	if ( bIdlePath )
+
+	if ( bIdle )
 	{
-		Activity act = m_Activity;
-		if ( FBitSet( pev->flags, FL_ONGROUND ) || !( act == ACT_HOP || act == ACT_LEAP ) )
+		// stay in the air animation until the player lands
+		if ( ( pev->flags & FL_ONGROUND ) || (unsigned int) ( m_Activity - ACT_HOP ) > 1 )
 		{
-			if ( pev->waterlevel < 2 || pev->watertype == -19 || pev->movetype == MOVETYPE_FLY )
+			if ( pev->waterlevel <= 1 || pev->watertype == -19 || pev->movetype == MOVETYPE_FLY )
 			{
-				if ( pev->deadflag == 0 && (unsigned) ( pev->iuser3 - 1 ) < 2 )
-					m_IdealActivity = DOD_PRONE_IDLE;
-				else
+				if ( pev->deadflag || (unsigned int) ( pev->iuser3 - 1 ) > 1 )
 					m_IdealActivity = ACT_WALK;
+				else
+					m_IdealActivity = DOD_PRONE_IDLE;
 			}
 			else
 			{
-				m_IdealActivity = ( speed < 20.0f ) ? ACT_HOVER : ACT_SWIM;
+				m_IdealActivity = speed < 20.0 ? ACT_HOVER : ACT_SWIM;
 			}
 		}
 		else
 		{
-			m_IdealActivity = act;
+			m_IdealActivity = m_Activity;
 		}
 	}
 
-	Activity ideal = m_IdealActivity;
+	if ( !bProne && !ShouldGunLower() && m_IdealActivity == ACT_WALK && speed < 250.0 &&
+		 ( m_Activity == ACT_RANGE_ATTACK1 || !m_fSequenceFinished ) )
+	{
+		animDesired = pev->sequence;
+	}
+	else
+	{
+		switch ( m_IdealActivity )
+		{
+		case ACT_WALK:
+		case DOD_PRONE_IDLE:
+		case DOD_PRONE_CRAWL:
+		{
+			Activity cur = m_Activity;
 
-	switch ( ideal )
-	{
-	case ACT_WALK:
-	case DOD_PRONE_IDLE:
-	case DOD_PRONE_CRAWL:
-	{
-		Activity cur = m_Activity;
-		if ( ( ( cur - ACT_RANGE_ATTACK1 < 2 ) || cur == ACT_SPECIAL_ATTACK1 || cur == ACT_RELOAD ||
-			   cur == ACT_SIGNAL1 || cur == DOD_PRONE_GETUP || cur == DOD_PRONE_GETDOWN ) &&
-			 ( !m_fSequenceFinished && m_ianimupdate != 1 ) )
-		{
-			animDesired = pev->sequence;
-			break;
-		}
-		m_ianimupdate = 0;
-		if ( !m_bBazookaDeployed )
-		{
-			if ( pev->iuser3 == 2 )
-				newAnimState = 5;
-			else if ( pev->deadflag == 0 && (unsigned) ( pev->iuser3 - 1 ) < 2 )
+			if ( ( (unsigned int) ( cur - ACT_RANGE_ATTACK1 ) > 1 && cur != ACT_SPECIAL_ATTACK1 && cur != ACT_RELOAD &&
+				   cur != ACT_SIGNAL1 && cur != DOD_PRONE_GETUP && cur != DOD_PRONE_GETDOWN ) ||
+				 m_fSequenceFinished || m_ianimupdate == 1 )
 			{
-				newAnimState = 4;
-				if ( m_iFOV < 1 && speed > 0.0f )
-					newAnimState = 0x13;
-			}
-			else
-			{
-				newAnimState = 6;
-				bool bCrouch = FBitSet( pev->flags, FL_DUCKING ) != 0;
-				if ( pev->vuser1.x != 2.0f )
+				bool bKeepSequence = false;
+
+				m_ianimupdate = 0;
+
+				if ( m_bBazookaDeployed )
 				{
-					if ( ( pev->button & IN_DUCK ) && speed <= 250.0f )
-						newAnimState = 2;
-					else if ( bCrouch && m_iFOV != 0 )
-						newAnimState = 3;
+					if ( !bProne )
+						iState = ( pev->flags & FL_DUCKING ) ? 8 : 7;
 					else
+						iState = 9;
+				}
+				else if ( pev->iuser3 == 2 )
+				{
+					iState = 5;
+				}
+				else if ( bProne )
+				{
+					iState = 4;
+
+					if ( m_iFOV <= 0 && speed > 0.0 )
+						iState = 19;
+				}
+				else
+				{
+					iState = 6;
+
+					if ( pev->vuser1.x != 2.0 )
 					{
-						if ( m_iCurrentAnimationState == 0x14 && !m_fSequenceFinished )
+						if ( ( pev->button & IN_RUN ) && speed > 250.0 )
 						{
-							animDesired = pev->sequence;
-							break;
+							iState = 2;
 						}
-						if ( m_iFOV < 1 )
+						else if ( ( pev->flags & FL_DUCKING ) && !m_iFOV )
 						{
-							newAnimState = 1;
-							if ( speed == 0.0f && bTimeToDeepIdle )
-								newAnimState = ( pev->deadflag == 0 ) ? 0x14 : 1;
+							iState = 3;
+						}
+						else if ( m_iCurrentAnimationState == 20 && !m_fSequenceFinished )
+						{
+							bKeepSequence = true;
+						}
+						else if ( m_iFOV <= 0 )
+						{
+							iState = 1;
+
+							if ( speed == 0.0 && bTimeToDeepIdle )
+								iState = pev->deadflag == 0 ? 20 : 1;
 						}
 						else
 						{
-							newAnimState = bCrouch ? 8 : 7;
+							iState = ( pev->flags & FL_DUCKING ) ? 8 : 7;
 						}
 					}
 				}
+
+				if ( bKeepSequence )
+				{
+					animDesired = pev->sequence;
+				}
+				else
+				{
+					animDesired = m_iCurrentAnimationSequence;
+
+					if ( m_iCurrentAnimationState != iState || animDesired == 0 || m_pszSavedWeaponModel != pev->weaponmodel )
+					{
+						sprintf( szAnim, g_PlayerAnimationNames[iState], m_szAnimExtention );
+
+						m_pszSavedWeaponModel = pev->weaponmodel - (unsigned int) (size_t) gpGlobals->pStringBase;
+
+						if ( iState == 20 )
+							animDesired = LookupSequence( sIdleAnimations[RANDOM_LONG( 1, 4 )] );
+						else
+							animDesired = LookupSequence( szAnim );
+
+						m_iCurrentAnimationSequence = animDesired;
+						m_iCurrentAnimationState = iState;
+					}
+
+					if ( animDesired == -1 )
+						animDesired = 0;
+
+					m_Activity = ACT_WALK;
+				}
 			}
-		}
-		else
-		{
-			if ( pev->deadflag != 0 || (unsigned) ( pev->iuser3 - 1 ) >= 2 )
-				newAnimState = 9;
 			else
-				newAnimState = FBitSet( pev->flags, FL_DUCKING ) ? 8 : 7;
-		}
-		if ( m_iCurrentAnimationState != newAnimState || m_iCurrentAnimationSequence == 0 ||
-			 m_pszSavedWeaponModel != (int) pev->weaponmodel )
-		{
-			sprintf( szAnim, g_PlayerAnimationNames[newAnimState], m_szAnimExtention );
-			m_pszSavedWeaponModel = (int) pev->weaponmodel;
-			if ( newAnimState == 0x14 )
-				animDesired = LookupSequence( sIdleAnimations[RANDOM_LONG( 1, 4 )] );
-			else
-				animDesired = LookupSequence( szAnim );
-			m_iCurrentAnimationSequence = animDesired;
-			m_iCurrentAnimationState = newAnimState;
-		}
-		else
-		{
-			animDesired = m_iCurrentAnimationSequence;
-		}
-		m_Activity = ACT_WALK;
-		if ( animDesired == -1 )
-			animDesired = 0;
-		break;
-	}
-	case ACT_RANGE_ATTACK1:
-	case ACT_RANGE_ATTACK2:
-	case ACT_SPECIAL_ATTACK1:
-	case ACT_SPECIAL_ATTACK2:
-	{
-		bool bCrouch = FBitSet( pev->flags, FL_DUCKING ) != 0;
-		if ( ideal == ACT_RANGE_ATTACK1 )
-		{
-			if ( bCrouch && pev->deadflag == 0 && (unsigned) ( pev->iuser3 - 1 ) < 2 )
-				newAnimState = 0xc;
-			else if ( bCrouch )
-				newAnimState = 0xe;
-			else if ( pev->iuser3 == 2 )
-				newAnimState = 0xd;
-			else if ( pev->deadflag == 0 && (unsigned) ( pev->iuser3 - 1 ) < 2 )
-				newAnimState = 0xf;
-			else if ( pev->vuser1.x == 2.0f )
-				newAnimState = 0x10;
-			else
-				newAnimState = ( speed > 0.0f ) ? 0xb : 0xa;
-		}
-		else if ( ideal == ACT_SPECIAL_ATTACK1 )
-		{
-			newAnimState = bCrouch ? 0x1b : 0x1a;
-		}
-		else if ( ideal == ACT_SPECIAL_ATTACK2 )
-		{
-			newAnimState = bCrouch ? 0x21 : 0x20;
-		}
-		else
-		{
-			newAnimState = bCrouch ? 0x12 : 0x11;
-		}
-		if ( !m_bBazookaDeployed )
-			m_fGunDropTime = 2.0f + gpGlobals->time;
-		if ( m_iCurrentAnimationState != newAnimState || m_iCurrentAnimationSequence == 0 )
-		{
-			sprintf( szAnim, g_PlayerAnimationNames[newAnimState], m_szAnimExtention );
-			animDesired = LookupSequence( szAnim );
-			m_iCurrentAnimationState = newAnimState;
-			m_iCurrentAnimationSequence = animDesired;
-		}
-		else
-		{
-			animDesired = m_iCurrentAnimationSequence;
-		}
-		if ( animDesired == -1 )
-			animDesired = 0;
-		if ( pev->sequence != animDesired || !m_fSequenceLoops )
-		{
-			pev->frame = 0;
-			if ( !m_fSequenceLoops )
-				pev->effects |= EF_NOINTERP;
-		}
-		m_Activity = m_IdealActivity;
-		pev->sequence = animDesired;
-		ResetSequenceInfo();
-		break;
-	}
-	case ACT_RELOAD:
-	{
-		bool bCrouch = FBitSet( pev->flags, FL_DUCKING ) != 0;
-		if ( !m_bBazookaDeployed )
-		{
-			if ( pev->vuser1.x == 2.0f )
-				newAnimState = 0x19;
-			else if ( pev->iuser3 == 2 )
-				newAnimState = 0x18;
-			else if ( pev->deadflag == 0 && (unsigned) ( pev->iuser3 - 1 ) < 2 )
-				newAnimState = 0x17;
-			else
-				newAnimState = bCrouch ? 0x15 : 0x16;
-		}
-		else
-		{
-			if ( pev->deadflag != 0 || (unsigned) ( pev->iuser3 - 1 ) >= 2 )
-				newAnimState = bCrouch ? 0x1c : 0x1d;
-			else
-				newAnimState = 9;
-		}
-		if ( m_iCurrentAnimationState != newAnimState || m_iCurrentAnimationSequence == 0 )
-		{
-			sprintf( szAnim, g_PlayerAnimationNames[newAnimState], m_szAnimReloadExt );
-			animDesired = LookupSequence( szAnim );
-			m_iCurrentAnimationState = newAnimState;
-			m_iCurrentAnimationSequence = animDesired;
-		}
-		else
-		{
-			animDesired = m_iCurrentAnimationSequence;
-		}
-		if ( animDesired == -1 )
-			animDesired = 0;
-		if ( pev->sequence != animDesired || !m_fSequenceLoops )
-		{
-			pev->frame = 0;
-			if ( !m_fSequenceLoops )
-				pev->effects |= EF_NOINTERP;
-		}
-		m_Activity = m_IdealActivity;
-		pev->sequence = animDesired;
-		ResetSequenceInfo();
-		break;
-	}
-	case DOD_PRONE_GETUP:
-		if ( m_Activity == DOD_PRONE_GETUP && m_fSequenceFinished )
-			return;
-		animDesired = LookupSequence( "get_up" );
-		if ( pev->sequence == animDesired )
-			return;
-		m_Activity = m_IdealActivity;
-		pev->frame = 0;
-		pev->gaitsequence = 0;
-		pev->sequence = animDesired;
-		ResetSequenceInfo();
-		return;
-	case DOD_PRONE_GETDOWN:
-		if ( m_Activity == DOD_PRONE_GETDOWN && m_fSequenceFinished )
-			return;
-		animDesired = LookupSequence( "get_down" );
-		if ( pev->sequence == animDesired )
-			return;
-		m_Activity = m_IdealActivity;
-		pev->frame = 0;
-		pev->gaitsequence = 0;
-		pev->sequence = animDesired;
-		ResetSequenceInfo();
-		return;
-	default:
-		if ( m_Activity != ideal )
-		{
-			m_Activity = ideal;
-			if ( *g_PlayerAnimationList[ideal] == '\0' )
-				animDesired = LookupActivity( ideal );
-			else
-				animDesired = LookupSequence( g_PlayerAnimationList[ideal] );
-			if ( pev->sequence != animDesired )
 			{
-				pev->gaitsequence = 0;
+				animDesired = pev->sequence;
+			}
+
+			break;
+		}
+
+		case ACT_SIGNAL1:
+		{
+			if ( pev->deadflag || (unsigned int) ( pev->iuser3 - 1 ) > 1 )
+				strcpy( szAnim, "hs_" );
+			else
+				strcpy( szAnim, "hs_prone_" );
+
+			const char *pszSignal = sHandSignals[m_handSignal];
+
+			animDesired = pev->sequence;
+
+			if ( memcmp( pszSignal, "dod_idle", 8 ) || !bProne )
+			{
+				if ( !memcmp( pszSignal, "dod_idle", 8 ) )
+					szAnim[0] = 0;
+
+				strcpy( szHS, pszSignal );
+				strcat( szAnim, szHS );
+
+				animDesired = LookupSequence( szAnim );
+
+				if ( animDesired == -1 )
+					animDesired = 0;
+
+				if ( pev->sequence != animDesired || !m_fSequenceLoops )
+				{
+					pev->frame = 0;
+
+					if ( !m_fSequenceLoops )
+						pev->effects |= EF_NOINTERP;
+				}
+
+				m_Activity = m_IdealActivity;
 				pev->sequence = animDesired;
-				pev->frame = 0;
+
 				ResetSequenceInfo();
 			}
+
+			break;
 		}
-		return;
+
+		case ACT_RANGE_ATTACK1:
+		case ACT_RANGE_ATTACK2:
+		case ACT_SPECIAL_ATTACK1:
+		case ACT_SPECIAL_ATTACK2:
+		{
+			switch ( m_IdealActivity )
+			{
+			case ACT_RANGE_ATTACK1:
+				if ( ( pev->flags & FL_DUCKING ) && !bProne )
+				{
+					iState = 12;
+				}
+				else if ( pev->iuser3 == 2 )
+				{
+					iState = 14;
+				}
+				else if ( !bProne )
+				{
+					iState = 15;
+
+					if ( pev->vuser1.x != 2.0 )
+					{
+						iState = 10;
+
+						if ( pev->button & IN_RUN )
+							iState = ( speed > 0.0 ) + 10;
+					}
+				}
+				else
+				{
+					iState = 13;
+				}
+
+				break;
+
+			case ACT_SPECIAL_ATTACK1:
+				if ( !bProne )
+					iState = ( pev->flags & FL_DUCKING ) ? 27 : 26;
+				else
+					iState = 13;
+
+				break;
+
+			case ACT_SPECIAL_ATTACK2:
+				if ( !bProne )
+					iState = ( pev->flags & FL_DUCKING ) ? 32 : 31;
+				else
+					iState = 33;
+
+				break;
+
+			default:
+				if ( !bProne )
+					iState = ( pev->flags & FL_DUCKING ) ? 17 : 16;
+				else
+					iState = 18;
+
+				break;
+			}
+
+			if ( !m_bBazookaDeployed )
+				m_fGunDropTime = gpGlobals->time + 2.0;
+
+			animDesired = m_iCurrentAnimationSequence;
+
+			if ( m_iCurrentAnimationState != iState || animDesired == 0 )
+			{
+				sprintf( szAnim, g_PlayerAnimationNames[iState], m_szAnimExtention );
+
+				animDesired = LookupSequence( szAnim );
+
+				m_iCurrentAnimationState = iState;
+				m_iCurrentAnimationSequence = animDesired;
+			}
+
+			if ( animDesired == -1 )
+				animDesired = 0;
+
+			if ( pev->sequence != animDesired || !m_fSequenceLoops )
+			{
+				pev->frame = 0;
+
+				if ( !m_fSequenceLoops )
+					pev->effects |= EF_NOINTERP;
+			}
+
+			m_Activity = m_IdealActivity;
+			pev->sequence = animDesired;
+
+			ResetSequenceInfo();
+			break;
+		}
+
+		case ACT_RELOAD:
+			if ( m_bBazookaDeployed )
+			{
+				if ( !bProne )
+					iState = ( pev->flags & FL_DUCKING ) ? 29 : 28;
+				else
+					iState = 9;
+			}
+			else
+			{
+				iState = 25;
+
+				if ( pev->vuser1.x != 2.0 )
+				{
+					iState = 24;
+
+					if ( pev->iuser3 != 2 )
+					{
+						if ( !bProne )
+							iState = ( pev->flags & FL_DUCKING ) ? 22 : 21;
+						else
+							iState = 23;
+					}
+				}
+			}
+
+			animDesired = m_iCurrentAnimationSequence;
+
+			if ( m_iCurrentAnimationState != iState || animDesired == 0 )
+			{
+				sprintf( szAnim, g_PlayerAnimationNames[iState], m_szAnimReloadExt );
+
+				animDesired = LookupSequence( szAnim );
+
+				m_iCurrentAnimationState = iState;
+				m_iCurrentAnimationSequence = animDesired;
+			}
+
+			if ( animDesired == -1 )
+				animDesired = 0;
+
+			if ( pev->sequence != animDesired || !m_fSequenceLoops )
+			{
+				pev->frame = 0;
+
+				if ( !m_fSequenceLoops )
+					pev->effects |= EF_NOINTERP;
+			}
+
+			m_Activity = m_IdealActivity;
+			pev->sequence = animDesired;
+
+			ResetSequenceInfo();
+			break;
+
+		case DOD_PRONE_GETUP:
+			if ( m_Activity == DOD_PRONE_GETUP && m_fSequenceFinished )
+				return;
+
+			animDesired = LookupSequence( "get_up" );
+
+			if ( pev->sequence != animDesired )
+			{
+				m_Activity = m_IdealActivity;
+				pev->frame = 0;
+				pev->gaitsequence = 0;
+				pev->sequence = animDesired;
+
+				ResetSequenceInfo();
+			}
+
+			return;
+
+		case DOD_PRONE_GETDOWN:
+			if ( m_Activity == DOD_PRONE_GETDOWN && m_fSequenceFinished )
+				return;
+
+			animDesired = LookupSequence( "get_down" );
+
+			if ( pev->sequence != animDesired )
+			{
+				m_Activity = m_IdealActivity;
+				pev->frame = 0;
+				pev->gaitsequence = 0;
+				pev->sequence = animDesired;
+
+				ResetSequenceInfo();
+			}
+
+			return;
+
+		default:
+			if ( m_Activity != m_IdealActivity )
+			{
+				m_Activity = m_IdealActivity;
+
+				if ( *g_PlayerAnimationList[m_IdealActivity] )
+					animDesired = LookupSequence( g_PlayerAnimationList[m_IdealActivity] );
+				else
+					animDesired = LookupActivity( m_IdealActivity );
+
+				if ( pev->sequence != animDesired )
+				{
+					pev->gaitsequence = 0;
+					pev->sequence = animDesired;
+					pev->frame = 0;
+
+					ResetSequenceInfo();
+				}
+			}
+
+			return;
+		}
 	}
 
-	// gait sequences
-	if ( pev->deadflag == 0 && (unsigned) ( pev->iuser3 - 1 ) < 2 )
+	// gait sequence
+	if ( pev->deadflag || (unsigned int) ( pev->iuser3 - 1 ) > 1 )
 	{
-		pev->gaitsequence = ( speed == 0.0f ) ? LookupSequence( "prone_idle" ) : LookupSequence( "prone_forward" );
+		if ( pev->flags & FL_DUCKING )
+		{
+			if ( speed == 0.0 )
+				pev->gaitsequence = LookupSequence( "dod_crouch_idle" );
+			else
+				pev->gaitsequence = LookupSequence( "dod_crawl" );
+		}
+		else if ( speed <= 0.0 )
+		{
+			pev->gaitsequence = LookupSequence( "dod_idle1" );
+		}
+		else if ( speed > 250.0 )
+		{
+			pev->gaitsequence = LookupSequence( "dod_sprint" );
+		}
+		else if ( speed > 73.0 )
+		{
+			pev->gaitsequence = LookupSequence( "dod_jog" );
+		}
+		else
+		{
+			pev->gaitsequence = LookupSequence( "dod_walk" );
+		}
 	}
-	else if ( FBitSet( pev->flags, FL_DUCKING ) )
-	{
-		pev->gaitsequence = ( speed == 0.0f ) ? LookupSequence( "dod_crouch_idle" ) : LookupSequence( "dod_crawl" );
-	}
-	else if ( speed <= 0.0f )
-		pev->gaitsequence = LookupSequence( "dod_idle1" );
-	else if ( speed > 250.0f )
-		pev->gaitsequence = LookupSequence( "dod_sprint" );
-	else if ( speed > 73.0f )
-		pev->gaitsequence = LookupSequence( "dod_jog" );
 	else
-		pev->gaitsequence = LookupSequence( "dod_walk" );
+	{
+		if ( speed == 0.0 )
+			pev->gaitsequence = LookupSequence( "prone_idle" );
+		else
+			pev->gaitsequence = LookupSequence( "prone_forward" );
+	}
 
 	if ( pev->sequence != animDesired )
 	{
 		pev->sequence = animDesired;
 		pev->frame = 0;
+
 		ResetSequenceInfo();
 	}
 }
@@ -4219,7 +4414,6 @@ const char *g_PlayerAnimationNames[34] = {
 };
 
 const char *sIdleAnimations[5] = { "dod_idle1", "dod_idle2", "dod_idle3", "dod_idle4", "dod_idle5" };
-
 const char *g_PlayerAnimationList[88] = {
 	"", "", "", "", "", "", "", "",
 	"", "", "", "", "", "", "", "",
