@@ -108,7 +108,6 @@ class CRulePointEntity : public CRuleEntity
 {
   public:
 	void Spawn( void );
-	int m_iEnabled;
 };
 
 void CRulePointEntity::Spawn( void )
@@ -182,6 +181,12 @@ void CGameScore::KeyValue( KeyValueData *pkvd )
 
 void CGameScore::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
+	if ( !pActivator )
+	{
+		ALERT( at_console, "game_score entity triggered with a null pActivator\n" );
+		return;
+	}
+
 	if ( !CanFireForActivator( pActivator ) )
 		return;
 
@@ -189,13 +194,9 @@ void CGameScore::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 	if ( pActivator->IsPlayer() )
 	{
 		if ( AwardToTeam() )
-		{
 			pActivator->AddPointsToTeam( Points(), AllowNegativeScore() );
-		}
 		else
-		{
-			pActivator->AddPoints( Points(), AllowNegativeScore() );
-		}
+			( (CBasePlayer *) pActivator )->AddObjScore( Points(), TRUE );
 	}
 }
 
@@ -225,6 +226,11 @@ void CGameEnd::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useT
 //
 
 #define SF_ENVTEXT_ALLPLAYERS 0x0001
+#define SF_ENVTEXT_ONLY_ONCE 0x0002
+#define SF_ENVTEXT_ALLIES 0x0004
+#define SF_ENVTEXT_AXIS 0x0008
+#define SF_ENVTEXT_ALLIES_ACTIVATOR 0x0010
+#define SF_ENVTEXT_AXIS_ACTIVATOR 0x0020
 
 class CGameText : public CRulePointEntity
 {
@@ -236,13 +242,17 @@ class CGameText : public CRulePointEntity
 	virtual int Restore( CRestore &restore );
 	static TYPEDESCRIPTION m_SaveData[];
 
+	inline BOOL MessageToAllies( void ) { return ( pev->spawnflags & SF_ENVTEXT_ALLIES ); }
+	inline BOOL MessageToAxis( void ) { return ( pev->spawnflags & SF_ENVTEXT_AXIS ); }
 	inline BOOL MessageToAll( void ) { return ( pev->spawnflags & SF_ENVTEXT_ALLPLAYERS ); }
 	inline void MessageSet( const char *pMessage ) { pev->message = ALLOC_STRING( pMessage ); }
 	inline const char *MessageGet( void ) { return STRING( pev->message ); }
 
   private:
+	int m_iEnabled;
 	hudtextparms_t m_textParms;
 	void Spawn( void );
+	void RoundRespawn( void );
 };
 
 LINK_ENTITY_TO_CLASS( game_text, CGameText );
@@ -324,20 +334,53 @@ void CGameText::KeyValue( KeyValueData *pkvd )
 
 void CGameText::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
+	if ( !m_iEnabled )
+		return;
+
 	if ( !CanFireForActivator( pActivator ) )
 		return;
 
-	if ( MessageToAll() )
+	if ( pev->spawnflags & SF_ENVTEXT_ALLIES_ACTIVATOR )
+	{
+		if ( pActivator && pActivator->IsPlayer() && pActivator->pev->team == 1 )
+			UTIL_HudMessage( pActivator, m_textParms, MessageGet() );
+	}
+	else if ( pev->spawnflags & SF_ENVTEXT_AXIS_ACTIVATOR )
+	{
+		if ( pActivator && pActivator->IsPlayer() && pActivator->pev->team == 2 )
+			UTIL_HudMessage( pActivator, m_textParms, MessageGet() );
+	}
+	else if ( MessageToAxis() )
+	{
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
+
+			if ( pPlayer && pPlayer->IsPlayer() && pPlayer->pev->team == 2 )
+				UTIL_HudMessage( pPlayer, m_textParms, MessageGet() );
+		}
+	}
+	else if ( MessageToAllies() )
+	{
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
+
+			if ( pPlayer && pPlayer->IsPlayer() && pPlayer->pev->team == 1 )
+				UTIL_HudMessage( pPlayer, m_textParms, MessageGet() );
+		}
+	}
+	else if ( MessageToAll() )
 	{
 		UTIL_HudMessageAll( m_textParms, MessageGet() );
 	}
-	else
+	else if ( pActivator && pActivator->IsNetClient() )
 	{
-		if ( pActivator->IsNetClient() )
-		{
-			UTIL_HudMessage( pActivator, m_textParms, MessageGet() );
-		}
+		UTIL_HudMessage( pActivator, m_textParms, MessageGet() );
 	}
+
+	if ( pev->spawnflags & SF_ENVTEXT_ONLY_ONCE )
+		m_iEnabled = 0;
 }
 
 //
@@ -367,6 +410,7 @@ class CGameTeamMaster : public CRulePointEntity
   private:
 	BOOL TeamMatch( CBaseEntity *pActivator );
 
+	int m_iEnabled;
 	int m_teamIndex;
 	USE_TYPE triggerType;
 	void Spawn( void );
@@ -406,6 +450,9 @@ void CGameTeamMaster::KeyValue( KeyValueData *pkvd )
 
 void CGameTeamMaster::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
+	if ( !m_iEnabled )
+		return;
+
 	if ( !CanFireForActivator( pActivator ) )
 		return;
 
@@ -419,14 +466,13 @@ void CGameTeamMaster::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 		{
 			m_teamIndex = g_pGameRules->GetTeamIndex( pActivator->TeamID() );
 		}
-		return;
 	}
-
-	if ( TeamMatch( pActivator ) )
+	else if ( TeamMatch( pActivator ) )
 	{
 		SUB_UseTargets( pActivator, triggerType, value );
+
 		if ( RemoveOnFire() )
-			UTIL_Remove( this );
+			m_iEnabled = 0;
 	}
 }
 
@@ -470,13 +516,18 @@ class CGameTeamSet : public CRulePointEntity
 	inline BOOL ShouldClearTeam( void ) { return ( pev->spawnflags & SF_TEAMSET_CLEARTEAM ) ? TRUE : FALSE; }
 
   private:
+	int m_iEnabled;
 	void Spawn( void );
+	void RoundRespawn( void );
 };
 
 LINK_ENTITY_TO_CLASS( game_team_set, CGameTeamSet );
 
 void CGameTeamSet::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
+	if ( !m_iEnabled )
+		return;
+
 	if ( !CanFireForActivator( pActivator ) )
 		return;
 
@@ -490,9 +541,7 @@ void CGameTeamSet::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 	}
 
 	if ( RemoveOnFire() )
-	{
-		UTIL_Remove( this );
-	}
+		m_iEnabled = 0;
 }
 
 //
@@ -621,12 +670,18 @@ class CGamePlayerHurt : public CRulePointEntity
 	inline BOOL RemoveOnFire( void ) { return ( pev->spawnflags & SF_PKILL_FIREONCE ) ? TRUE : FALSE; }
 
   private:
+	int m_iEnabled;
+	void Spawn( void );
+	void RoundRespawn( void );
 };
 
 LINK_ENTITY_TO_CLASS( game_player_hurt, CGamePlayerHurt );
 
 void CGamePlayerHurt::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
+	if ( !m_iEnabled )
+		return;
+
 	if ( !CanFireForActivator( pActivator ) )
 		return;
 
@@ -641,9 +696,7 @@ void CGamePlayerHurt::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 	SUB_UseTargets( pActivator, useType, value );
 
 	if ( RemoveOnFire() )
-	{
-		UTIL_Remove( this );
-	}
+		m_iEnabled = 0;
 }
 
 //
@@ -711,15 +764,9 @@ void CGameCounter::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 	if ( HitLimit() )
 	{
 		SUB_UseTargets( pActivator, USE_TOGGLE, 0 );
-		if ( RemoveOnFire() )
-		{
-			UTIL_Remove( this );
-		}
 
 		if ( ResetOnFire() )
-		{
 			ResetCount();
-		}
 	}
 }
 
@@ -736,22 +783,25 @@ class CGameCounterSet : public CRulePointEntity
 	inline BOOL RemoveOnFire( void ) { return ( pev->spawnflags & SF_GAMECOUNTSET_FIREONCE ) ? TRUE : FALSE; }
 
   private:
+	int m_iEnabled;
 	void Spawn( void );
+	void RoundRespawn( void );
 };
 
 LINK_ENTITY_TO_CLASS( game_counter_set, CGameCounterSet );
 
 void CGameCounterSet::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
+	if ( !m_iEnabled )
+		return;
+
 	if ( !CanFireForActivator( pActivator ) )
 		return;
 
 	SUB_UseTargets( pActivator, USE_SET, pev->frags );
 
 	if ( RemoveOnFire() )
-	{
-		UTIL_Remove( this );
-	}
+		m_iEnabled = 0;
 }
 
 //
@@ -2691,6 +2741,37 @@ void CGameTeamSet::Spawn( void )
 void CGameCounter::RoundRespawn( void )
 {
 	pev->dmg = (float)(int)pev->frags;
+}
+// .text:0010c670 CGameText::RoundRespawn
+void CGameText::RoundRespawn( void )
+{
+	m_iEnabled = 1;
+}
+// .text:0010c7e0 CGameTeamSet::RoundRespawn
+void CGameTeamSet::RoundRespawn( void )
+{
+	m_iEnabled = 1;
+}
+// .text:0010c9a0 CGamePlayerHurt::Spawn
+void CGamePlayerHurt::Spawn( void )
+{
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	pev->effects = EF_NODRAW;
+	pev->frame = 0;
+	pev->model = 0;
+	m_iEnabled = 1;
+	RoundStore();
+}
+// .text:0010ca00 CGamePlayerHurt::RoundRespawn
+void CGamePlayerHurt::RoundRespawn( void )
+{
+	m_iEnabled = 1;
+}
+// .text:0010ca10 CGameCounterSet::RoundRespawn
+void CGameCounterSet::RoundRespawn( void )
+{
+	m_iEnabled = 1;
 }
 // .text:0010c880 CGameCounterSet::Spawn
 void CGameCounterSet::Spawn( void )
