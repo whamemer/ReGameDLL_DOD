@@ -223,6 +223,16 @@ void CPschreck::PrimaryAttack( void )
 	{
 		m_pPlayer->m_iWeaponVolume = 1000;
 
+#if !CLIENT_DLL
+		m_pPlayer->SetAnimation( PLAYER_ATTACK1 );
+
+		UTIL_MakeVectors( m_pPlayer->pev->v_angle );
+
+		Vector vecOrigin = m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 32;
+
+		CPschreckShell::CreateRocket( vecOrigin, m_pPlayer->pev->v_angle, m_pPlayer );
+#endif
+
 		PLAYBACK_EVENT_FULL( 1, m_pPlayer->edict(), m_usFirePschreck, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, 0.0f, 0.0f, 0, 0, m_iClip == 0, 0 );
 
 		m_iClip--;
@@ -232,6 +242,10 @@ void CPschreck::PrimaryAttack( void )
 	}
 	else
 	{
+#if !CLIENT_DLL
+		UTIL_ShowMessage( "#game_shoulder_pschreck", m_pPlayer, TRUE );
+#endif
+
 		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[WEAPON_PSCHRECK].anim_firedelay;
 	}
 }

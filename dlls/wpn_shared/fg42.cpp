@@ -178,6 +178,7 @@ void CFG42::SecondaryAttack( void )
 	}
 	else
 	{
+#if CLIENT_DLL
 		if( m_pPlayer->pev->iuser3 == STANCE_PRONE || m_pPlayer->pev->vuser1.x == 1.0f )
 		{
 			m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 1.2f;
@@ -188,6 +189,41 @@ void CFG42::SecondaryAttack( void )
 			m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 0.98f;
 			SendWeaponAnim( FG42_DOWN_TO_UP, 1 );
 		}
+#else
+		entvars_t *pevPlayer = m_pPlayer->pev;
+
+		// standing without a sandbag there is nothing to deploy
+		if( pevPlayer->iuser3 == 0 && pevPlayer->vuser1.x == 0.0f )
+			return;
+
+		if( pevPlayer->vuser1.x == 1.0f && ( pevPlayer->button & IN_DUCK ) )
+			return;
+
+		if( pevPlayer->iuser3 == STANCE_PRONE || pevPlayer->vuser1.x == 1.0f )
+		{
+			// deploy the bipod or the sandbag
+			if( pevPlayer->iuser3 == STANCE_PRONE && pevPlayer->vuser1.x == 0.0f )
+				pevPlayer->iuser3 = STANCE_PRONE_DEPLOYED;
+			else
+				pevPlayer->vuser1.x = SANDBAG_DEPLOYED;
+
+			m_pPlayer->SetAnimation( PLAYER_IDLE );
+			m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 1.2f;
+			SendWeaponAnim( FG42_UP_TO_DOWN, 1 );
+		}
+		else if( pevPlayer->iuser3 == STANCE_PRONE_DEPLOYED || pevPlayer->vuser1.x == SANDBAG_DEPLOYED )
+		{
+			// take the bipod or the sandbag back
+			if( pevPlayer->iuser3 == STANCE_PRONE_DEPLOYED && pevPlayer->vuser1.x == 0.0f )
+				pevPlayer->iuser3 = STANCE_PRONE;
+			else
+				pevPlayer->vuser1.x = 1.0f;
+
+			m_pPlayer->SetAnimation( PLAYER_IDLE );
+			m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 0.98f;
+			SendWeaponAnim( FG42_DOWN_TO_UP, 1 );
+		}
+#endif
 
 		m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 1.3f;
 		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 1.3f;

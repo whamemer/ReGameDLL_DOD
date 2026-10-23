@@ -105,6 +105,13 @@ void CBipodWeapon::PrimaryAttack( void )
 
 		if( m_flWeaponHeat >= 99.0f )
 		{
+#if !CLIENT_DLL
+			if( !( m_pPlayer->m_flDisplayHistory & 0x40000 ) )
+			{
+				m_pPlayer->m_flDisplayHistory |= 0x40000;
+				m_pPlayer->HintMessage( "#Hint_mg_overheat", 0 );
+			}
+#endif
 			m_fInAttack = 1;
 			return;
 		}
@@ -127,6 +134,18 @@ void CBipodWeapon::PrimaryAttack( void )
 		if( m_pPlayer->pev->velocity.Length() > 45.0f )
 			flSpread += P_WpnInfo[m_iId].accuracy_penalty;
 	}
+
+#if !CLIENT_DLL
+	// the machine guns aren't accurate when they are not deployed
+	if( m_pPlayer->pev->iuser3 != STANCE_PRONE_DEPLOYED && m_pPlayer->pev->vuser1.x != SANDBAG_DEPLOYED )
+	{
+		if( m_iId != WEAPON_BREN && m_iId != WEAPON_BAR && !( m_pPlayer->m_flDisplayHistory & 0x200 ) )
+		{
+			m_pPlayer->m_flDisplayHistory |= 0x200;
+			m_pPlayer->HintMessage( "#Hint_mgs_fire_better_deployed", 0 );
+		}
+	}
+#endif
 
 	vecSrc = m_pPlayer->GetGunPosition();
 	vecAiming = gpGlobals->v_forward;
@@ -158,6 +177,14 @@ void CBipodWeapon::PrimaryAttack( void )
 
 	if( !m_pPlayer->IsInMGDeploy() )
 		RemoveStamina( info.flRecoil, m_pPlayer );
+
+#if !CLIENT_DLL
+	if( info.iFlags & ITEM_FLAG_HEAT )
+	{
+		SetThink( &CBipodWeapon::CoolThink );
+		pev->nextthink = gpGlobals->time + 0.1f;
+	}
+#endif
 }
 
 void CBipodWeapon::CoolThink( void )
@@ -177,6 +204,7 @@ void CBipodWeapon::CoolThink( void )
 
 void CBipodWeapon::SecondaryAttack( void )
 {
+#if CLIENT_DLL
 	if( m_pPlayer->pev->waterlevel > 0 && m_pPlayer->pev->iuser3 != STANCE_PRONE_DEPLOYED )
 		return;
 
@@ -187,6 +215,50 @@ void CBipodWeapon::SecondaryAttack( void )
 		SendWeaponAnim( GetUpToDownAnim(), 1 );
 	else if( m_pPlayer->pev->iuser3 == STANCE_PRONE_DEPLOYED || m_pPlayer->pev->vuser1.x == SANDBAG_DEPLOYED )
 		SendWeaponAnim( GetDownToUpAnim(), 1 );
+#else
+	entvars_t *pevPlayer = m_pPlayer->pev;
+
+	if( pevPlayer->waterlevel <= 0 )
+	{
+		// standing without a sandbag there is nothing to deploy
+		if( pevPlayer->iuser3 == 0 && pevPlayer->vuser1.x == 0.0f )
+			return;
+	}
+	else if( pevPlayer->iuser3 != STANCE_PRONE_DEPLOYED )
+		return;
+
+	if( pevPlayer->vuser1.x == 1.0f && ( pevPlayer->button & IN_DUCK ) )
+		return;
+
+	m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[m_iId].anim_down2uptime;
+	m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[m_iId].anim_down2uptime;
+
+	if( pevPlayer->iuser3 == STANCE_PRONE || pevPlayer->vuser1.x == 1.0f )
+	{
+		// deploy the bipod or the sandbag
+		if( pevPlayer->iuser3 == STANCE_PRONE && pevPlayer->vuser1.x == 0.0f )
+			pevPlayer->iuser3 = STANCE_PRONE_DEPLOYED;
+		else
+			pevPlayer->vuser1.x = SANDBAG_DEPLOYED;
+
+		m_pPlayer->SetAnimation( PLAYER_IDLE );
+		SendWeaponAnim( GetUpToDownAnim(), 1 );
+	}
+	else if( pevPlayer->iuser3 == STANCE_PRONE_DEPLOYED || pevPlayer->vuser1.x == SANDBAG_DEPLOYED )
+	{
+		// take the bipod or the sandbag back
+		if( pevPlayer->iuser3 == STANCE_PRONE_DEPLOYED && pevPlayer->vuser1.x == 0.0f )
+			pevPlayer->iuser3 = STANCE_PRONE;
+		else
+			pevPlayer->vuser1.x = 1.0f;
+
+		m_pPlayer->SetAnimation( PLAYER_IDLE );
+		UTIL_SendDirectorMessage( m_pPlayer, NULL, 130 );
+		SendWeaponAnim( GetDownToUpAnim(), 1 );
+	}
+
+	m_pPlayer->CheckPlayerSpeed();
+#endif
 }
 
 void CBipodWeapon::ForceUndeploy( void )

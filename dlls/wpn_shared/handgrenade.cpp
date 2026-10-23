@@ -21,6 +21,11 @@
 
 #include "dod_shared.h"
 
+#if !CLIENT_DLL
+#include "gamerules.h"
+#include "dod_gamerules.h"
+#endif
+
 LINK_ENTITY_TO_CLASS( weapon_handgrenade, CHandGrenade )
 
 extern p_wpninfo_s P_WpnInfo[];
@@ -74,7 +79,15 @@ BOOL CHandGrenade::Deploy( void )
 
 	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 0.85f;
 
-	return FALSE;
+	int iModel = WEAPON_HANDGRENADE;
+
+#if !CLIENT_DLL
+	// the British throw the Mills bomb
+	if( g_pGameRules && ( (CDoDTeamPlay *)g_pGameRules )->IsAlliesBrit() )
+		iModel = WEAPON_MILLSGRENADE;
+#endif
+
+	return DefaultDeploy( P_WpnInfo[iModel].vmodel, P_WpnInfo[iModel].pmodel, HANDGRENADE_DRAW, P_WpnInfo[iModel].szAnimExt, P_WpnInfo[iModel].szAnimReloadExt, 0 );
 }
 
 BOOL CHandGrenade::CanHolster( void )
@@ -101,6 +114,15 @@ void CHandGrenade::DropGren( void )
 
 		if( ptr.flFraction < 1.0f )
 			vecEnd = ptr.vecEndPos;
+
+		grenType type = G_HANDGRENADE;
+
+#if !CLIENT_DLL
+		if( g_pGameRules && ( (CDoDTeamPlay *)g_pGameRules )->IsAlliesBrit() )
+			type = G_MILLSGRENADE;
+#endif
+
+		CGrenade::ShootPickup( m_pPlayer->pev, vecEnd, gpGlobals->v_forward, 5.0f, type, 0.8f );
 
 		m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType]--;
 
@@ -218,8 +240,12 @@ void CHandGrenade::WeaponIdle( void )
 
 			vecSrc = eyes + gpGlobals->v_forward * 16;
 
+			float flFriction = 0.8f;
+
 			if( m_bUnderhand )
 			{
+				flFriction = 0.6f;
+
 				vecSrc = m_pPlayer->pev->origin + gpGlobals->v_forward * 16;
 				vecThrow = gpGlobals->v_forward * 300;
 			}
@@ -229,6 +255,15 @@ void CHandGrenade::WeaponIdle( void )
 
 			if( tr.flFraction < 1.0f )
 				vecSrc = tr.vecEndPos;
+
+			grenType type = G_HANDGRENADE;
+
+#if !CLIENT_DLL
+			if( g_pGameRules && ( (CDoDTeamPlay *)g_pGameRules )->IsAlliesBrit() )
+				type = G_MILLSGRENADE;
+#endif
+
+			CGrenade::ShootPickup( m_pPlayer->pev, vecSrc, vecThrow, 5.0f, type, flFriction );
 
 			EMIT_SOUND( ENT( m_pPlayer->pev ), CHAN_WEAPON, "weapons/grenthrow.wav", 0.8, 0.8 );
 

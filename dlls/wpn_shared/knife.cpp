@@ -21,6 +21,12 @@
 
 #include "dod_shared.h"
 
+#if !CLIENT_DLL
+#include "gamerules.h"
+#include "dod_gamerules.h"
+#include "skill.h"
+#endif
+
 extern p_wpninfo_s P_WpnInfo[];
 
 void CMeleeWeapon::Spawn( int weapon_id )
@@ -52,7 +58,28 @@ void CMeleeWeapon::Precache( void )
 
 int CMeleeWeapon::AddToPlayer( CBasePlayer *pPlayer )
 {
+#if CLIENT_DLL
 	return FALSE;
+#else
+	if( !CBasePlayerWeapon::AddToPlayer( pPlayer ) )
+		return FALSE;
+
+	// the Axis knife on the floor looks like the one the player has
+	if( pPlayer->pev->team == 2 )
+	{
+		if( pPlayer->IsParatrooper() )
+		{
+			if( m_iId == WEAPON_GERKNIFE )
+				SET_MODEL( ENT( pev ), P_WpnInfo[WEAPON_GERPARAKNIFE].wmodel );
+		}
+		else if( m_iId == WEAPON_GERKNIFE )
+		{
+			SET_MODEL( ENT( pev ), P_WpnInfo[WEAPON_GERKNIFE].wmodel );
+		}
+	}
+
+	return TRUE;
+#endif
 }
 
 BOOL CMeleeWeapon::Deploy( void )
@@ -64,9 +91,17 @@ BOOL CMeleeWeapon::Deploy( void )
 
 	SendWeaponAnim( 3, 1 );
 
+	int iModel = m_iId;
+
+#if !CLIENT_DLL
+	// the British have their own knife in their hands
+	if( g_pGameRules && ( (CDoDTeamPlay *)g_pGameRules )->IsAlliesBrit() && m_pPlayer->pev->team == 1 )
+		iModel = WEAPON_FAIRBAIRN;
+#endif
+
 	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 0.75f;
 
-	return DefaultDeploy( P_WpnInfo[m_iId].vmodel, P_WpnInfo[m_iId].pmodel, GetDrawAnim(), P_WpnInfo[m_iId].szAnimExt, P_WpnInfo[m_iId].szAnimReloadExt, 0 );
+	return DefaultDeploy( P_WpnInfo[iModel].vmodel, P_WpnInfo[iModel].pmodel, GetDrawAnim(), P_WpnInfo[m_iId].szAnimExt, P_WpnInfo[m_iId].szAnimReloadExt, 0 );
 }
 
 void CMeleeWeapon::Holster( int skiplocal )
@@ -190,12 +225,59 @@ int CMeleeWeapon::Swing( int fFirst )
 		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.4f;
 		m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 0.5f;
 
+		float flVol = 1.0f;
+
+		// player "shoot" animation
+		m_pPlayer->SetAnimation( PLAYER_ATTACK1 );
+
+#if !CLIENT_DLL
+		CBaseEntity *pEntity = CBaseEntity::Instance( tr.pHit );
+
+		ClearMultiDamage();
+		pEntity->TraceAttack( m_pPlayer->pev, gSkillData.plrDmgCrowbar, gpGlobals->v_forward, &tr, DMG_BULLET | DMG_CLUB | DMG_NEVERGIB );
+		ApplyMultiDamage( m_pPlayer->pev, m_pPlayer->pev );
+
+		if( pEntity->Classify() == CLASS_NONE || pEntity->Classify() == CLASS_MACHINE )
+		{
+			// hit the world, play the sound of the texture
+			Vector vecFar = vecSrc + ( vecEnd - vecSrc ) * 2;
+
+			TEXTURETYPE_PlaySound( &tr, vecSrc, vecFar, BULLET_PLAYER_CROWBAR );
+			EMIT_SOUND_DYN( ENT( m_pPlayer->pev ), CHAN_ITEM, "weapons/knife_hitwall1.wav", 1, ATTN_NORM, 0, 98 + RANDOM_LONG( 0, 3 ) );
+		}
+		else
+		{
+			switch( RANDOM_LONG( 0, 3 ) )
+			{
+			case 0:
+				EMIT_SOUND_DYN( ENT( m_pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit1.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+				break;
+			case 1:
+				EMIT_SOUND_DYN( ENT( m_pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit2.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+				break;
+			case 2:
+				EMIT_SOUND_DYN( ENT( m_pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit3.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+				break;
+			case 3:
+				EMIT_SOUND_DYN( ENT( m_pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit4.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+				break;
+			}
+
+			m_pPlayer->m_iWeaponVolume = 128;
+
+			if( !pEntity->IsAlive() )
+				return TRUE;
+
+			flVol = 0.1f;
+		}
+#endif
+
 		m_trHit = tr;
 
 		SetThink( &CMeleeWeapon::Smack );
 		pev->nextthink = UTIL_WeaponTimeBase() + 0.2f;
 
-		m_pPlayer->m_iWeaponVolume = 512;
+		m_pPlayer->m_iWeaponVolume = (int)( flVol * 512 );
 	}
 
 	return fDidHit;
@@ -255,12 +337,59 @@ int CMeleeWeapon::Stab( int fFirst )
 		m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 1.1f;
 		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 1.1f;
 
+		float flVol = 1.0f;
+
+		// player "shoot" animation
+		m_pPlayer->SetAnimation( PLAYER_ATTACK1 );
+
+#if !CLIENT_DLL
+		CBaseEntity *pEntity = CBaseEntity::Instance( tr.pHit );
+
+		ClearMultiDamage();
+		pEntity->TraceAttack( m_pPlayer->pev, gSkillData.plrDmgCrowbar, gpGlobals->v_forward, &tr, DMG_BULLET | DMG_CLUB | DMG_NEVERGIB );
+		ApplyMultiDamage( m_pPlayer->pev, m_pPlayer->pev );
+
+		if( pEntity->Classify() == CLASS_NONE || pEntity->Classify() == CLASS_MACHINE )
+		{
+			// hit the world, play the sound of the texture
+			Vector vecFar = vecSrc + ( vecEnd - vecSrc ) * 2;
+
+			TEXTURETYPE_PlaySound( &tr, vecSrc, vecFar, BULLET_PLAYER_CROWBAR );
+			EMIT_SOUND_DYN( ENT( m_pPlayer->pev ), CHAN_ITEM, "weapons/knife_hitwall1.wav", 1, ATTN_NORM, 0, 98 + RANDOM_LONG( 0, 3 ) );
+		}
+		else
+		{
+			switch( RANDOM_LONG( 1, 4 ) )
+			{
+			case 1:
+				EMIT_SOUND_DYN( ENT( m_pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit1.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+				break;
+			case 2:
+				EMIT_SOUND_DYN( ENT( m_pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit2.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+				break;
+			case 3:
+				EMIT_SOUND_DYN( ENT( m_pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit3.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+				break;
+			case 4:
+				EMIT_SOUND_DYN( ENT( m_pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit4.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+				break;
+			}
+
+			m_pPlayer->m_iWeaponVolume = 128;
+
+			if( !pEntity->IsAlive() )
+				return TRUE;
+
+			flVol = 0.1f;
+		}
+#endif
+
 		m_trHit = tr;
 
 		SetThink( &CMeleeWeapon::Smack );
 		pev->nextthink = UTIL_WeaponTimeBase() + 0.2f;
 
-		m_pPlayer->m_iWeaponVolume = 512;
+		m_pPlayer->m_iWeaponVolume = (int)( flVol * 512 );
 	}
 
 	return fDidHit;

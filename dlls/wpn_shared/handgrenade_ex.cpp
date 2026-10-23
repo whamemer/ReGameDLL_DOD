@@ -21,6 +21,11 @@
 
 #include "dod_shared.h"
 
+#if !CLIENT_DLL
+#include "gamerules.h"
+#include "dod_gamerules.h"
+#endif
+
 LINK_ENTITY_TO_CLASS( weapon_handgrenade_ex, CHandGrenadeEx )
 
 extern p_wpninfo_s P_WpnInfo[];
@@ -61,12 +66,27 @@ int CHandGrenadeEx::GetItemInfo( ItemInfo *p )
 
 BOOL CHandGrenadeEx::Deploy( void )
 {
+	UTIL_SendDirectorMessage( m_pPlayer, this, 38 );
+
 	m_pPlayer->m_iFOV = ZoomOut();
 
 	m_flReleaseThrow = -1.0f;
 	m_flStartThrow = 0.0f;
 
-	return FALSE;
+	int iModel = WEAPON_HANDGRENADEX;
+
+	pev->iuser1 = 1;
+
+#if !CLIENT_DLL
+	// the British throw the Mills bomb
+	if( g_pGameRules && ( (CDoDTeamPlay *)g_pGameRules )->IsAlliesBrit() )
+	{
+		iModel = WEAPON_MILLSGRENADE;
+		pev->iuser1 = 0;
+	}
+#endif
+
+	return DefaultDeploy( P_WpnInfo[iModel].vmodel, P_WpnInfo[iModel].pmodel, HANDGRENADE_EX_DRAW, P_WpnInfo[iModel].szAnimExt, P_WpnInfo[iModel].szAnimReloadExt, 0 );
 }
 
 BOOL CHandGrenadeEx::CanHolster( void )
