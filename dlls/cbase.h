@@ -652,7 +652,6 @@ class CMultiSource : public CPointEntity
 	void KeyValue( KeyValueData *pkvd );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	int ObjectCaps( void ) { return ( CPointEntity::ObjectCaps() | FCAP_MASTER ); }
-	BOOL IsTriggered( CBaseEntity *pActivator );
 	void EXPORT Register( void );
 	virtual STATE GetState( void );
 	virtual int Save( CSave &save );

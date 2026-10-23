@@ -31,6 +31,8 @@
 #endif
 
 #define SF_BUTTON_DONTMOVE 1
+#define SF_BUTTON_NO_ALLIES 2		// the Allies can neither use nor touch the button
+#define SF_BUTTON_NO_AXIS 4		// the Axis can neither use nor touch the button
 #define SF_ROTBUTTON_NOTSOLID 1
 #define SF_BUTTON_TOGGLE 32		   // button stays pushed until reactivated
 #define SF_BUTTON_SPARK_IF_OFF 64  // button sparks in OFF state
@@ -171,7 +173,7 @@ void CMultiSource::KeyValue( KeyValueData *pkvd )
 		CPointEntity::KeyValue( pkvd );
 }
 
-#define SF_MULTI_INIT 1
+#define SF_MULTI_INIT 2
 
 void CMultiSource::Spawn()
 {
@@ -199,53 +201,65 @@ void CMultiSource::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 	// if we didn't find it, report error and leave
 	if ( i > m_iTotal )
 	{
-		ALERT( at_console, "MultiSrc:Used by non member %s.\n", STRING( pCaller->pev->classname ) );
+		if ( pev->targetname )
+		{
+			if ( pCaller->pev->targetname )
+				ALERT( at_console, "multisource %s: Used by non-member %s \"%s\"\n", STRING( pev->targetname ),
+					   STRING( pCaller->pev->classname ), STRING( pCaller->pev->targetname ) );
+			else
+				ALERT( at_console, "multisource %s: Used by non-member %s\n", STRING( pev->targetname ),
+					   STRING( pCaller->pev->classname ) );
+		}
+		else
+		{
+			if ( pCaller->pev->targetname )
+				ALERT( at_console, "Unnamed multisource: Used by non-member %s \"%s\"\n",
+					   STRING( pCaller->pev->classname ), STRING( pCaller->pev->targetname ) );
+			else
+				ALERT( at_console, "Unnamed multisource: Used by non-member %s\n", STRING( pCaller->pev->classname ) );
+		}
+
 		return;
 	}
 
 	// CONSIDER: a Use input to the multisource always toggles.  Could check useType for ON/OFF/TOGGLE
 
+	STATE oldState = GetState();
+
 	m_rgTriggered[i - 1] ^= 1;
 
-	//
-	if ( IsTriggered( pActivator ) )
+	if ( oldState != GetState() )
 	{
-		ALERT( at_aiconsole, "Multisource %s enabled (%d inputs)\n", STRING( pev->targetname ), m_iTotal );
-		USE_TYPE useType = USE_TOGGLE;
-		if ( m_globalstate )
-			useType = USE_ON;
-		SUB_UseTargets( NULL, useType, 0 );
+		if ( oldState == STATE_ON )
+		{
+			// the multisource was complete and is not any more
+			if ( pev->netname )
+			{
+				ALERT( at_aiconsole, "Multisource %s deactivated (%d inputs)\n", STRING( pev->targetname ), m_iTotal );
+
+				USE_TYPE offType = USE_TOGGLE;
+				if ( m_globalstate )
+					offType = USE_OFF;
+
+				FireTargets( STRING( pev->netname ), NULL, this, offType, 0 );
+			}
+		}
+		else if ( oldState == STATE_OFF )
+		{
+			ALERT( at_aiconsole, "Multisource %s enabled (%d inputs)\n", STRING( pev->targetname ), m_iTotal );
+
+			USE_TYPE onType = USE_TOGGLE;
+			if ( m_globalstate )
+				onType = USE_ON;
+
+			SUB_UseTargets( NULL, onType, 0 );
+		}
 	}
-}
-
-BOOL CMultiSource::IsTriggered( CBaseEntity * )
-{
-	// Is everything triggered?
-	int i = 0;
-
-	// Still initializing?
-	if ( pev->spawnflags & SF_MULTI_INIT )
-		return 0;
-
-	while ( i < m_iTotal )
-	{
-		if ( m_rgTriggered[i] == 0 )
-			break;
-		i++;
-	}
-
-	if ( i == m_iTotal )
-	{
-		if ( !m_globalstate || gGlobalState.EntityGetState( m_globalstate ) == GLOBAL_ON )
-			return 1;
-	}
-
-	return 0;
 }
 
 void CMultiSource::Register( void )
 {
-	edict_t *pentTarget = NULL;
+	CBaseEntity *pEntity;
 
 	m_iTotal = 0;
 	memset( m_rgEntities, 0, MS_MAX_TARGETS * sizeof( EHANDLE ) );
@@ -254,25 +268,33 @@ void CMultiSource::Register( void )
 
 	// search for all entities which target this multisource (pev->targetname)
 
-	pentTarget = FIND_ENTITY_BY_STRING( NULL, "target", STRING( pev->targetname ) );
+	pEntity = UTIL_FindEntityByTarget( NULL, STRING( pev->targetname ) );
 
-	while ( !FNullEnt( pentTarget ) && ( m_iTotal < MS_MAX_TARGETS ) )
+	while ( pEntity && m_iTotal < MS_MAX_TARGETS )
 	{
-		CBaseEntity *pTarget = CBaseEntity::Instance( pentTarget );
-		if ( pTarget )
-			m_rgEntities[m_iTotal++] = pTarget;
+		m_rgEntities[m_iTotal++] = pEntity;
 
-		pentTarget = FIND_ENTITY_BY_STRING( pentTarget, "target", STRING( pev->targetname ) );
+		pEntity = UTIL_FindEntityByTarget( pEntity, STRING( pev->targetname ) );
 	}
 
-	pentTarget = FIND_ENTITY_BY_STRING( NULL, "classname", "multi_manager" );
-	while ( !FNullEnt( pentTarget ) && ( m_iTotal < MS_MAX_TARGETS ) )
-	{
-		CBaseEntity *pTarget = CBaseEntity::Instance( pentTarget );
-		if ( pTarget && pTarget->HasTarget( pev->targetname ) )
-			m_rgEntities[m_iTotal++] = pTarget;
+	pEntity = UTIL_FindEntityByClassname( NULL, "multi_manager" );
 
-		pentTarget = FIND_ENTITY_BY_STRING( pentTarget, "classname", "multi_manager" );
+	while ( pEntity && m_iTotal < MS_MAX_TARGETS )
+	{
+		if ( pEntity->HasTarget( pev->targetname ) )
+			m_rgEntities[m_iTotal++] = pEntity;
+
+		pEntity = UTIL_FindEntityByClassname( pEntity, "multi_manager" );
+	}
+
+	if ( m_iTotal >= MS_MAX_TARGETS )
+	{
+		if ( pev->targetname )
+			ALERT( at_console, "WARNING: There are too many entities targetting multisource %s. (limit is %d)\n",
+				   STRING( pev->targetname ), MS_MAX_TARGETS );
+		else
+			ALERT( at_console, "WARNING: There are too many entities targetting a multisource. (limit is %d)\n",
+				   MS_MAX_TARGETS );
 	}
 
 	pev->spawnflags &= ~SF_MULTI_INIT;
@@ -679,6 +701,18 @@ void CBaseButton::ButtonUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_
 	if ( m_toggle_state == TS_GOING_UP || m_toggle_state == TS_GOING_DOWN )
 		return;
 
+	// the team the button is closed for can't use it
+	if ( pActivator->IsPlayer() )
+	{
+		if ( pActivator->pev->team == 1 )
+		{
+			if ( FBitSet( pev->spawnflags, SF_BUTTON_NO_ALLIES ) )
+				return;
+		}
+		else if ( pActivator->pev->team == 2 && FBitSet( pev->spawnflags, SF_BUTTON_NO_AXIS ) )
+			return;
+	}
+
 	m_hActivator = pActivator;
 	if ( m_toggle_state == TS_AT_TOP )
 	{
@@ -721,6 +755,15 @@ void CBaseButton::ButtonTouch( CBaseEntity *pOther )
 {
 	// Ignore touches by anything but players
 	if ( !FClassnameIs( pOther->pev, "player" ) )
+		return;
+
+	// the team the button is closed for can't touch it
+	if ( pOther->pev->team == 1 )
+	{
+		if ( FBitSet( pev->spawnflags, SF_BUTTON_NO_ALLIES ) )
+			return;
+	}
+	else if ( pOther->pev->team == 2 && FBitSet( pev->spawnflags, SF_BUTTON_NO_AXIS ) )
 		return;
 
 	m_hActivator = pOther;
@@ -769,8 +812,14 @@ void CBaseButton::ButtonActivate()
 		PlayLockSounds( pev, &m_ls, FALSE, TRUE );
 	}
 
-	ASSERT( m_toggle_state == TS_AT_BOTTOM );
 	m_toggle_state = TS_GOING_UP;
+
+	if ( FBitSet( pev->spawnflags, SF_BUTTON_DONTMOVE ) )
+	{
+		// nothing to move, the button is pushed at once
+		TriggerAndWait();
+		return;
+	}
 
 	SetMoveDone( &CBaseButton::TriggerAndWait );
 	if ( !m_fRotating )
@@ -784,34 +833,36 @@ void CBaseButton::ButtonActivate()
 //
 void CBaseButton::TriggerAndWait( void )
 {
-	ASSERT( m_toggle_state == TS_GOING_UP );
-
 	if ( !UTIL_IsMasterTriggered( m_sMaster, m_hActivator ) )
 		return;
 
 	m_toggle_state = TS_AT_TOP;
 
-	// If button automatically comes back out, start it moving out.
-	// Else re-instate touch method
-	if ( m_fStayPushed || FBitSet( pev->spawnflags, SF_BUTTON_TOGGLE ) )
-	{
-		if ( !FBitSet( pev->spawnflags, SF_BUTTON_TOUCH_ONLY ) )  // this button only works if USED, not touched!
-		{
-			// ALL buttons are now use only
-			SetTouch( NULL );
-		}
-		else
-			SetTouch( &CBaseButton::ButtonTouch );
-	}
-	else
-	{
-		pev->nextthink = pev->ltime + m_flWait;
-		SetThink( &CBaseButton::ButtonReturn );
-	}
-
 	pev->frame = 1;	 // use alternate textures
 
 	SUB_UseTargets( m_hActivator, USE_TOGGLE, 0 );
+
+	// If button automatically comes back out, start it moving out.
+	// Else re-instate touch method
+	if ( !m_fStayPushed && !FBitSet( pev->spawnflags, SF_BUTTON_TOGGLE ) )
+	{
+		SetThink( &CBaseButton::ButtonReturn );
+
+		if ( m_flWait == 0 )
+			ButtonReturn();
+		else
+			pev->nextthink = pev->ltime + m_flWait;
+
+		return;
+	}
+
+	if ( FBitSet( pev->spawnflags, SF_BUTTON_TOUCH_ONLY ) )	 // this button only works if USED, not touched!
+		SetTouch( &CBaseButton::ButtonTouch );
+	else
+	{
+		// ALL buttons are now use only
+		SetTouch( NULL );
+	}
 }
 
 //
@@ -819,16 +870,21 @@ void CBaseButton::TriggerAndWait( void )
 //
 void CBaseButton::ButtonReturn( void )
 {
-	ASSERT( m_toggle_state == TS_AT_TOP );
 	m_toggle_state = TS_GOING_DOWN;
+
+	pev->frame = 0;	 // use normal textures
+
+	if ( FBitSet( pev->spawnflags, SF_BUTTON_DONTMOVE ) )
+	{
+		ButtonBackHome();
+		return;
+	}
 
 	SetMoveDone( &CBaseButton::ButtonBackHome );
 	if ( !m_fRotating )
 		LinearMove( m_vecPosition1, pev->speed );
 	else
 		AngularMove( m_vecAngle1, pev->speed );
-
-	pev->frame = 0;	 // use normal textures
 }
 
 //
@@ -836,7 +892,6 @@ void CBaseButton::ButtonReturn( void )
 //
 void CBaseButton::ButtonBackHome( void )
 {
-	ASSERT( m_toggle_state == TS_GOING_DOWN );
 	m_toggle_state = TS_AT_BOTTOM;
 
 	if ( FBitSet( pev->spawnflags, SF_BUTTON_TOGGLE ) )
@@ -848,31 +903,30 @@ void CBaseButton::ButtonBackHome( void )
 
 	if ( !FStringNull( pev->target ) )
 	{
-		edict_t *pentTarget = NULL;
+		CBaseEntity *pTarget = NULL;
+
 		for ( ;; )
 		{
-			pentTarget = FIND_ENTITY_BY_TARGETNAME( pentTarget, STRING( pev->target ) );
+			pTarget = UTIL_FindEntityByTargetname( pTarget, STRING( pev->target ) );
 
-			if ( FNullEnt( pentTarget ) )
+			if ( !pTarget || FNullEnt( pTarget->edict() ) )
 				break;
 
-			if ( !FClassnameIs( pentTarget, "multisource" ) )
+			if ( !FClassnameIs( pTarget->pev, "multisource" ) )
 				continue;
-			CBaseEntity *pTarget = CBaseEntity::Instance( pentTarget );
 
-			if ( pTarget )
-				pTarget->Use( m_hActivator, this, USE_TOGGLE, 0 );
+			pTarget->Use( m_hActivator, this, USE_TOGGLE, 0 );
 		}
 	}
 
 	// Re-instate touch method, movement cycle is complete.
-	if ( !FBitSet( pev->spawnflags, SF_BUTTON_TOUCH_ONLY ) )  // this button only works if USED, not touched!
+	if ( FBitSet( pev->spawnflags, SF_BUTTON_TOUCH_ONLY ) )	 // this button only works if USED, not touched!
+		SetTouch( &CBaseButton::ButtonTouch );
+	else
 	{
 		// All buttons are now use only
 		SetTouch( NULL );
 	}
-	else
-		SetTouch( &CBaseButton::ButtonTouch );
 
 	// reset think for a sparking button
 	if ( FBitSet( pev->spawnflags, SF_BUTTON_SPARK_IF_OFF ) )
@@ -1086,6 +1140,7 @@ void CMomentaryRotButton::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, US
 	// Calculate destination angle and use it to predict value, this prevents sending target in wrong direction on retriggering
 	Vector dest = pev->angles + pev->avelocity * ( pev->nextthink - pev->ltime );
 	float value1 = CBaseToggle::AxisDelta( pev->spawnflags, dest, m_start ) / m_flMoveDistance;
+	ALERT( at_console, "sending update = %f\n", value1 );
 	UpdateTarget( value1 );
 }
 
@@ -1677,6 +1732,10 @@ void CEnvState::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 			if ( !UTIL_IsMasterTriggered( m_sMaster, NULL ) )
 				ALERT( at_console, "ignored trigger %s; locked by master \"%s\".\n",
 					   GetStringForUseType( useType ), STRING( m_sMaster ) );
+			else if ( useType == USE_ON )
+				ALERT( at_console, "ignored trigger USE_ON; already on\n" );
+			else if ( useType == USE_OFF )
+				ALERT( at_console, "ignored trigger USE_OFF; already off\n" );
 			else
 				ALERT( at_console, "ignored trigger %s.\n", GetStringForUseType( useType ) );
 		}
@@ -1822,18 +1881,22 @@ void CRotButton::Activate( void )
 {
 }
 
-// .text:000bc0f0 CEnvGlobal::RoundRespawn (file:buttons.cpp)
 void CEnvGlobal::RoundRespawn( void )
 {
 	m_triggermode = m_rstriggermode;
 	m_globalstate = m_rsglobalstate;
 	m_initialstate = m_rsinitialstate;
 
-	if ( pev->spawnflags & 1 )
+	if ( FBitSet( pev->spawnflags, SF_GLOBAL_SET ) )
 	{
-		if ( gGlobalState.EntityGetState( m_globalstate ) == GLOBAL_OFF )
-			gGlobalState.EntityAdd( m_globalstate, gpGlobals->mapname, (GLOBALESTATE)m_initialstate );
+		if ( gGlobalState.EntityInTable( m_globalstate ) )
+		{
+			globalentity_t *pGlobal = (globalentity_t *) gGlobalState.EntityFromTable( m_globalstate );
+
+			if ( pGlobal )
+				pGlobal->state = (GLOBALESTATE) m_initialstate;
+		}
 		else
-			gGlobalState.EntitySetState( m_globalstate, (GLOBALESTATE)m_initialstate );
+			gGlobalState.EntityAdd( m_globalstate, gpGlobals->mapname, (GLOBALESTATE) m_initialstate );
 	}
 }
