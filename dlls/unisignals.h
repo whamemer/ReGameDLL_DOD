@@ -21,7 +21,7 @@
 // the bits that changed.
 class CUnifiedSignals
 {
-  public:
+public:
 	CUnifiedSignals()
 	{
 		m_flSignal = 0;
@@ -48,7 +48,7 @@ class CUnifiedSignals
 		return m_flState;
 	}
 
-  private:
+private:
 	int m_flSignal;
 	int m_flState;
 };
