@@ -1729,9 +1729,6 @@ void CBasePlayer::StartDeathCam( void )
 
 void CBasePlayer::PlayerUse( void )
 {
-	if ( IsObserver() )
-		return;
-
 	// Was use pressed or released?
 	if ( !( ( pev->button | m_afButtonPressed | m_afButtonReleased ) & IN_USE ) )
 		return;
@@ -1739,10 +1736,9 @@ void CBasePlayer::PlayerUse( void )
 	// Hit Use on a train?
 	if ( m_afButtonPressed & IN_USE )
 	{
-		if ( m_pTank != NULL )
+		if ( m_pTank )
 		{
 			// Stop controlling the tank
-			// EXACT: Send HUD Update
 			m_pTank->Use( this, this, USE_OFF, 0 );
 			m_pTank = NULL;
 			return;
@@ -1753,9 +1749,6 @@ void CBasePlayer::PlayerUse( void )
 			{
 				m_afPhysicsFlags &= ~PFLAG_ONTRAIN;
 				m_iTrain = TRAIN_NEW | TRAIN_OFF;
-				CBaseEntity *pTrain = CBaseEntity::Instance( pev->groundentity );
-				if ( pTrain && ( pTrain->Classify() == CLASS_VEHICLE ) )
-					( (CFuncVehicle *) pTrain )->m_pDriver = NULL;
 				return;
 			}
 			else
@@ -1768,13 +1761,6 @@ void CBasePlayer::PlayerUse( void )
 					m_afPhysicsFlags |= PFLAG_ONTRAIN;
 					m_iTrain = TrainSpeed( pTrain->pev->speed, pTrain->pev->impulse );
 					m_iTrain |= TRAIN_NEW;
-					if ( pTrain->Classify() == CLASS_VEHICLE )
-					{
-						EMIT_SOUND( ENT( pev ), CHAN_ITEM, "plats/vehicle_ignition.wav", 0.8, ATTN_NORM );
-						( (CFuncVehicle *) pTrain )->m_pDriver = this;
-					}
-					else
-						EMIT_SOUND( ENT( pev ), CHAN_ITEM, "plats/train_use1.wav", 0.8, ATTN_NORM );
 					return;
 				}
 			}
@@ -1786,63 +1772,75 @@ void CBasePlayer::PlayerUse( void )
 	Vector vecLOS;
 	float flMaxDot = VIEW_FIELD_NARROW;
 	float flDot;
+	TraceResult tr;
 
 	UTIL_MakeVectors( pev->v_angle );  // so we know which way we are facing
 
-	while ( ( pObject = UTIL_FindEntityInSphere( pObject, pev->origin, PLAYER_SEARCH_RADIUS ) ) != NULL )
+	// the thing right in front of the player is used first
+	UTIL_TraceLine( pev->origin + pev->view_ofs, pev->origin + pev->view_ofs + gpGlobals->v_forward * 64,
+					dont_ignore_monsters, ENT( pev ), &tr );
+
+	if ( !tr.pHit || ( pObject = (CBaseEntity *) tr.pHit->pvPrivateData ) == NULL ||
+		 !( pObject->ObjectCaps() & ( FCAP_IMPULSE_USE | FCAP_CONTINUOUS_USE | FCAP_ONOFF_USE ) ) )
 	{
+		pObject = NULL;
 
-		if ( pObject->ObjectCaps() & ( FCAP_IMPULSE_USE | FCAP_CONTINUOUS_USE | FCAP_ONOFF_USE ) )
+		while ( ( pObject = UTIL_FindEntityInSphere( pObject, pev->origin, PLAYER_SEARCH_RADIUS ) ) != NULL )
 		{
-			// !!!PERFORMANCE- should this check be done on a per case basis AFTER we've determined that
-			// this object is actually usable? This dot is being done for every object within PLAYER_SEARCH_RADIUS
-			// when player hits the use key. How many objects can be in that area, anyway? (sjb)
-			vecLOS = ( VecBModelOrigin( pObject->pev ) - ( pev->origin + pev->view_ofs ) );
+			if ( pObject->ObjectCaps() & ( FCAP_IMPULSE_USE | FCAP_CONTINUOUS_USE | FCAP_ONOFF_USE ) )
+			{
+				// This essentially moves the origin of the target to the corner nearest the player to test to see
+				// if it's "hull" is in the view cone
+				vecLOS = ( VecBModelOrigin( pObject->pev ) - ( pev->origin + pev->view_ofs ) );
+				vecLOS = UTIL_ClampVectorToBox( vecLOS, pObject->pev->size * 0.5 );
 
-			// This essentially moves the origin of the target to the corner nearest the player to test to see
-			// if it's "hull" is in the view cone
-			vecLOS = UTIL_ClampVectorToBox( vecLOS, pObject->pev->size * 0.5 );
+				flDot = DotProduct( vecLOS, gpGlobals->v_forward );
 
-			flDot = DotProduct( vecLOS, gpGlobals->v_forward );
-			if ( flDot > flMaxDot )
-			{  // only if the item is in front of the user
-				pClosest = pObject;
-				flMaxDot = flDot;
-				//				ALERT( at_console, "%s : %f\n", STRING( pObject->pev->classname ), flDot );
+				if ( flDot > flMaxDot )
+				{  // only if the item is in front of the user
+					pClosest = pObject;
+					flMaxDot = flDot;
+				}
 			}
-			//			ALERT( at_console, "%s : %f\n", STRING( pObject->pev->classname ), flDot );
+		}
+
+		pObject = pClosest;
+
+		if ( !pObject )
+		{
+			if ( m_afButtonPressed & IN_USE )
+			{
+				MESSAGE_BEGIN( MSG_ONE, gmsgUseSound, NULL, pev );
+					WRITE_BYTE( 0 );
+				MESSAGE_END();
+			}
+
+			return;
 		}
 	}
-	pObject = pClosest;
 
 	// Found an object
-	if ( pObject )
+	int caps = pObject->ObjectCaps();
+
+	if ( m_afButtonPressed & IN_USE )
 	{
-		//!!!UNDONE: traceline here to prevent USEing buttons through walls
-		int caps = pObject->ObjectCaps();
-
-		if ( m_afButtonPressed & IN_USE )
-			EMIT_SOUND( ENT( pev ), CHAN_ITEM, "common/wpn_select.wav", 0.4, ATTN_NORM );
-
-		if ( ( ( pev->button & IN_USE ) && ( caps & FCAP_CONTINUOUS_USE ) ) ||
-			 ( ( m_afButtonPressed & IN_USE ) && ( caps & ( FCAP_IMPULSE_USE | FCAP_ONOFF_USE ) ) ) )
-		{
-			if ( caps & FCAP_CONTINUOUS_USE )
-				m_afPhysicsFlags |= PFLAG_USING;
-
-			pObject->Use( this, this, USE_SET, 1 );
-		}
-		// UNDONE: Send different USE codes for ON/OFF.  Cache last ONOFF_USE object to send 'off' if you turn away
-		else if ( ( m_afButtonReleased & IN_USE ) &&
-				  ( pObject->ObjectCaps() & FCAP_ONOFF_USE ) )	// BUGBUG This is an "off" use
-		{
-			pObject->Use( this, this, USE_SET, 0 );
-		}
+		MESSAGE_BEGIN( MSG_ONE, gmsgUseSound, NULL, pev );
+			WRITE_BYTE( 1 );
+		MESSAGE_END();
 	}
-	else
+
+	if ( ( ( pev->button & IN_USE ) && ( caps & FCAP_CONTINUOUS_USE ) ) ||
+		 ( ( m_afButtonPressed & IN_USE ) && ( caps & ( FCAP_IMPULSE_USE | FCAP_ONOFF_USE ) ) ) )
 	{
-		if ( m_afButtonPressed & IN_USE )
-			EMIT_SOUND( ENT( pev ), CHAN_ITEM, "common/wpn_denyselect.wav", 0.4, ATTN_NORM );
+		if ( caps & FCAP_CONTINUOUS_USE )
+			m_afPhysicsFlags |= PFLAG_USING;
+
+		pObject->Use( this, this, USE_SET, 1 );
+	}
+	// UNDONE: Send different USE codes for ON/OFF.  Cache last ONOFF_USE object to send 'off' if you turn away
+	else if ( ( m_afButtonReleased & IN_USE ) && ( pObject->ObjectCaps() & FCAP_ONOFF_USE ) )  // BUGBUG This is an "off" use
+	{
+		pObject->Use( this, this, USE_SET, 0 );
 	}
 }
 
@@ -5603,14 +5601,47 @@ void CBasePlayer::CalculatePitchBlend()
 	pev->blending[1] = iBlend;
 	m_flPitch = temp;
 }
-// .text:00134970 link 0x134970
 void CBasePlayer::CalculateYawBlend()
 {
-	int iBlend;
-	float temp = pev->angles.y;
-	StudioPlayerBlend( &iBlend, &temp );
-	pev->blending[0] = iBlend;
-	m_flYaw = temp;
+	float dt;
+	float flYaw;
+	float maxyaw = 255.0f;
+	float blend_yaw;
+
+	StudioEstimateGait();
+
+	// calc side to side turning
+	flYaw = pev->angles.y - m_flGaityaw;
+	flYaw = fmod( flYaw, 360.0f );
+
+	if ( flYaw < -180 )
+		flYaw = flYaw + 360;
+	else if ( flYaw > 180 )
+		flYaw = flYaw - 360;
+
+	if ( m_flGaitMovement != 0.0 )
+	{
+		if ( flYaw > 120 )
+		{
+			m_flGaityaw = m_flGaityaw - 180;
+			m_flGaitMovement = -m_flGaitMovement;
+			flYaw = flYaw - 180;
+		}
+		else if ( flYaw < -120 )
+		{
+			m_flGaityaw = m_flGaityaw + 180;
+			m_flGaitMovement = -m_flGaitMovement;
+			flYaw = flYaw + 180;
+		}
+	}
+
+	// adjust torso
+	blend_yaw = ( flYaw / 90 ) * 128.0 + 127.0;
+	blend_yaw = clamp( blend_yaw, 0.0f, maxyaw );
+	blend_yaw = 255.0 - blend_yaw;
+
+	pev->blending[0] = (int) blend_yaw;
+	m_flYaw = blend_yaw;
 }
 // .text:001343b0 link 0x1343b0 (simplified)
 void CBasePlayer::StudioEstimateGait()
