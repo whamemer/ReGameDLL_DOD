@@ -2070,31 +2070,46 @@ void CBasePlayer::UpdateStatusBar()
 
 void CBasePlayer::PreThink( void )
 {
-	// .text:00136420 link 0x126420 (dod/dlls/player.cpp:2551)
-	unsigned int buttonsChanged = pev->button ^ m_afButtonLast;
+	int buttonsChanged = ( m_afButtonLast ^ pev->button );  // These buttons have changed this frame
+
 	if ( m_iJoiningState == READYTOGO )
 	{
 		m_iJoiningState = JOINED;
 		StartObserver( pev->origin, pev->angles );
 	}
+
 	m_hintMessageQueue.Update( *this );
-	m_afButtonPressed = pev->button & buttonsChanged;
-	m_afButtonReleased = ~pev->button & buttonsChanged;
+
+	// Debounced button codes for pressed/released
+	// UP viewing: ----------------------------------------------------------------------------------------------------
+	m_afButtonPressed = buttonsChanged & pev->button;  // The changed ones still down are "pressed"
+	m_afButtonReleased = buttonsChanged & ( ~pev->button );  // The ones not down are "released"
+
 	Stamina();
-	if ( m_flIdleTimer < gpGlobals->time && IsAlive() )
+
+	if ( gpGlobals->time > m_flIdleTimer && IsAlive() )
 		SetAnimation( PLAYER_IDLE );
+
 	g_pGameRules->PlayerThink( this );
+
 	if ( g_fGameOver )
-		return;
-	UTIL_MakeVectors( pev->v_angle );
+		return;  // intermission or finale
+
+	UTIL_MakeVectors( pev->v_angle );  // is this still used?
+
 	if ( m_flNextAttack <= 0 && m_pActiveItem )
 		m_pActiveItem->ItemPreFrame();
+
 	WaterMove();
-	if ( g_pGameRules == NULL || !g_pGameRules->IsMultiplayer() )
-		m_iHideHUD |= HIDEHUD_FLASHLIGHT;
-	else
+
+	if ( g_pGameRules && g_pGameRules->IsMultiplayer() )
 		m_iHideHUD &= ~HIDEHUD_FLASHLIGHT;
-	if ( pev->deadflag == DEAD_DEAD && ( m_fDeadTime + 1.0f < gpGlobals->time ) )
+	else
+		m_iHideHUD |= HIDEHUD_FLASHLIGHT;
+
+	UpdateClientData();
+
+	if ( pev->deadflag == DEAD_DEAD && gpGlobals->time > m_fDeadTime + 1.0 )
 	{
 		if ( pev->iuser2 == ENTINDEX( edict() ) )
 		{
@@ -2102,6 +2117,7 @@ void CBasePlayer::PreThink( void )
 			Observer_FindNextPlayer( false );
 		}
 	}
+
 	if ( pev->iuser1 > 0 && ( m_afPhysicsFlags & PFLAG_OBSERVER ) )
 	{
 		Observer_HandleButtons();
@@ -2110,43 +2126,99 @@ void CBasePlayer::PreThink( void )
 		pev->impulse = 0;
 		return;
 	}
+
 	if ( pev->deadflag > 0 )
 	{
-		if ( m_iJoiningState != JOINED )
-			return;
-		PlayerDeathThink();
+		if ( m_iJoiningState == JOINED )
+			PlayerDeathThink();
+
 		return;
 	}
-	if ( !( m_afPhysicsFlags & PFLAG_ONTRAIN ) )
-	{
-		pev->flags &= ~FL_ONTRAIN;
-		if ( m_iTrain & TRAIN_ACTIVE )
-			m_iTrain = TRAIN_NEW | TRAIN_OFF;
-	}
-	else
-	{
+
+	if ( m_afPhysicsFlags & PFLAG_ONTRAIN )
 		pev->flags |= FL_ONTRAIN;
-	}
-	if ( !( m_afPhysicsFlags & PFLAG_ONTRAIN ) )
+	else
+		pev->flags &= ~FL_ONTRAIN;
+
+	// Train speed control
+	if ( m_afPhysicsFlags & PFLAG_ONTRAIN )
 	{
-		if ( pev->button & IN_JUMP )
-			Jump();
-		if ( ( pev->button & IN_DUCK ) || ( ( pev->flags & FL_DUCKING ) && ( pev->deadflag != 0 || (unsigned) ( pev->iuser3 - 1 ) >= 2 ) ) ||
-			 ( m_afPhysicsFlags & PFLAG_DUCKING ) )
-			Duck();
-		if ( !( pev->flags & FL_ONGROUND ) )
-			m_flFallVelocity = -pev->velocity.z;
-		m_hEnemy = NULL;
-		if ( m_afPhysicsFlags & PFLAG_ONBARNACLE )
+		CBaseEntity *pTrain = CBaseEntity::Instance( pev->groundentity );
+		float vel;
+
+		if ( !pTrain )
 		{
-			pev->velocity = g_vecZero;
+			TraceResult trainTrace;
+			// Maybe this is on the other side of a level transition
+			UTIL_TraceLine( pev->origin, pev->origin + Vector( 0, 0, -38 ), ignore_monsters, ENT( pev ), &trainTrace );
+
+			// HACKHACK - Just look for the func_tracktrain classname
+			if ( trainTrace.flFraction != 1.0 && trainTrace.pHit )
+				pTrain = CBaseEntity::Instance( trainTrace.pHit );
+
+			if ( !pTrain || !( pTrain->ObjectCaps() & FCAP_DIRECTIONAL_USE ) || !pTrain->OnControls( pev ) )
+			{
+				m_afPhysicsFlags &= ~PFLAG_ONTRAIN;
+				m_iTrain = TRAIN_NEW | TRAIN_OFF;
+				return;
+			}
+		}
+		else if ( !FBitSet( pev->flags, FL_ONGROUND ) || FBitSet( pTrain->pev->spawnflags, SF_TRACKTRAIN_NOCONTROL ) ||
+				  ( pev->button & ( IN_MOVELEFT | IN_MOVERIGHT ) ) )
+		{
+			// Turn off the train if you jump, strafe, or the train controls go dead
+			m_afPhysicsFlags &= ~PFLAG_ONTRAIN;
+			m_iTrain = TRAIN_NEW | TRAIN_OFF;
+			return;
+		}
+
+		pev->velocity = g_vecZero;
+		vel = 0;
+
+		if ( m_afButtonPressed & IN_FORWARD )
+		{
+			vel = 1;
+			pTrain->Use( this, this, USE_SET, (float) vel );
+		}
+		else if ( m_afButtonPressed & IN_BACK )
+		{
+			vel = -1;
+			pTrain->Use( this, this, USE_SET, (float) vel );
+		}
+
+		if ( vel )
+		{
+			m_iTrain = TrainSpeed( pTrain->pev->speed, pTrain->pev->impulse );
+			m_iTrain |= TRAIN_ACTIVE | TRAIN_NEW;
 		}
 	}
-	else
+	else if ( m_iTrain & TRAIN_ACTIVE )
 	{
-		// train handling omitted (see binary for full velocity propagation)
-		m_afPhysicsFlags &= ~PFLAG_ONTRAIN;
-		m_iTrain = TRAIN_NEW | TRAIN_OFF;
+		m_iTrain = TRAIN_NEW | TRAIN_OFF;  // turn off train
+	}
+
+	if ( pev->button & IN_JUMP )
+	{
+		// If on a ladder, jump off the ladder
+		// else Jump
+		Jump();
+	}
+
+	// If trying to duck, already ducked, or in the process of ducking
+	if ( ( pev->button & IN_DUCK ) || ( ( pev->flags & FL_DUCKING ) && ( pev->deadflag || (unsigned int) ( pev->iuser3 - 1 ) > 1 ) ) ||
+		 ( m_afPhysicsFlags & PFLAG_DUCKING ) )
+		Duck();
+
+	if ( !FBitSet( pev->flags, FL_ONGROUND ) )
+	{
+		m_flFallVelocity = -pev->velocity.z;
+	}
+
+	m_hEnemy = NULL;
+
+	if ( m_afPhysicsFlags & PFLAG_ONBARNACLE )
+	{
+		pev->velocity = g_vecZero;
 	}
 }
 
