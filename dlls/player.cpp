@@ -4563,14 +4563,14 @@ void CInfoIntermission::Spawn( void )
 
 void CInfoIntermission::Think( void )
 {
-	edict_t *pTarget;
+	CBaseEntity *pTarget;
 
 	// find my target
-	pTarget = FIND_ENTITY_BY_TARGETNAME( NULL, STRING( pev->target ) );
+	pTarget = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ) );
 
-	if ( !FNullEnt( pTarget ) )
+	if ( pTarget )
 	{
-		pev->v_angle = UTIL_VecToAngles( ( pTarget->v.origin - pev->origin ).Normalize() );
+		pev->v_angle = UTIL_VecToAngles( ( pTarget->pev->origin - pev->origin ).Normalize() );
 		pev->v_angle.x = -pev->v_angle.x;
 	}
 }
