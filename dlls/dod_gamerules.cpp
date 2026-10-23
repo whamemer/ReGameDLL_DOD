@@ -66,6 +66,7 @@ extern cvar_t *pcvar_mp_combinemglimits;
 extern cvar_t *pcvar_mp_alliesclasses;
 extern cvar_t *pcvar_mp_axisclasses;
 extern int gmsgGameRules;
+extern void ExtractCommandString( char *s, char *szCommand );
 extern cvar_t *pcvar_classlimitcvars[28];
 extern char classlimitcvarNames[27][32];
 extern cvar_t *pcvar_mp_chattime;
@@ -1007,29 +1008,142 @@ void CDoDTeamPlay::GoodToGo( void )
 	SetRoundState( 0 );
 	m_flGoodToGoTime = gpGlobals->time + 20.0f;
 }
-// .text:000e9b80 void CDoDTeamPlay::ChangeLevel() (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::ChangeLevel( void )
 {
-	static char prevFile[64];
-	static mapcycle_t cycle;
-	int cur = 0;
-	const char *cf = CVAR_GET_STRING( "mapcyclefile" );
+	static char szPreviousMapCycleFile[256];
+	static mapcycle_t mapcycle;
+
+	char szNextMap[32];
+	char szFirstMapInList[60];
+	char szCommands[1500];
+	char szRules[1500];
+	int minplayers = 0;
+	int maxplayers = 0;
+	int curplayers = 0;
+	BOOL do_cycle = TRUE;
+
+	szNextMap[0] = 0;
+
+	strcpy( szFirstMapInList, "dod_caen" );
+
+	// find the map to change to
+	char *mapcfile = (char *)CVAR_GET_STRING( "mapcyclefile" );
+
+	szCommands[0] = 0;
+	szRules[0] = 0;
+
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
-		if ( UTIL_PlayerByIndex( i ) )
-			cur++;
-	if ( stricmp( cf, prevFile ) != 0 )
 	{
-		strcpy( prevFile, cf );
-		DestroyMapCycle( &cycle );
-		if ( !ReloadMapCycleFile( cf, &cycle ) || !cycle.items )
-			return;
+		if ( UTIL_PlayerByIndex( i ) )
+			curplayers++;
 	}
-	if ( !cycle.items )
-		return;
-	char nextMap[32];
-	char firstMap[32];
-	GetNextMap( cycle, cur, nextMap, firstMap );
-	CHANGE_LEVEL( nextMap, NULL );
+
+	// has the map cycle filename changed?
+	if ( stricmp( mapcfile, szPreviousMapCycleFile ) )
+	{
+		strcpy( szPreviousMapCycleFile, mapcfile );
+
+		DestroyMapCycle( &mapcycle );
+
+		mapcycle.items = NULL;
+		mapcycle.next_item = NULL;
+
+		if ( !ReloadMapCycleFile( mapcfile, &mapcycle ) || !mapcycle.items )
+		{
+			ALERT( at_console, "Unable to load map cycle file %s\n", mapcfile );
+			do_cycle = FALSE;
+		}
+	}
+	else if ( !mapcycle.items )
+	{
+		do_cycle = FALSE;
+	}
+
+	if ( do_cycle )
+	{
+		BOOL keeplooking = FALSE;
+		BOOL found = FALSE;
+		mapcycle_item_s *item;
+
+		// assume the current map
+		strcpy( szNextMap, STRING( gpGlobals->mapname ) );
+		strcpy( szFirstMapInList, STRING( gpGlobals->mapname ) );
+
+		// traverse the list
+		for ( item = mapcycle.next_item; item->next != mapcycle.next_item; item = item->next )
+		{
+			keeplooking = FALSE;
+
+			if ( item->minplayers != 0 )
+			{
+				if ( curplayers >= item->minplayers )
+				{
+					found = TRUE;
+					minplayers = item->minplayers;
+				}
+				else
+				{
+					keeplooking = TRUE;
+				}
+			}
+
+			if ( item->maxplayers != 0 )
+			{
+				if ( curplayers <= item->maxplayers )
+				{
+					found = TRUE;
+					maxplayers = item->maxplayers;
+				}
+				else
+				{
+					keeplooking = TRUE;
+				}
+			}
+
+			if ( keeplooking )
+				continue;
+
+			found = TRUE;
+			break;
+		}
+
+		if ( !found )
+			item = mapcycle.next_item;
+
+		// increment the next item pointer
+		mapcycle.next_item = item->next;
+
+		strcpy( szNextMap, item->mapname );
+
+		ExtractCommandString( item->rulebuffer, szCommands );
+		strcpy( szRules, item->rulebuffer );
+	}
+
+	if ( !IS_MAP_VALID( szNextMap ) )
+		strcpy( szNextMap, szFirstMapInList );
+
+	g_fGameOver = TRUE;
+
+	// the clan match is back in the warmup on the next map
+	if ( IsClanMatch() && m_bClanMatch )
+	{
+		m_bClanMatchActive = FALSE;
+		setMapTime();
+		SendClientGamerules( NULL );
+	}
+
+	ALERT( at_console, "CHANGE LEVEL: %s\n", szNextMap );
+
+	if ( minplayers || maxplayers )
+		ALERT( at_console, "PLAYER COUNT:  min %i max %i current %i\n", minplayers, maxplayers, curplayers );
+
+	if ( strlen( szRules ) > 0 )
+		ALERT( at_console, "RULES:  %s\n", szRules );
+
+	CHANGE_LEVEL( szNextMap, NULL );
+
+	if ( strlen( szCommands ) > 0 )
+		SERVER_COMMAND( szCommands );
 }
 // .text:000e96c0 void CDoDTeamPlay::InitHUD(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::InitHUD( CBasePlayer *pPlayer )
@@ -1350,28 +1464,52 @@ void CDoDTeamPlay::SendTeamScores( int m_iTeam )
 		MESSAGE_END();
 	}
 }
-// .text:000e8e90 void CDoDTeamPlay::SendObjectiveStatus(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::SendObjectiveStatus( CBasePlayer *pPlayer )
 {
-	MESSAGE_BEGIN( MSG_ONE, gmsgRoundState, NULL, pPlayer->pev );
-	WRITE_BYTE( m_RoundState );
+	MESSAGE_BEGIN( MSG_ONE, gmsgRoundState, NULL, pPlayer->edict() );
+		WRITE_BYTE( RoundState() );
 	MESSAGE_END();
-	CBaseEntity *mst = UTIL_FindEntityByClassname( NULL, "dod_control_point_master" );
-	while ( mst )
+
+	// the control points of the master that is in use
+	CControlPointMaster *pMaster = (CControlPointMaster *)UTIL_FindEntityByClassname( NULL, "dod_control_point_master" );
+
+	while ( pMaster )
 	{
-		if ( ( (CControlPointMaster *) mst )->IsMasteredOn() )
+		CBaseEntity *pNext = UTIL_FindEntityByClassname( pMaster, "dod_control_point_master" );
+
+		if ( pMaster->IsMasteredOn() )
 		{
-			( (CControlPointMaster *) mst )->SendObjectiveStatus( pPlayer );
+			pMaster->SendObjectiveStatus( pPlayer );
 			break;
 		}
-		mst = UTIL_FindEntityByClassname( mst, "dod_control_point_master" );
+
+		pMaster = (CControlPointMaster *)pNext;
 	}
-	CBaseEntity *e = NULL;
-	while ( ( e = UTIL_FindEntityByClassname( e, "dod_capture_area" ) ) != NULL )
-		e->SendStatus( pPlayer );
-	e = NULL;
-	while ( ( e = UTIL_FindEntityByClassname( e, "dod_object_goal" ) ) != NULL )
-		e->SendStatus( pPlayer );
+
+	CBaseEntity *pEntity = NULL;
+
+	while ( ( pEntity = UTIL_FindEntityByClassname( pEntity, "dod_capture_area" ) ) != NULL )
+		pEntity->area_SendStatus( pPlayer );
+
+	pEntity = NULL;
+
+	while ( ( pEntity = UTIL_FindEntityByClassname( pEntity, "dod_object_goal" ) ) != NULL )
+		pEntity->area_SendStatus( pPlayer );
+
+	pEntity = NULL;
+
+	while ( ( pEntity = UTIL_FindEntityByClassname( pEntity, "func_breakable" ) ) != NULL )
+		pEntity->area_SendStatus( pPlayer );
+
+	CDodRoundTimer *pTimer = NULL;
+
+	while ( ( pTimer = (CDodRoundTimer *)UTIL_FindEntityByClassname( pTimer, "dod_round_timer" ) ) != NULL )
+		pTimer->SendStatus( pPlayer );
+
+	CParticleShooter *pShooter = NULL;
+
+	while ( ( pShooter = (CParticleShooter *)UTIL_FindEntityByClassname( pShooter, "particle_shooter" ) ) != NULL )
+		pShooter->SendUpdate( pPlayer );
 }
 void CDoDTeamPlay::SetNextMap( void )
 {
@@ -1457,15 +1595,90 @@ void CDoDTeamPlay::VoiceCommSelect( CBasePlayer *pPlayer, int v )
 	if ( v != 10 && pPlayer->lastMenuSelected > 0 )
 		pPlayer->VoiceCom( v + pPlayer->lastMenuSelected * 9 - 9 );
 }
-// .text:000e9130 int CDoDTeamPlay::GetWeaponId(char*) (dod/dlls/dod_gamerules.cpp:0)
-int CDoDTeamPlay::GetWeaponId( char *wn )
+int CDoDTeamPlay::GetWeaponId( char *weaponname )
 {
-	if ( !wn || !wn[0] )
-		return 0;
-	for ( int i = 0; i < 32; i++ )
-		if ( CBasePlayerItem::ItemInfoArray[i].pszName && !stricmp( CBasePlayerItem::ItemInfoArray[i].pszName, wn ) )
-			return i;
-	return 0;
+	if ( !strcmp( weaponname, "WEAPON_AMERKNIFE" ) )
+		return 1;
+
+	if ( !strcmp( weaponname, "WEAPON_GERKNIFE" ) )
+		return 2;
+
+	if ( !strcmp( weaponname, "WEAPON_COLT" ) )
+		return 3;
+
+	if ( !strcmp( weaponname, "WEAPON_LUGER" ) )
+		return 4;
+
+	if ( !strcmp( weaponname, "WEAPON_GARAND" ) )
+		return 5;
+
+	if ( !strcmp( weaponname, "WEAPON_SCOPEDKAR" ) )
+		return 6;
+
+	if ( !strcmp( weaponname, "WEAPON_THOMPSON" ) )
+		return 7;
+
+	if ( !strcmp( weaponname, "WEAPON_MP44" ) )
+		return 8;
+
+	if ( !strcmp( weaponname, "WEAPON_SPRING" ) )
+		return 9;
+
+	if ( !strcmp( weaponname, "WEAPON_KAR" ) )
+		return 10;
+
+	if ( !strcmp( weaponname, "WEAPON_BAR" ) )
+		return 11;
+
+	if ( !strcmp( weaponname, "WEAPON_MP40" ) )
+		return 12;
+
+	if ( !strcmp( weaponname, "WEAPON_MG42" ) )
+		return 17;
+
+	if ( !strcmp( weaponname, "WEAPON_30CAL" ) )
+		return 18;
+
+	if ( !strcmp( weaponname, "WEAPON_SPADE" ) )
+		return 19;
+
+	if ( !strcmp( weaponname, "WEAPON_M1CARBINE" ) )
+		return 20;
+
+	if ( !strcmp( weaponname, "WEAPON_MG34" ) )
+		return 21;
+
+	if ( !strcmp( weaponname, "WEAPON_GREASEGUN" ) )
+		return 22;
+
+	if ( !strcmp( weaponname, "WEAPON_FG42" ) )
+		return 23;
+
+	if ( !strcmp( weaponname, "WEAPON_K43" ) )
+		return 24;
+
+	if ( !strcmp( weaponname, "WEAPON_ENFIELD" ) )
+		return 25;
+
+	if ( !strcmp( weaponname, "WEAPON_STEN" ) )
+		return 26;
+
+	if ( !strcmp( weaponname, "WEAPON_BREN" ) )
+		return 27;
+
+	if ( !strcmp( weaponname, "WEAPON_WEBLEY" ) )
+		return 28;
+
+	if ( !strcmp( weaponname, "WEAPON_FOLDINGCARBINE" ) )
+		return 20;
+
+	if ( !strcmp( weaponname, "WEAPON_GERPARAKNIFE" ) )
+		return 2;
+
+	if ( !strcmp( weaponname, "WEAPON_SCOPED_FG42" ) )
+		return 65;
+
+	return !strcmp( weaponname, "WEAPON_SCOPEDENFIELD" ) ? 25 : -1;
 }
 // .text:000e4030 BOOL CDoDTeamPlay::ClientConnected(edict_t*,char*,char*,char*) (dod/dlls/dod_gamerules.cpp:0)
 BOOL CDoDTeamPlay::ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress, char *szRejectReason )
@@ -2690,17 +2903,78 @@ BOOL CDoDTeamPlay::CanPlayerJoinClass( int playerclass )
 		return FALSE;
 	return TRUE;
 }
-// .text:000e7450 void CDoDTeamPlay::ChooseRandomClass(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:3447)
 void CDoDTeamPlay::ChooseRandomClass( CBasePlayer *pPlayer )
 {
-	int cls = ( rand() % 10 ) + 1;
-	ClassSelect( pPlayer, cls );
+	int iFirst;
+	int iLast;
+
+	if ( pPlayer->pev->team == 1 )
+	{
+		iFirst = m_GamePlayRules.m_bAlliesAreBrit ? 21 : 1;
+		iLast = m_GamePlayRules.m_bAlliesAreBrit ? 26 : 9;
+	}
+	else if ( pPlayer->pev->team == 2 )
+	{
+		iFirst = 10;
+		iLast = 20;
+	}
+	else
+	{
+		iFirst = 0;
+		iLast = 0;
+	}
+
+	// the classes the player may take now
+	int choices[17];
+	int iChoices = 0;
+
+	for ( int iClass = iFirst; iClass <= iLast; iClass++ )
+	{
+		if ( (unsigned int)( iClass - 1 ) <= 26 && ReachedClassLimit( iClass ) )
+			continue;
+
+		if ( !CanPlayerJoinClass( iClass ) )
+			continue;
+
+		choices[iChoices++] = iClass;
+	}
+
+	if ( iChoices )
+	{
+		pPlayer->m_iNextClass = choices[RANDOM_LONG( 0, iChoices - 1 )];
+	}
+	else
+	{
+		ALERT( at_console, "Random class found that all classes were full - ignoring class limits for this spawn\n" );
+
+		pPlayer->m_iNextClass = RANDOM_LONG( iFirst, iLast );
+	}
 }
-// .text:000e7f40 void CDoDTeamPlay::UpdateData(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:4338)
 void CDoDTeamPlay::UpdateData( CBasePlayer *pPlayer )
 {
-	SendTeamScores( 0 );
-	SendObjectiveStatus( pPlayer );
+	if ( pPlayer->m_iObjScore <= 255 && pPlayer->pev->frags <= 255 && pPlayer->m_iDeaths <= 255 )
+	{
+		MESSAGE_BEGIN( MSG_ALL, gmsgScoreInfo );
+			WRITE_BYTE( ENTINDEX( pPlayer->edict() ) );
+			WRITE_BYTE( pPlayer->m_iObjScore );
+			WRITE_BYTE( pPlayer->pev->frags );
+			WRITE_BYTE( pPlayer->m_iDeaths );
+	}
+	else
+	{
+		ALERT( at_aiconsole, "Init HUD data requiring short values - sending with WRITE_SHORT()\n" );
+
+		MESSAGE_BEGIN( MSG_ALL, gmsgScoreInfoLong );
+			WRITE_BYTE( ENTINDEX( pPlayer->edict() ) );
+			WRITE_SHORT( pPlayer->m_iObjScore );
+			WRITE_SHORT( pPlayer->pev->frags );
+			WRITE_SHORT( pPlayer->m_iDeaths );
+	}
+
+	WRITE_BYTE( pPlayer->pev->playerclass );
+	WRITE_BYTE( pPlayer->pev->team );
+	WRITE_BYTE( pPlayer->PlayerStatus() );
+	MESSAGE_END();
 }
 void CDoDTeamPlay::LevelChangeResets( CBasePlayer *pPlayer )
 {
@@ -3394,11 +3668,10 @@ void CDoDTeamPlay::ChangePlayerTeam( CBasePlayer *pPlayer, int iTeam, int bKill,
 	MESSAGE_END();
 }
 
-// .text:000e7560 void CDoDTeamPlay::PlayerSpawn(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:3499)
 void CDoDTeamPlay::PlayerSpawn( CBasePlayer *pPlayer )
 {
-	if ( pPlayer->has_disconnected || pPlayer->pev->iuser1 != 0 || pPlayer->pev->team == 3 ||
-		 pPlayer->pev->team == 0 || pPlayer->m_iNextClass == 0 )
+	if ( pPlayer->has_disconnected || pPlayer->pev->iuser1 != 0 || pPlayer->pev->team == 3 || pPlayer->pev->team == 0 ||
+		 pPlayer->m_iNextClass == 0 )
 		return;
 
 	int entindex = ENTINDEX( pPlayer->edict() );
@@ -3406,12 +3679,15 @@ void CDoDTeamPlay::PlayerSpawn( CBasePlayer *pPlayer )
 	if ( pPlayer->m_bIsRandomClass )
 	{
 		ChooseRandomClass( pPlayer );
+
 		DodClassInfo_t *pInfo;
-		if ( (unsigned) ( pPlayer->m_iNextClass - 10 ) < 0xb )
+
+		if ( (unsigned int)( pPlayer->m_iNextClass - 10 ) <= 10 )
 			pInfo = m_GamePlayRules.m_bAxisArePara ? g_ParaClassInfo : g_ClassInfo;
 		else
 			pInfo = m_GamePlayRules.m_bAlliesArePara ? g_ParaClassInfo : g_ClassInfo;
-		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_now_as", pInfo[pPlayer->m_iNextClass].classname, 0, 0, 0 );
+
+		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_now_as", pInfo[pPlayer->m_iNextClass].classname );
 	}
 
 	pPlayer->pev->playerclass = pPlayer->m_iNextClass;
@@ -3419,6 +3695,7 @@ void CDoDTeamPlay::PlayerSpawn( CBasePlayer *pPlayer )
 	pPlayer->SetBodygroup( 1, 2 );
 
 	int cls = pPlayer->pev->playerclass;
+
 	if ( cls == 0 )
 	{
 		pPlayer->m_sPlayerModel = NULL;
@@ -3426,58 +3703,87 @@ void CDoDTeamPlay::PlayerSpawn( CBasePlayer *pPlayer )
 	else
 	{
 		if ( pPlayer->pev->team == 1 )
-			pPlayer->m_sPlayerModel = (char *) "us-inf";
+			pPlayer->m_sPlayerModel = "us-inf";
 		else if ( pPlayer->pev->team == 2 )
-			pPlayer->m_sPlayerModel = (char *) "axis-inf";
+			pPlayer->m_sPlayerModel = "axis-inf";
 
-		if ( (unsigned) ( cls - 1 ) < 0x1b )
+		if ( (unsigned int)( cls - 1 ) <= 26 )
 		{
-			DodClassInfo_t *pInfo;
-			if ( pPlayer->pev->team == 1 )
-				pInfo = m_GamePlayRules.m_bAlliesArePara ? g_ParaClassInfo : g_ClassInfo;
+			DodClassInfo_t *pClass;
+
+			if ( pPlayer->pev->team == 1 && m_GamePlayRules.m_bAlliesArePara )
+				pClass = &g_ParaClassInfo[cls];
+			else if ( pPlayer->pev->team == 2 && m_GamePlayRules.m_bAxisArePara )
+				pClass = &g_ParaClassInfo[cls];
 			else
-				pInfo = ( pPlayer->pev->team == 2 && m_GamePlayRules.m_bAxisArePara ) ? g_ParaClassInfo
-																					 : g_ClassInfo;
-			DodClassInfo_t *pClass = &pInfo[cls];
+				pClass = &g_ClassInfo[cls];
+
 			pPlayer->m_sPlayerModel = pClass->modelname;
 
-			for ( int i = 0; i < 0x20; i++ )
-				if ( ( pClass->weapons >> ( i & 31 ) ) & 1 )
-					pPlayer->GiveNamedItem( weaponnames[i] );
-			for ( int i = 0; i < 0x20; i++ )
-				if ( ( pClass->weapons2 >> ( i & 31 ) ) & 1 )
-					pPlayer->GiveNamedItem( weaponnames[i + 0x20] );
+			for ( int i = 0; i < 32; i++ )
+			{
+				if ( !( ( pClass->weapons >> i ) & 1 ) )
+					continue;
 
-			int team = pPlayer->pev->team;
-			if ( team == 1 )
+				if ( i == 23 || i == 25 )
+				{
+					// the scoped class of the FG42 and of the Enfield starts with the scope up
+					edict_t *pent = pPlayer->GiveNamedItem( i == 23 ? "weapon_fg42" : "weapon_enfield" );
+
+					if ( pent && pPlayer->pev->playerclass == ( i == 23 ? 16 : 23 ) )
+					{
+						CBasePlayerWeapon *pWeapon = (CBasePlayerWeapon *)CBaseEntity::Instance( pent );
+
+						pWeapon->m_iWeaponState |= 1;
+						pWeapon->Deploy();
+					}
+				}
+				else
+				{
+					pPlayer->GiveNamedItem( weaponnames[i] );
+				}
+			}
+
+			for ( int i = 0; i < 32; i++ )
+			{
+				if ( ( pClass->weapons2 >> i ) & 1 )
+					pPlayer->GiveNamedItem( weaponnames[i + 32] );
+			}
+
+			if ( pPlayer->pev->team == 1 )
 			{
 				for ( int i = 0; i < pClass->numgrenades; i++ )
 					pPlayer->GiveNamedItem( "weapon_handgrenade" );
 			}
-			else if ( team == 2 )
+			else if ( pPlayer->pev->team == 2 )
 			{
 				for ( int i = 0; i < pClass->numgrenades; i++ )
 					pPlayer->GiveNamedItem( "weapon_stickgrenade" );
 			}
+
 			pPlayer->SetBodygroup( 2, pClass->headgroup );
 			pPlayer->SetBodygroup( 1, pClass->helmetgroup );
 			pPlayer->SetBodygroup( 3, pClass->geargroup );
 			pPlayer->SetBodygroup( 0, pClass->bodygroup );
 			pPlayer->SetBodygroup( 4, 0 );
 		}
+
 		pPlayer->m_iClassSpeed = 600;
 		pPlayer->CheckPlayerSpeed();
-		SET_CLIENT_KEYVALUE( entindex, GET_INFOKEYBUFFER( pPlayer->edict() ), "model", pPlayer->m_sPlayerModel );
+
+		SET_CLIENT_KEYVALUE( ENTINDEX( pPlayer->edict() ), GET_INFOKEYBUFFER( pPlayer->edict() ), "model", pPlayer->m_sPlayerModel );
 	}
 
 	SendTeamScores( 3 );
+
 	MESSAGE_BEGIN( MSG_ALL, gmsgPStatus );
-	WRITE_BYTE( entindex );
-	WRITE_BYTE( pPlayer->PlayerStatus() );
+		WRITE_BYTE( entindex );
+		WRITE_BYTE( pPlayer->PlayerStatus() );
 	MESSAGE_END();
+
 	MESSAGE_BEGIN( MSG_ALL, gmsgPClass );
-	WRITE_BYTE( entindex );
-	WRITE_BYTE( pPlayer->pev->playerclass );
+		WRITE_BYTE( entindex );
+		WRITE_BYTE( pPlayer->pev->playerclass );
 	MESSAGE_END();
 }
 
