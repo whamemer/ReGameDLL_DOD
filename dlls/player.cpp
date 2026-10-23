@@ -827,20 +827,9 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 		m_pActiveItem->DropGren();
 		m_pActiveItem->Holster();
 	}
-	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
-	{
-		CBasePlayerItem *pItem = m_rgpPlayerItems[i];
-		while ( pItem )
-		{
-			if ( pItem->m_iId & 0x3f0 )
-			{
-				char wpnname[64];
-				strcpy( wpnname, STRING( pItem->pev->classname ) );
-				DropPlayerItem( wpnname, false );
-			}
-			pItem = pItem->m_pNext;
-		}
-	}
+
+	DropItemByClass( CLASS_DROPPED_ON_DEATH );
+
 	RemoveAllItems( 1 );
 	if ( pevAttacker->pContainingEntity == NULL )
 		pevAttacker = VARS( INDEXENT( 0 ) );
@@ -4668,7 +4657,7 @@ bool CBasePlayer::SetSpeed( int speed )
 // DoD hint system - RESTORED from dod.so player.cpp 6308-6331.
 bool CBasePlayer::HintMessage( const char *pMessage, BOOL bOverride )
 {
-	char tmp[500];
+	char tmp[512];
 
 	if ( !m_bShowHints )
 		return true;
@@ -4894,7 +4883,7 @@ bool CBasePlayer::PlayerHasExplodingGrenades()
 	{
 		for ( CBasePlayerItem *pItem = m_rgpPlayerItems[i]; pItem; pItem = pItem->m_pNext )
 		{
-			if ( pItem->iItemSlot() == 4 && m_rgAmmo[pItem->PrimaryAmmoIndex()] > 0 )
+			if ( pItem->Classify() == CLASS_GRENADE_EX && m_rgAmmo[pItem->PrimaryAmmoIndex()] > 0 )
 				return true;
 		}
 	}
@@ -5164,11 +5153,11 @@ BOOL CBasePlayer::DropItemByClass( int weaponclass )
 		CBasePlayerItem *pItem = m_rgpPlayerItems[i];
 		while ( pItem )
 		{
-			if ( pItem->m_iId & weaponclass )
+			if ( weaponclass & pItem->Classify() )
 			{
 				char wpnname[64];
 				strcpy( wpnname, STRING( pItem->pev->classname ) );
-				DropPlayerItem( wpnname, false );
+				DropPlayerItem( wpnname, true );
 				bDropped = TRUE;
 			}
 			pItem = pItem->m_pNext;
@@ -5192,7 +5181,7 @@ void CBasePlayer::DropGenericAmmo()
 	pAmmo->pev->angles.z = 0;
 	pAmmo->pev->velocity = gpGlobals->v_forward * 200.0f;
 	pAmmo->SetThink( &CBaseEntity::SUB_Remove );
-	pAmmo->pev->nextthink = gpGlobals->time + 10.0f;
+	pAmmo->pev->nextthink = gpGlobals->time + 30.0f;
 	pAmmo->pev->spawnflags |= SF_NORESPAWN;
 	m_nGenericAmmoCount--;
 }

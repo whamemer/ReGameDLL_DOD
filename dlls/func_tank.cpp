@@ -1100,8 +1100,12 @@ int CFuncTank::IRelationship( CBaseEntity *pTarget )
 	}
 	if ( c == 5 )
 	{
-		if ( (unsigned)( iOtherClass - 2 ) < 10 && iOtherClass == CLASS_PLAYER )
-			return 2;
+		// the relationship to the classes 2 to 11: CLASS_PLAYER, CLASS_HUMAN_PASSIVE, CLASS_HUMAN_MILITARY, ..., CLASS_PLAYER_ALLY
+		static const int rgiRelationship[10] = { 2, 1, 2, 0, 0, 0, 0, 0, 0, 2 };
+
+		if ( (unsigned)( iOtherClass - 2 ) < 10 )
+			return rgiRelationship[iOtherClass - 2];
+
 		return 0;
 	}
 	return 0;

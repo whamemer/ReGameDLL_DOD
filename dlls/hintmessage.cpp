@@ -41,7 +41,7 @@ void CHintMessageQueue::Update( CBaseEntity &client )
 		{
 			MESSAGE_BEGIN( MSG_ONE, gmsgHudText, 0, client.pev->pContainingEntity );
 			const char *msg = m_aszMessage[m_iCurrentMessage];
-			char tmp[500];
+			char tmp[512];
 			if ( strlen( msg ) > 499 )
 			{
 				strncpy( tmp, msg, 499 );

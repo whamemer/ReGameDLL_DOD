@@ -121,6 +121,9 @@ enum sbar_data
 #define SIGNAL_CAPTUREAREA 0x02	// a dod_capture_area
 #define SIGNAL_OBJECTAREA 0x04	// a dod_object_goal or a breakable that waits for an object
 
+// the weapon classes (CLASS_* of dod_shared.h) a killed player drops, 0x3f0
+#define CLASS_DROPPED_ON_DEATH ( CLASS_RIFLE | CLASS_SCOPED_RIFLE | CLASS_SMG | CLASS_UNUSED_128 | CLASS_MACHINEGUN | CLASS_ROCKET )
+
 // the hints that were shown to the player (bits of m_flDisplayHistory), each one is shown only once
 #define HINT_SPOTTED_FRIEND 0x00002
 #define HINT_SPOTTED_ENEMY 0x00004

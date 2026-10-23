@@ -564,16 +564,9 @@ BOOL CCineAI ::StartSequence( CBaseMonster *pTarget, int iszSeq, BOOL completeOn
 //=========================================================
 void CCineMonster ::SequenceDone( CBaseMonster *pMonster )
 {
-	//ALERT( at_aiconsole, "Sequence %s finished\n", STRING( m_pCine->m_iszPlay ) );
-
-	if ( !( pev->spawnflags & SF_SCRIPT_REPEATABLE ) )
-	{
-		SetThink( &CCineMonster::SUB_Remove );
-		pev->nextthink = gpGlobals->time + 0.1;
-	}
+	m_iState = STATE_OFF;
 
 	// This is done so that another sequence can take over the monster when triggered by the first
-
 	pMonster->CineCleanup();
 
 	FixScriptMonsterSchedule( pMonster );

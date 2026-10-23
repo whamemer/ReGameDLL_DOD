@@ -529,11 +529,11 @@ void CDoDTeamPlay::RestartRound( void )
 {
 	m_RoundDoesCount = TRUE;
 	SetRoundState( ROUNDSTATE_ALLIES_WON );
-	MESSAGE_BEGIN( MSG_ALL, gmsgHLTV );
+	MESSAGE_BEGIN( MSG_SPEC, gmsgHLTV );
 	WRITE_BYTE( 0 );
 	WRITE_BYTE( 228 );
 	MESSAGE_END();
-	MESSAGE_BEGIN( MSG_ALL, gmsgHLTV );
+	MESSAGE_BEGIN( MSG_SPEC, gmsgHLTV );
 	WRITE_BYTE( 0 );
 	WRITE_BYTE( 0 );
 	MESSAGE_END();
@@ -552,7 +552,7 @@ void CDoDTeamPlay::RestartRound( void )
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBasePlayer *p = (CBasePlayer *) UTIL_PlayerByIndex( i );
-		if ( !p || p->IsObserver() || p->has_disconnected )
+		if ( !p || p->Classify() != CLASS_PLAYER || p->has_disconnected )
 			continue;
 		int t = p->pev->team;
 		if ( t == 0 || t == 3 || p->m_iNextClass == -1 )
@@ -583,7 +583,7 @@ void CDoDTeamPlay::RestartRound( void )
 	m_flAlliesWaveTime = 0.0f;
 	m_flAxisWaveTime = 0.0f;
 	m_flRoundTime = 0.0f;
-	m_flCanJoinTime = gpGlobals->time + 10.0f;
+	m_flCanJoinTime = gpGlobals->time + 15.0f;
 	int idx = 0;
 	CBaseEntity *e = NULL;
 	while ( ( e = UTIL_FindEntityByClassname( e, "dod_capture_area" ) ) != NULL )
