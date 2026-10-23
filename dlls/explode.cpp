@@ -24,6 +24,7 @@
 #include "cbase.h"
 #include "decals.h"
 #include "explode.h"
+#include "gamerules.h"
 // DoD: SDK-IDENTICAL per restore/weapons/ (explode 13 funcs / mortar 12 funcs).
 // DoD sprites (zerogxplode/steam1/bubble/bloodspray/blood-narrow/explode1 + whizz + grenade_hit1-3)
 // precached in weapons.cpp W_Precache DOD branch; mortar gameplay via
@@ -186,32 +187,13 @@ void CEnvExplosion::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 	}
 
 	// draw fireball
+	float flScale = 0;
+
 	if ( !( pev->spawnflags & SF_ENVEXPLOSION_NOFIREBALL ) )
-	{
-		MESSAGE_BEGIN( MSG_PAS, SVC_TEMPENTITY, pev->origin );
-		WRITE_BYTE( TE_EXPLOSION );
-		WRITE_COORD( pev->origin.x );
-		WRITE_COORD( pev->origin.y );
-		WRITE_COORD( pev->origin.z );
-		WRITE_SHORT( g_sModelIndexFireball );
-		WRITE_BYTE( (BYTE) m_spriteScale );	 // scale * 10
-		WRITE_BYTE( 15 );					 // framerate
-		WRITE_BYTE( TE_EXPLFLAG_NONE );
-		MESSAGE_END();
-	}
-	else
-	{
-		MESSAGE_BEGIN( MSG_PAS, SVC_TEMPENTITY, pev->origin );
-		WRITE_BYTE( TE_EXPLOSION );
-		WRITE_COORD( pev->origin.x );
-		WRITE_COORD( pev->origin.y );
-		WRITE_COORD( pev->origin.z );
-		WRITE_SHORT( g_sModelIndexFireball );
-		WRITE_BYTE( 0 );   // no sprite
-		WRITE_BYTE( 15 );  // framerate
-		WRITE_BYTE( TE_EXPLFLAG_NONE );
-		MESSAGE_END();
-	}
+		flScale = m_spriteScale;
+
+	PLAYBACK_EVENT_FULL( 0, ENT( pev ), g_pGameRules->Explosion(), 0, (float *)&g_vecZero, (float *)&g_vecZero,
+						 flScale, 15.0, g_sModelIndexFireball, 0, 0, 0 );
 
 	// do damage
 	if ( !( pev->spawnflags & SF_ENVEXPLOSION_NODAMAGE ) )
@@ -238,15 +220,8 @@ void CEnvExplosion::Smoke( void )
 {
 	if ( !( pev->spawnflags & SF_ENVEXPLOSION_NOSMOKE ) )
 	{
-		MESSAGE_BEGIN( MSG_PAS, SVC_TEMPENTITY, pev->origin );
-		WRITE_BYTE( TE_SMOKE );
-		WRITE_COORD( pev->origin.x );
-		WRITE_COORD( pev->origin.y );
-		WRITE_COORD( pev->origin.z );
-		WRITE_SHORT( g_sModelIndexSmoke );
-		WRITE_BYTE( (BYTE) m_spriteScale );	 // scale * 10
-		WRITE_BYTE( 12 );					 // framerate
-		MESSAGE_END();
+		PLAYBACK_EVENT_FULL( 0, ENT( pev ), g_pGameRules->Smoke(), 0, (float *)&g_vecZero, (float *)&g_vecZero,
+							 m_spriteScale, 12.0, g_sModelIndexSmoke, 0, 0, 0 );
 	}
 
 	if ( !( pev->spawnflags & SF_ENVEXPLOSION_REPEATABLE ) )

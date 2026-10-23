@@ -230,56 +230,6 @@ void CMortar::Precache()
 
 void CMortar::MortarExplode( void )
 {
-	// DoD binary emits NO lightning beam here (0x115c60 disasm has no MessageBegin);
-	// it only traces, explodes and schedules SUB_Remove.
-#if 0
-	// mortar beam
-	MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
-	WRITE_BYTE( TE_BEAMPOINTS );
-	WRITE_COORD( pev->origin.x );
-	WRITE_COORD( pev->origin.y );
-	WRITE_COORD( pev->origin.z );
-	WRITE_COORD( pev->origin.x );
-	WRITE_COORD( pev->origin.y );
-	WRITE_COORD( pev->origin.z + 1024 );
-	WRITE_SHORT( m_spriteTexture );
-	WRITE_BYTE( 0 );	// framerate
-	WRITE_BYTE( 0 );	// framerate
-	WRITE_BYTE( 1 );	// life
-	WRITE_BYTE( 40 );	// width
-	WRITE_BYTE( 0 );	// noise
-	WRITE_BYTE( 255 );	// r, g, b
-	WRITE_BYTE( 160 );	// r, g, b
-	WRITE_BYTE( 100 );	// r, g, b
-	WRITE_BYTE( 128 );	// brightness
-	WRITE_BYTE( 0 );	// speed
-	MESSAGE_END();
-#endif
-
-#if 0
-	// blast circle
-	MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
-		WRITE_BYTE( TE_BEAMTORUS);
-		WRITE_COORD(pev->origin.x);
-		WRITE_COORD(pev->origin.y);
-		WRITE_COORD(pev->origin.z + 32);
-		WRITE_COORD(pev->origin.x);
-		WRITE_COORD(pev->origin.y);
-		WRITE_COORD(pev->origin.z + 32 + pev->dmg * 2 / .2); // reach damage radius over .3 seconds
-		WRITE_SHORT(m_spriteTexture );
-		WRITE_BYTE( 0 ); // startframe
-		WRITE_BYTE( 0 ); // framerate
-		WRITE_BYTE( 2 ); // life
-		WRITE_BYTE( 12 );  // width
-		WRITE_BYTE( 0 );   // noise
-		WRITE_BYTE( 255 );   // r, g, b
-		WRITE_BYTE( 160 );   // r, g, b
-		WRITE_BYTE( 100 );   // r, g, b
-		WRITE_BYTE( 255 );	// brightness
-		WRITE_BYTE( 0 );		// speed
-	MESSAGE_END();
-#endif
-
 	TraceResult tr;
 	UTIL_TraceLine( pev->origin + Vector( 0, 0, 1024 ), pev->origin - Vector( 0, 0, 1024 ), dont_ignore_monsters,
 					ENT( pev ), &tr );
@@ -289,31 +239,6 @@ void CMortar::MortarExplode( void )
 
 	SetThink( &CMortar::SUB_Remove );
 	pev->nextthink = gpGlobals->time + 0.1;
-
-#if 0
-	int pitch = RANDOM_LONG(95,124);
-	EMIT_SOUND_DYN(ENT(pev), CHAN_VOICE, "weapons/mortarhit.wav", 1.0, 0.55, 0, pitch);
-
-	// ForceSound( SNDRADIUS_MP5, bits_SOUND_COMBAT );
-
-	// ExplodeModel( pev->origin, 400, g_sModelIndexShrapnel, 30 );
-
-	RadiusDamage ( pev, VARS(pev->owner), pev->dmg, CLASS_NONE, DMG_BLAST );
-
-	/*
-	if ( RANDOM_FLOAT ( 0 , 1 ) < 0.5 )
-	{
-		UTIL_DecalTrace( pTrace, DECAL_SCORCH1 );
-	}
-	else
-	{
-		UTIL_DecalTrace( pTrace, DECAL_SCORCH2 );
-	}
-	*/
-
-	SetThink( &CMortar::SUB_Remove );
-	pev->nextthink = gpGlobals->time + 0.1;
-#endif
 }
 
 #if 0

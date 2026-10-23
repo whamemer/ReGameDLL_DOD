@@ -1607,14 +1607,13 @@ void CControlPointMaster::RoundRespawn()
 	m_fGivePointsTime = (float) m_iGivePointsDelay + gpGlobals->time;
 }
 
-// 0 when slot empty/out of range.
-// or UTIL_IsMasterTriggered.
-// all slots, 0 when mixed.
-
 // Activates every discovered point (m_bActive, clear EF_NODRAW) and broadcasts
 // InitObjDisplay to all.
 void CControlPointMaster::BecomeActive()
 {
+	if ( m_bActive )
+		return;
+
 	for ( int i = 0; i < m_iNumPoints; i++ )
 	{
 		ControlPointArray[i]->m_bActive = true;

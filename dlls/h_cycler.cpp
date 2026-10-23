@@ -27,6 +27,7 @@
 #include "animation.h"
 #include "weapons.h"
 #include "player.h"
+#include "gamerules.h"
 
 #define TEMP_FOR_SCREEN_SHOTS
 #ifdef TEMP_FOR_SCREEN_SHOTS  //===================================================
@@ -430,13 +431,6 @@ void CWreckage::Think( void )
 	VecSrc.y = RANDOM_FLOAT( pev->absmin.y, pev->absmax.y );
 	VecSrc.z = RANDOM_FLOAT( pev->absmin.z, pev->absmax.z );
 
-	MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, VecSrc );
-	WRITE_BYTE( TE_SMOKE );
-	WRITE_COORD( VecSrc.x );
-	WRITE_COORD( VecSrc.y );
-	WRITE_COORD( VecSrc.z );
-	WRITE_SHORT( g_sModelIndexSmoke );
-	WRITE_BYTE( RANDOM_LONG( 0, 49 ) + 50 );  // scale * 10
-	WRITE_BYTE( RANDOM_LONG( 0, 3 ) + 8 );	  // framerate
-	MESSAGE_END();
+	PLAYBACK_EVENT_FULL( 0, ENT( pev ), g_pGameRules->Smoke(), 0, (float *)&g_vecZero, (float *)&g_vecZero,
+						 RANDOM_LONG( 0, 49 ) + 50, RANDOM_LONG( 0, 3 ) + 8, g_sModelIndexSmoke, 0, 0, 0 );
 }

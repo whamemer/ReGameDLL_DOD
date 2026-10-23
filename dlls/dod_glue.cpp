@@ -277,13 +277,42 @@ void TestForEntityHashCollisions( void )
 {
 }
 
-void DrawBox( float ( *rgflVertices )[3], unsigned char r, unsigned char g, unsigned char b )
+void DrawLine( float *start, float *end, byte r, byte g, byte b );
+
+// the edges of a box given by its eight vertices
+void DrawBox( float ( *p )[3], byte r, byte g, byte b )
 {
-	( void )rgflVertices; ( void )r; ( void )g; ( void )b;
+	DrawLine( p[0], p[1], r, g, b );
+	DrawLine( p[0], p[4], r, g, b );
+	DrawLine( p[0], p[2], r, g, b );
+	DrawLine( p[7], p[3], r, g, b );
+	DrawLine( p[7], p[5], r, g, b );
+	DrawLine( p[7], p[6], r, g, b );
+	DrawLine( p[7], p[3], r, g, b );
+	DrawLine( p[7], p[5], r, g, b );
+	DrawLine( p[7], p[6], r, g, b );
+	DrawLine( p[6], p[4], r, g, b );
+	DrawLine( p[6], p[2], r, g, b );
+	DrawLine( p[5], p[1], r, g, b );
+	DrawLine( p[5], p[4], r, g, b );
+	DrawLine( p[3], p[1], r, g, b );
+	DrawLine( p[3], p[2], r, g, b );
 }
 
-void DrawLine( float *rgflStart, float *rgflEnd, unsigned char r, unsigned char g, unsigned char b )
+void DrawLine( float *start, float *end, byte r, byte g, byte b )
 {
-	( void )rgflStart; ( void )rgflEnd; ( void )r; ( void )g; ( void )b;
+	MESSAGE_BEGIN( MSG_ALL, SVC_TEMPENTITY );
+		WRITE_BYTE( TE_LINE );
+		WRITE_COORD( start[0] );
+		WRITE_COORD( start[1] );
+		WRITE_COORD( start[2] );
+		WRITE_COORD( end[0] );
+		WRITE_COORD( end[1] );
+		WRITE_COORD( end[2] );
+		WRITE_SHORT( 5 );
+		WRITE_BYTE( r );
+		WRITE_BYTE( g );
+		WRITE_BYTE( b );
+	MESSAGE_END();
 }
 

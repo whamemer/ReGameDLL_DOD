@@ -1486,19 +1486,8 @@ void UTIL_Bubbles( Vector mins, Vector maxs, int count )
 	float flHeight = UTIL_WaterLevel( mid, mid.z, mid.z + 1024 );
 	flHeight = flHeight - mins.z;
 
-	MESSAGE_BEGIN( MSG_PAS, SVC_TEMPENTITY, mid );
-	WRITE_BYTE( TE_BUBBLES );
-	WRITE_COORD( mins.x );	// mins
-	WRITE_COORD( mins.y );
-	WRITE_COORD( mins.z );
-	WRITE_COORD( maxs.x );	// maxz
-	WRITE_COORD( maxs.y );
-	WRITE_COORD( maxs.z );
-	WRITE_COORD( flHeight );  // height
-	WRITE_SHORT( g_sModelIndexBubbles );
-	WRITE_BYTE( count );  // count
-	WRITE_COORD( 8 );	  // speed
-	MESSAGE_END();
+	PLAYBACK_EVENT_FULL( 0, NULL, g_pGameRules->Bubbles(), 0, (float *)&mins, (float *)&maxs, flHeight, 8.0,
+						 g_sModelIndexBubbles, count, 0, 0 );
 }
 
 void UTIL_BubbleTrail( Vector from, Vector to, int count )
@@ -1520,19 +1509,8 @@ void UTIL_BubbleTrail( Vector from, Vector to, int count )
 	if ( count > 255 )
 		count = 255;
 
-	MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
-	WRITE_BYTE( TE_BUBBLETRAIL );
-	WRITE_COORD( from.x );	// mins
-	WRITE_COORD( from.y );
-	WRITE_COORD( from.z );
-	WRITE_COORD( to.x );  // maxz
-	WRITE_COORD( to.y );
-	WRITE_COORD( to.z );
-	WRITE_COORD( flHeight );  // height
-	WRITE_SHORT( g_sModelIndexBubbles );
-	WRITE_BYTE( count );  // count
-	WRITE_COORD( 8 );	  // speed
-	MESSAGE_END();
+	PLAYBACK_EVENT_FULL( 0, NULL, g_pGameRules->BubbleTrails(), 0, (float *)&to, (float *)&from, flHeight, 8.0,
+						 g_sModelIndexBubbles, count, 0, 0 );
 }
 
 void UTIL_Remove( CBaseEntity *pEntity )
