@@ -1955,9 +1955,13 @@ void CGrenade::PickupUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 				 FClassnameIs( pWeapon->pev, "weapon_handgrenade_ex" ) )
 			{
 				pPlayer->SwitchWeapon( pWeapon, 0 );
-				pPlayer->pev->dmgtime = pev->dmgtime;   // carry fuse
+
+				// the picked up grenade goes on burning in the hand
+				if ( pPlayer->m_pActiveItem )
+					pPlayer->m_pActiveItem->SetDmgTime( pev->dmgtime );
+
 				UTIL_Remove( this );
-				return;
+				break;
 			}
 			pWeapon = pWeapon->m_pNext;
 		}
