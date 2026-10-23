@@ -180,7 +180,6 @@ class CAreaCapture : public CBaseTrigger
 	void ReSendSwipeInfo();
 	void EndCapture( int team );
 	void BreakCapture( int team );
-	void SwitchCapture( int team );
 	void SendNumPlayers( class CBasePlayer *p );
 	void SetOwner( int team );
 };

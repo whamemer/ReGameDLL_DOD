@@ -1066,7 +1066,7 @@ void CAreaCapture::StartCapture( int team, int capmode )
 			MESSAGE_BEGIN( MSG_ALL, gmsgStartProgressBarF );
 			WRITE_BYTE( m_pPoint->m_iIndex );
 			WRITE_BYTE( team );
-			WRITE_COORD( (float) m_nCapTime * ( (float) m_iCappingRequired / (float) m_iCappingPlayers ) );
+			WRITE_COORD( (float) ( m_iCappingRequired / m_iCappingPlayers * m_nCapTime ) );
 			MESSAGE_END();
 		}
 		else
@@ -1126,7 +1126,8 @@ void CAreaCapture::EndCapture( int team )
 
 		if ( pFirstCapper && plr != pFirstCapper && m_pPoint )
 			plr->AddObjScore( m_pPoint->m_iCapPoints, TRUE );
-		pFirstCapper = plr;
+		if ( !pFirstCapper )
+			pFirstCapper = plr;
 
 		if ( m_bRequiresObject && plr->HasObject && plr->m_pObject )
 		{
@@ -1289,11 +1290,12 @@ void CAreaCapture::Think()
 			if ( (float)players == (float)m_iCappingPlayers )
 				return;
 			m_iCappingPlayers = players;
-			if ( !m_pPoint || ( m_pPoint->pev->spawnflags & 1 ) )
+			// the capturing team can be gone while the other one stands in the area, don't divide by nobody
+			if ( !m_pPoint || ( m_pPoint->pev->spawnflags & 1 ) || players < 1 )
 				return;
 			MESSAGE_BEGIN( MSG_ALL, gmsgProgBarUpdate );
 				WRITE_BYTE( m_pPoint->m_iIndex );
-				WRITE_COORD( (float)m_iCappingRequired / (float)players * (float)m_nCapTime );
+				WRITE_COORD( (float)m_nCapTime * (float)( m_iCappingRequired / players ) );
 			MESSAGE_END();
 			return;
 		}

@@ -37,6 +37,8 @@
 #define SF_TRIGGER_HURT_NO_CLIENTS 8		//spawnflag that makes trigger_push spawn turned OFF
 #define SF_TRIGGER_HURT_CLIENTONLYFIRE 16	// trigger hurt will only fire its target if it is hurting a client
 #define SF_TRIGGER_HURT_CLIENTONLYTOUCH 32	// only clients may touch this trigger.
+#define SF_TRIGGER_HURT_NO_ALLIES 64		// the Allies are not hurt
+#define SF_TRIGGER_HURT_NO_AXIS 128		// the Axis are not hurt
 
 extern DLL_GLOBAL BOOL g_fGameOver;
 extern int gmsgCameraView;
@@ -834,6 +836,11 @@ void CBaseTrigger ::KeyValue( KeyValueData *pkvd )
 		m_bitsDamageInflict = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
+	else if ( FStrEq( pkvd->szKeyName, "teamonly" ) )
+	{
+		m_team = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
 	else
 		CBaseToggle::KeyValue( pkvd );
 }
@@ -1160,7 +1167,7 @@ void CBaseTrigger ::HurtTouch( CBaseEntity *pOther )
 {
 	float fldmg;
 
-	if ( !pOther->pev->takedamage )
+	if ( !UTIL_IsMasterTriggered( m_sMaster, this ) || !pOther->pev->takedamage )
 		return;
 
 	if ( ( pev->spawnflags & SF_TRIGGER_HURT_CLIENTONLYTOUCH ) && !pOther->IsPlayer() )
@@ -1170,6 +1177,15 @@ void CBaseTrigger ::HurtTouch( CBaseEntity *pOther )
 	}
 
 	if ( ( pev->spawnflags & SF_TRIGGER_HURT_NO_CLIENTS ) && pOther->IsPlayer() )
+		return;
+
+	// the team the trigger is closed for isn't hurt
+	if ( pOther->pev->team == 1 )
+	{
+		if ( pev->spawnflags & SF_TRIGGER_HURT_NO_ALLIES )
+			return;
+	}
+	else if ( pOther->pev->team == 2 && ( pev->spawnflags & SF_TRIGGER_HURT_NO_AXIS ) )
 		return;
 
 	// HACKHACK -- In multiplayer, players touch this based on packet receipt.
@@ -1244,19 +1260,7 @@ void CBaseTrigger ::HurtTouch( CBaseEntity *pOther )
 #endif
 
 	if ( fldmg < 0 )
-	{
-		BOOL bApplyHeal = TRUE;
-
-		if ( g_pGameRules->IsMultiplayer() && pOther->IsPlayer() )
-		{
-			bApplyHeal = pOther->pev->deadflag == DEAD_NO;
-		}
-
-		if ( bApplyHeal )
-		{
-			pOther->TakeHealth( -fldmg, m_bitsDamageInflict );
-		}
-	}
+		pOther->TakeHealth( -fldmg, m_bitsDamageInflict );
 	else
 		pOther->TakeDamage( pev, pev, fldmg, m_bitsDamageInflict );
 
@@ -1266,18 +1270,11 @@ void CBaseTrigger ::HurtTouch( CBaseEntity *pOther )
 	// Apply damage every half second
 	pev->dmgtime = gpGlobals->time + 0.5;  // half second delay until this trigger can hurt toucher again
 
-	if ( pev->target )
+	// trigger has a target it wants to fire, if the toucher is still alive
+	// (and a client, when the trigger is flagged to fire only for clients).
+	if ( pev->target && pOther->pev->health > 0 &&
+		 ( !( pev->spawnflags & SF_TRIGGER_HURT_CLIENTONLYFIRE ) || pOther->IsPlayer() ) )
 	{
-		// trigger has a target it wants to fire.
-		if ( pev->spawnflags & SF_TRIGGER_HURT_CLIENTONLYFIRE )
-		{
-			// if the toucher isn't a client, don't fire the target!
-			if ( !pOther->IsPlayer() )
-			{
-				return;
-			}
-		}
-
 		SUB_UseTargets( pOther, USE_TOGGLE, 0 );
 		if ( pev->spawnflags & SF_TRIGGER_HURT_TARGETONCE )
 			pev->target = 0;
@@ -1373,10 +1370,26 @@ void CBaseTrigger ::MultiTouch( CBaseEntity *pOther )
 
 	pevToucher = pOther->pev;
 
+	// the team the trigger is closed for can't fire it
+	if ( FBitSet( pev->spawnflags, SF_TRIGGER_NO_ALLIES ) && pOther->IsPlayer() && pOther->pev->team == 1 )
+		return;
+
+	if ( FBitSet( pev->spawnflags, SF_TRIGGER_NO_AXIS ) && pOther->IsPlayer() && pOther->pev->team == 2 )
+		return;
+
+	// teamonly: 1 for the Allies, 2 for the Axis
+	if ( m_team == 1 )
+	{
+		if ( pevToucher->team == 2 )
+			return;
+	}
+	else if ( m_team == 2 && pevToucher->team == 1 )
+		return;
+
 	// Only touch clients, monsters, or pushables (depending on flags)
- 	if ( ( ( pevToucher->flags & FL_CLIENT ) && !( pev->spawnflags & SF_TRIGGER_NOCLIENTS ) ) ||
- 		 ( ( pevToucher->flags & FL_MONSTER ) && ( pev->spawnflags & SF_TRIGGER_ALLOWMONSTERS ) ) ||
- 		 ( ( pev->spawnflags & SF_TRIGGER_PUSHABLES ) && FClassnameIs( pevToucher, "func_pushable" ) ) )
+	if ( ( ( pevToucher->flags & FL_CLIENT ) && !( pev->spawnflags & SF_TRIGGER_NOCLIENTS ) ) ||
+		 ( ( pevToucher->flags & FL_MONSTER ) && ( pev->spawnflags & SF_TRIGGER_ALLOWMONSTERS ) ) ||
+		 ( ( pev->spawnflags & SF_TRIGGER_PUSHABLES ) && FClassnameIs( pevToucher, "func_pushable" ) ) )
 	{
 
 #if 0
@@ -1404,6 +1417,10 @@ void CBaseTrigger ::ActivateMultiTrigger( CBaseEntity *pActivator )
 		return;	 // still waiting for reset time
 
 	if ( !UTIL_IsMasterTriggered( m_sMaster, pActivator ) )
+		return;
+
+	// a round trigger only works while the round is running
+	if ( FBitSet( pev->spawnflags, SF_TRIGGER_ROUND ) && g_pGameRules->RoundState() != 1 )
 		return;
 
 	if ( FClassnameIs( pev, "trigger_secret" ) )
@@ -1435,11 +1452,21 @@ void CBaseTrigger ::ActivateMultiTrigger( CBaseEntity *pActivator )
 	}
 	else
 	{
-		// we can't just remove (self) here, because this is a touch function
-		// called while C code is looping through area links...
 		SetTouch( NULL );
-		pev->nextthink = gpGlobals->time + 0.1;
-		SetThink( &CBaseTrigger::SUB_Remove );
+
+		if ( !FBitSet( pev->spawnflags, SF_TRIGGER_ROUND ) )
+		{
+			// we can't just remove (self) here, because this is a touch function
+			// called while C code is looping through area links...
+			pev->nextthink = gpGlobals->time + 0.1;
+			SetThink( &CBaseTrigger::SUB_Remove );
+		}
+		else
+		{
+			// a round trigger stays and comes back with the next round
+			SetThink( NULL );
+			pev->nextthink = 0;
+		}
 	}
 }
 
@@ -1558,7 +1585,11 @@ LINK_ENTITY_TO_CLASS( fireanddie, CFireAndDie );
 
 void CFireAndDie::Spawn( void )
 {
+	if ( pev->classname )
+		RemoveEntityHashValue( pev, STRING( pev->classname ), CLASSNAME );
+
 	pev->classname = MAKE_STRING( "fireanddie" );
+	AddEntityHashValue( pev, STRING( pev->classname ), CLASSNAME );
 	// Don't call Precache() - it should be called on restore
 }
 
@@ -3204,7 +3235,7 @@ void CDoDCamera::Move()
 	CBaseEntity *pPath = m_pentPath;
 	if ( !pPath )
 	{
-		ALERT( at_console, "**dod_camera** No Path_corner FOUND !!\n" );
+		ALERT( at_aiconsole, "**dod_camera** No Path_corner FOUND !!\n" );
 		return;
 	}
 	m_moveDistance = m_moveDistance - pev->speed * gpGlobals->frametime;
@@ -3212,12 +3243,12 @@ void CDoDCamera::Move()
 	{
 		if ( pev->iuser2 < 1 )
 		{
-			ALERT( at_console, "**dod_camera** Reached %s: %s\n", STRING( pPath->pev->classname ),
+			ALERT( at_aiconsole, "**dod_camera** Reached %s: %s\n", STRING( pPath->pev->classname ),
 				   STRING( pPath->pev->targetname ) );
 		}
 		else
 		{
-			ALERT( at_console, "**dod_camera** type: %s  Reached %s: %s\n", CutSceneName( pev->iuser2 ),
+			ALERT( at_aiconsole, "**dod_camera** type: %s  Reached %s: %s\n", CutSceneName( pev->iuser2 ),
 				   STRING( pPath->pev->classname ), STRING( pPath->pev->targetname ) );
 		}
 		if ( pPath->pev->message )
@@ -3227,8 +3258,7 @@ void CDoDCamera::Move()
 				pPath->pev->message = 0;
 		}
 		if ( !strcmp( STRING( pPath->pev->classname ), "path_corner" ) )
-			// fade = dword @pev+0x164 = pev->frags (calibrated entvars map, see NOTES)
-			SetCameraMode( STRING( pPath->pev->targetname ), (int) pPath->pev->frags );
+			SetCameraMode( STRING( pPath->pev->targetname ), ( (CPathCorner *) pPath )->m_iCamFade );
 		pPath = pPath->GetNextTarget();
 		m_pentPath = pPath;
 		if ( !pPath )
@@ -3477,11 +3507,30 @@ void CAreaCapture::area_SendStatus( CBasePlayer *p )
 	MESSAGE_END();
 	SendNumPlayers( p );
 }
-// .text:0015ab60 CAreaCapture::GetNumRequiredPlayers (file:triggers.cpp:5584)
 void CAreaCapture::GetNumRequiredPlayers( int *reqAllies, int *reqAxis )
 {
+	int numAllies = 0;
+	int numAxis = 0;
+
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
+
+		if ( pPlayer )
+		{
+			if ( pPlayer->pev->team == 1 )
+				numAllies++;
+			else if ( pPlayer->pev->team == 2 )
+				numAxis++;
+
+			if ( numAllies > m_nAlliesNumCap && numAxis > m_nAxisNumCap )
+				break;
+		}
+	}
+
 	*reqAllies = m_nAlliesNumCap;
 	*reqAxis = m_nAxisNumCap;
+
 	if ( *reqAllies < 1 )
 		*reqAllies = 1;
 	if ( *reqAxis < 1 )
@@ -3544,6 +3593,8 @@ void CAreaCapture::SendNumPlayers( CBasePlayer *pPlayer )
 		GetNumRequiredPlayers( &ra, &rx );
 		team = 0; num = 0; req = -1;
 	}
+	if ( req != -1 && num > req )
+		num = req;
 	if ( req != -1 && req < 2 )
 		return;
 	if ( !pPlayer )
@@ -3563,36 +3614,44 @@ void CAreaCapture::ReSendSwipeInfo()
 		return;
 	if ( m_pPoint->pev->spawnflags & 1 )
 		return;
-	int denom = m_iCappingPlayers ? m_iCappingPlayers : 1;
-	float captime = (float)m_nCapTime * (float)m_iCappingRequired / (float)denom;
+	// nobody is capturing, nothing to divide by
+	if ( m_iCappingPlayers < 1 )
+		return;
+	float captime = (float)m_nCapTime * (float)( m_iCappingRequired / m_iCappingPlayers );
 	MESSAGE_BEGIN( MSG_ALL, gmsgProgBarUpdate );
 		WRITE_BYTE( m_pPoint->m_iIndex );
 		WRITE_COORD( captime );
 	MESSAGE_END();
 }
 // .text:001511b0 CAreaCapture::BreakCapture.part (file:triggers.cpp:6126)
-// .text:0015bfa0 CAreaCapture::BreakCapture (file:triggers.cpp:6127)
 void CAreaCapture::BreakCapture( int team )
 {
 	if ( !m_bCapturing )
 		return;
-	m_bCapturing = 0;
-	m_fTimeRemaining = 0;
-	if ( m_iCapMode == 1 )
-		FireTargets( team == 1 ? (char *)sz_AlliesBreak : (char *)sz_AxisBreak, NULL, this, USE_TOGGLE, 0 );
-	else
-		FireTargets( team == 1 ? (char *)sz_AlliesStart : (char *)sz_AxisStart, NULL, this, USE_TOGGLE, 0 );
+
+	m_iCappingRequired = 0;
+	m_iCappingPlayers = 0;
+
+	if ( m_nCapturingTeam == 1 )
+		FireTargets( sz_AlliesBreak, NULL, this, USE_BREAK, 0 );
+	else if ( m_nCapturingTeam == 2 )
+		FireTargets( sz_AxisBreak, NULL, this, USE_BREAK, 0 );
+
 	if ( team == 1 )
 		UTIL_ClientPrintAll( HUD_PRINTCENTER, "#game_capture_broken_allie" );
 	else
 		UTIL_ClientPrintAll( HUD_PRINTCENTER, "#game_capture_broken_axis" );
-	if ( m_pPoint && !( m_pPoint->pev->spawnflags & 1 ) )
+
+	m_bCapturing = 0;
+
+	if ( m_pPoint )
 	{
 		MESSAGE_BEGIN( MSG_ALL, gmsgCancelProgressBar );
-			WRITE_BYTE( m_pPoint->m_iIndex );
-			WRITE_BYTE( team );
+		WRITE_BYTE( m_pPoint->m_iIndex );
+		WRITE_BYTE( m_pPoint->m_iTeam );
 		MESSAGE_END();
 	}
+
 	UTIL_SendDirectorMessage( this, NULL, 12 );
 }
 
@@ -3743,31 +3802,42 @@ void CStateWatcher::RoundRespawn( void )
 	pev->nextthink = gpGlobals->time + 0.5;
 }
 
-// .text:00151f70 CStateWatcher::KeyValue (file:triggers.cpp:972)
 void CStateWatcher::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "m_fLogic" ) )
 	{
-		m_fLogic = atoi( pkvd->szValue );
+		m_fLogic = (int) atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
+		return;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iszWatch" ) )
+
+	if ( FStrEq( pkvd->szKeyName, "m_iszWatch" ) )
 	{
-		if ( m_cTargets < 16 )
+		if ( m_cTargets < MAX_MULTI_TARGETS )
 		{
 			m_iTargetName[m_cTargets] = ALLOC_STRING( pkvd->szValue );
 			m_cTargets++;
 			pkvd->fHandled = TRUE;
+			return;
 		}
 	}
-	else if ( m_cTargets < 16 )
+	else if ( m_cTargets < MAX_MULTI_TARGETS )
 	{
 		char tmp[128];
+
 		UTIL_StripToken( pkvd->szKeyName, tmp, sizeof( tmp ) );
 		m_iTargetName[m_cTargets] = ALLOC_STRING( tmp );
 		m_cTargets++;
 		pkvd->fHandled = TRUE;
+		return;
 	}
+
+	if ( pev->targetname )
+		ALERT( at_console, "%s: Too many targets for %s %s (limit is %d)\n", pkvd->szKeyName, STRING( pev->classname ),
+			   STRING( pev->targetname ), MAX_MULTI_TARGETS );
+	else
+		ALERT( at_console, "%s: Too many targets for unnamed %s (limit is %d)\n", pkvd->szKeyName,
+			   STRING( pev->classname ), MAX_MULTI_TARGETS );
 }
 
 // .text:00156d20 CStateWatcher::Think (file:triggers.cpp:1031)

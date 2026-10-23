@@ -22,23 +22,6 @@
 #include "trains.h"
 #include "saverestore.h"
 
-class CPathCorner : public CPointEntity
-{
-  public:
-	void Spawn();
-	void KeyValue( KeyValueData *pkvd );
-	float GetDelay( void ) { return m_flWait; }
-	//	void Touch( CBaseEntity *pOther );
-	virtual int Save( CSave &save );
-	virtual int Restore( CRestore &restore );
-
-	static TYPEDESCRIPTION m_SaveData[];
-
-  private:
-	float m_flWait;
-	virtual void RoundRespawn( void );
-};
-
 LINK_ENTITY_TO_CLASS( path_corner, CPathCorner );
 
 // Global Savedata for Delay
@@ -58,8 +41,29 @@ void CPathCorner ::KeyValue( KeyValueData *pkvd )
 		m_flWait = atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
+
+	if ( FStrEq( pkvd->szKeyName, "overlay" ) )
+	{
+		m_iOverlay = (int) atof( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "zoomlevel" ) )
+	{
+		m_iPathFOV = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "subtitle" ) )
+	{
+		m_iSubtitle = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "cam_fade" ) )
+	{
+		m_iCamFade = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
 	else
-		CPointEntity::KeyValue( pkvd );
+		pkvd->fHandled = FALSE;
 }
 
 void CPathCorner ::Spawn()
