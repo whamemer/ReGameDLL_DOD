@@ -1123,6 +1123,8 @@ void CSprite::Spawn( void )
 		pev->angles.z = pev->angles.y;
 		pev->angles.y = 0;
 	}
+
+	RoundStore();
 }
 
 void CSprite::Precache( void )

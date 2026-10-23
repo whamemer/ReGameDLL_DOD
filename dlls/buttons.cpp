@@ -180,6 +180,9 @@ void CMultiSource::Spawn()
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NONE;
 	pev->nextthink = gpGlobals->time + 0.1;
+
+	RoundStore();
+
 	pev->spawnflags |= SF_MULTI_INIT;  // Until it's initialized
 	SetThink( &CMultiSource::Register );
 }

@@ -1455,20 +1455,20 @@ void CFuncTrackTrain ::Spawn( void )
 	else
 		m_speed = pev->speed;
 
-	pev->speed = 0;
-	pev->velocity = g_vecZero;
-	pev->avelocity = g_vecZero;
+	SetSpeed( 0 );
+	SetVelocity( g_vecZero );
+	SetAvelocity( g_vecZero );
 	pev->impulse = m_speed;
 
 	m_dir = 1;
 
- 	if ( FStringNull( pev->target ) )
- 	{
- 		if ( FStringNull( pev->targetname ) )
- 			ALERT( at_console, "func_tracktrain with no target\n" );
- 		else
- 			ALERT( at_console, "func_tracktrain %s has no target\n", STRING( pev->targetname ) );
- 	}
+	if ( FStringNull( pev->target ) )
+	{
+		if ( FStringNull( pev->targetname ) )
+			ALERT( at_console, "func_tracktrain with no target\n" );
+		else
+			ALERT( at_console, "func_tracktrain %s has no target\n", STRING( pev->targetname ) );
+	}
 
 	if ( pev->spawnflags & SF_TRACKTRAIN_PASSABLE )
 		pev->solid = SOLID_NOT;
@@ -1492,6 +1492,8 @@ void CFuncTrackTrain ::Spawn( void )
 	NextThink( pev->ltime + 0.1, FALSE );
 	SetThink( &CFuncTrackTrain::Find );
 	Precache();
+
+	RoundStore();
 }
 
 void CFuncTrackTrain ::Precache( void )
