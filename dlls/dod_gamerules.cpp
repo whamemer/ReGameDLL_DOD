@@ -61,6 +61,7 @@ extern CVoiceGameMgr g_VoiceGameMgr;
 extern cvar_t *pcvar_mp_clan_match;
 extern cvar_t *pcvar_mp_log_scores;
 extern cvar_t *pcvar_mp_timelimit;
+extern cvar_t *pcvar_mp_spawnbazookas;
 extern cvar_t *pcvar_mp_chattime;
 extern cvar_t *pcvar_mp_tkpenalty;
 extern int gmsgScoreShort;
@@ -692,33 +693,52 @@ void CDoDTeamPlay::EnumerateTeams( int *aA, int *nA, int *aX, int *nX )
 	if ( nX )
 		*nX = nx;
 }
-// .text:000ea7c0 void CDoDTeamPlay::TimerExpired() (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::TimerExpired( void )
 {
 	if ( !m_GamePlayRules.m_bUseTimer )
 		return;
+
 	if ( m_GamePlayRules.m_iTimerTeam == 1 )
 	{
 		SetRoundState( 3 );
 		AddToTeamScores( 1, m_GamePlayRules.m_iPointsTimerExpires );
-		FireDODCamera( "allies_win_cut", NULL, NULL, USE_TOGGLE, 0.0f );
-		FireDODCamera( "axis_loose_cut", NULL, NULL, USE_TOGGLE, 0.0f );
+
+		FireDODCamera( "allies_win_cut", NULL, NULL, USE_TOGGLE, 0 );
+		FireDODCamera( "axis_loose_cut", NULL, NULL, USE_TOGGLE, 0 );
 	}
 	else if ( m_GamePlayRules.m_iTimerTeam == 2 )
 	{
 		SetRoundState( 4 );
 		AddToTeamScores( 2, m_GamePlayRules.m_iPointsTimerExpires );
-		FireDODCamera( "axis_win_cut", NULL, NULL, USE_TOGGLE, 0.0f );
-		FireDODCamera( "allies_loose_cut", NULL, NULL, USE_TOGGLE, 0.0f );
+
+		FireDODCamera( "axis_win_cut", NULL, NULL, USE_TOGGLE, 0 );
+		FireDODCamera( "allies_loose_cut", NULL, NULL, USE_TOGGLE, 0 );
 	}
 	else
 	{
 		SetRoundState( 5 );
-		FireTargets( "para_draw", NULL, NULL, USE_TOGGLE, 0.0f );
-		FireDODCamera( "axis_draw_cut", NULL, NULL, USE_TOGGLE, 0.0f );
-		FireDODCamera( "allies_draw_cut", NULL, NULL, USE_TOGGLE, 0.0f );
+
+		CCineMonster *pCine = NULL;
+
+		while ( ( pCine = (CCineMonster *)UTIL_FindEntityByClassname( pCine, "scripted_sequence" ) ) != NULL )
+			pCine->DoDReset();
+
+		CBaseEntity *pTrain = NULL;
+
+		while ( ( pTrain = UTIL_FindEntityByClassname( pTrain, "func_train" ) ) != NULL )
+			pTrain->RoundRespawn();
+
+		FireTargets( "para_draw", NULL, NULL, USE_TOGGLE, 0 );
+
+		FireDODCamera( "axis_draw_cut", NULL, NULL, USE_TOGGLE, 0 );
+		FireDODCamera( "allies_draw_cut", NULL, NULL, USE_TOGGLE, 0 );
 	}
-	FireTargets( STRING( m_GamePlayRules.m_sTimerExpireTarget ), NULL, NULL, USE_TOGGLE, 0.0f );
+
+	FireTargets( STRING( m_GamePlayRules.m_sTimerExpireTarget ), NULL, NULL, USE_TOGGLE, 0 );
+
+	m_SaveRoundState = m_RoundState;
+
+	SetRestartTime( gpGlobals->time + 7.0 );
 }
 void CDoDTeamPlay::Think( void )
 {
@@ -1198,13 +1218,56 @@ void CDoDTeamPlay::RoundUnfreeze( void )
 							 (float *) &g_vecZero, 0.0, 0.0, team, r, bparam1, 0 );
 	}
 }
-// .text:000e8470 void CDoDTeamPlay::RoundFreeze() (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::RoundFreeze( void )
 {
-	m_RoundState = 0;
 	m_rReadyToUnFreeze = 1;
-	m_rRoundStartCount = gpGlobals->time + 5.0f;
-	UTIL_ClientPrintAll( HUD_PRINTCENTER, "#game_round_freeze", 0, 0, 0, 0 );
+	m_bIsRoundFrozen = TRUE;
+	m_rRoundStartCount = gpGlobals->time + 5.0;
+
+	CDodRoundTimer *pTimer = NULL;
+
+	while ( ( pTimer = (CDodRoundTimer *)UTIL_FindEntityByClassname( pTimer, "dod_round_timer" ) ) != NULL )
+		pTimer->ResetTimer();
+
+	// the teams that have not seen their spawn cutscene yet
+	BOOL bAlliesCut = FALSE;
+	BOOL bAxisCut = FALSE;
+
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBasePlayer *pPlayer = (CBasePlayer *)UTIL_PlayerByIndex( i );
+
+		if ( !pPlayer || pPlayer->Classify() != CLASS_PLAYER || pPlayer->pev->team == 3 )
+			continue;
+
+		if ( pPlayer->pev->team == 1 )
+		{
+			if ( !pPlayer->i_seenAllieSpawnScene )
+				bAlliesCut = TRUE;
+		}
+		else if ( pPlayer->pev->team == 2 && !pPlayer->i_seenAxisSpawnScene )
+		{
+			bAxisCut = TRUE;
+		}
+
+		(*g_engfuncs.pfnSetClientMaxspeed)( pPlayer->edict(), 1.0f );
+	}
+
+	CCineMonster *pCine = NULL;
+
+	while ( ( pCine = (CCineMonster *)UTIL_FindEntityByClassname( pCine, "scripted_sequence" ) ) != NULL )
+		pCine->DoDReset();
+
+	CBaseEntity *pTrain = NULL;
+
+	while ( ( pTrain = UTIL_FindEntityByClassname( pTrain, "func_train" ) ) != NULL )
+		pTrain->RoundRespawn();
+
+	if ( bAlliesCut )
+		FireDODCamera( "allie_spawn_cut", NULL, NULL, USE_TOGGLE, 0 );
+
+	if ( bAxisCut )
+		FireDODCamera( "axis_spawn_cut", NULL, NULL, USE_TOGGLE, 0 );
 }
 // .text:000e94f0 void CDoDTeamPlay::SendClientGamerules(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::SendClientGamerules( CBasePlayer *pPlayer )
@@ -1264,14 +1327,53 @@ void CDoDTeamPlay::SendObjectiveStatus( CBasePlayer *pPlayer )
 	while ( ( e = UTIL_FindEntityByClassname( e, "dod_object_goal" ) ) != NULL )
 		e->SendStatus( pPlayer );
 }
-// .text:000e8750 void CDoDTeamPlay::SetNextMap() (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::SetNextMap( void )
 {
-	const char *nx = CVAR_GET_STRING( "mp_nextmap" );
-	if ( nx && nx[0] != 0 )
-		strcpy( m_szNextMap, nx );
+	static char szPreviousMapCycleFile[256];
+	static mapcycle_t mapcycle;
+
+	char szFirstMapInList[44];
+
+	strcpy( szFirstMapInList, "dod_caen" );
+
+	char *mapcfile = (char *)CVAR_GET_STRING( "mapcyclefile" );
+
+	BOOL bAdvance;
+
+	if ( !stricmp( mapcfile, szPreviousMapCycleFile ) )
+	{
+		// the cycle is loaded already
+		bAdvance = mapcycle.items != NULL;
+	}
 	else
+	{
+		strcpy( szPreviousMapCycleFile, mapcfile );
+
+		DestroyMapCycle( &mapcycle );
+
+		mapcycle.items = NULL;
+		mapcycle.next_item = NULL;
+
+		bAdvance = ReloadMapCycleFile( mapcfile, &mapcycle ) && mapcycle.items;
+
+		if ( !bAdvance )
+			ALERT( at_console, "Unable to load map cycle file %s\n", mapcfile );
+	}
+
+	if ( bAdvance )
+	{
 		strcpy( m_szNextMap, STRING( gpGlobals->mapname ) );
+		strcpy( szFirstMapInList, STRING( gpGlobals->mapname ) );
+
+		const char *pszNext = mapcycle.next_item->mapname;
+
+		mapcycle.next_item = mapcycle.next_item->next;
+
+		strcpy( m_szNextMap, pszNext );
+	}
+
+	if ( !IS_MAP_VALID( m_szNextMap ) )
+		strcpy( m_szNextMap, szFirstMapInList );
 }
 // .text:000eae00 void CDoDTeamPlay::StartClanMatch() (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::StartClanMatch( void )
@@ -2264,13 +2366,21 @@ BOOL CDoDTeamPlay::GetNextBestWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pCu
 	}
 	return FALSE;
 }
-// .text:000e5360 BOOL CDoDTeamPlay::IsAllowedToSpawn(CBaseEntity*) (dod/dlls/dod_gamerules.cpp:4638)
 BOOL CDoDTeamPlay::IsAllowedToSpawn( CBaseEntity *pEntity )
 {
-	const char *cn = STRING( pEntity->pev->classname );
-	if ( !strcmp( cn, "weaponbox" ) )
+	if ( !pcvar_mp_spawnbazookas )
+		pcvar_mp_spawnbazookas = CVAR_GET_POINTER( "mp_spawnbazookas" );
+
+	if ( pcvar_mp_spawnbazookas->value > 0.0 )
+		return TRUE;
+
+	// without mp_spawnbazookas the launchers are not spawned
+	const char *pszClassname = STRING( pEntity->pev->classname );
+
+	if ( !strcmp( pszClassname, "weapon_piat" ) || !strcmp( pszClassname, "weapon_pschreck" ) )
 		return FALSE;
-	return TRUE;
+
+	return strcmp( pszClassname, "weapon_bazooka" ) != 0;
 }
 
 // .text:000e6830 void ResetGamePlayRules(gameplay_rules_t*) (dod/dlls/dod_gamerules.cpp:169)

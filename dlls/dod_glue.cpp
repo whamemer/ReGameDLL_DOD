@@ -41,6 +41,7 @@ cvar_t *pcvar_mp_deathmsg;
 cvar_t *pcvar_mp_tkpenalty;
 cvar_t *pcvar_mp_friendlyfire;
 cvar_t *pcvar_mp_timelimit;
+cvar_t *pcvar_mp_spawnbazookas;
 cvar_t *pcvar_mp_teamlimit;
 cvar_t *pcvar_mp_allowspectators;
 cvar_t *pcvar_mp_nummapmarkers;
