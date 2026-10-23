@@ -19,7 +19,7 @@
 // The areas a player stands in (SIGNAL_* of player.h). The entities raise a signal while they
 // touch the player, Update() makes the raised signals the new state once per frame and returns
 // the bits that changed.
-struct CUnifiedSignals
+class CUnifiedSignals
 {
   public:
 	CUnifiedSignals()
