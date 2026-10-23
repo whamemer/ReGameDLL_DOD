@@ -157,7 +157,7 @@ void ClientDisconnect( edict_t *pEntity )
 	if ( pPlayer )
 		pPlayer->SetThink( NULL );
 
-	UTIL_SetOrigin( &pEntity->v, pEntity->v.origin );
+	UTIL_SetEdictOrigin( pEntity, pEntity->v.origin );
 
 	g_pGameRules->ClientDisconnected( pEntity );
 }
@@ -679,15 +679,6 @@ void Host_Say( edict_t *pEntity, int teamonly )
 		MESSAGE_END();
 	}
 
-	// print to the sending client
-	MESSAGE_BEGIN( MSG_ONE, gmsgSayText, NULL, pEntity );
-	WRITE_BYTE( ENTINDEX( pEntity ) );
-	WRITE_STRING( text );
-	MESSAGE_END();
-
-	// echo to server console
-	g_engfuncs.pfnServerPrint( text );
-
 	// server log
 	const char *pszTeam = ( pSender->pev->team == 1 ) ? "Allies" : "Axis";
 
@@ -701,6 +692,15 @@ void Host_Say( edict_t *pEntity, int teamonly )
 		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" say \"%s\"\n", STRING( pEntity->v.netname ), GETPLAYERUSERID( pEntity ),
 						GETPLAYERAUTHID( pEntity ), pszTeam, p );
 	}
+
+	// print to the sending client
+	MESSAGE_BEGIN( MSG_ONE, gmsgSayText, NULL, pEntity );
+	WRITE_BYTE( ENTINDEX( pEntity ) );
+	WRITE_STRING( text );
+	MESSAGE_END();
+
+	// echo to server console
+	g_engfuncs.pfnServerPrint( text );
 }
 
 /*
@@ -827,6 +827,7 @@ void ServerActivate( edict_t *pEdictList, int edictCount, int clientMax )
 		// Activate this entity if it's got a class & isn't dormant
 		if ( pClass && !( pClass->pev->flags & FL_DORMANT ) )
 		{
+			AddEntityHashValue( &pEdictList[i].v, STRING( pEdictList[i].v.classname ), CLASSNAME );
 			pClass->Activate();
 		}
 		else

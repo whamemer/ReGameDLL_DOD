@@ -1579,121 +1579,148 @@ Vector CBaseEntity::FireBulletsNC( Vector vecSrc, Vector vecDirShooting, float f
 								   int iBulletType, int iTracerFreq, int iDamage, entvars_t *pevAttacker,
 								   int shared_rand )
 {
-	Vector vecRight = gpGlobals->v_right, vecUp = gpGlobals->v_up;
+	Vector vecRight = gpGlobals->v_right;
+	Vector vecUp = gpGlobals->v_up;
 	float x, y;
-	if ( !IsPlayer() )
+
+	if ( !pevAttacker )
+		pevAttacker = pev;  // the default attacker is ourselves
+
+	ClearMultiDamage();
+	gMultiDamage.type = DMG_BULLET | DMG_NEVERGIB;
+
+	if ( IsPlayer() )
+	{
+		// use player's random seed.
+		// get circular gaussian spread
+		x = UTIL_SharedRandomFloat( shared_rand, -0.5, 0.5 ) + UTIL_SharedRandomFloat( shared_rand + 1, -0.5, 0.5 );
+		y = UTIL_SharedRandomFloat( shared_rand + 2, -0.5, 0.5 ) + UTIL_SharedRandomFloat( shared_rand + 3, -0.5, 0.5 );
+	}
+	else
 	{
 		do
 		{
 			x = RANDOM_FLOAT( -0.5, 0.5 ) + RANDOM_FLOAT( -0.5, 0.5 );
 			y = RANDOM_FLOAT( -0.5, 0.5 ) + RANDOM_FLOAT( -0.5, 0.5 );
-		} while ( x * x + y * y > 1 );
+		}
+		while ( x * x + y * y > 1 );
 	}
-	else
-	{
-		// binary: shared_rand+0..3 verified (disasm MOV EDI,[ESP+0x188]=shared_rand; CALL SharedRandom(EDI), (EDI+1), (EDI+2), (EDI+3) @000de858-000de8cc; decompiler mislabels EDI as iBulletType, actually shared_rand per stack slot).
-		x = UTIL_SharedRandomFloat( shared_rand, -0.5, 0.5 ) + UTIL_SharedRandomFloat( shared_rand + 1, -0.5, 0.5 );
-		y = UTIL_SharedRandomFloat( shared_rand + 2, -0.5, 0.5 ) + UTIL_SharedRandomFloat( shared_rand + 3, -0.5, 0.5 );
-	}
+
 	Vector vecDir = vecDirShooting + x * flSpread * vecRight + y * flSpread * vecUp;
 
-	if ( g_pGameRules->RoundState() != 1 )	// binary: vtbl+0x3d RoundState @000de32c (CALL [EDX+0xF4], DEC/JZ)
-		return Vector( x, y, 0 );
-
-	float flDmg = MapBulletToDmg( iBulletType );
-	float flMaterialMod = 4.95;	 // binary: stack slot local_120 (see below), default 4.95 for out-of-range
-	edict_t *pentIgnore = ENT( pev );
-	Vector vecCur = vecSrc;
-	Vector origSrc = vecSrc;  // binary: reverse trace target is the ORIGINAL source, distance uses current vecCur @000de45f
-	int penetrations = 0;
-	CBaseEntity *pLastHit = NULL;
-	int iLastHitgroup = -1;
-	while ( true )
+	if ( g_pGameRules->RoundState() == 1 )
 	{
-		Vector vecEnd =
-			vecCur +
-			vecDir *
-				flDistance;	 // binary: vecEnd=vecCur+vecDir*flDistance @000de3f0 loop; vecCur advances as vecEndPos+2*vecDir (FADD ST0,ST0 @000de620-000de648), verified vs decompile local_4c+vecDir*flDistance
-		TraceResult tr;
-		UTIL_TraceLine( vecCur, vecEnd, dont_ignore_monsters, pentIgnore, &tr );
-		if ( tr.flFraction >= 1.0 )
-			break;
-		CBaseEntity *pEntity = CBaseEntity::Instance( tr.pHit );
-		if ( penetrations == 0 )
+		CBaseEntity *pLastPlayerHit = NULL;
+		int iLastHitgroup = -1;
+		int iPenetrations = 0;
+		float flMaterialMod = 0;
+		float flDmg = MapBulletToDmg( iBulletType );
+		Vector origSrc = vecSrc;
+		edict_t *pentIgnore = ENT( pev );
+
+		while ( 1 )
 		{
-			ALERT( at_aiconsole, "penetration: %d, starting dmg: %f\n", penetrations, flDmg );
-			BOOL bPlayerHit = pEntity->IsPlayer();
-			if ( !bPlayerHit )
+			Vector vecEnd = vecSrc + vecDir * flDistance;
+			TraceResult tr;
+
+			UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, pentIgnore, &tr );
+
+			if ( tr.flFraction >= 1.0 )
+				break;
+
+			CBaseEntity *pEntity = CBaseEntity::Instance( tr.pHit );
+
+			if ( iPenetrations )
 			{
-				pEntity->TraceAttack( pevAttacker, flDmg, vecDir, &tr, DMG_BULLET );
-				const char *pTextureName = TRACE_TEXTURE( tr.pHit ? tr.pHit : ENT( 0 ), vecCur, vecEnd );
-				char chTextureType =
-					'C';  // binary: NULL texture defaults to 'C' (uVar10=2 @FireBulletsNC, then 0.9*table[2]=6.57, not 4.95)
+				// the bullet came out on the other side, see how much damage the material took away
+				TraceResult reverseTr;
+
+				UTIL_TraceLine( tr.vecEndPos, origSrc, dont_ignore_monsters, NULL, &reverseTr );
+
+				if ( reverseTr.fAllSolid )
+					break;
+
+				flDmg = flDmg - ( reverseTr.vecEndPos - vecSrc ).Length() * flMaterialMod;
+
+				if ( flDmg < 0 )
+				{
+					ALERT( at_aiconsole, "Bullet was stopped\n" );
+					break;
+				}
+
+				ALERT( at_aiconsole, "Exiting surface  - damage %f\n", flDmg );
+
+				if ( pLastPlayerHit == pEntity && tr.iHitgroup == iLastHitgroup )
+				{
+					vecSrc = vecSrc + vecDir + vecDir;
+					ALERT( at_aiconsole, "Hit same hitgroup, skipping\n" );
+					continue;
+				}
+
+				UTIL_GunshotDecalTrace( &tr, 0 );
+
+				if ( !CBaseEntity::Instance( reverseTr.pHit )->IsPlayer() )
+					UTIL_GunshotDecalTrace( &reverseTr, 0 );
+			}
+
+			ALERT( at_aiconsole, "penetration: %d, starting dmg: %f\n", iPenetrations, flDmg );
+
+			BOOL bHitPlayer = pEntity->IsPlayer();
+
+			pEntity->TraceAttack( pevAttacker, flDmg, vecDir, &tr, DMG_BULLET );
+
+			if ( !bHitPlayer )
+			{
+				// what the bullet went through decides how much damage it loses on the way
+				const char *pTextureName = TRACE_TEXTURE( tr.pHit ? tr.pHit : ENT( 0 ), vecSrc, vecEnd );
+				char chTextureType = 'C';
+
 				if ( pTextureName )
 				{
-					if ( *pTextureName == '+' || *pTextureName == '-' )
-						pTextureName += 2;	// binary: skip +/- prefix (uses __src[2]) @000de5f4
-					if ( *pTextureName == '!' || *pTextureName == '{' || *pTextureName == '~' || *pTextureName == ' ' )
-						pTextureName++;	 // binary: skip !{~ space prefix
 					char szbuffer[64];
+
+					if ( *pTextureName == '+' || *pTextureName == '-' )
+						pTextureName += 2;
+
+					if ( *pTextureName == '!' || *pTextureName == '{' || *pTextureName == '~' || *pTextureName == ' ' )
+						pTextureName++;
+
 					strcpy( szbuffer, pTextureName );
+					szbuffer[CBTEXTURENAMEMAX - 1] = 0;
+
 					chTextureType = TEXTURETYPE_Find( szbuffer );
 				}
-				flMaterialMod = MapMaterialModFromTexture(
-					chTextureType );  // binary: 0.9*table[uVar10] @000de5f4 (FLD 0.9 + FMUL table), default 'C'->6.57 when NULL
+
+				flMaterialMod = MapMaterialModFromTexture( chTextureType );
 			}
 			else
 			{
-				pEntity->TraceAttack( pevAttacker, flDmg, vecDir, &tr, DMG_BULLET );
-				pLastHit = pEntity;
+				pLastPlayerHit = pEntity;
 				iLastHitgroup = tr.iHitgroup;
+
+				flMaterialMod = MapMaterialModFromTexture( 'F' );
 			}
-			if ( iBulletType >= 0x10 &&
-				 iBulletType <= 0x12 )	// MGs bite deeper, binary: CMP (iBulletType-0x10)<=2 (JA skip) @000de605
-				flMaterialMod *=
-					0.65;  // binary: _DAT_00195238 double 0.65 (link 0x185238, ghidra 0x195238, FLD [0x195238] @000de60c, gdb x/gf 0x185238=0.65)
-			vecCur = tr.vecEndPos + vecDir + vecDir;  // binary: common to both branches (vecCur advances)
-			if ( !bPlayerHit || tr.iHitgroup - 4 > 1 )	// binary: bVar6==0 || hitgroup not fleshy -> tr.pHit
+
+			// the machine guns go through more
+			if ( (unsigned int) ( iBulletType - 16 ) <= 2 )
+				flMaterialMod = flMaterialMod * 0.65;
+
+			vecSrc = tr.vecEndPos + vecDir + vecDir;
+
+			// arms and hands are not in the way of the bullet
+			if ( !bHitPlayer || (unsigned int) ( tr.iHitgroup - 4 ) > 1 )
 				pentIgnore = tr.pHit;
 			else
 				pentIgnore = NULL;
-			penetrations++;
-		}
-		else
-		{
-			TraceResult reverseTr;
-			UTIL_TraceLine( tr.vecEndPos, origSrc, dont_ignore_monsters, NULL, &reverseTr );  // binary: trace back to origSrc @000de48b
-			if ( reverseTr.fAllSolid )
+
+			if ( ++iPenetrations > 5 )
 				break;
-			float dist = ( reverseTr.vecEndPos - vecCur ).Length();  // binary: distance measured to current vecCur
-			flDmg -=
-				dist *
-				flMaterialMod;	// binary: keeps mod in stack slot local_120 (FLD/FSTP [ESP+0x3c] @000de5f4-000de616, then SUB flDmg - dist*local_120), not hardcoded 4.95
-			if ( flDmg < 0 )
-			{
-				ALERT( at_aiconsole, "Bullet was stopped\n" );
-				break;
-			}
-			ALERT( at_aiconsole, "Exiting surface  - damage %f\n", flDmg );
-			if ( pLastHit != pEntity || tr.iHitgroup != iLastHitgroup )
-			{
-				UTIL_GunshotDecalTrace( &tr, 0 );
-				CBaseEntity *pExit = CBaseEntity::Instance( reverseTr.pHit );
-				if ( pExit && !pExit->IsPlayer() )
-					UTIL_GunshotDecalTrace( &reverseTr, 0 );
-			}
-			else
-			{
-				vecCur = vecCur + vecDir + vecDir;
-				ALERT( at_aiconsole, "Hit same hitgroup, skipping\n" );
-			}
 		}
-		if ( penetrations > 5 )
-			break;
-		vecCur = vecCur;  // advance origin for next leg (see binary)
+
+		ApplyMultiDamage( pev, pevAttacker );
 	}
-	ApplyMultiDamage( pev, pevAttacker );
-	return Vector( x, y, 0 );
+
+	return Vector( x * flSpread, y * flSpread, 0 );
 }
 
 void CBaseEntity::RifleMeleeAttack( CBasePlayer *pPlayer, int weapon_id )
