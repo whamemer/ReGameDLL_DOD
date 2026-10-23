@@ -361,6 +361,9 @@ void CBaseDoor::Precache( void )
 		PRECACHE_SOUND( pszSound );
 		m_ls.sUnlockedSound = ALLOC_STRING( pszSound );
 	}
+
+	PRECACHE_SOUND( "buttons/latchlocked1.wav" );
+
 	switch ( m_bLockedSentence )
 	{
 	case 1:
@@ -445,8 +448,7 @@ void CBaseDoor::DoorTouch( CBaseEntity *pOther )
 
 	// If door is somebody's target, then touching does nothing.
 	// You have to activate the owner (e.g. button).
-
-	if ( !FStringNull( pev->targetname ) )
+	if ( !FStringNull( pev->targetname ) && !FBitSet( pev->spawnflags, SF_DOOR_TOUCH_ONLY_CLIENTS ) )
 	{
 		// play locked sound
 		PlayLockSounds( pev, &m_ls, TRUE, FALSE );
@@ -455,8 +457,22 @@ void CBaseDoor::DoorTouch( CBaseEntity *pOther )
 
 	m_hActivator = pOther;	// remember who activated the door
 
-	if ( DoorActivate() )
+	// the door of one team stays closed for the other one
+	if ( ( TeamSpecific == 1 || TeamSpecific == 2 ) && m_hActivator->pev->team != TeamSpecific )
+	{
+		PlayLockSounds( pev, &m_ls, TRUE, FALSE );
+		return;
+	}
+
+	if ( UTIL_IsMasterTriggered( m_sMaster, m_hActivator ) )
+	{
+		if ( FBitSet( pev->spawnflags, SF_DOOR_NO_AUTO_RETURN ) && m_toggle_state == TS_AT_TOP )
+			DoorGoDown();
+		else if ( !DoorActivate() )
+			return;
+
 		SetTouch( NULL );  // Temporarily disable the touch function, until movement is finished.
+	}
 }
 
 //
@@ -465,10 +481,40 @@ void CBaseDoor::DoorTouch( CBaseEntity *pOther )
 void CBaseDoor::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	m_hActivator = pActivator;
+
+	// the door of the open/close kind obeys USE_ON and USE_OFF
+	if ( FBitSet( pev->spawnflags, SF_DOOR_ONOFF ) && UTIL_IsMasterTriggered( m_sMaster, pActivator ) )
+	{
+		if ( useType == USE_ON )
+		{
+			if ( m_toggle_state == TS_GOING_DOWN || m_toggle_state == TS_AT_BOTTOM )
+			{
+				PlayLockSounds( pev, &m_ls, FALSE, FALSE );
+				DoorGoUp();
+			}
+			return;
+		}
+
+		if ( useType == USE_OFF )
+		{
+			if ( m_toggle_state == TS_GOING_UP || m_toggle_state == TS_AT_TOP )
+				DoorGoDown();
+			return;
+		}
+	}
+
 	// if not ready to be used, ignore "use" command.
- 	if ( m_toggle_state == TS_AT_BOTTOM ||
- 		 ( FBitSet( pev->spawnflags, SF_DOOR_NO_AUTO_RETURN ) && m_toggle_state == TS_AT_TOP ) )
-		DoorActivate();
+	if ( m_toggle_state == TS_AT_BOTTOM ||
+		 ( FBitSet( pev->spawnflags, SF_DOOR_NO_AUTO_RETURN ) && m_toggle_state == TS_AT_TOP ) )
+	{
+		if ( UTIL_IsMasterTriggered( m_sMaster, m_hActivator ) )
+		{
+			if ( FBitSet( pev->spawnflags, SF_DOOR_NO_AUTO_RETURN ) && m_toggle_state == TS_AT_TOP )
+				DoorGoDown();
+			else
+				DoorActivate();
+		}
+	}
 }
 
 //
@@ -509,43 +555,54 @@ extern Vector VecBModelOrigin( entvars_t *pevBModel );
 //
 void CBaseDoor::DoorGoUp( void )
 {
-	entvars_t *pevActivator;
-
 	// It could be going-down, if blocked.
-	ASSERT( m_toggle_state == TS_AT_BOTTOM || m_toggle_state == TS_GOING_DOWN );
+	BOOL bReversing = ( m_toggle_state == TS_GOING_DOWN );
 
 	// emit door moving and stop sounds on CHAN_STATIC so that the multicast doesn't
 	// filter them out and leave a client stuck with looping door sounds!
 	if ( !FBitSet( pev->spawnflags, SF_DOOR_SILENT ) )
 	{
-		if ( m_toggle_state != TS_GOING_UP && m_toggle_state != TS_GOING_DOWN )
+		if ( m_toggle_state != TS_GOING_DOWN )
 			EMIT_SOUND( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseMoving ), 1, ATTN_NORM );
 	}
 
 	m_toggle_state = TS_GOING_UP;
 
 	SetMoveDone( &CBaseDoor::DoorHitTop );
+
+	if ( FBitSet( pev->spawnflags, SF_DOOR_ONOFF ) )
+		SUB_UseTargets( m_hActivator, USE_ON, 0 );
+
 	if ( FClassnameIs( pev, "func_door_rotating" ) )  // !!! BUGBUG Triggered doors don't work with this yet
 	{
 		float sign = 1.0;
 
 		if ( m_hActivator != NULL )
 		{
-			pevActivator = m_hActivator->pev;
+			entvars_t *pevActivator = m_hActivator->pev;
 
-			if ( !FBitSet( pev->spawnflags, SF_DOOR_ONEWAY ) &&
-				 pev->movedir.y )  // Y axis rotation, move away from the player
+			if ( !FBitSet( pev->spawnflags, SF_DOOR_ONEWAY ) && pev->movedir.y )  // Y axis rotation, move away from the player
 			{
 				Vector vec = pevActivator->origin - pev->origin;
-				Vector angles = pevActivator->angles;
-				angles.x = 0;
-				angles.z = 0;
-				UTIL_MakeVectors( angles );
-				//			Vector vnext = (pevToucher->origin + (pevToucher->velocity * 10)) - pev->origin;
+				float flOpposite;
+
 				UTIL_MakeVectors( pevActivator->angles );
 				Vector vnext = ( pevActivator->origin + ( gpGlobals->v_forward * 10 ) ) - pev->origin;
+
 				if ( ( vec.x * vnext.y - vec.y * vnext.x ) < 0 )
+				{
 					sign = -1.0;
+					flOpposite = 1.0;
+				}
+				else
+				{
+					sign = 1.0;
+					flOpposite = -1.0;
+				}
+
+				// a door that was closing goes on to the side it has been pushed to
+				if ( bReversing && pev->angles.y < 0 )
+					sign = flOpposite;
 			}
 		}
 		AngularMove( m_vecAngle2 * sign, pev->speed );
@@ -565,14 +622,13 @@ void CBaseDoor::DoorHitTop( void )
 		EMIT_SOUND( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseArrived ), 1, ATTN_NORM );
 	}
 
-	ASSERT( m_toggle_state == TS_GOING_UP );
 	m_toggle_state = TS_AT_TOP;
 
 	// toggle-doors don't come down automatically, they wait for refire.
 	if ( FBitSet( pev->spawnflags, SF_DOOR_NO_AUTO_RETURN ) )
 	{
 		// Re-instate touch method, movement is complete
-		if ( !FBitSet( pev->spawnflags, SF_DOOR_USE_ONLY ) )
+		if ( ( pev->spawnflags & ( SF_DOOR_USE_ONLY | SF_DOOR_TOUCH_ONLY_CLIENTS ) ) != SF_DOOR_USE_ONLY )
 			SetTouch( &CBaseDoor::DoorTouch );
 	}
 	else
@@ -588,10 +644,19 @@ void CBaseDoor::DoorHitTop( void )
 	}
 
 	// Fire the close target (if startopen is set, then "top" is closed) - netname is the close target
-	if ( pev->netname && ( pev->spawnflags & SF_DOOR_START_OPEN ) )
-		FireTargets( STRING( pev->netname ), m_hActivator, this, USE_TOGGLE, 0 );
+	if ( FBitSet( pev->spawnflags, SF_DOOR_START_OPEN ) )
+	{
+		if ( pev->netname )
+			FireTargets( STRING( pev->netname ), m_hActivator, this, USE_TOGGLE, 0 );
+	}
+	else if ( pev->message )
+	{
+		// message is the open target
+		FireTargets( STRING( pev->message ), m_hActivator, this, USE_TOGGLE, 0 );
+	}
 
-	SUB_UseTargets( m_hActivator, USE_TOGGLE, 0 );	// this isn't finished
+	if ( !FBitSet( pev->spawnflags, SF_DOOR_ONOFF ) )
+		SUB_UseTargets( m_hActivator, USE_TOGGLE, 0 );	// this isn't finished
 }
 
 //
@@ -601,16 +666,16 @@ void CBaseDoor::DoorGoDown( void )
 {
 	if ( !FBitSet( pev->spawnflags, SF_DOOR_SILENT ) )
 	{
-		if ( m_toggle_state != TS_GOING_UP && m_toggle_state != TS_GOING_DOWN )
+		if ( m_toggle_state != TS_GOING_UP )
 			EMIT_SOUND( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseMoving ), 1, ATTN_NORM );
 	}
 
-#ifdef DOOR_ASSERT
-	ASSERT( m_toggle_state == TS_AT_TOP );
-#endif	// DOOR_ASSERT
+	SetMoveDone( &CBaseDoor::DoorHitBottom );
 	m_toggle_state = TS_GOING_DOWN;
 
-	SetMoveDone( &CBaseDoor::DoorHitBottom );
+	if ( FBitSet( pev->spawnflags, SF_DOOR_ONOFF ) )
+		SUB_UseTargets( m_hActivator, USE_OFF, 0 );
+
 	if ( FClassnameIs( pev, "func_door_rotating" ) )  //rotating door
 		AngularMove( m_vecAngle1, pev->speed );
 	else
@@ -628,22 +693,29 @@ void CBaseDoor::DoorHitBottom( void )
 		EMIT_SOUND( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseArrived ), 1, ATTN_NORM );
 	}
 
-	ASSERT( m_toggle_state == TS_GOING_DOWN );
 	m_toggle_state = TS_AT_BOTTOM;
 
 	// Re-instate touch method, cycle is complete
-	if ( FBitSet( pev->spawnflags, SF_DOOR_USE_ONLY ) )
+	if ( ( pev->spawnflags & ( SF_DOOR_USE_ONLY | SF_DOOR_TOUCH_ONLY_CLIENTS ) ) == SF_DOOR_USE_ONLY )
 	{  // use only door
 		SetTouch( NULL );
 	}
 	else  // touchable door
 		SetTouch( &CBaseDoor::DoorTouch );
 
-	SUB_UseTargets( m_hActivator, USE_TOGGLE, 0 );	// this isn't finished
-
 	// Fire the close target (if startopen is set, then "top" is closed) - netname is the close target
-	if ( pev->netname && !( pev->spawnflags & SF_DOOR_START_OPEN ) )
+	if ( FBitSet( pev->spawnflags, SF_DOOR_START_OPEN ) )
+	{
+		if ( pev->message )
+			FireTargets( STRING( pev->message ), m_hActivator, this, USE_TOGGLE, 0 );
+	}
+	else if ( pev->netname )
+	{
 		FireTargets( STRING( pev->netname ), m_hActivator, this, USE_TOGGLE, 0 );
+	}
+
+	if ( !FBitSet( pev->spawnflags, SF_DOOR_ONOFF ) )
+		SUB_UseTargets( m_hActivator, USE_TOGGLE, 0 );	// this isn't finished
 }
 
 void CBaseDoor::Blocked( CBaseEntity *pOther )
@@ -698,17 +770,14 @@ void CBaseDoor::Blocked( CBaseEntity *pOther )
 							if ( FClassnameIs( pentTarget, "func_door" ) )
 							{  // set origin to realign normal doors
 								pDoor->pev->origin = pev->origin;
-								pDoor->pev->velocity = g_vecZero;  // stop!
 							}
 							else
 							{  // set angles to realign rotating doors
 								pDoor->pev->angles = pev->angles;
-								pDoor->pev->avelocity = g_vecZero;
 							}
-						}
 
-						if ( !FBitSet( pev->spawnflags, SF_DOOR_SILENT ) )
-							STOP_SOUND( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseMoving ) );
+							pDoor->pev->velocity = g_vecZero;  // stop!
+						}
 
 						if ( pDoor->m_toggle_state == TS_GOING_DOWN )
 							pDoor->DoorGoUp();

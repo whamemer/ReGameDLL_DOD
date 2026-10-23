@@ -38,7 +38,14 @@ extern DLL_GLOBAL int g_iSkillLevel;
 void CPointEntity ::Spawn( void )
 {
 	pev->solid = SOLID_NOT;
-	//	UTIL_SetSize(pev, g_vecZero, g_vecZero);
+
+	// the point entity has to be seen by the clients
+	if ( pev->spawnflags & 1 )
+	{
+		PRECACHE_MODEL( "sprites/null.spr" );
+		SET_MODEL( ENT( pev ), "sprites/null.spr" );
+		UTIL_SetSize( pev, g_vecZero, g_vecZero );
+	}
 }
 
 class CNullEntity : public CBaseEntity
@@ -283,7 +290,8 @@ void CBaseDelay ::SUB_UseTargets( CBaseEntity *pActivator, USE_TYPE useType, flo
 	{
 		// create a temp object to fire at a later time
 		CBaseDelay *pTemp = GetClassPtr( (CBaseDelay *) NULL );
-		pTemp->pev->classname = MAKE_STRING( "DelayedUse" );
+
+		MAKE_STRING_CLASS( "DelayedUse", pTemp->pev );
 
 		pTemp->pev->nextthink = gpGlobals->time + m_flDelay;
 
@@ -317,17 +325,8 @@ void CBaseDelay ::SUB_UseTargets( CBaseEntity *pActivator, USE_TYPE useType, flo
 
 	if ( m_iszKillTarget )
 	{
-		edict_t *pentKillTarget = NULL;
-
 		ALERT( at_aiconsole, "KillTarget: %s\n", STRING( m_iszKillTarget ) );
-		pentKillTarget = FIND_ENTITY_BY_TARGETNAME( NULL, STRING( m_iszKillTarget ) );
-		while ( !FNullEnt( pentKillTarget ) )
-		{
-			UTIL_Remove( CBaseEntity::Instance( pentKillTarget ) );
-
-			ALERT( at_aiconsole, "killing %s\n", STRING( pentKillTarget->v.classname ) );
-			pentKillTarget = FIND_ENTITY_BY_TARGETNAME( pentKillTarget, STRING( m_iszKillTarget ) );
-		}
+		FireTargets( STRING( m_iszKillTarget ), pActivator, this, USE_KILL, 0 );
 	}
 
 	//
@@ -335,7 +334,8 @@ void CBaseDelay ::SUB_UseTargets( CBaseEntity *pActivator, USE_TYPE useType, flo
 	//
 	if ( !FStringNull( pev->target ) )
 	{
-		FireTargets( STRING( pev->target ), pActivator, this, useType, value );
+		if ( useType != USE_NOT )
+			FireTargets( STRING( pev->target ), pActivator, this, useType, value );
 	}
 }
 
@@ -430,8 +430,18 @@ void CBaseToggle::KeyValue( KeyValueData *pkvd )
 		m_flMoveDistance = atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
+	else if ( FStrEq( pkvd->szKeyName, "delay" ) )
+	{
+		m_flDelay = atof( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "killtarget" ) )
+	{
+		m_iszKillTarget = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
 	else
-		CBaseDelay::KeyValue( pkvd );
+		pkvd->fHandled = FALSE;
 }
 
 /*

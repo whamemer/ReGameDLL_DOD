@@ -1585,11 +1585,7 @@ LINK_ENTITY_TO_CLASS( fireanddie, CFireAndDie );
 
 void CFireAndDie::Spawn( void )
 {
-	if ( pev->classname )
-		RemoveEntityHashValue( pev, STRING( pev->classname ), CLASSNAME );
-
-	pev->classname = MAKE_STRING( "fireanddie" );
-	AddEntityHashValue( pev, STRING( pev->classname ), CLASSNAME );
+	MAKE_STRING_CLASS( "fireanddie", pev );
 	// Don't call Precache() - it should be called on restore
 }
 
