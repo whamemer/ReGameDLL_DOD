@@ -3338,22 +3338,29 @@ void CDoDCamera::SetCameraMode( const char *szTargetname, int nFade )
 }
 
 
-// .text:0015a710 GetClanScoringValues (file:triggers.cpp:4654)
 int GetClanScoringValues( int team, int cp )
 {
-	const char *szValues = NULL;
-	if ( team == 1 )
-		szValues = CVAR_GET_STRING( "mp_clan_scoring_values_allies" );
-	else if ( team == 2 )
+	const char *szValues;
+
+	if ( team != 1 )
+	{
+		if ( team != 2 )
+			return 0;
+
 		szValues = CVAR_GET_STRING( "mp_clan_scoring_values_axis" );
+	}
 	else
-		return 0;
-	if ( !szValues || (int)strlen( szValues ) - 1 < cp )
+	{
+		szValues = CVAR_GET_STRING( "mp_clan_scoring_values_allies" );
+	}
+
+	if ( (int) strlen( szValues ) - 1 < cp )
 	{
 		ALERT( at_console, "Tried to get a clan scoring value for a point not defined in mp_clan_scoring_values_x\n" );
 		return 0;
 	}
-	return szValues[cp] - 30;
+
+	return szValues[cp] - '0';
 }
 
 // .text:0015c440 CDoDCamera::ReturnTimeLeft (file:triggers.cpp:7065)
@@ -3484,14 +3491,18 @@ void CAreaCapture::GetNumRequiredPlayers( int *reqAllies, int *reqAxis )
 // ODR: CDoDTeamPlay canonical in dod_gamerules.h
 bool CAreaCapture::CanUseCatchup()
 {
-	bool para = false;
-	if ( g_pGameRules )
+	bool bCatchup = false;
+	CDoDTeamPlay *pRules = (CDoDTeamPlay *) g_pGameRules;
+
+	if ( pRules )
 	{
-		CDoDTeamPlay *pRules = (CDoDTeamPlay *)g_pGameRules;
-		if ( pRules->IsAlliesInfinite() && !pRules->IsAxisInfinite() )
-			para = true;
+		bCatchup = true;
+
+		if ( pRules->IsAlliesInfinite() )
+			bCatchup = !pRules->IsAxisInfinite();
 	}
-	return (bool)( para && ( pev->spawnflags & 1 ) );
+
+	return ( pev->spawnflags & 1 ) && bCatchup;
 }
 // .text:0015ac80 CAreaCapture::GetNumAlive (file:triggers.cpp:5860)
 int CAreaCapture::GetNumAlive( int team )

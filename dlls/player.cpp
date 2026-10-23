@@ -4705,15 +4705,6 @@ bool CBasePlayer::HintMessage( const char *pMessage, BOOL bOverride )
 	return true;
 }
 
-// Tree-only helper: NO symbol in dod.so. Binary once-guards live in CALLERS
-// DECISION keep alias link 0x125140 Ghidra 0x135140 player.cpp:6309 part 0x11a8d0 nm shows no Once bits outside exact
-// via 0x7cc bits 0x40/0x80/0x100/0x400/0x8000/0x4000/0x1000/0x10/0x20 etc.
-// Forward to instance path which respects m_bShowHints.
-bool CBasePlayer::HintMessageOnce( const char *pMessage )
-{
-	return HintMessage( pMessage, 0 );
-}
-
 // .text:00137660 CBasePlayer::GoProne() size 0xac link 0x127660 (dod/dlls/player.cpp:6642)
 void CBasePlayer::GoProne( void )
 {

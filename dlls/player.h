@@ -387,7 +387,6 @@ class CBasePlayer : public CBaseMonster
 	virtual void AddPoints( int score, BOOL bAllowNegativeScore );
 	virtual void AddPointsToTeam( int score, BOOL bAllowNegativeScore );
 	bool HintMessage( const char *pMessage, BOOL bOverride );
-	bool HintMessageOnce( const char *pMessage );
 	// No symbol in dod.so (suit system removed); kept because items.cpp still calls it.
 	void SetSuitUpdate( const char *name, int fgroup, int iNoRepeat );
 	void SetPrefsFromUserinfo( char *infobuffer );

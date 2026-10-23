@@ -196,7 +196,7 @@ void CObject::ObjectTouch( CBaseEntity *pOther )
 		if ( ( ( (CBasePlayer *) pOther )->m_flDisplayHistory & 0x100 ) == 0 )
 		{
 			( (CBasePlayer *) pOther )->m_flDisplayHistory |= 0x100;
-			( (CBasePlayer *) pOther )->HintMessageOnce( "#Hint_picked_up_object" );
+			( (CBasePlayer *) pOther )->HintMessage( "#Hint_picked_up_object", 0 );
 		}
 		if ( pev->noise )
 			EMIT_SOUND_DYN( pOther->edict(), CHAN_ITEM, STRING( pev->noise ), 1.0, 0.8, 0, 100 );
@@ -348,7 +348,7 @@ void CObjectCapture::Touch( CBaseEntity *pOther )
 		if ( ( pPlayer->m_flDisplayHistory & 0x8000 ) == 0 )
 		{
 			pPlayer->m_flDisplayHistory |= 0x8000;
-			pPlayer->HintMessageOnce( "#Hint_area_requires_object" );
+			pPlayer->HintMessage( "#Hint_area_requires_object", 0 );
 		}
 		return;
 	}

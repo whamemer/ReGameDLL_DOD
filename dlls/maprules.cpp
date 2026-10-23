@@ -958,7 +958,7 @@ void CAreaCapture::AreaTouch( CBaseEntity *pOther )
 			goto presentState;
 		}
 		pPlayer->m_flDisplayHistory |= 0x40;
-		pPlayer->HintMessageOnce( "#Hint_touched_area_capture" );
+		pPlayer->HintMessage( "#Hint_touched_area_capture", 0 );
 		pPlayer->m_iCapAreaIconIndex = m_iAreaIndex;
 	}
 	else
@@ -979,7 +979,7 @@ presentState:
 			if ( m_nOwningTeam == pPlayer->pev->team )
 				return;
 			pPlayer->m_flDisplayHistory |= 0x8000;
-			pPlayer->HintMessageOnce( "#Hint_area_requires_object" );
+			pPlayer->HintMessage( "#Hint_area_requires_object", 0 );
 			return;
 		}
 		if ( strcmp( sz_RequiredObjectGroup, pPlayer->m_pObject->sz_Group ) != 0 )
@@ -1370,38 +1370,47 @@ void CControlPoint::Precache()
 // per-team can-touch block, no-op when toucher team == owner.
 void CControlPoint::Touch( CBaseEntity *pOther )
 {
-	if ( g_pGameRules->RoundState() != 1 )
-		return;
-	if ( !m_bActive )
-		return;
-	if ( gpGlobals->time < m_fNextCapTime )
-		return;
-	if ( !pOther->IsPlayer() || !pOther->IsAlive() )
-		return;
-	int team = pOther->pev->team;
-	if ( team == 1 && m_bAlliesCantTouch )
-		return;
-	if ( team == 2 && m_bAxisCantTouch )
-		return;
-	if ( team != m_iTeam )
+	if ( g_pGameRules->RoundState() == 1 && m_bActive && m_fNextCapTime <= gpGlobals->time && pOther->IsPlayer() &&
+		 pOther->IsAlive() )
 	{
-		if ( !m_bActive )
+		int team = pOther->pev->team;
+
+		if ( team == 1 )
 		{
-			SET_MODEL( edict(), sz_ResetModel );
-			SetBodygroup( 0, m_iResetModelBodygroup );
+			if ( m_bAlliesCantTouch )
+				return;
 		}
-		else
+		else if ( team == 2 && m_bAxisCantTouch )
 		{
-			SetOwner( team, TRUE, (CBasePlayer *) pOther );
+			return;
 		}
-		// one-time hint per player (bit 0x80 in m_flDisplayHistory)
-		if ( ( ( (CBasePlayer *) pOther )->m_flDisplayHistory & 0x80 ) == 0 )
+
+		if ( team != m_iTeam )
 		{
-			( (CBasePlayer *) pOther )->m_flDisplayHistory |= 0x80;
-			( (CBasePlayer *) pOther )->HintMessageOnce( "#Hint_touched_control_point" );
+			if ( m_bActive )
+			{
+				SetOwner( team, TRUE, (CBasePlayer *) pOther );
+			}
+			else
+			{
+				SET_MODEL( edict(), sz_ResetModel );
+				SetBodygroup( 0, m_iResetModelBodygroup );
+			}
+
+			CBasePlayer *pPlayer = (CBasePlayer *) pOther;
+
+			if ( !( pPlayer->m_flDisplayHistory & 0x80 ) )
+			{
+				pPlayer->m_flDisplayHistory |= 0x80;
+				pPlayer->HintMessage( "#Hint_touched_control_point", 0 );
+			}
+
+			UTIL_LogPrintf( "\"%s<%i><%s><%s>\" triggered a \"dod_control_point\" - \"%s\"\n", STRING( pOther->pev->netname ),
+							GETPLAYERUSERID( pOther->edict() ), GETPLAYERAUTHID( pOther->edict() ),
+							pOther->pev->team == 1 ? "Allies" : "Axis", STRING( pev->netname ) );
+
+			m_fNextCapTime = gpGlobals->time + m_fCapDelayTime;
 		}
-		UTIL_LogPrintf( "%s triggered a dod_control_point - %s", PlayerLogLine( pOther ), STRING( pev->netname ) );
-		m_fNextCapTime = gpGlobals->time + m_fCapDelayTime;
 	}
 }
 
