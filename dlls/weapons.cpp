@@ -428,10 +428,14 @@ void CBasePlayerItem ::FallInit( void )
 	UTIL_SetOrigin( pev, pev->origin );
 	UTIL_SetSize( pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ) );	//pointsize until it lands on the ground.
 
+	SetUse( NULL );
 	SetTouch( &CBasePlayerItem::DefaultTouch );
-	SetThink( &CBasePlayerItem::FallThink );
 
-	pev->nextthink = gpGlobals->time + 0.1;
+	m_vRespawnOrigin = pev->origin;
+	m_vRespawnAngles = pev->angles;
+
+	SetThink( &CBasePlayerItem::FallThink );
+	pev->nextthink = UTIL_WeaponTimeBase() + 0.1;
 }
 
 //=========================================================
@@ -443,7 +447,7 @@ void CBasePlayerItem ::FallInit( void )
 //=========================================================
 void CBasePlayerItem::FallThink( void )
 {
-	pev->nextthink = gpGlobals->time + 0.1;
+	pev->nextthink = UTIL_WeaponTimeBase() + 0.1;
 
 	if ( pev->flags & FL_ONGROUND )
 	{
@@ -452,7 +456,7 @@ void CBasePlayerItem::FallThink( void )
 		if ( !FNullEnt( pev->owner ) )
 		{
 			int pitch = 95 + RANDOM_LONG( 0, 29 );
-			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "items/weapondrop1.wav", 1, ATTN_NORM, 0, pitch );
+			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "items/weapondrop.wav", 1, ATTN_NORM, 0, pitch );
 		}
 
 		// lie flat
@@ -460,19 +464,6 @@ void CBasePlayerItem::FallThink( void )
 		pev->angles.z = 0;
 
 		Materialize();
-	}
-	else if ( m_pPlayer != NULL )
-	{
-		SetThink( NULL );
-	}
-
-	//This weapon is an egon, it has no owner and we're in busting mode, so just remove it when it hits the ground
-	if ( IsBustingGame() && FNullEnt( pev->owner ) )
-	{
-		if ( !strcmp( "weapon_egon", STRING( pev->classname ) ) )
-		{
-			UTIL_Remove( this );
-		}
 	}
 }
 
@@ -484,7 +475,6 @@ void CBasePlayerItem::Materialize( void )
 	if ( pev->effects & EF_NODRAW )
 	{
 		// changing from invisible state to visible.
-		EMIT_SOUND_DYN( ENT( pev ), CHAN_WEAPON, "items/suitchargeok1.wav", 1, ATTN_NORM, 0, 150 );
 		pev->effects &= ~EF_NODRAW;
 		pev->effects |= EF_MUZZLEFLASH;
 	}
@@ -493,7 +483,9 @@ void CBasePlayerItem::Materialize( void )
 
 	UTIL_SetOrigin( pev, pev->origin );	 // link into world.
 	SetTouch( &CBasePlayerItem::DefaultTouch );
+	m_bReadyToRespawn = FALSE;
 	SetThink( NULL );
+	SetUse( NULL );
 }
 
 //=========================================================
@@ -510,7 +502,7 @@ void CBasePlayerItem::AttemptToMaterialize( void )
 		return;
 	}
 
-	pev->nextthink = gpGlobals->time + time;
+	pev->nextthink = UTIL_WeaponTimeBase() + time;
 }
 
 //=========================================================
@@ -544,8 +536,9 @@ CBaseEntity *CBasePlayerItem::Respawn( void )
 	if ( pNewWeapon )
 	{
 		pNewWeapon->pev->effects |= EF_NODRAW;	// invisible for now
-		pNewWeapon->SetTouch( NULL );			// no touch
 		pNewWeapon->SetThink( &CBasePlayerItem::AttemptToMaterialize );
+		pNewWeapon->SetTouch( NULL );			// no touch
+		( (CBasePlayerItem *) pNewWeapon )->m_bReadyToRespawn = TRUE;
 
 		DROP_TO_FLOOR( ENT( pev ) );
 
@@ -570,22 +563,20 @@ void CBasePlayerItem::DefaultTouch( CBaseEntity *pOther )
 	CBasePlayer *pPlayer = (CBasePlayer *) pOther;
 
 	// can I have this?
-	if ( !g_pGameRules->CanHavePlayerItem( pPlayer, this ) )
+	if ( g_pGameRules->CanHavePlayerItem( pPlayer, this ) )
 	{
-		if ( gEvilImpulse101 )
+		if ( pOther->AddPlayerItem( this ) )
 		{
-			UTIL_Remove( this );
+			AttachToPlayer( pPlayer );
+			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_ITEM, "items/weaponpickup.wav", 1, ATTN_NORM, 0, PITCH_NORM );
 		}
-		return;
-	}
 
-	if ( pOther->AddPlayerItem( this ) )
+		SUB_UseTargets( pOther, USE_TOGGLE, 0 );  // UNDONE: when should this happen?
+	}
+	else if ( gEvilImpulse101 )
 	{
-		AttachToPlayer( pPlayer );
-		EMIT_SOUND( ENT( pPlayer->pev ), CHAN_ITEM, "items/gunpickup2.wav", 1, ATTN_NORM );
+		UTIL_Remove( this );
 	}
-
-	SUB_UseTargets( pOther, USE_TOGGLE, 0 );  // UNDONE: when should this happen?
 }
 
 BOOL CanAttack( float attack_time, float curtime, BOOL isPredicted )
@@ -705,16 +696,52 @@ int CBasePlayerItem::AddToPlayer( CBasePlayer *pPlayer )
 
 void CBasePlayerItem::Drop( void )
 {
+	// another weapon of this kind that is waiting for the death of this one comes back
+	if ( m_bTriggerSpawnOnDie )
+	{
+		CBasePlayerItem *pItem = (CBasePlayerItem *) UTIL_FindEntityByClassname( NULL, STRING( pev->classname ) );
+
+		while ( pItem )
+		{
+			if ( pItem->m_bReadyToRespawn )
+			{
+				pItem->SetThink( &CBasePlayerItem::AttemptToMaterialize );
+				pItem->pev->nextthink = gpGlobals->time + 0.1;
+				break;
+			}
+
+			pItem = (CBasePlayerItem *) UTIL_FindEntityByClassname( pItem, STRING( pev->classname ) );
+		}
+	}
+
 	SetTouch( NULL );
 	SetThink( &CBasePlayerItem::SUB_Remove );
-	pev->nextthink = gpGlobals->time + .1;
+	pev->nextthink = UTIL_WeaponTimeBase() + 0.1;
 }
 
 void CBasePlayerItem::Kill( void )
 {
+	// another weapon of this kind that is waiting for the death of this one comes back
+	if ( m_bTriggerSpawnOnDie )
+	{
+		CBasePlayerItem *pItem = (CBasePlayerItem *) UTIL_FindEntityByClassname( NULL, STRING( pev->classname ) );
+
+		while ( pItem )
+		{
+			if ( pItem->m_bReadyToRespawn )
+			{
+				pItem->SetThink( &CBasePlayerItem::AttemptToMaterialize );
+				pItem->pev->nextthink = gpGlobals->time + 0.1;
+				break;
+			}
+
+			pItem = (CBasePlayerItem *) UTIL_FindEntityByClassname( pItem, STRING( pev->classname ) );
+		}
+	}
+
 	SetTouch( NULL );
 	SetThink( &CBasePlayerItem::SUB_Remove );
-	pev->nextthink = gpGlobals->time + .1;
+	pev->nextthink = UTIL_WeaponTimeBase() + 0.1;
 }
 
 void CBasePlayerItem::Holster( int skiplocal /* = 0 */ )
@@ -725,6 +752,8 @@ void CBasePlayerItem::Holster( int skiplocal /* = 0 */ )
 
 void CBasePlayerItem::AttachToPlayer( CBasePlayer *pPlayer )
 {
+	ItemInfo ii;
+
 	pev->movetype = MOVETYPE_FOLLOW;
 	pev->solid = SOLID_NOT;
 	pev->aiment = pPlayer->edict();
@@ -732,8 +761,13 @@ void CBasePlayerItem::AttachToPlayer( CBasePlayer *pPlayer )
 	pev->modelindex = 0;	   // server won't send down to clients if modelindex == 0
 	pev->model = iStringNull;
 	pev->owner = pPlayer->edict();
-	pev->nextthink = gpGlobals->time + .1;
+	pev->nextthink = UTIL_WeaponTimeBase() + 0.1;
 	SetTouch( NULL );
+
+	GetItemInfo( &ii );
+
+	if ( !( ii.iFlags & ITEM_FLAG_HEAT ) )
+		SetThink( NULL );
 }
 
 // CALLED THROUGH the newly-touched weapon's instance. The existing player weapon is pOriginal
@@ -752,9 +786,9 @@ int CBasePlayerWeapon::AddDuplicate( CBasePlayerItem *pOriginal )
 
 int CBasePlayerWeapon::AddToPlayer( CBasePlayer *pPlayer )
 {
-	int bResult = CBasePlayerItem::AddToPlayer( pPlayer );
+	m_pPlayer = pPlayer;
 
-	pPlayer->pev->weapons |= ( 1 << m_iId );
+	pPlayer->SetHasWeapon( m_iId );
 
 	if ( !m_iPrimaryAmmoType )
 	{
@@ -762,9 +796,7 @@ int CBasePlayerWeapon::AddToPlayer( CBasePlayer *pPlayer )
 		m_iSecondaryAmmoType = pPlayer->GetAmmoIndex( pszAmmo2() );
 	}
 
-	if ( bResult )
-		return AddWeapon();
-	return FALSE;
+	return AddWeapon();
 }
 
 int CBasePlayerWeapon::UpdateClientData( CBasePlayer *pPlayer )
@@ -869,8 +901,6 @@ BOOL CBasePlayerWeapon ::AddPrimaryAmmo( int iCount, char *szName, int iMaxClip,
 		iIdAmmo = m_pPlayer->GiveAmmo( iCount, szName, iMaxCarry );
 	}
 
-	// m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] = iMaxCarry; // hack for testing
-
 	if ( iIdAmmo > 0 )
 	{
 		m_iPrimaryAmmoType = iIdAmmo;
@@ -878,7 +908,7 @@ BOOL CBasePlayerWeapon ::AddPrimaryAmmo( int iCount, char *szName, int iMaxClip,
 		{
 			// play the "got ammo" sound only if we gave some ammo to a player that already had this gun.
 			// if the player is just getting this gun for the first time, DefaultTouch will play the "picked up gun" sound for us.
-			EMIT_SOUND( ENT( pev ), CHAN_ITEM, "items/9mmclip1.wav", 1, ATTN_NORM );
+			EMIT_SOUND_DYN( ENT( pev ), CHAN_ITEM, "items/ammopickup.wav", 1, ATTN_NORM, 0, PITCH_NORM );
 		}
 	}
 
@@ -891,13 +921,12 @@ BOOL CBasePlayerWeapon ::AddSecondaryAmmo( int iCount, char *szName, int iMax )
 
 	iIdAmmo = m_pPlayer->GiveAmmo( iCount, szName, iMax );
 
-	//m_pPlayer->m_rgAmmo[m_iSecondaryAmmoType] = iMax; // hack for testing
-
 	if ( iIdAmmo > 0 )
 	{
 		m_iSecondaryAmmoType = iIdAmmo;
-		EMIT_SOUND( ENT( pev ), CHAN_ITEM, "items/9mmclip1.wav", 1, ATTN_NORM );
+		EMIT_SOUND_DYN( ENT( pev ), CHAN_ITEM, "items/ammopickup.wav", 1, ATTN_NORM, 0, PITCH_NORM );
 	}
+
 	return iIdAmmo > 0 ? TRUE : FALSE;
 }
 
@@ -1140,7 +1169,11 @@ int CBasePlayerWeapon::ExtractAmmo( CBasePlayerWeapon *pWeapon )
 	{
 		// blindly call with m_iDefaultAmmo. It's either going to be a value or zero. If it is zero,
 		// we only get the ammo in the weapon's clip, which is what we want.
-		iReturn = pWeapon->AddPrimaryAmmo( m_iDefaultAmmo, (char *) pszAmmo1(), iMaxClip(), iMaxAmmo1() );
+		if ( m_iId == WEAPON_ENFIELD )
+			iReturn = pWeapon->AddPrimaryAmmo( m_iDefaultAmmo, (char *) pszAmmo1(), 10, iMaxAmmo1() );
+		else
+			iReturn = pWeapon->AddPrimaryAmmo( m_iDefaultAmmo, (char *) pszAmmo1(), iMaxClip(), iMaxAmmo1() );
+
 		m_iDefaultAmmo = 0;
 	}
 
@@ -1526,21 +1559,7 @@ void CBasePlayerWeapon::PrintState( void )
 // do not exist in Day of Defeat; their savestore tables (and the vtables/typeinfo they
 // emitted) were removed so the DLL exports/imports match the shipped dod.so exactly.
 
-// DoD zoom/stamina/mortar/water-sniping impls (restore/weapons/NOTES.md; addrs in weapons.h restore)
-// CBasePlayer::UpdateScope (player.cpp:5539) emits gmsgScope; declared in player.h by the
-// player agent. Replicate its network side locally so the weapon core stays self-contained.
-extern int gmsgScope;
-
-static void DOD_SendScope( CBasePlayer *pPlayer, int weapon_id )
-{
-	if ( !pPlayer || pPlayer->pev->vuser1.z != 0.0f )
-		return;
-
-	MESSAGE_BEGIN( MSG_ONE, gmsgScope, NULL, pPlayer->pev );
-	WRITE_BYTE( weapon_id );
-	MESSAGE_END();
-}
-
+// DoD zoom/stamina/mortar/water-sniping impls
 // .text:0016acd0 UpdateZoomSpeed - only for CLASS_SCOPED_RIFLE(0x20)
 void CBasePlayerWeapon::UpdateZoomSpeed( void )
 {
@@ -1550,36 +1569,34 @@ void CBasePlayerWeapon::UpdateZoomSpeed( void )
 		return;
 	m_pPlayer->CheckPlayerSpeed();
 }
-// .text:0016ad10 ZoomOut - reset scope unless zoom-locked (vuser1.z)
 int CBasePlayerWeapon::ZoomOut( void )
 {
-	if ( !m_pPlayer )
-		return 0;
 	if ( m_pPlayer->pev->vuser1.z != 0.0f )
 		return m_pPlayer->m_iFOV;
+
 	m_pPlayer->CheckPlayerSpeed();
-	DOD_SendScope( m_pPlayer, 0 );
+	m_pPlayer->UpdateScope( 0 );
+
 	return 0;
 }
-// .text:0016ad70 ZoomIn - sniper(0x20)/scope(0x400) only, returns FOV 20
 int CBasePlayerWeapon::ZoomIn( void )
 {
-	int cls = Classify();
-	if ( cls != 0x20 && cls != 0x400 )
-		return 0;
-	DOD_SendScope( m_pPlayer, m_iId );
-	return 20;
+	if ( Classify() == CLASS_SCOPED_RIFLE || Classify() == 0x400 )
+	{
+		m_pPlayer->UpdateScope( m_iId );
+		return 20;
+	}
+
+	return 0;
 }
-// .text:0016add0 ChangeFOV - toggles off when already scoped
 int CBasePlayerWeapon::ChangeFOV( int fov )
 {
-	if ( !m_pPlayer )
-		return fov;
 	if ( m_pPlayer->m_iFOV > 0 )
 	{
-		DOD_SendScope( m_pPlayer, 0 );
-		fov = 0;
+		m_pPlayer->UpdateScope( 0 );
+		return 0;
 	}
+
 	return fov;
 }
 // .text:0016d820 ThinkZoomOut
