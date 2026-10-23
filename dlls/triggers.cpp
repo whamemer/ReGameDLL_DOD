@@ -2549,7 +2549,7 @@ void CSandBag::SandBagTouch( CBaseEntity *pOther )
 	if ( !( *pFlags & 0x400 ) )
 	{
 		*pFlags |= 0x400;
-		CBasePlayer::HintMessage( pPlayer, "#Hint_sandbag_area_touch", 0 );
+		pPlayer->HintMessage( "#Hint_sandbag_area_touch", 0 );
 	}
 }
 

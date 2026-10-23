@@ -1223,14 +1223,17 @@ all the ammo we have into the ammo vars.
 */
 void CBasePlayer::TabulateAmmo()
 {
-	ammo_9mm = AmmoInventory( GetAmmoIndex( "9mm" ) );
-	ammo_357 = AmmoInventory( GetAmmoIndex( "357" ) );
-	ammo_argrens = AmmoInventory( GetAmmoIndex( "ARgrenades" ) );
-	ammo_bolts = AmmoInventory( GetAmmoIndex( "bolts" ) );
-	ammo_buckshot = AmmoInventory( GetAmmoIndex( "buckshot" ) );
+	ammo_12mm = AmmoInventory( GetAmmoIndex( "ammo_12mm" ) );
+	ammo_16mm = AmmoInventory( GetAmmoIndex( "ammo_16mm" ) );
+	ammo_22mm = AmmoInventory( GetAmmoIndex( "ammo_22mm" ) );
+	ammo_44mm = AmmoInventory( GetAmmoIndex( "ammo_44mm" ) );
+	ammo_55mm = AmmoInventory( GetAmmoIndex( "ammo_55mm" ) );
+	ammo_66mm = AmmoInventory( GetAmmoIndex( "ammo_66mm" ) );
+	ammo_agrens = AmmoInventory( GetAmmoIndex( "ammo_agrens" ) );
+	ammo_agrensex = AmmoInventory( GetAmmoIndex( "ammo_agrensex" ) );
+	ammo_ggrens = AmmoInventory( GetAmmoIndex( "ammo_ggrens" ) );
+	ammo_ggrensex = AmmoInventory( GetAmmoIndex( "ammo_ggrensex" ) );
 	ammo_rockets = AmmoInventory( GetAmmoIndex( "rockets" ) );
-	ammo_uranium = AmmoInventory( GetAmmoIndex( "uranium" ) );
-	ammo_hornets = AmmoInventory( GetAmmoIndex( "Hornets" ) );
 }
 
 /*
@@ -1728,92 +1731,104 @@ void CBasePlayer::InitStatusBar()
 
 void CBasePlayer::UpdateStatusBar()
 {
-	int newSBarState[SBAR_END];
-	char sbuf0[SBAR_STRING_SIZE];
-	char sbuf1[SBAR_STRING_SIZE];
+	CBaseEntity *pEntity;
+	int iIndex;
+	int iHealth = 0;
+	float flDelay;
 
-	memset( newSBarState, 0, sizeof( newSBarState ) );
-	strcpy( sbuf0, m_SbarString0 );
-	strcpy( sbuf1, m_SbarString1 );
-
-	// Find an ID Target
-	TraceResult tr;
-	UTIL_MakeVectors( pev->v_angle + pev->punchangle );
-	Vector vecSrc = EyePosition();
-	Vector vecEnd = vecSrc + ( gpGlobals->v_forward * MAX_ID_RANGE );
-	UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, edict(), &tr );
-
-	if ( tr.flFraction != 1.0 )
+	if ( m_hObserverTarget && ( pev->iuser1 == 1 || pev->iuser1 == 2 || pev->iuser1 == 4 ) )
 	{
-		if ( !FNullEnt( tr.pHit ) )
+		// spectators see the health of the player they are watching
+		pEntity = UTIL_PlayerByIndex( ENTINDEX( m_hObserverTarget->edict() ) );
+
+		if ( pEntity && !FNullEnt( pEntity->edict() ) )
 		{
-			CBaseEntity *pEntity = CBaseEntity::Instance( tr.pHit );
+			iHealth = pEntity->pev->health / pEntity->pev->max_health * 100;
+			iIndex = ENTINDEX( pEntity->edict() );
+		}
+		else
+		{
+			iIndex = -1;
 
-			if ( pEntity->Classify() == CLASS_PLAYER )
+			if ( m_flStatusBarDisappearDelay > gpGlobals->time )
 			{
-				newSBarState[SBAR_ID_TARGETNAME] = ENTINDEX( pEntity->edict() );
-				strcpy( sbuf1, "1 %p1\n2 Health: %i2%%\n3 Armor: %i3%%" );
-
-				// allies and medics get to see the targets health
-				if ( g_pGameRules->PlayerRelationship( this, pEntity ) == GR_TEAMMATE )
-				{
-					newSBarState[SBAR_ID_TARGETHEALTH] = 100 * ( pEntity->pev->health / pEntity->pev->max_health );
-					newSBarState[SBAR_ID_TARGETARMOR] =
-						pEntity->pev->armorvalue;  //No need to get it % based since 100 it's the max.
-				}
-
-				m_flStatusBarDisappearDelay = gpGlobals->time + 1.0;
+				iIndex = m_izSBarState[SBAR_ID_TARGETNAME];
+				iHealth = m_izSBarState[SBAR_ID_TARGETHEALTH];
 			}
 		}
-		else if ( m_flStatusBarDisappearDelay > gpGlobals->time )
+
+		flDelay = gpGlobals->time + 10.0;
+	}
+	else
+	{
+		// find an ID target
+		TraceResult tr;
+
+		UTIL_MakeVectors( pev->v_angle + pev->punchangle );
+
+		Vector vecSrc = EyePosition();
+		Vector vecEnd = vecSrc + gpGlobals->v_forward * 2048;
+
+		UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, edict(), &tr );
+
+		if ( tr.flFraction == 1.0 || FNullEnt( tr.pHit ) )
+			return;
+
+		pEntity = CBaseEntity::Instance( tr.pHit );
+
+		if ( pEntity->Classify() != CLASS_PLAYER )
+			return;
+
+		if ( pev->team == pEntity->pev->team || pev->iuser1 > 0 )
 		{
-			// hold the values for a short amount of time after viewing the object
-			newSBarState[SBAR_ID_TARGETNAME] = m_izSBarState[SBAR_ID_TARGETNAME];
-			newSBarState[SBAR_ID_TARGETHEALTH] = m_izSBarState[SBAR_ID_TARGETHEALTH];
-			newSBarState[SBAR_ID_TARGETARMOR] = m_izSBarState[SBAR_ID_TARGETARMOR];
+			if ( !( m_flDisplayHistory & 2 ) )
+			{
+				if ( IsAlive() )
+				{
+					m_flDisplayHistory |= 2;
+
+					if ( m_bShowHints )
+					{
+						MESSAGE_BEGIN( MSG_ONE, gmsgHudText, NULL, pev );
+							WRITE_STRING( "#Hint_spotted_a_friend" );
+							WRITE_BYTE( 1 );
+						MESSAGE_END();
+					}
+				}
+			}
+
+			iHealth = pEntity->pev->health / pEntity->pev->max_health * 100;
+			iIndex = ENTINDEX( edict() );
+			flDelay = gpGlobals->time + 2.0;
+		}
+		else
+		{
+			if ( (unsigned int) ( pEntity->pev->team - 1 ) <= 1 )
+			{
+				if ( m_flDisplayHistory & 4 )
+				{
+					m_flDisplayHistory |= 4;
+					HintMessage( "#Hint_spotted_an_enemy", FALSE );
+				}
+			}
+
+			return;
 		}
 	}
 
-	BOOL bForceResend = FALSE;
+	m_flStatusBarDisappearDelay = flDelay;
+	m_hLastIDTarget = pEntity;
 
-	if ( strcmp( sbuf0, m_SbarString0 ) )
+	if ( iIndex != -1 && ( m_izSBarState[SBAR_ID_TARGETNAME] != iIndex || m_izSBarState[SBAR_ID_TARGETHEALTH] != iHealth ) )
 	{
-		MESSAGE_BEGIN( MSG_ONE, gmsgStatusText, NULL, pev );
-		WRITE_BYTE( 0 );
-		WRITE_STRING( sbuf0 );
+		int iSend = iHealth >= 0 ? iHealth : 0;
+
+		MESSAGE_BEGIN( MSG_ONE, gmsgStatusValue, NULL, pev );
+			WRITE_BYTE( iSend );
 		MESSAGE_END();
 
-		strcpy( m_SbarString0, sbuf0 );
-
-		// make sure everything's resent
-		bForceResend = TRUE;
-	}
-
-	if ( strcmp( sbuf1, m_SbarString1 ) )
-	{
-		MESSAGE_BEGIN( MSG_ONE, gmsgStatusText, NULL, pev );
-		WRITE_BYTE( 1 );
-		WRITE_STRING( sbuf1 );
-		MESSAGE_END();
-
-		strcpy( m_SbarString1, sbuf1 );
-
-		// make sure everything's resent
-		bForceResend = TRUE;
-	}
-
-	// Check values and send if they don't match
-	for ( int i = 1; i < SBAR_END; i++ )
-	{
-		if ( newSBarState[i] != m_izSBarState[i] || bForceResend )
-		{
-			MESSAGE_BEGIN( MSG_ONE, gmsgStatusValue, NULL, pev );
-			WRITE_BYTE( i );
-			WRITE_SHORT( newSBarState[i] );
-			MESSAGE_END();
-
-			m_izSBarState[i] = newSBarState[i];
-		}
+		m_izSBarState[SBAR_ID_TARGETHEALTH] = iSend;
+		m_izSBarState[SBAR_ID_TARGETNAME] = iIndex;
 	}
 }
 
@@ -4048,36 +4063,26 @@ bool CBasePlayer::SetSpeed( int speed )
 }
 
 // DoD hint system - RESTORED from dod.so player.cpp 6308-6331.
-// link 0x125140 wrapper Ghidra 0x135140: m_bShowHints at +0x798 gate.
-// link 0x11a8d0 part Ghidra 0x12a8d0: direct HudText send, 499 clamp.
-// bOverride accepted but IGNORED in binary.
-// wrapper callers: PlayerKilled, ClientCommand, ObjectTouch, UpdateStatusBar,
-// SandBagTouch, Touch, AreaTouch x2, Touch, PrimaryAttack x2.
-// part callers: DropPlayerItem x2, HintMessage wrapper, TakeDamage, Stamina, UpdateClientData.
 bool CBasePlayer::HintMessage( const char *pMessage, BOOL bOverride )
 {
-	if ( m_bShowHints )
-		CBasePlayer::HintMessage( this, pMessage, bOverride );
-	return true;
-}
-
-bool CBasePlayer::HintMessage( CBasePlayer *pPlayer, const char *pMessage, BOOL bOverride )
-{
-	(void) bOverride;
-	if ( !pPlayer || !pPlayer->pev || !pMessage )
-		return true;
-	MESSAGE_BEGIN( MSG_ONE, gmsgHudText, NULL, pPlayer->pev->pContainingEntity );
 	char tmp[500];
-	const char *msg = pMessage;
-	if ( strlen( msg ) > 499 )
+
+	if ( !m_bShowHints )
+		return true;
+
+	MESSAGE_BEGIN( MSG_ONE, gmsgHudText, NULL, pev );
+
+	if ( strlen( pMessage ) > 499 )
 	{
-		strncpy( tmp, msg, 499 );
+		strncpy( tmp, pMessage, 499 );
 		tmp[499] = 0;
-		msg = tmp;
+		pMessage = tmp;
 	}
-	WRITE_STRING( msg );
+
+	WRITE_STRING( pMessage );
 	WRITE_BYTE( 1 );
 	MESSAGE_END();
+
 	return true;
 }
 
@@ -4667,10 +4672,49 @@ void CBasePlayer::VoteMenu( int kickplayer, int menu )
 	WRITE_STRING( "" );
 	MESSAGE_END();
 }
-// .text:00131f60 link 0x131f60 (menu text ported minimally)
-void CBasePlayer::VoiceMenu( int i )
+void CBasePlayer::VoiceMenu( int menuNum )
 {
-	ClearVoiceMenu();
+	char szText[32];
+
+	if ( pev->iuser1 || pev->iuser2 )
+		return;
+
+	lastMenuSelected = menuNum;
+
+	if ( menuNum == 1 )
+	{
+		if ( pev->team != 1 )
+			strcpy( szText, "#Menu_GerVoice1" );
+		else if ( ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
+			strcpy( szText, "#Menu_BritVoice1" );
+		else
+			strcpy( szText, "#Menu_AmerVoice1" );
+	}
+	else if ( menuNum == 2 )
+	{
+		if ( pev->team != 1 )
+			strcpy( szText, "#Menu_GerVoice2" );
+		else if ( ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
+			strcpy( szText, "#Menu_BritVoice2" );
+		else
+			strcpy( szText, "#Menu_AmerVoice2" );
+	}
+	else
+	{
+		if ( pev->team != 1 )
+			strcpy( szText, "#Menu_GerVoice3" );
+		else if ( ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
+			strcpy( szText, "#Menu_BritVoice3" );
+		else
+			strcpy( szText, "#Menu_AmerVoice3" );
+	}
+
+	MESSAGE_BEGIN( MSG_ONE, gmsgShowMenu, NULL, pev );
+		WRITE_SHORT( 1023 );
+		WRITE_CHAR( 127 );
+		WRITE_BYTE( 0 );
+		WRITE_STRING( szText );
+	MESSAGE_END();
 }
 // .text:00133c20 link 0x133c20
 void CBasePlayer::HandSignal( int signal )

@@ -427,7 +427,6 @@ class CBasePlayer : public CBaseMonster
 	void MortarFireCommand( byte command );
 
 	// DoD hint / object helpers used tree-wide (no standalone symbols: inlined).
-	static bool HintMessage( CBasePlayer *pPlayer, const char *pMessage, BOOL bOverride );
 	static BOOL IsProne( CBasePlayer *pPlayer );
 	static BOOL IsSandbagDeployed( CBasePlayer *pPlayer );
 };
