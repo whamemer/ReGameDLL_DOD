@@ -529,22 +529,54 @@ void CBasePlayer ::TraceAttack( entvars_t *pevAttacker, float flDamage, Vector v
 
 int CBasePlayer ::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType )
 {
-	// .text:0012b180 link 0x11b180 (dod/dlls/player.cpp:1012)
-	if ( !IsPlayer() )
+	if ( !IsAlive() )
 		return 0;
-	if ( bitsDamageType & 0x8000000 )
+
+	if ( bitsDamageType & DMG_DOD_NOBLOOD )
 		return 0;
+
 	if ( pev->health <= 0 )
 		return 0;
+
 	if ( bitsDamageType & DMG_BLAST )
-		g_pGameRules->FAllowFlashlight();
-	if ( !g_pGameRules->FPlayerCanTakeDamage( this, CBaseEntity::Instance( pevAttacker ) ) )
+		g_pGameRules->IsMultiplayer();
+
+	CBasePlayer *pAttacker = (CBasePlayer *) CBaseEntity::Instance( pevAttacker );
+
+	if ( !g_pGameRules->FPlayerCanTakeDamage( this, pAttacker ) )
 		return 0;
-	MESSAGE_BEGIN( MSG_ALL, gmsgHLTV );
-	WRITE_BYTE( ENTINDEX( ENT( pev ) ) );
-	WRITE_BYTE( ( pev->health > 0 ) ? ( (int) pev->health | 0x80 ) : 0x80 );
+
+	if ( pAttacker && pAttacker->IsPlayer() )
+	{
+		if ( pAttacker != this && pAttacker->pev->team == pev->team )
+		{
+			if ( !( pAttacker->m_flDisplayHistory & 8 ) )
+			{
+				pAttacker->m_flDisplayHistory |= 8;
+				pAttacker->HintMessage( "#Hint_try_not_to_injure_teammates", 0 );
+			}
+		}
+	}
+
+	PLAYBACK_EVENT_FULL( 0, edict(), g_pGameRules->Pain(), 0.0f, g_vecZero, g_vecZero, 0.0f, 0.0f, 1, 0, 0, 0 );
+
+	int fTookDamage = CBaseMonster::TakeDamage( pevInflictor, pevAttacker, (int) flDamage, bitsDamageType );
+
+	CBaseEntity *pInflictor = NULL;
+
+	if ( !FNullEnt( pevInflictor ) )
+		pInflictor = CBaseEntity::Instance( pevInflictor );
+
+	UTIL_SendDirectorMessage( this, pInflictor, 4 );
+
+	m_bitsDamageType = bitsDamageType;
+
+	MESSAGE_BEGIN( MSG_SPEC, gmsgHLTV );
+		WRITE_BYTE( ENTINDEX( edict() ) );
+		WRITE_BYTE( pev->health > 0 ? (int) pev->health | 128 : 128 );
 	MESSAGE_END();
-	return CBaseMonster::TakeDamage( pevInflictor, pevAttacker, (float) (int) flDamage, bitsDamageType );
+
+	return fTookDamage;
 }
 
 
@@ -3006,7 +3038,7 @@ BOOL CBasePlayer ::FlashlightIsOn( void )
 void CBasePlayer ::FlashlightTurnOn( void )
 {
 	// .text:00130370 link 0x120370
-	if ( g_pGameRules->IsMultiplayer() )
+	if ( g_pGameRules->FAllowFlashlight() )
 	{
 		EMIT_SOUND_DYN( ENT( pev ), CHAN_WEAPON, SOUND_FLASHLIGHT_ON, 1.0, ATTN_NORM, 0, PITCH_NORM );
 		SetBits( pev->effects, EF_DIMLIGHT );
