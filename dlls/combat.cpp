@@ -1725,114 +1725,106 @@ Vector CBaseEntity::FireBulletsNC( Vector vecSrc, Vector vecDirShooting, float f
 
 void CBaseEntity::RifleMeleeAttack( CBasePlayer *pPlayer, int weapon_id )
 {
-	if ( g_pGameRules->RoundState() != 1 )	// binary: vtbl+0x3d RoundState @000dcf70+ (CALL [..+0xF4], CMP 1)
+	if ( g_pGameRules->RoundState() != 1 )
 		return;
+
 	UTIL_MakeVectors( pPlayer->pev->v_angle );
-	Vector vecSrc, vecEnd;
-	vecSrc = pPlayer->GetGunPosition();
-	vecEnd = vecSrc + gpGlobals->v_forward * 64;
+
+	Vector vecSrc = pPlayer->GetGunPosition();
+	Vector vecEnd = vecSrc + gpGlobals->v_forward * 64;
+
 	TraceResult tr;
 	UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, ENT( pPlayer->pev ), &tr );
+
 	if ( tr.flFraction >= 1.0 )
 	{
 		UTIL_TraceHull( vecSrc, vecEnd, dont_ignore_monsters, head_hull, ENT( pPlayer->pev ), &tr );
-		if ( tr.flFraction < 1.0 && CBaseEntity::Instance( tr.pHit ) &&
-			 CBaseEntity::Instance( tr.pHit )->Classify() != 0 )
+
+		if ( tr.flFraction < 1.0 )
 		{
-			// FindHullIntersection: re-trace extended hull through 8 corners, keep closest
-			Vector vecHullEnd = tr.vecEndPos + ( tr.vecEndPos - vecSrc );
-			float distance = 200.0;	 // binary: _DAT_001951e8 float 200.0 (link 0x1851e8, ghidra 0x1951e8, gdb x/fw=200)
-			static float minmaxs[2][3] = { { -16, -16, -36 }, { 16, 16, 36 } };
-			for ( int i = 0; i < 2; i++ )
-				for ( int j = 0; j < 2; j++ )
-					for ( int k = 0; k < 2; k++ )
-					{
-						TraceResult tmpTrace;
-						Vector vecTmpEnd = vecHullEnd;
-						vecTmpEnd.x += minmaxs[i][0];
-						vecTmpEnd.y += minmaxs[j][1];
-						vecTmpEnd.z += minmaxs[k][2];
-						UTIL_TraceLine( vecSrc, vecTmpEnd, dont_ignore_monsters, ENT( pPlayer->pev ), &tmpTrace );
-						if ( tmpTrace.flFraction < 1.0 )
-						{
-							float thisDistance = ( tmpTrace.vecEndPos - vecSrc ).Length();
-							if ( thisDistance < distance )
-							{
-								distance = thisDistance;
-								tr = tmpTrace;
-							}
-						}
-					}
+			// The search for the best intersection of the hull is skipped: the original starts it only for
+			// a trace longer than the whole way, which never happens.
+
+			// This is the point on the actual surface (the hull could have hit space)
 			vecEnd = tr.vecEndPos;
 		}
+
 		if ( tr.flFraction >= 1.0 )
 			return;
 	}
+
+	CBaseEntity *pEntity = CBaseEntity::Instance( tr.pHit );
+
 	ClearMultiDamage();
-	float flDamage;
-	int bits;
+
 	switch ( weapon_id )
 	{
-	case 10:
-		flDamage = gSkillData.plrDmgBayonet;
-		bits = DMG_DOD_MELEE_BAYONET;  // binary: 0x8080 @000dcf70 (decompile (TraceResult*)0x8080)
+	case WEAPON_KAR:
+		pEntity->TraceAttack( pPlayer->pev, gSkillData.plrDmgBayonet, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_BAYONET );
 		break;
-	case 5:
-		flDamage = gSkillData.plrDmgGarandButt;
-		bits = DMG_DOD_MELEE_GARAND;  // binary: 0x10080 (0x10034+? -> 0x10080)
+	case WEAPON_GARAND:
+		pEntity->TraceAttack( pPlayer->pev, gSkillData.plrDmgGarandButt, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_GARAND );
 		break;
-	case 0x18:
-		flDamage = gSkillData.plrDmgK43Butt;
-		bits = DMG_DOD_MELEE_K43;  // binary: 0x2000080 @000dcf70
+	case WEAPON_K43:
+		pEntity->TraceAttack( pPlayer->pev, gSkillData.plrDmgK43Butt, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_K43 );
 		break;
-	case 0x19:
-		flDamage = gSkillData.plrDmgEnfieldButt;
-		bits = DMG_DOD_MELEE_ENFIELD;  // binary: 0x20080
+	case WEAPON_ENFIELD:
+		pEntity->TraceAttack( pPlayer->pev, gSkillData.plrDmgEnfieldButt, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_ENFIELD );
 		break;
-	default:
-		return;
 	}
-	CBaseEntity::Instance( tr.pHit )->TraceAttack( pPlayer->pev, flDamage, gpGlobals->v_forward, &tr, bits );
+
 	ApplyMultiDamage( pPlayer->pev, pPlayer->pev );
 
-	CBaseEntity *pHit = CBaseEntity::Instance( tr.pHit );
-	if ( !pHit || pHit->Classify() == 0 || pHit->Classify() == 1 )
+	if ( !pEntity || pEntity->Classify() == CLASS_NONE || pEntity->Classify() == CLASS_MACHINE )
 	{
-		float fvol = TEXTURETYPE_PlaySound(
-			&tr, vecSrc, vecEnd,
-			7 );  // binary: 4th arg int 7 verified (vecSrc.z=7.00649e-45 = int 7 @RifleMelee decompile, TEXTURETYPE_PlaySound(&tr,vecSrc,vecEnd,7))
-		float vol = 1.0;
-		if (
-			g_pGameRules->IsMultiplayer() ==
-			0 )	 // binary: vtbl+7 IsMultiplayer (CALL [..+0x1C] @RifleMelee, DWARF CGameRules idx7, nm CDoDTeamPlay::IsMultiplayer @000d3460)
-			vol = fvol;
-		if ( weapon_id == 0x19 || weapon_id == 10 )
+		// hit the world, play the sound of the texture
+		float fvolbar = TEXTURETYPE_PlaySound( &tr, vecSrc, vecSrc + ( vecEnd - vecSrc ) * 2, BULLET_PLAYER_CROWBAR );
+
+		if ( g_pGameRules->IsMultiplayer() )
+			fvolbar = 1.0;
+
+		if ( weapon_id == WEAPON_ENFIELD || weapon_id == WEAPON_KAR )
 		{
-			// delayed gunshot decal + crowbar-hit sound
+			// delay the decal a bit
 			SetThink( &CBaseEntity::DecalThink );
-			m_trDecalTrace = tr;  // 0x38 bytes
+			m_trDecalTrace = tr;
 			pev->nextthink = gpGlobals->time + 0.1;
-			const char *sound = ( RANDOM_LONG( 0, 1 ) == 0 ) ? "weapons/cbar_hit1.wav" : "weapons/cbar_hit2.wav";
-			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_WEAPON, sound, vol, 0.8, 0, RANDOM_LONG( 0, 3 ) + 98 );
-			pPlayer->m_iWeaponVolume = 0x200;
-			return;	 // binary: m_iWeaponVolume=0x200 then epilogue (skips the shared 0x80/0x33) @000dcf70
+
+			if ( RANDOM_LONG( 0, 1 ) == 0 )
+				EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_ITEM, "weapons/cbar_hit1.wav", fvolbar, ATTN_NORM, 0, 98 + RANDOM_LONG( 0, 3 ) );
+			else
+				EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_ITEM, "weapons/cbar_hit2.wav", fvolbar, ATTN_NORM, 0, 98 + RANDOM_LONG( 0, 3 ) );
+		}
+
+		pPlayer->m_iWeaponVolume = 512;
+		return;
+	}
+
+	if ( weapon_id == WEAPON_KAR || weapon_id == WEAPON_ENFIELD )
+	{
+		switch ( RANDOM_LONG( 0, 2 ) )
+		{
+		case 0:
+			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit1.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+			break;
+		case 1:
+			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit2.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+			break;
+		case 2:
+			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit3.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+			break;
 		}
 	}
-	else if ( weapon_id == 10 || weapon_id == 0x19 )
-		EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_WEAPON,
-						RANDOM_LONG( 0, 2 ) == 1
-							? "weapons/knife_hit2.wav"
-							: ( RANDOM_LONG( 0, 2 ) == 2 ? "weapons/knife_hit3.wav" : "weapons/knife_hit1.wav" ),
-						1.0, 0.8, 0, 100 );
-	else if ( weapon_id == 5 || weapon_id == 0x18 )
+	else if ( weapon_id == WEAPON_GARAND || weapon_id == WEAPON_K43 )
 	{
-		if ( pHit->IsPlayer() )
-			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_WEAPON, "weapons/butt_hit.wav", 1.0, 0.8, 0, 100 );
+		if ( pEntity->IsPlayer() )
+			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_VOICE, "weapons/butt_hit.wav", 1, ATTN_NORM, 0, PITCH_NORM );
 	}
-	pPlayer->m_iWeaponVolume = 0x80;
-	if ( !pHit->IsPlayer() )
-		return;
-	pPlayer->m_iWeaponVolume = 0x33;
+
+	pPlayer->m_iWeaponVolume = 128;
+
+	if ( pEntity->IsAlive() )
+		pPlayer->m_iWeaponVolume = 51;
 }
 
 void CBaseEntity::DecalThink( void )
