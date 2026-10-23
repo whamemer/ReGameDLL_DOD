@@ -841,14 +841,7 @@ int CBasePlayerWeapon::AddToPlayer( CBasePlayer *pPlayer )
 int CBasePlayerWeapon::UpdateClientData( CBasePlayer *pPlayer )
 {
 	BOOL bSend = FALSE;
-	int state = 0;
-	// .text:0x15a4a0 binary: state = (pPlayer->m_pActiveItem == this) ? 1 : 0.
-	// DoD removed the SDK m_fOnTarget / WEAPON_IS_ONTARGET branch (no such field
-	// exists in the binary CBasePlayer).
-	if ( pPlayer->m_pActiveItem == this )
-	{
-		state = 1;
-	}
+	int state = ( pPlayer->m_pActiveItem == this ) ? 1 : 0;
 
 	// Forcing send of all data!
 	if ( !pPlayer->m_fWeapon )
@@ -873,10 +866,16 @@ int CBasePlayerWeapon::UpdateClientData( CBasePlayer *pPlayer )
 
 	if ( bSend )
 	{
+		int iClip = m_iClip;
+
+		// weapons without a clip show the ammo they carry
+		if ( iClip == -1 )
+			iClip = m_pPlayer->m_rgAmmo[pPlayer->GetAmmoIndex( ItemInfoArray[m_iId].pszAmmo1 )];
+
 		MESSAGE_BEGIN( MSG_ONE, gmsgCurWeapon, NULL, pPlayer->pev );
 		WRITE_BYTE( state );
 		WRITE_BYTE( m_iId );
-		WRITE_BYTE( m_iClip );
+		WRITE_BYTE( iClip );
 		MESSAGE_END();
 
 		m_iClientClip = m_iClip;
@@ -1520,8 +1519,6 @@ BOOL CWeaponBox::PackWeapon( CBasePlayerItem *pWeapon )
 //=========================================================
 BOOL CWeaponBox::PackAmmo( int iszName, int iCount )
 {
-	int iMaxCarry;
-
 	if ( FStringNull( iszName ) )
 	{
 		// error here
@@ -1529,12 +1526,9 @@ BOOL CWeaponBox::PackAmmo( int iszName, int iCount )
 		return FALSE;
 	}
 
-	iMaxCarry = MaxAmmoCarry( iszName );
-
-	if ( iMaxCarry != -1 && iCount > 0 )
+	if ( iCount > 0 )
 	{
-		//ALERT ( at_console, "Packed %d rounds of %s\n", iCount, STRING(iszName) );
-		GiveAmmo( iCount, (char *) STRING( iszName ), iMaxCarry );
+		GiveAmmo( iCount, (char *) STRING( iszName ), iCount );
 		return TRUE;
 	}
 
@@ -1638,15 +1632,9 @@ void CBasePlayerWeapon::PrintState( void )
 {
 	ALERT( at_console, "primary:  %f\n", m_flNextPrimaryAttack );
 	ALERT( at_console, "idle   :  %f\n", m_flTimeWeaponIdle );
-
-	//	ALERT( at_console, "nextrl :  %f\n", m_flNextReload );
-	//	ALERT( at_console, "nextpum:  %f\n", m_flPumpTime );
-
-	//	ALERT( at_console, "m_frt  :  %f\n", m_fReloadTime );
 	ALERT( at_console, "m_finre:  %i\n", m_fInReload );
-	//	ALERT( at_console, "m_finsr:  %i\n", m_fInSpecialReload );
-
 	ALERT( at_console, "m_iclip:  %i\n", m_iClip );
+	ALERT( at_console, "m_iWeaponState:  %i\n", m_iWeaponState );
 }
 
 // NOTE: the HL single-player weapons (CRpg/CRpgRocket/CShotgun/CGauss/CEgon/CSatchel)
@@ -1814,15 +1802,9 @@ void CDodAmmoBox::Spawn( void )
 	SET_MODEL( ENT( pev ), "models/allied_ammo.mdl" );
 }
 
-// .text:0016e100 CDodAmmoBox::KillThink
 void CDodAmmoBox::KillThink( void )
 {
-	if ( this != NULL )
-	{
-		UpdateOnRemove();
-		pev->flags |= FL_KILLME;
-		pev->targetname = 0;
-	}
+	UTIL_Remove( this );
 }
 
 // .text:0016aba0 CBasePlayerItem::RoundRespawn (file:weapons.cpp)
