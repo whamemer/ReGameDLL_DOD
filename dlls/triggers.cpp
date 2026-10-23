@@ -3568,10 +3568,11 @@ void CAreaCapture::SendNumPlayers( CBasePlayer *pPlayer )
 		MESSAGE_BEGIN( MSG_ALL, gmsgPlayersInArea );
 	else
 		MESSAGE_BEGIN( MSG_ONE, gmsgPlayersInArea, NULL, pPlayer->pev );
-		WRITE_BYTE( m_pPoint->m_iIndex );
-		WRITE_BYTE( team );
-		WRITE_BYTE( num );
-		WRITE_BYTE( req );
+
+	WRITE_BYTE( m_pPoint->m_iIndex );
+	WRITE_BYTE( team );
+	WRITE_BYTE( num );
+	WRITE_BYTE( req );
 	MESSAGE_END();
 }
 void CAreaCapture::ReSendSwipeInfo()
