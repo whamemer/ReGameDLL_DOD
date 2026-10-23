@@ -821,10 +821,14 @@ void CFuncTrain ::Spawn( void )
 		pev->speed = 100;
 
 	if ( FStringNull( pev->target ) )
-		ALERT( at_console, "FuncTrain with no target" );
+		ALERT( at_console, "func_train with no target" );
+
+	m_pInitialTarget = pev->target;
 
 	if ( pev->dmg == 0 )
 		pev->dmg = 2;
+	else if ( pev->dmg == -1 )
+		pev->dmg = 0;
 
 	pev->movetype = MOVETYPE_PUSH;
 
@@ -838,9 +842,14 @@ void CFuncTrain ::Spawn( void )
 	UTIL_SetOrigin( pev, pev->origin );
 
 	m_activated = FALSE;
+	m_iState = STATE_OFF;
 
 	if ( m_volume == 0 )
 		m_volume = 0.85;
+
+	RoundStore();
+
+	m_bMoving = FALSE;
 }
 
 void CFuncTrain::Precache( void )
@@ -1570,6 +1579,8 @@ void CFuncTrainControls ::Spawn( void )
 
 	SetThink( &CFuncTrainControls::Find );
 	pev->nextthink = gpGlobals->time;
+
+	RoundStore();
 }
 
 // .text:001144c0 CFuncTrainControls::RoundRespawn (0x62)
@@ -1693,6 +1704,8 @@ void CFuncTrackChange ::Spawn( void )
 	pev->nextthink = pev->ltime + 2.0;
 	SetThink( &CFuncTrackChange::Find );
 	Precache();
+
+	RoundStore();
 }
 
 void CFuncTrackChange ::Precache( void )

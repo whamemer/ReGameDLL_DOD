@@ -185,10 +185,17 @@ void CBreakable::Spawn( void )
 	else
 		pev->takedamage = DAMAGE_YES;
 
+	if ( pev->spawnflags & ( SF_BREAK_CROWBAR | 0x200 ) )
+		pev->flags |= FL_IMMUNE_WATER;
+
 	pev->solid = SOLID_BSP;
 	pev->movetype = MOVETYPE_PUSH;
 	m_angle = pev->angles.y;
 	pev->angles.y = 0;
+
+	m_iInitialHealth = pev->health;
+	m_iInitialRenderAmt = pev->renderamt;
+	m_iInitialRenderMode = pev->rendermode;
 
 	// HACK:  matGlass can receive decals, we need the client to know about this
 	//  so use class to store the material flag
@@ -200,12 +207,15 @@ void CBreakable::Spawn( void )
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );	//set size and link into world.
 
 	SetTouch( &CBreakable::BreakTouch );
+	SetUse( &CBreakable::BreakUse );
 	if ( FBitSet( pev->spawnflags, SF_BREAK_TRIGGER_ONLY ) )  // Only break on trigger
 		SetTouch( NULL );
 
 	// Flag unbreakable glass as "worldbrush" so it will block ALL tracelines
 	if ( !IsBreakable() && pev->rendermode != kRenderNormal )
 		pev->flags |= FL_WORLDBRUSH;
+
+	RoundStore();
 }
 
 const char *CBreakable::pSoundsWood[] = {
@@ -867,6 +877,8 @@ void CPushable ::Spawn( void )
 	// Multiply by area of the box's cross-section (assume 1000 units^3 standard volume)
 	pev->skin = ( pev->skin * ( pev->maxs.x - pev->mins.x ) * ( pev->maxs.y - pev->mins.y ) ) * 0.0005;
 	m_soundTime = 0;
+
+	RoundStore();
 }
 
 void CPushable ::Precache( void )

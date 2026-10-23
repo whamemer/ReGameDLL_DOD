@@ -402,6 +402,8 @@ REVERSE will cause the it to rotate in the opposite direction.
 
 void CFuncRotating ::Spawn()
 {
+	m_iState = STATE_OFF;
+
 	// set final pitch.  Must not be PITCH_NORM, since we
 	// plan on pitch shifting later.
 
@@ -433,6 +435,12 @@ void CFuncRotating ::Spawn()
 		m_flFanFriction = 1;
 	}
 
+	if ( pev->movedir != g_vecZero )
+	{
+		UTIL_MakeVectors( pev->movedir );
+		pev->movedir = gpGlobals->v_forward;
+	}
+
 	if ( FBitSet( pev->spawnflags, SF_BRUSH_ROTATE_Z_AXIS ) )
 		pev->movedir = Vector( 0, 0, 1 );
 	else if ( FBitSet( pev->spawnflags, SF_BRUSH_ROTATE_X_AXIS ) )
@@ -449,13 +457,13 @@ void CFuncRotating ::Spawn()
 	{
 		pev->solid = SOLID_NOT;
 		pev->skin = CONTENTS_EMPTY;
-		pev->movetype = MOVETYPE_PUSH;
 	}
 	else
 	{
 		pev->solid = SOLID_BSP;
-		pev->movetype = MOVETYPE_PUSH;
 	}
+
+	pev->movetype = MOVETYPE_PUSH;
 
 	UTIL_SetOrigin( pev, pev->origin );
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );
@@ -465,9 +473,7 @@ void CFuncRotating ::Spawn()
 	if ( pev->speed <= 0 )
 		pev->speed = 0;
 
-	// Removed this per level designers request.  -- JAY
-	//	if (pev->dmg == 0)
-	//		pev->dmg = 2;
+	RoundStore();
 
 	// instant-use brush?
 	if ( FBitSet( pev->spawnflags, SF_BRUSH_ROTATE_INSTANT ) )
@@ -869,10 +875,15 @@ void CPendulum ::Spawn( void )
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );
 
 	if ( m_distance == 0 )
+	{
+		RoundStore();
 		return;
+	}
 
 	if ( pev->speed == 0 )
 		pev->speed = 100;
+
+	RoundStore();
 
 	m_accel = ( pev->speed * pev->speed ) /
 			  ( 2 * fabs( m_distance ) );  // Calculate constant acceleration from speed and distance
