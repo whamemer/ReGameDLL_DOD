@@ -30,7 +30,7 @@ extern cvar_t weaponstay;
 extern cvar_t forcerespawn;
 extern cvar_t flashlight;
 extern cvar_t aimcrosshair;
-extern cvar_t decalfrequency;
+extern cvar_t cvar_decalfrequency;
 extern cvar_t teamlist;
 extern cvar_t teamoverride;
 extern cvar_t defaultteam;

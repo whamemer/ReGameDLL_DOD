@@ -3085,51 +3085,13 @@ ImpulseCommands
 */
 void CBasePlayer::ImpulseCommands()
 {
-	TraceResult tr;	 // UNDONE: kill me! This is temporary for PreAlpha CDs
+	TraceResult tr;
 
 	// Handle use events
 	PlayerUse();
 
-	int iImpulse = (int) pev->impulse;
-	switch ( iImpulse )
+	switch ( pev->impulse )
 	{
-	case 99:
-	{
-
-		int iOn;
-
-		if ( !gmsgLogo )
-		{
-			iOn = 1;
-			gmsgLogo = REG_USER_MSG( "Logo", 1 );
-		}
-		else
-		{
-			iOn = 0;
-		}
-
-		ASSERT( gmsgLogo > 0 );
-		// send "health" update message
-		MESSAGE_BEGIN( MSG_ONE, gmsgLogo, NULL, pev );
-		WRITE_BYTE( iOn );
-		MESSAGE_END();
-
-		if ( !iOn )
-			gmsgLogo = 0;
-		break;
-	}
-	case 100:
-		// temporary flashlight for level designers
-		if ( FlashlightIsOn() )
-		{
-			FlashlightTurnOff();
-		}
-		else
-		{
-			FlashlightTurnOn();
-		}
-		break;
-
 	case 201:  // paint decal
 
 		if ( gpGlobals->time < m_flNextDecalTime )
@@ -3144,16 +3106,31 @@ void CBasePlayer::ImpulseCommands()
 
 		if ( tr.flFraction != 1.0 )
 		{  // line hit something, so paint a decal
-			m_flNextDecalTime = gpGlobals->time + decalfrequency.value;
+			m_flNextDecalTime = gpGlobals->time + cvar_decalfrequency.value;
 			CSprayCan *pCan = GetClassPtr( (CSprayCan *) NULL );
 			pCan->Spawn( pev );
 		}
 
 		break;
 
+	case 204:
+		ForceClientDllUpdate();
+		break;
+
+	case 100:
+		// temporary flashlight for level designers
+		if ( FlashlightIsOn() )
+		{
+			FlashlightTurnOff();
+		}
+		else
+		{
+			FlashlightTurnOn();
+		}
+
+		break;
+
 	default:
-		// check all of the cheat impulse commands now
-		CheatImpulseCommands( iImpulse );
 		break;
 	}
 
@@ -5199,19 +5176,47 @@ void CBasePlayer::PopHelmet( Vector *vecdir )
 	UTIL_SendDirectorMessage( this, NULL, 69 );
 }
 // .text:00131380 GetObject (done above)
-// .text:001315e0 link 0x1315e0
 void CBasePlayer::DropObject()
 {
 	if ( !HasObject || !m_pObject )
 		return;
+
+	CObject *pObject = m_pObject;
+
 	UTIL_MakeVectors( pev->angles );
-	m_pObject->pev->origin = pev->origin + gpGlobals->v_forward * 20.0f;
-	m_pObject->pev->velocity = pev->velocity + gpGlobals->v_forward * 40.0f;
-	m_pObject->Drop();
+
+	pObject->pev->origin = pev->origin + gpGlobals->v_forward * 20;
+	pObject->pev->velocity = pev->velocity + gpGlobals->v_forward * 400;
+
+	pObject->Drop();
+
 	HasObject = 0;
 	m_pObject = NULL;
-	RemoveObjectIcon();
-	m_pObject = NULL;
+
+	pObject->SendDroppedMsg( this );
+
+	if ( pObject->pev->noise2 )
+		EMIT_SOUND_DYN( edict(), CHAN_STATIC, STRING( pObject->pev->noise2 ), 1.0, ATTN_NORM, 0, PITCH_NORM );
+
+	MESSAGE_BEGIN( MSG_ONE, gmsgObject, NULL, pev );
+		WRITE_STRING( "" );
+	MESSAGE_END();
+
+	pObject->m_hOwner = NULL;
+	pObject->m_bCarried = 0;
+
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
+
+		if ( pPlayer && pPlayer->pev->team == pev->team )
+		{
+			MESSAGE_BEGIN( MSG_ONE, gmsgPStatus, NULL, pPlayer->pev );
+				WRITE_BYTE( ENTINDEX( edict() ) );
+				WRITE_BYTE( PlayerStatus() );
+			MESSAGE_END();
+		}
+	}
 }
 // .text:00134810 link 0x134810
 void CBasePlayer::StudioPlayerBlend( int *pBlend, float *pPitch )
