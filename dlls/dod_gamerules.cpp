@@ -466,156 +466,206 @@ void CDoDTeamPlay::TimerExpired( void )
 	}
 	FireTargets( STRING( m_GamePlayRules.m_sTimerExpireTarget ), NULL, NULL, USE_TOGGLE, 0.0f );
 }
-// .text:000eaf80 void CDoDTeamPlay::Think() (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::Think( void )
 {
 	g_VoiceGameMgr.Update( gpGlobals->frametime );
+
 	if ( g_fGameOver )
 	{
+		// the dead players watch the intermission, not the respawn countdown
 		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 		{
-			CBasePlayer *p = (CBasePlayer *) UTIL_PlayerByIndex( i );
-			if ( !p || !p->IsObserver() )
+			CBasePlayer *pPlayer = (CBasePlayer *)UTIL_PlayerByIndex( i );
+
+			if ( !pPlayer || pPlayer->IsAlive() )
 				continue;
-			if ( ( p->pev->team == 1 && m_GamePlayRules.m_bAlliesInfiniteLives ) ||
-				 ( p->pev->team == 2 && m_GamePlayRules.m_bAxisInfiniteLives ) )
+
+			pPlayer->StopObserver();
+
+			if ( ( pPlayer->pev->team == 1 && m_GamePlayRules.m_bAlliesInfiniteLives ) ||
+				 ( pPlayer->pev->team == 2 && m_GamePlayRules.m_bAxisInfiniteLives ) )
 			{
-				MESSAGE_BEGIN( MSG_ONE, gmsgWaveStatus, NULL, p->pev );
-				WRITE_BYTE( 0 );
+				MESSAGE_BEGIN( MSG_ONE, gmsgWaveStatus, NULL, pPlayer->edict() );
+					WRITE_BYTE( 0 );
 				MESSAGE_END();
 			}
 		}
-		float ct = pcvar_mp_chattime ? pcvar_mp_chattime->value : 10.0f;
-		if ( ct < 10.0f )
-			ct = 10.0f;
-		if ( ct > 120.0f )
-			ct = 120.0f;
+
+		float flChatTime = pcvar_mp_chattime ? pcvar_mp_chattime->value : 0;
+
 		if ( pcvar_mp_chattime )
-			CVAR_SET_FLOAT( "mp_chattime", ct );
-		m_flIntermissionEndTime = g_flIntermissionStartTime + ct;
-		if ( gpGlobals->time <= m_flIntermissionEndTime )
-			return;
-		if ( !m_iEndIntermissionButtonHit && gpGlobals->time <= g_flIntermissionStartTime + 10.0f )
-			return;
-		int allies = 0;
-		int axis = 0;
-		EnumerateTeams( NULL, &allies, NULL, &axis );
-		UTIL_LogPrintf( "%s scored %i with %i players\n", "Allies", TeamScores( 1 ), allies );
-		UTIL_LogPrintf( "%s scored %i with %i players\n", "Axis", TeamScores( 2 ), axis );
-		ChangeLevel();
+		{
+			int iChatTime = (int)flChatTime;
+
+			if ( iChatTime <= 9 )
+			{
+				CVAR_SET_FLOAT( "mp_chattime", 10 );
+				flChatTime = pcvar_mp_chattime->value;
+			}
+			else if ( iChatTime > 120 )
+			{
+				CVAR_SET_FLOAT( "mp_chattime", 120 );
+				flChatTime = pcvar_mp_chattime->value;
+			}
+		}
+
+		m_flIntermissionEndTime = flChatTime + g_flIntermissionStartTime;
+
+		if ( gpGlobals->time > m_flIntermissionEndTime &&
+			 ( m_iEndIntermissionButtonHit || gpGlobals->time > g_flIntermissionStartTime + 120.0 ) )
+		{
+			int iAllies = 0;
+			int iAxis = 0;
+
+			for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+			{
+				CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
+
+				if ( !pPlayer )
+					continue;
+
+				if ( pPlayer->pev->team == 1 )
+					iAllies++;
+				else if ( pPlayer->pev->team == 2 )
+					iAxis++;
+			}
+
+			UTIL_LogPrintf( "\"%s\" scored \"%i\" with \"%i\" players\n", "Allies", TeamScores( 1 ), iAllies );
+			UTIL_LogPrintf( "\"%s\" scored \"%i\" with \"%i\" players\n", "Axis", TeamScores( 2 ), iAxis );
+
+			SetMapChangeFromTime( 0 );
+			ChangeLevel();
+		}
+
 		return;
 	}
-	int left = get_maptime_left();
-	float lim = pcvar_mp_timelimit ? pcvar_mp_timelimit->value * 60.0f : 0.0f;
-	if ( left < 1 && (int) lim != 0 )
+
+	float flTimeLimit = 3600.0f;
+
+	if ( pcvar_mp_timelimit )
+		flTimeLimit = 60.0f * pcvar_mp_timelimit->value;
+
+	if ( get_maptime_left() <= 0 && (int)flTimeLimit )
 	{
 		GoToIntermission();
 		return;
 	}
-	if ( m_fLogScoresTime < gpGlobals->time && pcvar_mp_log_scores && pcvar_mp_log_scores->value > 0.0f )
+
+	if ( gpGlobals->time > m_fLogScoresTime && pcvar_mp_log_scores && pcvar_mp_log_scores->value > 0.0 )
 	{
-		float d = pcvar_mp_log_scores->value;
-		if ( d < 1.0f )
-			d = 1.0f;
-		if ( d > 3600.0f )
-			d = 3600.0f;
+		float flDelay = 1.0f;
+
+		if ( pcvar_mp_log_scores->value >= 1.0 )
+		{
+			flDelay = pcvar_mp_log_scores->value;
+
+			if ( flDelay > 600.0 )
+				flDelay = 600.0;
+		}
+
 		UTIL_LogPrintf( "Team Scores: Allies: %d, Axis: %d\n", TeamScores( 1 ), TeamScores( 2 ) );
-		m_fLogScoresTime = gpGlobals->time + d;
+
+		m_fLogScoresTime = gpGlobals->time + flDelay;
 	}
+
 	if ( m_RoundState == 1 && ( !m_GamePlayRules.m_bAlliesInfiniteLives || !m_GamePlayRules.m_bAxisInfiniteLives ) )
 	{
 		m_flRoundTime += gpGlobals->frametime;
-		m_RoundParaCanJoin = ( m_flRoundTime <= 30.0f );
+		m_RoundParaCanJoin = m_flRoundTime <= 30.0;
 	}
-	if ( !IsClanMatch() )
+
+	if ( IsClanMatch() )
 	{
-		if ( pcvar_mp_clan_match && pcvar_mp_clan_match->value > 0.0f )
+		if ( pcvar_mp_clan_match && pcvar_mp_clan_match->value <= 0.0 )
 		{
-			SetClanMatch( TRUE );
-			UTIL_ClientPrintAll( HUD_PRINTCENTER, "#clan_warmup_rules", 0, 0, 0, 0 );
+			SetClanMatch( FALSE );
+			setMapTime();
 		}
-	}
-	else if ( !pcvar_mp_clan_match || pcvar_mp_clan_match->value > 0.0f )
-	{
-		if ( !pcvar_mp_clan_restartround || pcvar_mp_clan_restartround->value <= 0.0f )
-		{
-			if ( !pcvar_mp_clan_readyrestart || pcvar_mp_clan_readyrestart->value <= 0.0f )
-			{
-				if ( !pcvar_mp_clan_match_warmup || pcvar_mp_clan_match_warmup->value <= 0.0f )
-				{
-					if ( !m_bAwaitingReadyRestart || !m_bHeardAlliesReady || !m_bHeardAxisReady )
-					{
-						if ( m_bRoundRestarting && m_flRestartRoundTime < gpGlobals->time )
-							StartClanMatch();
-					}
-					else
-					{
-						StartClanRestart();
-						m_bAwaitingReadyRestart = FALSE;
-						m_bHeardAlliesReady = FALSE;
-						m_bHeardAxisReady = FALSE;
-					}
-				}
-				else
-				{
-					UTIL_ClientPrintAll( HUD_PRINTCENTER, "#clan_warmup_rules", 0, 0, 0, 0 );
-					ReturnToWarmup();
-					CVAR_SET_FLOAT( "mp_clan_match_warmup", 0.0f );
-				}
-			}
-			else
-			{
-				m_bAwaitingReadyRestart = TRUE;
-				m_bHeardAlliesReady = FALSE;
-				m_bHeardAxisReady = FALSE;
-				UTIL_ClientPrintAll( HUD_PRINTCENTER, "#clan_ready_rules", CVAR_GET_STRING( "mp_clan_ready_signal" ), 0,
-									 0, 0 );
-				CVAR_SET_FLOAT( "mp_clan_readyrestart", 0.0f );
-			}
-		}
-		else
+		else if ( pcvar_mp_clan_restartround && pcvar_mp_clan_restartround->value > 0.0 )
 		{
 			StartClanRestart();
-			CVAR_SET_FLOAT( "mp_clan_restartround", 0.0f );
+			CVAR_SET_FLOAT( "mp_clan_restartround", 0 );
+		}
+		else if ( pcvar_mp_clan_readyrestart && pcvar_mp_clan_readyrestart->value > 0.0 )
+		{
+			m_bAwaitingReadyRestart = TRUE;
+			m_bHeardAlliesReady = FALSE;
+			m_bHeardAxisReady = FALSE;
+
+			UTIL_ClientPrintAll( HUD_PRINTCENTER, "#clan_ready_rules", (char *)CVAR_GET_STRING( "mp_clan_ready_signal" ), NULL, NULL, NULL );
+
+			CVAR_SET_FLOAT( "mp_clan_readyrestart", 0 );
+		}
+		else if ( pcvar_mp_clan_match_warmup && pcvar_mp_clan_match_warmup->value > 0.0 )
+		{
+			UTIL_ClientPrintAll( HUD_PRINTCENTER, "#clan_warmup_rules", NULL, NULL, NULL, NULL );
+
+			ReturnToWarmup();
+
+			CVAR_SET_FLOAT( "mp_clan_match_warmup", 0 );
+		}
+		else if ( m_bAwaitingReadyRestart && m_bHeardAlliesReady && m_bHeardAxisReady )
+		{
+			StartClanRestart();
+
+			m_bAwaitingReadyRestart = FALSE;
+			m_bHeardAlliesReady = FALSE;
+			m_bHeardAxisReady = FALSE;
+		}
+		else if ( m_bRoundRestarting && gpGlobals->time > m_flRestartRoundTime )
+		{
+			StartClanMatch();
 		}
 	}
-	else
+	else if ( pcvar_mp_clan_match && pcvar_mp_clan_match->value > 0.0 )
 	{
-		SetClanMatch( FALSE );
-		ReturnToWarmup();
+		SetClanMatch( TRUE );
+
+		UTIL_ClientPrintAll( HUD_PRINTCENTER, "#clan_warmup_rules", NULL, NULL, NULL, NULL );
 	}
+
 	if ( m_RoundState == 0 )
 	{
-		if ( m_flGoodToGoTime <= gpGlobals->time && m_rReadyToUnFreeze == 0 )
+		if ( gpGlobals->time >= m_flGoodToGoTime && !m_rReadyToUnFreeze )
+		{
 			GoodToGo();
-		else if ( m_rRoundStartCount <= gpGlobals->time )
+		}
+		else if ( gpGlobals->time >= m_rRoundStartCount )
 		{
 			if ( m_rReadyToUnFreeze == 2 )
 				RoundFreeze();
-			else if ( m_rReadyToUnFreeze == 1 && m_DoDCameraState == 0 )
+			else if ( m_rReadyToUnFreeze == 1 && m_DoDCameraState <= 0 )
 				RoundUnfreeze();
 		}
 	}
-	if ( g_fGameOver )
-		return;
-	if ( m_flAlliesWaveTime != 0.0f && m_RoundState == 1 && (int) m_flAlliesRespawn <= (int) gpGlobals->time )
+
+	if ( !g_fGameOver )
 	{
-		RespawnAllies();
-		m_flAlliesWaveTime = 0.0f;
-		if ( g_fGameOver )
-			return;
+		BOOL bContinue = TRUE;
+
+		if ( m_flAlliesWaveTime != 0 && m_RoundState == 1 && (int)m_flAlliesRespawn <= (int)gpGlobals->time )
+		{
+			RespawnAllies();
+
+			m_flAlliesWaveTime = 0;
+			bContinue = !g_fGameOver;
+		}
+
+		if ( bContinue && m_flAxisWaveTime != 0 && m_RoundState == 1 && (int)m_flAxisRespawn <= (int)gpGlobals->time )
+		{
+			RespawnAxis();
+
+			m_flAxisWaveTime = 0;
+		}
 	}
-	if ( m_flAxisWaveTime != 0.0f && m_RoundState == 1 && (int) m_flAxisRespawn <= (int) gpGlobals->time )
-	{
-		RespawnAxis();
-		m_flAxisWaveTime = 0.0f;
-	}
-	if ( m_flRestartTime <= gpGlobals->time && m_RoundState >= 3 && m_RoundState <= 5 && !g_fGameOver &&
-		 m_DoDCameraState < 1 )
+
+	if ( gpGlobals->time >= m_flRestartTime && (unsigned int)( m_RoundState - 3 ) <= 2 && !g_fGameOver && m_DoDCameraState <= 0 )
 	{
 		m_SaveRoundState = m_RoundState;
+
 		TeamWon( m_RoundState );
-		m_flRestartTime = gpGlobals->time + 10.0f;
+
+		m_flRestartTime = gpGlobals->time + 3.0;
 	}
 }
 // .text:000e9f70 void CDoDTeamPlay::DetectGameRules() (dod/dlls/dod_gamerules.cpp:0)
@@ -796,26 +846,55 @@ void CDoDTeamPlay::InitHUD( CBasePlayer *pPlayer )
 
 	pPlayer->SetMapMarker( 0 );
 }
-// .text:000e3de0 void CDoDTeamPlay::ClientDisconnected(edict_t*) (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::ClientDisconnected( edict_t *pClient )
 {
 	if ( !pClient )
 		return;
-	CBasePlayer *p = (CBasePlayer *) GET_PRIVATE( pClient );
-	if ( !p )
-		return;
-	MESSAGE_BEGIN( MSG_ALL, gmsgSpectator );
-	WRITE_BYTE( ENTINDEX( pClient ) );
-	WRITE_BYTE( 0 );
-	MESSAGE_END();
-	FireTargets( "game_playerleave", p, p, USE_TOGGLE, 0.0f );
-	const char *team = ( p->pev->team == 1 ) ? "Allies" : "Axis";
-	UTIL_LogPrintf( "%s<%i><%s><%s> disconnected\n", STRING( p->pev->netname ), GETPLAYERUSERID( pClient ),
-					GETPLAYERAUTHID( pClient ), team );
-	p->DropPlayerItem( (char *) "weapon_bazooka", TRUE );
-	p->DropPlayerItem( (char *) "weapon_pschreck", TRUE );
-	p->DropPlayerItem( (char *) "weapon_piat", TRUE );
-	p->RemoveAllItems( TRUE );
+
+	CBasePlayer *pPlayer = (CBasePlayer *)GET_PRIVATE( pClient );
+
+	if ( pPlayer )
+	{
+		MESSAGE_BEGIN( MSG_ALL, gmsgSpectator );
+			WRITE_BYTE( ENTINDEX( pClient ) );
+			WRITE_BYTE( 0 );
+		MESSAGE_END();
+
+		FireTargets( "game_playerleave", pPlayer, pPlayer, USE_TOGGLE, 0 );
+
+		const char *szTeam = pPlayer->pev->team == 1 ? "Allies" : "Axis";
+
+		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" disconnected\n", STRING( pPlayer->pev->netname ),
+						GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ), szTeam );
+
+		pPlayer->DropPlayerItem( "weapon_bazooka", TRUE );
+		pPlayer->DropPlayerItem( "weapon_pschreck", TRUE );
+		pPlayer->DropPlayerItem( "weapon_piat", TRUE );
+		pPlayer->RemoveAllItems( TRUE );
+
+		// the players that watched him stop watching
+		CBasePlayer *pObserver = NULL;
+
+		while ( ( pObserver = (CBasePlayer *)UTIL_FindEntityByClassname( pObserver, "player" ) ) != NULL )
+		{
+			if ( FNullEnt( pObserver->edict() ) )
+				break;
+
+			if ( pObserver->pev && pObserver != pPlayer && pObserver->m_hObserverTarget == pPlayer )
+			{
+				int iMode = pObserver->pev->iuser1;
+
+				pObserver->pev->iuser1 = 0;
+				pObserver->m_hObserverTarget = NULL;
+				pObserver->Observer_SetMode( iMode );
+			}
+		}
+
+		if ( pPlayer->HasObject )
+			pPlayer->DropObject();
+
+		pPlayer->ClientDisconnect();
+	}
 }
 // .text:000e80e0 void CDoDTeamPlay::RoundUnfreeze() (dod/dlls/dod_gamerules.cpp:6187)
 void CDoDTeamPlay::RoundUnfreeze( void )
@@ -1004,453 +1083,638 @@ BOOL CDoDTeamPlay::ClientConnected( edict_t *pEntity, const char *pszName, const
 }
 // .text:000ec630 BOOL CDoDTeamPlay::ClientCommand(CBasePlayer*, char*) (dod/dlls/dod_gamerules.cpp:1673)
 // wrapper link 0xddf20 size 0x65 Ghidra 0xedf20: VoiceGameMgr gate before main 0xdc630
+extern char *s_VoiceCommands[29][4];
+
 BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 {
 	if ( g_VoiceGameMgr.ClientCommand( pPlayer, pcmd ) )
 		return TRUE;
-	if ( !stricmp( pcmd, "spectate" ) )
+
+	// the spectate command is sent by the HLTV proxy
+	if ( !strcmp( pcmd, "spectate" ) && ( pPlayer->pev->flags & FL_PROXY ) )
 	{
-		if ( ( pPlayer->pev->flags & FL_SPECTATOR ) == 0 )
-		{
-			pPlayer->pev->flags |= FL_SPECTATOR;
-			pPlayer->m_iNextClass = -1;
-			pPlayer->pev->playerclass = 0;
-			pPlayer->m_bIsRandomClass = FALSE;
-			pPlayer->pev->team = 3;
-			UTIL_LogPrintf( "%s<%i><%s><%s> joined team %s\n", STRING( pPlayer->pev->netname ),
-							GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ), "SPECTATOR",
-							"SPECTATOR" );
-			pPlayer->m_iJoiningState = JOINED;
-			ChangePlayerTeam( pPlayer, 3, 1, 0 );
-			Vector color = g_vecZero;
-			pPlayer->UTIL_EdictScreenFade( pPlayer->edict(), color, 1.0f, 15.0f, 0, 5 );
-			pPlayer->pev->deadflag = 2;
-			pPlayer->pev->effects |= 0x20;
-			pPlayer->m_bIsObserver = 1;
-			pPlayer->StartObserver( pPlayer->pev->origin, pPlayer->pev->angles );
-		}
+		pPlayer->pev->flags |= FL_PROXY;
+		pPlayer->m_iNextClass = -1;
+		pPlayer->pev->playerclass = 0;
+		pPlayer->m_bIsRandomClass = FALSE;
+		pPlayer->pev->team = 3;
+
+		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" joined team \"%s\"\n", STRING( pPlayer->pev->netname ),
+						GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ), g_szTeamNames[0],
+						g_szTeamNames[pPlayer->pev->team] );
+
+		pPlayer->m_iJoiningState = JOINED;
+
+		ChangePlayerTeam( pPlayer, pPlayer->pev->team, 0, 0 );
+
+		Vector color = g_vecZero;
+		pPlayer->UTIL_EdictScreenFade( pPlayer->edict(), color, 1.0f, 15.0f, 0, 5 );
+
+		pPlayer->pev->deadflag = 2;
+		pPlayer->pev->effects |= EF_NODRAW;
+		pPlayer->m_bIsObserver = 1;
+		pPlayer->StartObserver( pPlayer->pev->origin, pPlayer->pev->angles );
+
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "specmode" ) )
+
+	if ( !strcmp( pcmd, "specmode" ) )
 	{
 		if ( pPlayer->pev->iuser1 > 0 )
 			pPlayer->Observer_SetMode( atoi( CMD_ARGV( 1 ) ) );
+
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "follownext" ) )
+
+	if ( !strcmp( pcmd, "follownext" ) )
 	{
 		if ( pPlayer->pev->iuser1 > 0 )
 			pPlayer->Observer_FindNextPlayer( atoi( CMD_ARGV( 1 ) ) != 0 );
+
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "spectateperson" ) )
+
+	if ( !strcmp( pcmd, "spectateperson" ) )
 	{
 		if ( CMD_ARGC() > 1 )
+		{
 			pPlayer->Observer_SpectatePlayer( atoi( CMD_ARGV( 1 ) ) );
+			return FALSE;
+		}
+
 		return TRUE;
 	}
-	if ( !stricmp( pcmd, "fullupdate" ) )
+
+	if ( !strcmp( pcmd, "fullupdate" ) )
 	{
 		pPlayer->ForceClientDllUpdate();
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "timeleft" ) )
+
+	if ( !strcmp( pcmd, "timeleft" ) )
 	{
-		if ( CVAR_GET_FLOAT( "timelimit" ) == 0.0f )
-			ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_time_left2", 0, 0, 0, 0 );
+		if ( cvar_timelimit.value == 0.0 )
+		{
+			ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_time_left2" );
+		}
 		else
 		{
-			int l = get_maptime_left();
-			ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_time_left1", UTIL_dtos1( l / 60 ), UTIL_dtos2( l % 60 ), 0,
-						 0 );
+			int iTimeLeft = get_maptime_left();
+			int iMinutes = iTimeLeft / 60;
+			char szSeconds[8];
+
+			sprintf( szSeconds, "%02d", iTimeLeft - 60 * iMinutes );
+
+			ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_time_left1", UTIL_dtos1( iMinutes ), szSeconds );
 		}
+
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "dod_version" ) )
+
+	if ( !strcmp( pcmd, "dod_version" ) )
 	{
-		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "Version 1.2f", 0, 0, 0, 0 );
+		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "Version 1.2f" );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "chatmsg" ) )
+
+	if ( !strcmp( pcmd, "chatmsg" ) )
 	{
-		pPlayer->m_chatMsg = !pPlayer->m_chatMsg;
-		return FALSE;
-	}
-	if ( !stricmp( pcmd, "deathmsg" ) )
-	{
-		pPlayer->m_deathMsg = !pPlayer->m_deathMsg;
-		return FALSE;
-	}
-	if ( !stricmp( pcmd, "clientcutscenes" ) )
-	{
-		if ( CMD_ARGC() < 2 )
-			return FALSE;
-		if ( atoi( CMD_ARGV( 1 ) ) == 0 )
+		if ( pPlayer->m_chatMsg )
 		{
-			pPlayer->i_seenAllieSpawnScene = 0;
-			pPlayer->i_seenAxisSpawnScene = 0;
-			pPlayer->i_seenAllieWinScene = 0;
-			pPlayer->i_seenAxisWinScene = 0;
-			pPlayer->i_seenAllieLooseScene = 0;
-			pPlayer->i_seenAxisLooseScene = 0;
-			pPlayer->i_seenAllieDrawScene = 0;
-			pPlayer->i_seenAxisDrawScene = 0;
+			ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_chat_off" );
+			pPlayer->m_chatMsg = 0;
 		}
+		else
+		{
+			ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_chat_on" );
+			pPlayer->m_chatMsg = 1;
+		}
+
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "vote" ) )
+
+	if ( !strcmp( pcmd, "deathmsg" ) )
 	{
-		if ( (unsigned) ( pPlayer->lastMenuSelected - 5 ) < 5 )
-			return TRUE;
-		if ( m_vKickSessionState == 1 )
+		if ( pPlayer->m_deathMsg )
 		{
-			pPlayer->VoteMenu( m_vKick, 5 );
+			ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_deathmsg_off" );
+			pPlayer->m_deathMsg = 0;
+		}
+		else
+		{
+			ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_deathmsg_on" );
+			pPlayer->m_deathMsg = 1;
+		}
+
+		return FALSE;
+	}
+
+	if ( !strcmp( pcmd, "clientcutscenes" ) )
+	{
+		// a client that does not want the cutscenes has seen all of them
+		if ( CMD_ARGC() > 1 && !atoi( CMD_ARGV( 1 ) ) )
+		{
+			pPlayer->i_seenAllieSpawnScene = 1;
+			pPlayer->i_seenAxisSpawnScene = 1;
+			pPlayer->i_seenAllieWinScene = 1;
+			pPlayer->i_seenAxisWinScene = 1;
+			pPlayer->i_seenAllieLooseScene = 1;
+			pPlayer->i_seenAxisLooseScene = 1;
+			pPlayer->i_seenAllieDrawScene = 1;
+			pPlayer->i_seenAxisDrawScene = 1;
+		}
+
+		return FALSE;
+	}
+
+	if ( !strcmp( pcmd, "vote" ) )
+	{
+		if ( (unsigned int)( pPlayer->lastMenuSelected - 5 ) > 4 )
+		{
+			if ( m_vKickSessionState == 1 )
+			{
+				pPlayer->VoteMenu( m_vKick, 5 );
+				return FALSE;
+			}
+
+			if ( m_vKickSessionState == 0 )
+			{
+				pPlayer->VoteMenu( -1, 6 );
+				return FALSE;
+			}
+
 			return FALSE;
 		}
-		if ( m_vKickSessionState == 0 )
-		{
-			pPlayer->VoteMenu( -1, 6 );
-			return FALSE;
-		}
+
+		return TRUE;
+	}
+
+	if ( !strcmp( pcmd, "fov" ) )
+	{
+		pPlayer->pev->fov = (float)pPlayer->m_iFOV;
+
+		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_dont_cheat" );
+
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "fov" ) )
+
+	if ( !strcmp( pcmd, "say" ) )
 	{
-		pPlayer->pev->fov = (float) pPlayer->m_iFOV;
-		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_dont_cheat", 0, 0, 0, 0 );
-		return FALSE;
-	}
-	if ( !stricmp( pcmd, "say" ) )
-	{
-		int chatOn = pPlayer->m_chatMsg;
-		const char *readyCvar = CVAR_GET_STRING( "mp_clan_ready_signal" );
+		int iChatMsg = pPlayer->m_chatMsg;
 		char readyString[64];
-		snprintf( readyString, sizeof( readyString ), "\"%s\"", readyCvar );
+
+		snprintf( readyString, sizeof( readyString ), "\"%s\"", CVAR_GET_STRING( "mp_clan_ready_signal" ) );
+
 		if ( m_bAwaitingReadyRestart && CMD_ARGC() > 1 )
 		{
-			const char *text = CMD_ARGS();
+			const char *pszText = CMD_ARGS();
 			int team = pPlayer->pev->team;
+
 			if ( team == 1 )
 			{
-				if ( !m_bHeardAlliesReady && strcmp( text, readyString ) == 0 )
+				if ( !m_bHeardAlliesReady && !strcmp( pszText, readyString ) )
 				{
 					m_bHeardAlliesReady = TRUE;
 					UTIL_ShowMessageAll( "#Clan_allies_ready", FALSE );
 				}
 			}
-			else if ( team == 2 && !m_bHeardAxisReady && strcmp( text, readyString ) == 0 )
+			else if ( team == 2 && !m_bHeardAxisReady && !strcmp( pszText, readyString ) )
 			{
 				m_bHeardAxisReady = TRUE;
 				UTIL_ShowMessageAll( "#Clan_axis_ready", FALSE );
 			}
 		}
-		if ( chatOn != 0 )
+
+		if ( iChatMsg )
 		{
 			Host_Say( pPlayer->edict(), 0 );
 			return FALSE;
 		}
-		return CGameRules::ClientCommand( pPlayer, pcmd );
+
+		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_chat_off" );
+		return FALSE;
 	}
-	if ( !stricmp( pcmd, "say_team" ) )
+
+	if ( !strcmp( pcmd, "say_team" ) )
 	{
-		if ( pPlayer->m_chatMsg != 0 )
+		if ( pPlayer->m_chatMsg )
 		{
 			Host_Say( pPlayer->edict(), 1 );
 			return FALSE;
 		}
-		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_chat_off", 0, 0, 0, 0 );
+
+		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_chat_off" );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "menuselect" ) )
+
+	if ( FStrEq( pcmd, "menuselect" ) )
 	{
-		if ( CMD_ARGC() < 2 )
-			return TRUE;
-		int sel = atoi( CMD_ARGV( 1 ) );
-		int menu = pPlayer->lastMenuSelected;
-		if ( menu == 5 )
+		if ( CMD_ARGC() > 1 )
 		{
-			if ( sel == 1 )
-				VoteKick( pPlayer, sel, FALSE );
+			int iSelection = atoi( CMD_ARGV( 1 ) );
+
+			switch ( pPlayer->lastMenuSelected )
+			{
+			case 5:
+				if ( iSelection == 1 )
+					VoteKick( pPlayer, m_vKick, true );
+				break;
+
+			case 6:
+				if ( iSelection == 9 )
+					pPlayer->VoteMenu( -1, 7 );
+				else if ( iSelection != 10 )
+					VoteKick( pPlayer, iSelection, true );
+				break;
+
+			case 7:
+				if ( iSelection == 9 )
+					pPlayer->VoteMenu( -1, 8 );
+				else if ( iSelection != 10 )
+					VoteKick( pPlayer, iSelection + 8, true );
+				break;
+
+			case 8:
+				if ( iSelection == 9 )
+					pPlayer->VoteMenu( -1, 9 );
+				else if ( iSelection != 10 )
+					VoteKick( pPlayer, iSelection + 16, true );
+				break;
+
+			case 9:
+				if ( iSelection != 10 && iSelection != 9 )
+					VoteKick( pPlayer, iSelection + 24, true );
+				break;
+
+			default:
+				if ( (unsigned int)( pPlayer->lastMenuSelected - 1 ) <= 3 )
+					VoiceCommSelect( pPlayer, iSelection );
+				break;
+			}
+
+			pPlayer->lastMenuSelected = -1;
 		}
-		else if ( menu == 6 )
-		{
-			if ( sel == 9 )
-				pPlayer->VoteMenu( -1, 7 );
-			else if ( sel != 10 )
-				VoteKick( pPlayer, sel, FALSE );
-		}
-		else if ( menu == 7 )
-		{
-			if ( sel == 9 )
-				pPlayer->VoteMenu( -1, 8 );
-			else if ( sel != 10 )
-				VoteKick( pPlayer, sel, FALSE );
-		}
-		else if ( menu == 8 )
-		{
-			if ( sel == 9 )
-				pPlayer->VoteMenu( -1, 9 );
-			else if ( sel != 10 )
-				VoteKick( pPlayer, sel, FALSE );
-		}
-		else if ( menu == 9 )
-		{
-			if ( sel != 10 && sel != 9 )
-				VoteKick( pPlayer, sel, FALSE );
-		}
-		else if ( (unsigned) ( menu - 1 ) < 4 )
-		{
-			VoiceCommSelect( pPlayer, sel );
-		}
-		pPlayer->lastMenuSelected = -1;
+
 		return TRUE;
 	}
-	if ( !stricmp( pcmd, "jointeam" ) )
+
+	if ( FStrEq( pcmd, "jointeam" ) )
 	{
 		if ( CMD_ARGC() > 1 )
 			TeamSelect( pPlayer, atoi( CMD_ARGV( 1 ) ) );
+
 		return TRUE;
 	}
-	if ( !stricmp( pcmd, "changeclass" ) )
+
+	if ( FStrEq( pcmd, "changeclass" ) )
 	{
 		ShowClassSelectMenu( pPlayer );
 		return TRUE;
 	}
-	if ( !stricmp( pcmd, "changeteam" ) )
+
+	if ( FStrEq( pcmd, "changeteam" ) )
 	{
 		ShowVGUI( pPlayer, 2, 0 );
 		return TRUE;
 	}
-	if ( !strnicmp( pcmd, "cls_", 4 ) )
+
+	if ( !strncmp( pcmd, "cls_", 4 ) )
 	{
-		int cls = 0;
-		while ( cls != 0x1c )
+		int iClass = 0;
+
+		while ( strcmp( g_ClassInfo[iClass].selectcmd, pcmd ) )
 		{
-			if ( strcmp( g_ClassInfo[cls].selectcmd, pcmd ) == 0 )
+			if ( ++iClass == 28 )
+			{
+				iClass = 0;
 				break;
-			cls++;
+			}
 		}
-		if ( cls == 0x1c )
-			cls = 0;
-		ClassSelect( pPlayer, cls );
+
+		ClassSelect( pPlayer, iClass );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "nextmap" ) )
+
+	if ( FStrEq( pcmd, "nextmap" ) )
 	{
-		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_nextmap", m_szNextMap, 0, 0, 0 );
+		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_nextmap", m_szNextMap );
 		return TRUE;
 	}
-	if ( !stricmp( pcmd, "debug" ) || !stricmp( pcmd, "debug2" ) )
+
+	if ( FStrEq( pcmd, "debug" ) || FStrEq( pcmd, "debug2" ) )
 		return TRUE;
-	if ( pPlayer->pev->deadflag != 0 )
+
+	// the commands below are for the living
+	if ( pPlayer->pev->deadflag )
 		return FALSE;
-	if ( !stricmp( pcmd, "sprone" ) )
+
+	if ( FStrEq( pcmd, "sprone" ) )
 	{
 		if ( pPlayer->IsSandbagDeployed() )
 			return TRUE;
+
 		if ( pPlayer->IsInMortarDeploy() )
 			return TRUE;
-		if ( ( pPlayer->pev->button & 1 ) != 0 )
+
+		if ( pPlayer->pev->button & IN_ATTACK )
 			return TRUE;
-		if ( pPlayer->pev->movetype == 5 )
+
+		if ( pPlayer->pev->movetype == MOVETYPE_NOCLIP )
 			return TRUE;
-		BOOL prone = pPlayer->IsProne();
-		if ( !prone && pPlayer->pev->waterlevel > 1 && pPlayer->pev->watertype != -0x13 )
+
+		if ( !pPlayer->IsProne() && pPlayer->pev->waterlevel > 1 && pPlayer->pev->watertype != -19 )
 			return TRUE;
-		if ( pPlayer->m_inextprone < gpGlobals->time )
+
+		if ( gpGlobals->time > pPlayer->m_inextprone )
 		{
-			int mode = pPlayer->pev->iuser3;
-			if ( mode == 1 )
+			int iProneState = pPlayer->pev->iuser3;
+
+			if ( iProneState == 1 )
 			{
 				pPlayer->UnProne();
 			}
-			else if ( mode == 0 )
+			else if ( !iProneState )
 			{
-				if ( ( pPlayer->pev->button & 4 ) != 0 )
+				if ( ( pPlayer->pev->button & IN_DUCK ) || pPlayer->IsDucking() || ( pPlayer->m_afPhysicsFlags & 8 ) )
 					return TRUE;
-				if ( pPlayer->IsDucking() )
-					return TRUE;
-				if ( ( pPlayer->m_afPhysicsFlags & 8 ) != 0 )
-					return TRUE;
+
 				pPlayer->GoProne();
 				pPlayer->CheckPlayerSpeed();
-				if ( ( pPlayer->m_flDisplayHistory & 0x2000 ) != 0 )
-					return FALSE;
-				pPlayer->m_flDisplayHistory |= 0x2000;
-				pPlayer->HintMessage( "#Hint_prone", 0 );
+
+				if ( !( pPlayer->m_flDisplayHistory & 0x2000 ) )
+				{
+					pPlayer->m_flDisplayHistory |= 0x2000;
+					pPlayer->HintMessage( "#Hint_prone", 0 );
+				}
+
 				return FALSE;
 			}
 		}
+
 		pPlayer->CheckPlayerSpeed();
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "use" ) )
+
+	if ( FStrEq( pcmd, "give" ) )
+	{
+		if ( CVAR_GET_FLOAT( "sv_cheats" ) == 0.0 )
+			return FALSE;
+
+		if ( pPlayer->pev->iuser1 )
+			return FALSE;
+
+		int iCount = atoi( CMD_ARGV( 2 ) );
+		int iszItem = ALLOC_STRING( CMD_ARGV( 1 ) );
+
+		if ( iCount <= 0 )
+			iCount = 1;
+
+		for ( int i = 0; i < iCount; i++ )
+			pPlayer->GiveNamedItem( STRING( iszItem ) );
+
+		return FALSE;
+	}
+
+	if ( FStrEq( pcmd, "use" ) )
 	{
 		pPlayer->SelectItem( CMD_ARGV( 1 ) );
 		return FALSE;
 	}
-	if ( !strnicmp( pcmd, "weapon_", 7 ) )
+
+	if ( strstr( pcmd, "weapon_" ) == pcmd )
 	{
 		pPlayer->SelectItem( pcmd );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "lastinv" ) )
+
+	if ( FStrEq( pcmd, "lastinv" ) )
 	{
 		pPlayer->SelectLastItem();
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "dropammo" ) || !stricmp( pcmd, "dropmgammo" ) )
+
+	if ( FStrEq( pcmd, "dropammo" ) || FStrEq( pcmd, "dropmgammo" ) )
 	{
 		pPlayer->DropGenericAmmo();
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "drop" ) )
+
+	if ( FStrEq( pcmd, "maim" ) )
 	{
-		pPlayer->DropPlayerItem( (char *) CMD_ARGV( 1 ), FALSE );
+		CMD_ARGS();
+
+		if ( CMD_ARGC() > 1 )
+		{
+			atoi( CMD_ARGV( 1 ) );
+			return FALSE;
+		}
+
+		return TRUE;
+	}
+
+	if ( FStrEq( pcmd, "drop" ) )
+	{
+		pPlayer->DropPlayerItem( (char *)CMD_ARGV( 1 ), FALSE );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "signal_sticktogether" ) )
+
+	if ( FStrEq( pcmd, "signal_sticktogether" ) )
 	{
 		pPlayer->HandSignal( 0 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "signal_fallback" ) )
+
+	if ( FStrEq( pcmd, "signal_fallback" ) )
 	{
 		pPlayer->HandSignal( 1 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "signal_no" ) )
+
+	if ( FStrEq( pcmd, "signal_no" ) )
 	{
 		pPlayer->HandSignal( 2 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "signal_yes" ) )
+
+	if ( FStrEq( pcmd, "signal_yes" ) )
 	{
 		pPlayer->HandSignal( 3 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "signal_sniper" ) )
+
+	if ( FStrEq( pcmd, "signal_sniper" ) )
 	{
 		pPlayer->HandSignal( 4 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "signal_backup" ) )
+
+	if ( FStrEq( pcmd, "signal_backup" ) )
 	{
 		pPlayer->HandSignal( 5 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "signal_enemyright" ) )
+
+	if ( FStrEq( pcmd, "signal_enemyright" ) )
 	{
 		pPlayer->HandSignal( 6 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "signal_enemyleft" ) )
+
+	if ( FStrEq( pcmd, "signal_enemyleft" ) )
 	{
 		pPlayer->HandSignal( 7 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "signal_grenade" ) )
+
+	if ( FStrEq( pcmd, "signal_grenade" ) )
 	{
 		pPlayer->HandSignal( 8 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "signal_flankleft" ) )
+
+	if ( FStrEq( pcmd, "signal_flankleft" ) )
 	{
 		pPlayer->HandSignal( 9 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "signal_moveout" ) )
+
+	if ( FStrEq( pcmd, "signal_moveout" ) )
 	{
 		pPlayer->HandSignal( 10 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "signal_flankright" ) )
+
+	if ( FStrEq( pcmd, "signal_flankright" ) )
 	{
-		pPlayer->HandSignal( 0xb );
+		pPlayer->HandSignal( 11 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "signal_areaclear" ) )
+
+	if ( FStrEq( pcmd, "signal_areaclear" ) )
 	{
-		pPlayer->HandSignal( 0xc );
+		pPlayer->HandSignal( 12 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "signal_coveringfire" ) )
+
+	if ( FStrEq( pcmd, "signal_coveringfire" ) )
 	{
-		pPlayer->HandSignal( 0xd );
+		pPlayer->HandSignal( 13 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "signal_holdposition" ) )
+
+	if ( FStrEq( pcmd, "signal_holdposition" ) )
 	{
-		pPlayer->HandSignal( 0xf );
+		pPlayer->HandSignal( 15 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "signal_enemyspotted" ) )
+
+	if ( FStrEq( pcmd, "signal_enemyspotted" ) )
 	{
-		pPlayer->HandSignal( 0x11 );
+		pPlayer->HandSignal( 17 );
 		return FALSE;
 	}
-	if ( !strncmp( pcmd, "dod_is_oned", 11 ) )
+
+	if ( !strncmp( pcmd, "dod_is_toned", 12 ) )
 	{
-		int num = atoi( pcmd + 0xc );
-		if ( (unsigned) ( num - 2 ) < 4 )
-			pPlayer->HandSignal( num + 0x18 );
+		int iSignal = atoi( pcmd + 12 );
+
+		if ( (unsigned int)( iSignal - 2 ) <= 3 )
+			pPlayer->HandSignal( iSignal + 24 );
+
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "voice_menu1" ) )
+
+	if ( FStrEq( pcmd, "voice_menu1" ) )
 	{
 		pPlayer->VoiceMenu( 1 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "voice_menu2" ) )
+
+	if ( FStrEq( pcmd, "voice_menu2" ) )
 	{
 		pPlayer->VoiceMenu( 2 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "voice_menu3" ) )
+
+	if ( FStrEq( pcmd, "voice_menu3" ) )
 	{
 		pPlayer->VoiceMenu( 3 );
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "dropobject" ) )
+
+	if ( FStrEq( pcmd, "dropobject" ) )
 	{
-		if ( pPlayer->HasObject != 0 )
+		if ( pPlayer->HasObject )
 			pPlayer->DropObject();
+
 		return TRUE;
 	}
-	if ( !stricmp( pcmd, "chattoplayer" ) )
+
+	if ( FStrEq( pcmd, "chattoplayer" ) )
 	{
-		int idx = atoi( CMD_ARGV( 1 ) );
-		CBaseEntity *plr = UTIL_PlayerByIndex( idx );
-		if ( plr )
+		CBaseEntity *pTarget = UTIL_PlayerByIndex( atoi( CMD_ARGV( 1 ) ) );
+
+		if ( pTarget )
 		{
 			char text[201];
-			sprintf( text, "%c%s: ", 1, STRING( pPlayer->pev->netname ) );
+			char word[127];
+
+			sprintf( text, "%c%s: ", 2, STRING( pTarget->pev->netname ) );
+
 			for ( int i = 2; i != CMD_ARGC() + 1; i++ )
 			{
-				char text2[50];
-				sprintf( text2, "%s ", CMD_ARGV( i ) );
-				strcat( text, text2 );
+				sprintf( word, "%s ", CMD_ARGV( i ) );
+				strcat( text, word );
 			}
-			ClientPrint( plr->pev, HUD_PRINTTALK, text, 0, 0, 0, 0 );
+
+			ClientPrint( pTarget->pev, HUD_PRINTTALK, text );
 		}
+
 		return TRUE;
 	}
-	if ( !stricmp( pcmd, "firemarker" ) )
+
+	if ( FStrEq( pcmd, "firemarker" ) )
 	{
 		pPlayer->FireMapMarker();
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "nextmarker" ) )
+
+	if ( FStrEq( pcmd, "nextmarker" ) )
 	{
 		pPlayer->NextMapMarker();
 		return FALSE;
 	}
-	if ( !stricmp( pcmd, "prevmarker" ) )
+
+	if ( FStrEq( pcmd, "prevmarker" ) )
 	{
 		pPlayer->PrevMapMarker();
 		return FALSE;
 	}
-	return CGameRules::ClientCommand( pPlayer, pcmd );
+
+	for ( int i = 1; i != 28; i++ )
+	{
+		if ( FStrEq( pcmd, s_VoiceCommands[i][0] ) )
+		{
+			pPlayer->VoiceCom( i );
+			return TRUE;
+		}
+	}
+
+	// no percent signs in what is printed back
+	char szCmd[127];
+
+	strncpy( szCmd, pcmd, sizeof( szCmd ) - 1 );
+	szCmd[sizeof( szCmd ) - 1] = 0;
+
+	for ( char *p = szCmd; *p; p++ )
+	{
+		if ( *p == '%' )
+			*p = ' ';
+	}
+
+	ClientPrint( pPlayer->pev, HUD_PRINTCONSOLE, "Unknown command: %s\n", szCmd );
+
+	return FALSE;
 }
 
 // .text:000e3610 char* CDoDTeamPlay::GetIndexedTeamName(int) (dod/dlls/dod_gamerules.cpp:3329)
@@ -1910,12 +2174,30 @@ void ExtractCommandString( char *s, char *szCommand )
 			s++;
 	}
 }
-// .text:000e7100 void CDoDTeamPlay::PreparePlayerForSpawn(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:2483)
 void CDoDTeamPlay::PreparePlayerForSpawn( CBasePlayer *pPlayer )
 {
-	pPlayer->m_iNumTKs = 0;
-	pPlayer->m_flNextDecalTime = 0;
-	pPlayer->RemoveAllWeaponFlags();
+	if ( pPlayer->m_bIsObserver && pPlayer->m_imissedwave )
+		pPlayer->m_irdytospawn = 1;
+
+	int iClass = pPlayer->m_iNextClass;
+	char *pszClassName;
+
+	if ( (unsigned int)( iClass - 10 ) > 10 )
+		pszClassName = m_GamePlayRules.m_bAlliesArePara ? g_ParaClassInfo[iClass].classname : g_ClassInfo[iClass].classname;
+	else
+		pszClassName = m_GamePlayRules.m_bAxisArePara ? g_ParaClassInfo[iClass].classname : g_ClassInfo[iClass].classname;
+
+	ClientPrint( pPlayer->pev, HUD_PRINTTALK, pPlayer->IsAlive() ? "#game_respawn_as" : "#game_spawn_as", pszClassName );
+
+	UTIL_LogPrintf( "\"%s<%i><%s><%s>\" changed role to \"%s\"\n", STRING( pPlayer->pev->netname ),
+					GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ), "Allies", pszClassName );
+
+	if ( pPlayer->m_irdytospawn )
+	{
+		if ( ( pPlayer->pev->team == 1 && m_GamePlayRules.m_bAlliesInfiniteLives ) ||
+			 ( pPlayer->pev->team == 2 && m_GamePlayRules.m_bAxisInfiniteLives ) || m_RoundState != 1 )
+			pPlayer->DelayedSpawn();
+	}
 }
 // .text:000e7340 int CDoDTeamPlay::CountClasses(int) (dod/dlls/dod_gamerules.cpp:2581)
 int CDoDTeamPlay::CountClasses( int targetClass )
@@ -2442,13 +2724,12 @@ void CDoDTeamPlay::SetClanMatch( bool bMatchOn )
 	}
 	SendClientGamerules( NULL );
 }
-// .text:000eb7f0 void CDoDTeamPlay::ReturnToWarmup() (dod/dlls/dod_gamerules.cpp:6244)
 void CDoDTeamPlay::ReturnToWarmup( void )
 {
 	if ( m_bClanMatch )
 	{
 		m_bClanMatchActive = FALSE;
-		SetClanMatch( FALSE );
+		setMapTime();
 		SendClientGamerules( NULL );
 	}
 }
