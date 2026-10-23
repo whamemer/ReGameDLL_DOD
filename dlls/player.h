@@ -18,6 +18,7 @@
 #include "pm_materials.h"
 
 #include "hintmessage.h"
+#include "unisignals.h"
 
 #define PLAYER_FATAL_FALL_SPEED 1024	// approx 60 feet
 #define PLAYER_MAX_SAFE_FALL_SPEED 500	// approx 20 feet
@@ -137,30 +138,6 @@ enum sbar_data
 #define HINT_KILLED_WAVETIME_FIRST 0x10000
 #define HINT_KILLED_WAVETIME_AGAIN 0x20000
 #define HINT_MG_OVERHEAT 0x40000
-
-// DoD DWARF player.h: CUnifiedSignals (methods are inlined in dod.so - no symbols).
-class CUnifiedSignals
-{
-  public:
-	int m_flSignal;
-	int m_flState;
-
-	CUnifiedSignals()
-	{
-		m_flSignal = 0;
-		m_flState = 0;
-	}
-	int Update()
-	{
-		int old = m_flState;
-		int sig = m_flSignal;
-		m_flSignal = 0;
-		m_flState = sig;
-		return sig ^ old;
-	}
-	void Signal( int s ) { m_flSignal |= s; }
-	int GetState() { return m_flState; }
-};
 
 class CObject;
 class CBasePlayerWeapon;

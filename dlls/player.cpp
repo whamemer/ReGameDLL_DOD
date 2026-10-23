@@ -3878,8 +3878,7 @@ void CBasePlayer ::UpdateClientData( void )
 		m_fInitHUD = FALSE;
 		gInitHUD = FALSE;
 
-		m_signals.m_flState = m_signals.m_flSignal;
-		m_signals.m_flSignal = 0;
+		m_signals.Update();
 
 		MESSAGE_BEGIN( MSG_ONE, gmsgResetHUD, NULL, pev );
 		MESSAGE_END();
@@ -4975,11 +4974,9 @@ int CBasePlayer::PlayerStatus()
 
 void CBasePlayer::HandleSignals()
 {
-	int old = m_signals.m_flState;
-	int sig = m_signals.m_flSignal;
-	m_signals.m_flSignal = 0;
-	m_signals.m_flState = sig;
-	int changed = sig ^ old;
+	int changed = m_signals.Update();
+	int sig = m_signals.GetState();
+
 	if ( changed & SIGNAL_SANDBAG )
 	{
 		if ( !( sig & SIGNAL_SANDBAG ) )

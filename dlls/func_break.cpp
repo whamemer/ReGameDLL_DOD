@@ -461,7 +461,7 @@ void CBreakable::BreakTouch( CBaseEntity *pOther )
 
 	if ( sz_Group[0] )
 	{
-		pPlayer->m_signals.m_flSignal |= SIGNAL_OBJECTAREA;
+		pPlayer->m_signals.Signal( SIGNAL_OBJECTAREA );
 		pPlayer->m_iObjectAreaIndex = m_iAreaIndex;
 		pPlayer->SetClientAreaIcon( m_iAreaIndex, true );
 	}

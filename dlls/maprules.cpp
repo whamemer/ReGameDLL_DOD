@@ -1009,7 +1009,7 @@ void CAreaCapture::AreaTouch( CBaseEntity *pOther )
 	}
 	pPlayer->SetClientAreaIcon( m_iAreaIndex, true );
 presentState:
-	pPlayer->m_signals.m_flSignal |= SIGNAL_CAPTUREAREA;
+	pPlayer->m_signals.Signal( SIGNAL_CAPTUREAREA );
 	if ( m_bRequiresObject && can )
 	{
 		if ( !pPlayer->HasObject || !pPlayer->m_pObject )
@@ -1099,7 +1099,7 @@ void CAreaCapture::EndCapture( int team )
 		CBasePlayer *plr = (CBasePlayer *)UTIL_PlayerByIndex( i );
 		if ( !plr )
 			continue;
-		if ( ( plr->m_signals.m_flState & SIGNAL_CAPTUREAREA ) == 0 || plr->m_iCapAreaIndex != m_iAreaIndex )
+		if ( ( plr->m_signals.GetState() & SIGNAL_CAPTUREAREA ) == 0 || plr->m_iCapAreaIndex != m_iAreaIndex )
 			continue;
 		const char *teamName = ( plr->pev->team == TEAM_ALLIES ) ? "Allies" : "Axis";
 		if ( !m_pPoint )
@@ -1177,7 +1177,7 @@ void CAreaCapture::Think()
 		CBasePlayer *plr = (CBasePlayer *)UTIL_PlayerByIndex( i );
 		if ( !plr )
 			continue;
-		if ( ( plr->m_signals.m_flState & SIGNAL_CAPTUREAREA ) == 0 || plr->m_iCapAreaIndex != m_iAreaIndex )
+		if ( ( plr->m_signals.GetState() & SIGNAL_CAPTUREAREA ) == 0 || plr->m_iCapAreaIndex != m_iAreaIndex )
 			continue;
 		if ( m_bRequiresObject )
 		{

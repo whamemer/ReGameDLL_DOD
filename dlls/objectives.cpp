@@ -322,7 +322,7 @@ void CObjectCapture::Touch( CBaseEntity *pOther )
 	if ( m_bCapped )
 		return;
 	CBasePlayer *pPlayer = (CBasePlayer *)pOther;
-	pPlayer->m_signals.m_flSignal |= SIGNAL_OBJECTAREA;
+	pPlayer->m_signals.Signal( SIGNAL_OBJECTAREA );
 	pPlayer->m_iObjectAreaIndex = m_iAreaIndex;
 	pPlayer->SetClientAreaIcon( m_iAreaIndex, true );
 	if ( !pPlayer->HasObject || !pPlayer->m_pObject )
