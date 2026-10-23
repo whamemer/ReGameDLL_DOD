@@ -198,9 +198,6 @@ class CGameRules
 	// ---- extras kept for this restoration (non-virtual: absent from the binary vtable) ----
 	void Precache() {}
 	void UpdateGameMode( CBasePlayer *pPlayer ) {}
-	BOOL IsFreezePeriod( void ) { return FALSE; }
-	BOOL IsRoundRestarting( void ) { return FALSE; }
-	void RecheckScores( void ) {}
 	BOOL IsAlliesBrit( void ) { return FALSE; }
 };
 
@@ -292,9 +289,6 @@ class CHalfLifeRules : public CGameRules
 	virtual const char *GetTeamID( CBaseEntity *pEntity ) { return ""; };
 	virtual int PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget );
 	virtual int RoundState( void ) { return 0; }
-	virtual BOOL IsFreezePeriod( void ) { return FALSE; }
-	virtual BOOL IsRoundRestarting( void ) { return FALSE; }
-	virtual void RecheckScores( void ) {}
 	virtual BOOL IsAlliesBrit( void ) { return FALSE; }
 };
 

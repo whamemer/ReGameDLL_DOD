@@ -1567,7 +1567,10 @@ void CDoDTeamPlay::StartClanMatch( void )
 		MESSAGE_END();
 	}
 	SendClientGamerules( NULL );
+	SendTeamScores( 0 );
 	SetRoundState( ROUNDSTATE_PREROUND );
+	RestartRound();
+	setMapTime();
 	m_bRoundRestarting = FALSE;
 }
 void CDoDTeamPlay::CheckClanRestart( void )
@@ -3260,8 +3263,9 @@ BOOL CDoDTeamPlay::FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAtt
 	BOOL bRet = TRUE;
 	if ( pAttacker != NULL )
 	{
-		if ( CGameRules::FPlayerCanTakeDamage( pPlayer, pAttacker ) == TRUE && pcvar_mp_friendlyfire )
-			bRet = ( (CBasePlayer *) pAttacker == pPlayer || pcvar_mp_friendlyfire->value > 0.0f );
+		// the damage of a teammate depends on the friendly fire
+		if ( PlayerRelationship( pPlayer, pAttacker ) == 1 && pcvar_mp_friendlyfire )
+			bRet = ( pcvar_mp_friendlyfire->value > 0.0f || (CBasePlayer *) pAttacker == pPlayer );
 	}
 	return bRet;
 }
@@ -3276,7 +3280,7 @@ int CDoDTeamPlay::IPointsForKill( CBasePlayer *pAttacker, CBasePlayer *pKilled )
 	{
 		pts = 1;
 		if ( pAttacker != NULL && pAttacker != pKilled )
-			pts = ( FPlayerCanTakeDamage( pAttacker, pKilled ) != TRUE );
+			pts = ( PlayerRelationship( pAttacker, pKilled ) != 1 );
 	}
 	return pts;
 }

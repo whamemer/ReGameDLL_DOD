@@ -1449,56 +1449,83 @@ void CControlPoint::Touch( CBaseEntity *pOther )
 // cap string, m_fNextCapTime = time + m_fCapDelayTime.
 void CControlPoint::SetOwner( int owner, BOOL bMakeSound, CBasePlayer *pPlayer )
 {
-	if ( g_pGameRules->IsFreezePeriod() || g_pGameRules->IsRoundRestarting() )
-		return;
-	int st = g_pGameRules->RoundState();
-	if ( st != 1 && st != 0 )
-		return;
-	if ( g_fGameOver )
-		return;
-	m_iTeam = owner;
-	if ( owner == 1 )
+	if ( !m_bActive )
 	{
-		if ( bMakeSound && pev->noise1 )
-			EMIT_SOUND_DYN( edict(), CHAN_ITEM, STRING( pev->noise1 ), 1.0, 0, 0, 100 );
-		SET_MODEL( edict(), sz_AlliesModel );
-		SetBodygroup( 0, m_iAlliesModelBodygroup );
-		FireTargets( sz_AlliesTarget, this, this, USE_TOGGLE, 0.0 );
-	}
-	else if ( owner == 2 )
-	{
-		if ( bMakeSound && pev->noise2 )
-			EMIT_SOUND_DYN( edict(), CHAN_ITEM, STRING( pev->noise2 ), 1.0, 0, 0, 100 );
-		SET_MODEL( edict(), sz_AxisModel );
-		SetBodygroup( 0, m_iAxisModelBodygroup );
-		FireTargets( sz_AxisTarget, this, this, USE_TOGGLE, 0.0 );
-	}
-	else
-	{
-		if ( bMakeSound && pev->noise )
-			EMIT_SOUND_DYN( edict(), CHAN_ITEM, STRING( pev->noise ), 1.0, 0, 0, 100 );
 		SET_MODEL( edict(), sz_ResetModel );
 		SetBodygroup( 0, m_iResetModelBodygroup );
+
+		return;
+	}
+
+	if ( g_pGameRules->IsClanMatch() && !g_pGameRules->IsClanMatchActive() )
+		return;
+
+	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING && g_pGameRules->RoundState() != ROUNDSTATE_PREROUND )
+		return;
+
+	if ( g_fGameOver )
+		return;
+
+	m_iTeam = owner;
+
+	if ( owner == TEAM_ALLIES )
+	{
+		if ( bMakeSound && pev->noise1 )
+			EMIT_SOUND_DYN( edict(), CHAN_STATIC, STRING( pev->noise1 ), 1.0, ATTN_NONE, 0, PITCH_NORM );
+
+		SET_MODEL( edict(), sz_AlliesModel );
+		SetBodygroup( 0, m_iAlliesModelBodygroup );
+
+		FireTargets( sz_AlliesTarget, this, this, USE_TOGGLE, 0.0 );
+	}
+	else if ( owner == TEAM_AXIS )
+	{
+		if ( bMakeSound && pev->noise2 )
+			EMIT_SOUND_DYN( edict(), CHAN_STATIC, STRING( pev->noise2 ), 1.0, ATTN_NONE, 0, PITCH_NORM );
+
+		SET_MODEL( edict(), sz_AxisModel );
+		SetBodygroup( 0, m_iAxisModelBodygroup );
+
+		FireTargets( sz_AxisTarget, this, this, USE_TOGGLE, 0.0 );
+	}
+	else if ( owner == TEAM_UNASSIGNED )
+	{
+		if ( bMakeSound && pev->noise )
+			EMIT_SOUND_DYN( edict(), CHAN_STATIC, STRING( pev->noise ), 1.0, ATTN_NONE, 0, PITCH_NORM );
+
+		SET_MODEL( edict(), sz_ResetModel );
+		SetBodygroup( 0, m_iResetModelBodygroup );
+
 		FireTargets( sz_ResetTarget, this, this, USE_TOGGLE, 0.0 );
 	}
-	if ( bMakeSound && g_pGameRules )
+
+	// the points count only while the round counts
+	if ( bMakeSound && g_pGameRules && ( (CDoDTeamPlay *)g_pGameRules )->m_RoundDoesCount == 1 )
 	{
 		if ( pPlayer )
 			pPlayer->AddObjScore( m_iCapPoints, TRUE );
-		if ( owner == 1 || owner == 2 )
-			g_pGameRules->RecheckScores();
+
+		if ( owner == TEAM_ALLIES || owner == TEAM_AXIS )
+			g_pGameRules->AddToTeamScores( owner, m_iTeamPoints );
 	}
+
 	if ( !( pev->spawnflags & SF_CONTROLPOINT_HIDDEN ) )
 	{
+		if ( !gmsgSetObjOwner )
+			return;
+
 		MESSAGE_BEGIN( MSG_ALL, gmsgSetObjOwner );
-		WRITE_BYTE( m_iIndex );
-		WRITE_BYTE( owner );
-		WRITE_BYTE( 0 );
+			WRITE_BYTE( m_iIndex );
+			WRITE_BYTE( owner );
+			WRITE_BYTE( 0 );
 		MESSAGE_END();
+
 		UTIL_SendDirectorMessage( this, NULL, 11 );
 	}
-	if ( bMakeSound && owner != 0 )
+
+	if ( bMakeSound && owner != TEAM_UNASSIGNED )
 		SendCapString( owner, pPlayer );
+
 	m_fNextCapTime = gpGlobals->time + m_fCapDelayTime;
 }
 

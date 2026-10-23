@@ -645,7 +645,6 @@ void CScoreEvent::ScoreThink()
 
 void CScoreEvent::ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	// slot 0x2d gate approx IsPlayer: ignore player callers
 	if ( pCaller && pCaller->IsPlayer() )
 		return;
 	if ( szNextMap[0] )
@@ -662,8 +661,8 @@ void CScoreEvent::ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 			( (CDoDTeamPlay *)g_pGameRules )->SetRoundState( ROUNDSTATE_ALLIES_WON );
 		else if ( team == TEAM_AXIS )
 			( (CDoDTeamPlay *)g_pGameRules )->SetRoundState( ROUNDSTATE_AXIS_WON );
-		// slot 0x41 single-float timer set approx restart time
-		( (CDoDTeamPlay *)g_pGameRules )->m_flRestartTime = (float)m_iResetPlayersTime + gpGlobals->time;
+
+		g_pGameRules->SetRestartTime( (float)m_iResetPlayersTime + gpGlobals->time );
 	}
 	string_t msg = 0;
 	if ( !m_iResetItemsTime )
@@ -676,11 +675,11 @@ void CScoreEvent::ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 	}
 	if ( msg )
 		UTIL_ShowMessageAll( STRING( msg ), FALSE );
-	// clan vs regular scoring: slots 0x4e/0x4f approx IsClanMatch/IsTeamplay
+	// the clan scoring replaces the points of the entity
 	BOOL bGiveRegular = TRUE;
 	int team = pev->team;
 	CDoDTeamPlay *pRules = (CDoDTeamPlay *)g_pGameRules;
-	if ( pRules->IsClanMatch() && pRules->IsTeamplay() && pcvar_mp_clan_scoring )
+	if ( pRules->IsClanMatch() && pRules->IsClanMatchActive() && pcvar_mp_clan_scoring )
 	{
 		if ( pcvar_mp_clan_scoring->value > 0.0 )
 		{
@@ -728,9 +727,8 @@ void CScoreEvent::ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 		FireDODCamera( "allies_loose_cut", NULL, NULL, USE_TOGGLE, 0.0 );
 	}
 	pRules->ResetForDoDCamera();
-	// slot 0x3c no-arg end call approx GoToIntermission, gated by noise2
 	if ( pev->noise2 )
-		pRules->GoToIntermission();
+		g_pGameRules->EndMultiplayerGame();
 }
 
 LINK_ENTITY_TO_CLASS( dod_object, CObject );

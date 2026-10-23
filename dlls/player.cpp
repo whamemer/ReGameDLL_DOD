@@ -833,7 +833,7 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 	RemoveAllItems( 1 );
 	if ( pevAttacker->pContainingEntity == NULL )
 		pevAttacker = VARS( INDEXENT( 0 ) );
-	g_pGameRules->PlayerKilled( this, pevAttacker, g_pevLastInflictor );
+	g_pGameRules->PlayerKilled( this, pevAttacker, g_pevLastInflictor, iGib );
 	if ( lastMenuSelected > 0 )
 	{
 		lastMenuSelected = -1;
@@ -852,36 +852,45 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 	if ( pSound )
 		pSound->Reset();
 	UTIL_MakeVectors( pev->angles );
-	if ( !( m_bitsDamageType & DMG_BLAST ) )
-	{
-		SetAnimation( PLAYER_DIE );
-	}
-	else
+	// a blast throws the player back or forward, from the side it is a normal death
+	BOOL bThrown = FALSE;
+
+	if ( m_bitsDamageType & DMG_BLAST )
 	{
 		float flDot = -DotProduct( g_vecAttackDir, gpGlobals->v_forward );
+
 		if ( flDot <= -0.3f )
+		{
 			SetAnimation( PLAYER_EXPLODE_BACK );
-		else if ( flDot <= 0.3f )
-			SetAnimation( PLAYER_DIE );
-		else
+			bThrown = TRUE;
+		}
+		else if ( flDot > 0.3f )
+		{
 			SetAnimation( PLAYER_EXPLODE_FORWARD );
-		UTIL_SendDirectorMessage( this, NULL, 7 | DRC_FLAG_SLOWMOTION );
+			bThrown = TRUE;
+		}
 	}
+
+	if ( bThrown )
+		UTIL_SendDirectorMessage( this, NULL, 7 | DRC_FLAG_SLOWMOTION );
+	else
+		SetAnimation( PLAYER_DIE );
+
 	m_iRespawnFrames = 0;
 	pev->modelindex = g_ulModelIndexPlayer;
 	pev->deadflag = DEAD_DYING;
 	pev->movetype = MOVETYPE_TOSS;
 	pev->flags &= ~FL_ONGROUND;
-	if ( cvar_fadetoblack.value == 0.0f || !g_pGameRules->IsMultiplayer() )
+	if ( cvar_fadetoblack.value != 0.0f && g_pGameRules->IsClanMatch() && g_pGameRules->IsClanMatchActive() )
+	{
+		UTIL_ScreenFade( this, Vector( 0, 0, 0 ), 3.0, 3.0, 0xff, 5 );
+	}
+	else
 	{
 		pev->iuser1 = OBS_IN_EYE;
 		pev->iuser2 = ENTINDEX( edict() );
 		pev->iuser3 = ENTINDEX( ENT( pevAttacker ) );
 		m_hObserverTarget = UTIL_PlayerByIndex( pev->iuser3 );
-	}
-	else
-	{
-		UTIL_ScreenFade( this, Vector( 0, 0, 0 ), 3.0, 3.0, 0xff, 5 );
 	}
 	MESSAGE_BEGIN( MSG_ONE, gmsgYouDied, NULL, pev );
 	WRITE_BYTE( 0 );
@@ -2104,7 +2113,7 @@ void CBasePlayer::PreThink( void )
 
 	WaterMove();
 
-	if ( g_pGameRules && g_pGameRules->IsMultiplayer() )
+	if ( g_pGameRules && g_pGameRules->FAllowFlashlight() )
 		m_iHideHUD &= ~HIDEHUD_FLASHLIGHT;
 	else
 		m_iHideHUD |= HIDEHUD_FLASHLIGHT;
@@ -5104,38 +5113,41 @@ void CBasePlayer::RemoveAllWeaponFlags()
 }
 void CBasePlayer::ServerSpawnCheck()
 {
-	if ( ( (CDoDTeamPlay *) g_pGameRules )->IsTeamInfinite( pev->team ) )
+	CDoDTeamPlay *pRules = (CDoDTeamPlay *)g_pGameRules;
+
+	// the paratroopers can join a running round only while the para window is open
+	if ( !pRules->IsTeamInfinite( pev->team ) && pRules->RoundState() == ROUNDSTATE_RUNNING && !pRules->m_RoundParaCanJoin )
 	{
-		if ( m_iJoiningState != JUSTJOINED )
-			return;
+		pev->nextthink = gpGlobals->time + 1.0;
+		return;
 	}
-	else if ( !g_pGameRules->IsMultiplayer() )
+
+	if ( pev->iuser1 )
 	{
-		if ( m_iJoiningState != JUSTJOINED )
-			return;
-	}
-	else
-	{
-		if ( pev->iuser1 != 0 )
+		// no team or class chosen yet
+		if ( !pev->team || m_iNextClass == -1 )
 		{
-			if ( pev->team == 0 || m_iNextClass == -1 )
-			{
-				pev->nextthink = gpGlobals->time + 1.0;
-				return;
-			}
-			if ( g_pGameRules->IsMultiplayer() )
-			{
-				( (CDoDTeamPlay *) g_pGameRules )->SendWaveStatus( this, 0 );
-				RemoveAllItems( 1 );
-				SetThink( &CBasePlayer::SpawnThink );
-				pev->nextthink = gpGlobals->time + 1.0;
-				return;
-			}
-		}
-		if ( m_iJoiningState != JUSTJOINED )
+			pev->nextthink = gpGlobals->time + 1.0;
 			return;
+		}
+
+		if ( pRules->RoundState() == ROUNDSTATE_RUNNING )
+		{
+			pRules->SendWaveStatus( this, 0 );
+			RemoveAllItems( TRUE );
+
+			SetThink( &CBasePlayer::SpawnThink );
+			pev->nextthink = gpGlobals->time + 1.0;
+			return;
+		}
+
+		// the round is not running, wait for it
+		pev->nextthink = gpGlobals->time + 1.0;
+		return;
 	}
-	pev->nextthink = gpGlobals->time + 1.0;
+
+	if ( m_iJoiningState == JUSTJOINED )
+		pev->nextthink = gpGlobals->time + 1.0;
 }
 void CBasePlayer::ClientDisconnect()
 {

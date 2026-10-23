@@ -1186,7 +1186,18 @@ void CPushable::StopSound( void )
 int CPushable::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType )
 {
 	if ( pev->spawnflags & SF_PUSH_BREAKABLE )
+	{
+		if ( g_fGameOver )
+			return 0;
+
+		if ( g_pGameRules && g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
+			return 0;
+
+		if ( pev->spawnflags & SF_BREAK_INVULNERABLE )
+			return 0;
+
 		return CBreakable::TakeDamage( pevInflictor, pevAttacker, flDamage, bitsDamageType );
+	}
 
 	return 1;
 }
