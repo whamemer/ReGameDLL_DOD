@@ -83,6 +83,8 @@ void CFuncWall ::Spawn( void )
 
 	// If it can't move/go away, it's really part of the world
 	pev->flags |= FL_WORLDBRUSH;
+
+	RoundStore();
 }
 
 void CFuncWall ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
@@ -204,6 +206,8 @@ void CFuncConveyor ::Spawn( void )
 	if ( pev->speed == 0 )
 		pev->speed = 100;
 
+	RoundStore();
+
 	UpdateSpeed( pev->speed );
 }
 
@@ -276,10 +280,7 @@ void CFuncIllusionary ::Spawn( void )
 	pev->solid = SOLID_NOT;	 // always solid_not
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );
 
-	// I'd rather eat the network bandwidth of this than figure out how to save/restore
-	// these entities after they have been moved to the client, or respawn them ala Quake
-	// Perhaps we can do this in deathmatch only.
-	//	MAKE_STATIC(ENT(pev));
+	RoundStore();
 }
 
 // -------------------------------------------------------------------------------
@@ -309,6 +310,8 @@ void CFuncMonsterClip::Spawn( void )
 	if ( CVAR_GET_FLOAT( "showtriggers" ) == 0 )
 		pev->effects = EF_NODRAW;
 	pev->flags |= FL_MONSTERCLIP;
+
+	RoundStore();
 }
 
 // =================== FUNC_ROTATING ==============================================

@@ -762,6 +762,8 @@ LINK_ENTITY_TO_CLASS( env_render, CRenderFxManager );
 void CRenderFxManager ::Spawn( void )
 {
 	pev->solid = SOLID_NOT;
+
+	RoundStore();
 }
 
 void CRenderFxManager ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
@@ -1080,6 +1082,8 @@ void CTriggerHurt ::Spawn( void )
 		pev->solid = SOLID_NOT;
 
 	UTIL_SetOrigin( pev, pev->origin );	 // Link into the list
+
+	RoundStore();
 }
 
 // .text:001576e0 CTriggerHurt::RoundRespawn (file:triggers.cpp:1792)
@@ -1311,24 +1315,9 @@ void CTriggerMultiple ::Spawn( void )
 
 	InitTrigger();
 
-	ASSERTSZ( pev->health == 0, "trigger_multiple with health" );
-	//	UTIL_SetOrigin(pev, pev->origin);
-	//	SET_MODEL( ENT(pev), STRING(pev->model) );
-	//	if (pev->health > 0)
-	//		{
-	//		if (FBitSet(pev->spawnflags, SPAWNFLAG_NOTOUCH))
-	//			ALERT(at_error, "trigger_multiple spawn: health and notouch don't make sense");
-	//		pev->max_health = pev->health;
-	//UNDONE: where to get pfnDie from?
-	//		pev->pfnDie = multi_killed;
-	//		pev->takedamage = DAMAGE_YES;
-	//		pev->solid = SOLID_BBOX;
-	//		UTIL_SetOrigin(pev, pev->origin);  // make sure it links into the world
-	//		}
-	//	else
-	{
-		SetTouch( &CTriggerMultiple::MultiTouch );
-	}
+	SetTouch( &CTriggerMultiple::MultiTouch );
+
+	RoundStore();
 }
 
 // .text:00157620 CTriggerMultiple::RoundRespawn (file:triggers.cpp:2062)
@@ -2030,8 +2019,12 @@ void CLadder ::Spawn( void )
 {
 	Precache();
 
+	pev->iuser1 = pev->spawnflags & 1;
+
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );	// set size and link into world
 	pev->movetype = MOVETYPE_PUSH;
+
+	RoundStore();
 }
 
 // ========================== A TRIGGER THAT PUSHES YOU ===============================
@@ -2072,6 +2065,10 @@ void CTriggerPush ::Spawn()
 	SetUse( &CTriggerPush::ToggleUse );
 
 	UTIL_SetOrigin( pev, pev->origin );	 // Link into the list
+
+	m_iEnabled = 1;
+
+	RoundStore();
 }
 
 void CTriggerPush ::Touch( CBaseEntity *pOther )
@@ -2187,6 +2184,8 @@ void CTriggerTeleport ::Spawn( void )
 	InitTrigger();
 
 	SetTouch( &CTriggerTeleport::TeleportTouch );
+
+	RoundStore();
 }
 
 // .text:001573b0 CTriggerTeleport::RoundRespawn (file:triggers.cpp:3042)
@@ -2725,7 +2724,6 @@ CSandBag::CSandBag()
 	m_sMaster = 0;
 }
 
-// .text:00157180 CSandBag::Spawn (file:triggers.cpp:5220)
 void CSandBag::Spawn()
 {
 	m_nYaw = (int) pev->angles.y;
@@ -2738,6 +2736,8 @@ void CSandBag::Spawn()
 	UTIL_SetOrigin( pev, pev->origin );
 	UTIL_SetSize( pev, pev->mins, pev->maxs );
 	SetTouch( &CSandBag::SandBagTouch );
+
+	RoundStore();
 }
 
 // .text:00157120 CSandBag::RoundRespawn (file:triggers.cpp:5260)
@@ -3718,11 +3718,12 @@ TYPEDESCRIPTION CStateWatcher::m_SaveData[] = {
 };
 IMPLEMENT_SAVERESTORE( CStateWatcher, CBaseToggle );
 
-// .text:0014e8d0 CStateWatcher::Spawn (file:triggers.cpp:1016)
 void CStateWatcher::Spawn( void )
 {
 	pev->solid = SOLID_NOT;
 	pev->nextthink = gpGlobals->time + 0.5;
+
+	RoundStore();
 }
 
 // .text:0014e900 CStateWatcher::RoundRespawn (file:triggers.cpp:1026)
