@@ -773,16 +773,9 @@ void CBasePlayer::RemoveAllItems( BOOL removeSuit )
 	if ( m_pActiveItem )
 	{
 		m_pActiveItem->Holster();
-		m_pActiveItem = NULL;
 	}
 
 	m_pLastItem = NULL;
-
-	if ( m_pTank != NULL )
-	{
-		m_pTank->Use( this, this, USE_OFF, 0 );
-		m_pTank = NULL;
-	}
 
 	int i;
 	CBasePlayerItem *pPendingItem;
@@ -802,10 +795,8 @@ void CBasePlayer::RemoveAllItems( BOOL removeSuit )
 	pev->viewmodel = 0;
 	pev->weaponmodel = 0;
 
-	if ( removeSuit )
-		pev->weapons = 0;
-	else
-		pev->weapons &= ~WEAPON_ALLWEAPONS;
+	pev->weapons = 0;
+	m_iWeapons2 = 0;
 
 	for ( i = 0; i < MAX_AMMO_SLOTS; i++ )
 		m_rgAmmo[i] = 0;

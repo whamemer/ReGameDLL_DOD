@@ -33,7 +33,7 @@ void CDoDStatMgr::PrintPlayerStats( int index )
 	CBaseEntity *pEnt = UTIL_PlayerByIndex( index );
 	if ( pEnt && p )
 	{
-		char buf[32];
+		char buf[96];
 		sprintf( buf, "%s: %d\n", StatNames[0], p->stat[0] );
 		ClientPrint( pEnt->pev, HUD_PRINTCONSOLE, buf, 0, 0, 0, 0 );
 		sprintf( buf, "%s: %d\n", StatNames[1], p->stat[1] );

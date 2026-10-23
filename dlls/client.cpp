@@ -482,7 +482,7 @@ void Host_Say( edict_t *pEntity, int teamonly )
 							int iTimeLeft = get_maptime_left();
 							int iMins = iTimeLeft / 60;
 							int iSecs = iTimeLeft % 60;
-							char szSecs[4];
+							char szSecs[8];
 
 							if ( iSecs < 10 )
 								sprintf( szSecs, "0%d", iSecs );

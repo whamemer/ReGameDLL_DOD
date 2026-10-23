@@ -635,7 +635,7 @@ void CScoreEvent::ScoreThink()
 	}
 	if ( bChangeLevel && ChangeLevelTime <= gpGlobals->time )
 	{
-		char buf[256];
+		char buf[320];
 		sprintf( buf, "changelevel %s\n", szNextMap );
 		SERVER_COMMAND( buf );
 		ResetItems = 0;

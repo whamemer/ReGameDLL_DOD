@@ -401,7 +401,7 @@ void CWorld::Precache( void )
 	CVAR_SET_FLOAT( "sv_stepsize", 18 );
 	CVAR_SET_STRING( "room_type", "0" );
 	if ( g_pGameRules )
-		delete g_pGameRules;
+		::operator delete( g_pGameRules );
 	g_pGameRules = InstallGameRules();
 	g_pGameRules->Precache();
 	CSoundEnt *pSoundEnt = GetClassPtr( (CSoundEnt *) NULL );
