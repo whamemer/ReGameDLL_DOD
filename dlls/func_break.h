@@ -92,11 +92,11 @@ class CBreakable : public CBaseDelay
 	int m_iInitialHealth;
 	int m_iInitialRenderAmt;
 	int m_iInitialRenderMode;
-	char sz_Group[64];
-	char sz_TntTrigger[64];
-	int m_tntdelay;
+	char sz_Group[256];
+	char sz_TntTrigger[256];
+	float m_tntdelay;
 	int m_iAreaIndex;
-	char sz_HudIcon[64];
+	char sz_HudIcon[256];
 	void RoundRespawn( void );
 	void EXPORT RespawnThink( void );
 	void RespawnUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );

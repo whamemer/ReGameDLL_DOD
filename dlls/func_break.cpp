@@ -28,8 +28,12 @@
 #include "explode.h"
 #include "gamerules.h"
 #include "player.h"
+#include "objective.h"
+#include "dod_gamerules.h"
+#include "combat.h"
 
 extern DLL_GLOBAL Vector g_vecAttackDir;
+extern DLL_GLOBAL BOOL g_fGameOver;
 
 // =================== FUNC_Breakable ==============================================
 
@@ -63,51 +67,24 @@ const char *CBreakable::pSpawnObjects[] = {
 
 void CBreakable::KeyValue( KeyValueData *pkvd )
 {
-	if ( FStrEq( pkvd->szKeyName, "capobj_group" ) )
-	{
-		strncpy( sz_Group, pkvd->szValue, 63 );
-		sz_Group[63] = 0;
-		pkvd->fHandled = TRUE;
-		return;
-	}
-	if ( FStrEq( pkvd->szKeyName, "capobj_hud_sprite" ) )
-	{
-		strncpy( sz_HudIcon, pkvd->szValue, 63 );
-		sz_HudIcon[63] = 0;
-		pkvd->fHandled = TRUE;
-		return;
-	}
-	if ( FStrEq( pkvd->szKeyName, "tntdelay" ) )
-	{
-		m_tntdelay = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-		return;
-	}
-	if ( FStrEq( pkvd->szKeyName, "tnttrigger" ) )
-	{
-		strncpy( sz_TntTrigger, pkvd->szValue, 63 );
-		sz_TntTrigger[63] = 0;
-		pkvd->fHandled = TRUE;
-		return;
-	}
-	if ( FStrEq( pkvd->szKeyName, "respawn" ) )
-	{
-		m_iRespawnTime = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-		return;
-	}
-
 	// UNDONE_WC: explicitly ignoring these fields, but they shouldn't be in the map file!
 	if ( FStrEq( pkvd->szKeyName, "explosion" ) )
 	{
-		if ( !stricmp( pkvd->szValue, "directed" ) )
-			m_Explosion = expDirected;
-		else if ( !stricmp( pkvd->szValue, "random" ) )
-			m_Explosion = expRandom;
-		else
-			m_Explosion = expRandom;
-
+		m_Explosion = ( stricmp( pkvd->szValue, "directed" ) == 0 ) ? expDirected : expRandom;
 		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "capobj_group" ) )
+	{
+		strcpy( sz_Group, pkvd->szValue );
+	}
+	else if ( FStrEq( pkvd->szKeyName, "tntdelay" ) )
+	{
+		m_tntdelay = strtod( pkvd->szValue, NULL );
+	}
+	else if ( FStrEq( pkvd->szKeyName, "tnttrigger" ) )
+	{
+		sz_TntTrigger[0] = 0;
+		strcpy( sz_TntTrigger, pkvd->szValue );
 	}
 	else if ( FStrEq( pkvd->szKeyName, "material" ) )
 	{
@@ -150,6 +127,16 @@ void CBreakable::KeyValue( KeyValueData *pkvd )
 	}
 	else if ( FStrEq( pkvd->szKeyName, "lip" ) )
 		pkvd->fHandled = TRUE;
+	else if ( FStrEq( pkvd->szKeyName, "respawn" ) )
+	{
+		m_iRespawnTime = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "capobj_hud_sprite" ) )
+	{
+		strcpy( sz_HudIcon, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
 	else
 		CBaseDelay::KeyValue( pkvd );
 }
@@ -464,41 +451,133 @@ void CBreakable::BreakTouch( CBaseEntity *pOther )
 	float flDamage;
 	entvars_t *pevToucher = pOther->pev;
 
-	// only players can break these right now
-	if ( !pOther->IsPlayer() || !IsBreakable() )
+	// only living players can break these, and only while the round is running
+	if ( g_pGameRules->RoundState() != 1 || !pOther->IsPlayer() || m_Material == matUnbreakableGlass || !pOther->IsAlive() )
 	{
 		return;
 	}
 
-	if ( FBitSet( pev->spawnflags, SF_BREAK_TOUCH ) )
-	{  // can be broken when run into
-		flDamage = pevToucher->velocity.Length() * 0.01;
+	CBasePlayer *pPlayer = (CBasePlayer *) pOther;
 
-		if ( flDamage >= pev->health )
-		{
-			SetTouch( NULL );
-			TakeDamage( pevToucher, pevToucher, flDamage, DMG_CRUSH );
-
-			// do a little damage to player if we broke glass or computer
-			pOther->TakeDamage( pev, pev, flDamage / 4, DMG_SLASH );
-		}
+	if ( sz_Group[0] )
+	{
+		pPlayer->m_signals.m_flSignal |= 4;
+		pPlayer->m_iObjectAreaIndex = m_iAreaIndex;
+		pPlayer->SetClientAreaIcon( m_iAreaIndex, true );
 	}
 
-	if ( FBitSet( pev->spawnflags, SF_BREAK_PRESSURE ) && pevToucher->absmin.z >= pev->maxs.z - 2 )
-	{  // can be broken when stood upon
+	if ( sz_Group[0] && pPlayer->HasObject )
+	{
+		// the player carries an object of the group this breakable is waiting for
+		if ( strcmp( sz_Group, pPlayer->m_pObject->sz_Group ) == 0 )
+		{
+			if ( ( pev->spawnflags & 0x20 ) && pOther->pev->team != 2 )
+				return;
 
-		// play creaking sound here.
-		DamageSound();
+			if ( ( pev->spawnflags & 0x10 ) && pOther->pev->team != 1 )
+				return;
 
-		SetThink( &CBreakable::Die );
-		SetTouch( NULL );
+			CDoDTeamPlay *pRules = (CDoDTeamPlay *) g_pGameRules;
 
-		if ( m_flDelay == 0 )
-		{  // !!!BUGBUG - why doesn't zero delay work?
-			m_flDelay = 0.1;
+			if ( sz_TntTrigger[0] )
+			{
+				FireTargets( sz_TntTrigger, NULL, this, USE_TOGGLE, 0 );
+			}
+
+			SetTouch( NULL );
+
+			if ( m_tntdelay < 1 )
+			{
+				m_tntdelay = 0.1;
+			}
+
+			pev->takedamage = DAMAGE_NO;
+
+			SetThink( &CBreakable::ObjectDie );
+			pev->nextthink = pev->ltime + m_tntdelay;
+
+			CBaseEntity *pLast = NULL;
+			CBaseEntity *pEnt = UTIL_FindEntityByClassname( NULL, "dod_object" );
+
+			while ( pEnt )
+			{
+				if ( pEnt == (CBaseEntity *) pPlayer->m_pObject )
+				{
+					UTIL_SendDirectorMessage( this, pOther, 11 );
+				}
+
+				pLast = pEnt;
+				pEnt = UTIL_FindEntityByClassname( pEnt, "dod_object" );
+			}
+
+			pPlayer->HasObject = FALSE;
+
+			if ( pRules->m_RoundDoesCount == 1 )
+			{
+				pPlayer->AddObjScore( pPlayer->m_pObject->m_iCapPoints, TRUE );
+			}
+
+			int idx = ENTINDEX( pOther->edict() );
+
+			for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+			{
+				CBaseEntity *pTeammate = UTIL_PlayerByIndex( i );
+
+				if ( pTeammate && pTeammate->pev->team == pOther->pev->team )
+				{
+					MESSAGE_BEGIN( MSG_ONE, gmsgPStatus, NULL, pTeammate->pev );
+					WRITE_BYTE( idx );
+					WRITE_BYTE( pPlayer->PlayerStatus() );
+					MESSAGE_END();
+				}
+			}
+
+			const char *pszTeam = ( pOther->pev->team == 1 ) ? "Allies" : "Axis";
+
+			UTIL_LogPrintf( "\"%s<%i><%s><%s>\" triggered a \"dod_object_goal\"\n", STRING( pOther->pev->netname ),
+							GETPLAYERUSERID( pOther->edict() ), GETPLAYERAUTHID( pOther->edict() ), pszTeam );
+
+			if ( pLast->pev->noise1 )
+			{
+				EMIT_SOUND_DYN( pOther->edict(), CHAN_STATIC, STRING( pLast->pev->noise1 ), 1.0, ATTN_NONE, 0, 100 );
+			}
+
+			pPlayer->HasObject = FALSE;
+			pPlayer->RemoveObjectIcon();
+		}
+	}
+	else
+	{
+		if ( FBitSet( pev->spawnflags, SF_BREAK_TOUCH ) )
+		{  // can be broken when run into
+			flDamage = pevToucher->velocity.Length() * 0.01;
+
+			if ( flDamage >= pev->health )
+			{
+				SetTouch( NULL );
+				TakeDamage( pevToucher, pevToucher, flDamage, DMG_CRUSH );
+
+				// do a little damage to player if we broke glass or computer
+				pOther->TakeDamage( pev, pev, flDamage / 4, DMG_SLASH );
+			}
 		}
 
-		pev->nextthink = pev->ltime + m_flDelay;
+		if ( FBitSet( pev->spawnflags, SF_BREAK_PRESSURE ) && pevToucher->absmin.z >= pev->maxs.z - 2 )
+		{  // can be broken when stood upon
+
+			// play creaking sound here.
+			DamageSound();
+
+			SetThink( &CBreakable::Die );
+			SetTouch( NULL );
+
+			if ( m_flDelay == 0 )
+			{  // !!!BUGBUG - why doesn't zero delay work?
+				m_flDelay = 0.1;
+			}
+
+			pev->nextthink = pev->ltime + m_flDelay;
+		}
 	}
 }
 
@@ -562,22 +641,38 @@ int CBreakable ::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, fl
 {
 	Vector vecTemp;
 
+	if ( g_fGameOver )
+		return 0;
+
+	if ( g_pGameRules && g_pGameRules->RoundState() != 1 )
+		return 0;
+
+	// 0x40: takes no damage at all
+	if ( FBitSet( pev->spawnflags, 0x40 ) )
+		return 0;
+
+	// 0x100: only sonic or no-blood damage hurts it
+	if ( FBitSet( pev->spawnflags, 0x100 ) && !( bitsDamageType & DMG_SONIC ) && !( bitsDamageType & DMG_DOD_NOBLOOD ) )
+		return 0;
+
+	// 0x200: needs sonic damage
+	if ( FBitSet( pev->spawnflags, 0x200 ) && !( bitsDamageType & DMG_SONIC ) )
+		return 0;
+
+	// 8: needs no-blood damage
+	if ( FBitSet( pev->spawnflags, 8 ) && !( bitsDamageType & DMG_DOD_NOBLOOD ) )
+		return 0;
+
+	// 0x20 and 0x10: only the Axis (2) or the Allies (1) can hurt it
+	if ( FBitSet( pev->spawnflags, 0x20 ) && pevAttacker->team != 2 )
+		return 0;
+
+	if ( FBitSet( pev->spawnflags, 0x10 ) && pevAttacker->team != 1 )
+		return 0;
+
 	// if Attacker == Inflictor, the attack was a melee or other instant-hit attack.
 	// (that is, no actual entity projectile was involved in the attack so use the shooter's origin).
-	if ( pevAttacker == pevInflictor )
-	{
-		vecTemp = pevInflictor->origin - ( pev->absmin + ( pev->size * 0.5 ) );
-
-		// if a client hit the breakable with a crowbar, and breakable is crowbar-sensitive, break it now.
-		if ( FBitSet( pevAttacker->flags, FL_CLIENT ) && FBitSet( pev->spawnflags, SF_BREAK_CROWBAR ) &&
-			 ( bitsDamageType & DMG_CLUB ) )
-			flDamage = pev->health;
-	}
-	else
-	// an actual missile was involved.
-	{
-		vecTemp = pevInflictor->origin - ( pev->absmin + ( pev->size * 0.5 ) );
-	}
+	vecTemp = pevInflictor->origin - ( pev->absmin + ( pev->size * 0.5 ) );
 
 	if ( !IsBreakable() )
 		return 0;
@@ -586,9 +681,28 @@ int CBreakable ::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, fl
 	if ( bitsDamageType & DMG_CLUB )
 		flDamage *= 2;
 
-	// Boxes / glass / etc. don't take much poison damage, just the impact of the dart - consider that 10%
-	if ( bitsDamageType & DMG_POISON )
-		flDamage *= 0.1;
+	if ( bitsDamageType & DMG_DOD_NOBLOOD )
+	{
+		switch ( m_Material )
+		{
+		case matWood:
+		case matFlesh:
+		case matCeilingTile:
+		case matComputer:
+			flDamage *= 2;
+			break;
+
+		case matMetal:
+		case matCinderBlock:
+		case matRocks:
+			flDamage = 0;
+			break;
+
+		case matGlass:
+			flDamage = pev->health;
+			break;
+		}
+	}
 
 	// this global is still used for glass and other non-monster killables, along with decals.
 	g_vecAttackDir = vecTemp.Normalize();
@@ -597,8 +711,10 @@ int CBreakable ::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, fl
 	pev->health -= flDamage;
 	if ( pev->health <= 0 )
 	{
+		pev->takedamage = DAMAGE_NO;
+		pev->deadflag = DEAD_DEAD;
+
 		Killed( pevAttacker, GIB_NORMAL );
-		Die();
 		return 0;
 	}
 
@@ -775,15 +891,36 @@ void CBreakable::Die( void )
 		}
 	}
 
-	// Don't fire something that could fire myself
-	pev->targetname = 0;
-
 	pev->solid = SOLID_NOT;
 	// Fire targets on break
 	SUB_UseTargets( NULL, USE_TOGGLE, 0 );
 
-	SetThink( &CBreakable::SUB_Remove );
-	pev->nextthink = pev->ltime + 0.1;
+	if ( g_pGameRules->IsMultiplayer() )
+	{
+		// the breakable comes back with the next round
+		pev->effects |= EF_NODRAW;
+	}
+	else if ( m_iRespawnTime == -1 )
+	{
+		ALERT( at_console, "Waiting for respawn trigger\n" );
+		SetUse( &CBreakable::RespawnUse );
+		pev->effects |= EF_NODRAW;
+		pev->takedamage = DAMAGE_NO;
+	}
+	else if ( m_iRespawnTime )
+	{
+		SetThink( &CBreakable::RespawnThink );
+		pev->nextthink = pev->ltime + m_iRespawnTime;
+		pev->effects |= EF_NODRAW;
+		pev->takedamage = DAMAGE_NO;
+	}
+	else
+	{
+		ALERT( at_console, "No respawn\n" );
+		SetThink( &CBreakable::SUB_Remove );
+		pev->nextthink = pev->ltime + 0.1;
+	}
+
 	if ( m_iszSpawnObject )
 		CBaseEntity::Create( (char *) STRING( m_iszSpawnObject ), VecBModelOrigin( pev ), pev->angles, edict() );
 
@@ -904,11 +1041,11 @@ void CPushable ::KeyValue( KeyValueData *pkvd )
 			break;
 
 		case 2:	 // Big Hull!?!?	!!!BUGBUG Figure out what this hull really is
-			UTIL_SetSize( pev, VEC_DUCK_HULL_MIN * 2, VEC_DUCK_HULL_MAX * 2 );
+			UTIL_SetSize( pev, VEC_HULL_MIN * 2, VEC_HULL_MAX * 2 );
 			break;
 
-		case 3:	 // Player duck
-			UTIL_SetSize( pev, VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX );
+		case 3:	 // Player (DoD has no duck hull for pushables)
+			UTIL_SetSize( pev, VEC_HULL_MIN, VEC_HULL_MAX );
 			break;
 
 		default:
@@ -1060,20 +1197,56 @@ int CPushable::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, floa
 
 void CBreakable::RespawnThink( void )
 {
-	RespawnUse( NULL, NULL, USE_TOGGLE, 0 );
+	CBaseEntity *pList[2];
+
+	// wait while a player or a monster stands inside
+	if ( UTIL_EntitiesInBox( pList, 2, pev->mins, pev->maxs, FL_CLIENT | FL_MONSTER ) )
+	{
+		SetThink( &CBreakable::RespawnThink );
+		pev->nextthink = pev->ltime + 2.0;
+	}
+	else
+	{
+		pev->solid = SOLID_BSP;
+		pev->effects &= ~EF_NODRAW;
+		pev->health = m_iInitialHealth;
+
+		SetUse( &CBreakable::BreakUse );
+
+		if ( !FBitSet( pev->spawnflags, SF_BREAK_TRIGGER_ONLY ) )
+			pev->takedamage = DAMAGE_YES;
+
+		FireTargets( STRING( pev->netname ), this, this, USE_TOGGLE, 0 );
+	}
 }
 void CBreakable::RespawnUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	pev->health = m_iInitialHealth;
-	pev->renderamt = m_iInitialRenderAmt;
-	pev->rendermode = m_iInitialRenderMode;
-	pev->solid = SOLID_BSP;
-	pev->movetype = MOVETYPE_PUSH;
-	UTIL_SetOrigin( pev, pev->origin );
+	if ( useType != USE_OFF )
+	{
+		ALERT( at_console, "Respawn trigger received\n" );
+		SetThink( &CBreakable::RespawnThink );
+		pev->nextthink = pev->ltime + 0.1;
+	}
+	else if ( m_iRespawnTime > 0 )
+	{
+		SetThink( &CBreakable::RespawnThink );
+		pev->nextthink = pev->ltime + m_iRespawnTime;
+	}
 }
 void CBreakable::RespawnFadeThink( void )
 {
-	RespawnUse( NULL, NULL, USE_TOGGLE, 0 );
+	float flAmt = pev->renderamt + 50;
+
+	if ( flAmt > m_iInitialRenderAmt )
+		flAmt = m_iInitialRenderAmt;
+
+	ALERT( at_console, "FadeThink: %d changed to %d\n", (int) pev->renderamt, (int) flAmt );
+	pev->renderamt = (int) flAmt;
+
+	if ( m_iInitialRenderAmt > pev->renderamt )
+		pev->nextthink = pev->ltime + 0.1;
+	else
+		pev->rendermode = m_iInitialRenderMode;
 }
 // .text:000ec3e0 CBreakable::RoundRespawn (0x94)
 void CBreakable::RoundRespawn( void )
