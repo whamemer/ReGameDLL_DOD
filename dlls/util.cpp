@@ -1115,24 +1115,35 @@ Vector UTIL_GetAimVector( edict_t *pent, float flSpeed )
 	return tmp;
 }
 
-int UTIL_IsMasterTriggered( string_t sMaster, CBaseEntity *pActivator )
+BOOL UTIL_IsMasterTriggered( string_t sMaster, CBaseEntity *pActivator )
 {
 	if ( sMaster )
 	{
-		edict_t *pentTarget = FIND_ENTITY_BY_TARGETNAME( NULL, STRING( sMaster ) );
+		CBaseEntity *pMaster;
 
-		if ( !FNullEnt( pentTarget ) )
+		if ( STRING( sMaster )[0] == '~' )
 		{
-			CBaseEntity *pMaster = CBaseEntity::Instance( pentTarget );
-			if ( pMaster && ( pMaster->ObjectCaps() & FCAP_MASTER ) )
-				return pMaster->IsTriggered( pActivator );
-		}
+			// the master is inverted
+			pMaster = UTIL_FindEntityByString( NULL, "targetname", STRING( sMaster ) + 1 );
 
-		ALERT( at_console, "Master was null or not a master!\n" );
+			if ( pMaster )
+				return pMaster->GetState( pActivator ) != STATE_ON;
+
+			ALERT( at_console, "Master ~\"%s\" not found!\n", STRING( sMaster ) + 1 );
+		}
+		else
+		{
+			pMaster = UTIL_FindEntityByString( NULL, "targetname", STRING( sMaster ) );
+
+			if ( pMaster )
+				return pMaster->GetState( pActivator ) == STATE_ON;
+
+			ALERT( at_console, "Master \"%s\" not found!\n", STRING( sMaster ) );
+		}
 	}
 
 	// if this isn't a master entity, just say yes.
-	return 1;
+	return TRUE;
 }
 
 BOOL UTIL_ShouldShowBlood( int color )
