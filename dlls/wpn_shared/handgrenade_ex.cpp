@@ -66,7 +66,7 @@ int CHandGrenadeEx::GetItemInfo( ItemInfo *p )
 
 BOOL CHandGrenadeEx::Deploy( void )
 {
-	UTIL_SendDirectorMessage( m_pPlayer, this, 38 );
+	UTIL_SendDirectorMessage( m_pPlayer, this, 6 | DRC_FLAG_DRAMATIC );
 
 	m_pPlayer->m_iFOV = ZoomOut();
 

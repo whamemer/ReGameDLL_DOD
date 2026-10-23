@@ -3622,7 +3622,7 @@ void RespawnAllies( void )
 			}
 		}
 	}
-	UTIL_SendDirectorMessage( ent1, NULL, 0x82 );
+	UTIL_SendDirectorMessage( ent1, NULL, 2 | DRC_FLAG_FACEPLAYER );
 }
 // .text:000e7e20 void RespawnAxis() (dod/dlls/dod_gamerules.cpp:4291)
 void RespawnAxis( void )

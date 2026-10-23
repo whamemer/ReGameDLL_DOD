@@ -61,7 +61,7 @@ int CStickGrenadeEx::GetItemInfo( ItemInfo *p )
 
 BOOL CStickGrenadeEx::Deploy( void )
 {
-	UTIL_SendDirectorMessage( m_pPlayer, this, 38 );
+	UTIL_SendDirectorMessage( m_pPlayer, this, 6 | DRC_FLAG_DRAMATIC );
 
 	m_pPlayer->m_iFOV = ZoomOut();
 

@@ -505,6 +505,9 @@ extern DLL_GLOBAL int g_Language;
 #define SVC_ROOMTYPE 37
 #define SVC_DIRECTOR 51
 
+// the priority and the flags of a director event, UTIL_SendDirectorMessage
+#include "hltv.h"
+
 // the teams of the players, pev->team
 #define TEAM_UNASSIGNED 0
 #define TEAM_ALLIES 1

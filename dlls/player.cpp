@@ -887,7 +887,7 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 			SetAnimation( PLAYER_DIE );
 		else
 			SetAnimation( PLAYER_EXPLODE_FORWARD );
-		UTIL_SendDirectorMessage( this, NULL, 0x47 );
+		UTIL_SendDirectorMessage( this, NULL, 7 | DRC_FLAG_SLOWMOTION );
 	}
 	m_iRespawnFrames = 0;
 	pev->modelindex = g_ulModelIndexPlayer;
@@ -5518,7 +5518,7 @@ void CBasePlayer::PopHelmet( Vector *vecdir )
 	PLAYBACK_EVENT_FULL( 0, NULL, g_pGameRules->PopHelmet(), 0.0f, origin, *vecdir, pev->angles.x, pev->angles.y,
 						 iHelmet, 0, 0, 0 );
 
-	UTIL_SendDirectorMessage( this, NULL, 69 );
+	UTIL_SendDirectorMessage( this, NULL, 5 | DRC_FLAG_SLOWMOTION );
 }
 // .text:00131380 GetObject (done above)
 void CBasePlayer::DropObject()

@@ -57,7 +57,7 @@ CPschreckShell *CPschreckShell::CreateRocket( Vector vecOrigin, Vector vecAngles
 	pRocket->pev->owner = pOwner->edict();
 	pRocket->pev->team = pOwner->pev->team;
 
-	UTIL_SendDirectorMessage( pRocket, NULL, 135 );
+	UTIL_SendDirectorMessage( pRocket, NULL, 7 | DRC_FLAG_FACEPLAYER );
 
 	PLAYBACK_EVENT_FULL( FEV_GLOBAL, pRocket->edict(), g_pGameRules->StartTrail(), 0, (float *)&g_vecZero, (float *)&g_vecZero, 0, 0, 0, 0, 0, 0 );
 

@@ -1519,7 +1519,7 @@ void CControlPoint::SetOwner( int owner, BOOL bMakeSound, CBasePlayer *pPlayer )
 		WRITE_BYTE( owner );
 		WRITE_BYTE( 0 );
 		MESSAGE_END();
-		UTIL_SendDirectorMessage( this, NULL, 0x0b );
+		UTIL_SendDirectorMessage( this, NULL, 11 );
 	}
 	if ( bMakeSound && owner != 0 )
 		SendCapString( owner, pPlayer );

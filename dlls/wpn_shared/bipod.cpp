@@ -253,7 +253,7 @@ void CBipodWeapon::SecondaryAttack( void )
 			pevPlayer->vuser1.x = 1.0f;
 
 		m_pPlayer->SetAnimation( PLAYER_IDLE );
-		UTIL_SendDirectorMessage( m_pPlayer, NULL, 130 );
+		UTIL_SendDirectorMessage( m_pPlayer, NULL, 2 | DRC_FLAG_FACEPLAYER );
 		SendWeaponAnim( GetDownToUpAnim(), 1 );
 	}
 
