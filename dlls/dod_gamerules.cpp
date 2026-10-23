@@ -62,6 +62,12 @@ extern cvar_t *pcvar_mp_clan_match;
 extern cvar_t *pcvar_mp_log_scores;
 extern cvar_t *pcvar_mp_timelimit;
 extern cvar_t *pcvar_mp_spawnbazookas;
+extern cvar_t *pcvar_mp_combinemglimits;
+extern cvar_t *pcvar_mp_alliesclasses;
+extern cvar_t *pcvar_mp_axisclasses;
+extern int gmsgGameRules;
+extern cvar_t *pcvar_classlimitcvars[28];
+extern char classlimitcvarNames[27][32];
 extern cvar_t *pcvar_mp_chattime;
 extern cvar_t *pcvar_mp_tkpenalty;
 extern int gmsgScoreShort;
@@ -1269,16 +1275,56 @@ void CDoDTeamPlay::RoundFreeze( void )
 	if ( bAxisCut )
 		FireDODCamera( "axis_spawn_cut", NULL, NULL, USE_TOGGLE, 0 );
 }
-// .text:000e94f0 void CDoDTeamPlay::SendClientGamerules(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::SendClientGamerules( CBasePlayer *pPlayer )
 {
-	MESSAGE_BEGIN( pPlayer ? MSG_ONE : MSG_ALL, gmsgRoundState, NULL, pPlayer ? pPlayer->pev : NULL );
-	WRITE_BYTE( m_RoundState );
-	WRITE_BYTE( m_GamePlayRules.m_bAlliesInfiniteLives );
-	WRITE_BYTE( m_GamePlayRules.m_bAxisInfiniteLives );
-	WRITE_BYTE( m_GamePlayRules.m_bAlliesArePara );
-	WRITE_BYTE( m_GamePlayRules.m_bAxisArePara );
-	MESSAGE_END();
+	int iAllies;
+	int iAlliesInfinite;
+
+	if ( m_GamePlayRules.m_bAlliesArePara )
+	{
+		iAllies = 1;
+		iAlliesInfinite = 3;
+	}
+	else
+	{
+		iAllies = m_GamePlayRules.m_bAlliesAreBrit ? 4 : 0;
+		iAlliesInfinite = m_GamePlayRules.m_bAlliesAreBrit ? 6 : 2;
+	}
+
+	int iAxis = m_GamePlayRules.m_bAxisArePara;
+
+	if ( m_GamePlayRules.m_bAlliesInfiniteLives )
+		iAllies = iAlliesInfinite;
+
+	if ( m_GamePlayRules.m_bAxisInfiniteLives )
+		iAxis |= 2;
+
+	// a clan match that is still in the warmup
+	if ( IsClanMatch() && !IsClanMatchActive() )
+		iAxis |= 4;
+
+	if ( pPlayer )
+	{
+		MESSAGE_BEGIN( MSG_ONE, gmsgGameRules, NULL, pPlayer->edict() );
+			WRITE_BYTE( iAllies );
+			WRITE_BYTE( iAxis );
+		MESSAGE_END();
+
+		return;
+	}
+
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBaseEntity *pEntity = UTIL_PlayerByIndex( i );
+
+		if ( pEntity && (unsigned int)( pEntity->pev->team - 1 ) <= 2 )
+		{
+			MESSAGE_BEGIN( MSG_ONE, gmsgGameRules, NULL, pEntity->edict() );
+				WRITE_BYTE( iAllies );
+				WRITE_BYTE( iAxis );
+			MESSAGE_END();
+		}
+	}
 }
 // .text:000e4c60 void CDoDTeamPlay::SendTeamScores(int) (dod/dlls/dod_gamerules.cpp:0)
 void CDoDTeamPlay::SendTeamScores( int m_iTeam )
@@ -2257,15 +2303,12 @@ void CDoDTeamPlay::setWaveTime( int iTeam, float fTime )
 		}
 	}
 }
-// .text:000e72d0 int CDoDTeamPlay::GetClassLimit(int) (dod/dlls/dod_gamerules.cpp:2521)
 int CDoDTeamPlay::GetClassLimit( int cls )
 {
-	char name[32];
-	sprintf( name, "mp_classlimit_%d", cls );
-	float v = CVAR_GET_FLOAT( name );
-	if ( cls < 0 || cls >= 29 )
-		return -1;
-	return (int)v;
+	if ( cls <= 28 && pcvar_classlimitcvars[cls] )
+		return (int)pcvar_classlimitcvars[cls]->value;
+
+	return -1;
 }
 // .text:000e73c0 char* WeaponIDToChar(int) (dod/dlls/dod_gamerules.cpp:3383)
 extern char weaponnames[][64];
@@ -2576,13 +2619,38 @@ int CDoDTeamPlay::CountClasses( int targetClass )
 	}
 	return n;
 }
-// .text:000e72f0 int CDoDTeamPlay::ReachedClassLimit(int) (dod/dlls/dod_gamerules.cpp:2534)
-BOOL CDoDTeamPlay::ReachedClassLimit( int cls )
+BOOL CDoDTeamPlay::ReachedClassLimit( int targetClass )
 {
-	int lim = GetClassLimit( cls );
-	if ( lim < 0 )
+	if ( targetClass == 27 )
+	{
+		if ( pcvar_mp_clan_match )
+			return pcvar_mp_clan_match->value > 0.0;
+
 		return FALSE;
-	return CountClasses( cls ) >= lim;
+	}
+
+	if ( (unsigned int)( targetClass - 1 ) > 26 )
+		return FALSE;
+
+	int iLimit = GetClassLimit( targetClass );
+	int iExisting = CountClasses( targetClass );
+
+	// the two machine gun classes can share their limits
+	if ( pcvar_mp_combinemglimits && pcvar_mp_combinemglimits->value > 0.0 )
+	{
+		if ( targetClass == 17 )
+		{
+			iLimit += GetClassLimit( 18 );
+			iExisting += CountClasses( 18 );
+		}
+		else if ( targetClass == 18 )
+		{
+			iLimit += GetClassLimit( 17 );
+			iExisting += CountClasses( 17 );
+		}
+	}
+
+	return iLimit <= iExisting && iLimit >= 0;
 }
 // .text:000e73e0 BOOL CDoDTeamPlay::CanPlayerJoinClass(int) (dod/dlls/dod_gamerules.cpp:3393)
 // link 0xd73e0 size 0x6a Ghidra 0xe73e0 + part 0xd51a0 size 0xad Ghidra 0xe51a0
@@ -2634,12 +2702,21 @@ void CDoDTeamPlay::UpdateData( CBasePlayer *pPlayer )
 	SendTeamScores( 0 );
 	SendObjectiveStatus( pPlayer );
 }
-// .text:000e86a0 void CDoDTeamPlay::LevelChangeResets(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:4612)
 void CDoDTeamPlay::LevelChangeResets( CBasePlayer *pPlayer )
 {
-	pPlayer->m_iDeaths = 0;
-	pPlayer->pev->frags = 0;
-	pPlayer->m_iObjScore = 0;
+	pPlayer->m_iFOV = 0;
+	pPlayer->pev->fov = 0;
+
+	pPlayer->CheckPlayerSpeed();
+
+	MESSAGE_BEGIN( MSG_ONE, gmsgClientAreas, NULL, pPlayer->edict() );
+		WRITE_BYTE( 0 );
+		WRITE_BYTE( 2 );
+	MESSAGE_END();
+
+	MESSAGE_BEGIN( MSG_ONE, gmsgWaveTime, NULL, pPlayer->edict() );
+		WRITE_CHAR( 0 );
+	MESSAGE_END();
 }
 // .text:000ea730 void CDoDTeamPlay::ResetForDoDCamera() link 0xda730 size 0x83 Ghidra 0xea730: DoDReset all scripted_sequence + RoundRespawn all func_train
 void CDoDTeamPlay::ResetForDoDCamera( void )
@@ -2678,21 +2755,71 @@ void CDoDTeamPlay::StartClanRestart( void )
 	MESSAGE_END();
 	UTIL_ClientPrintAll( HUD_PRINTCENTER, "#Clan_time_remaining", szMins, szSecs, 0, 0 );
 }
-// .text:000eb830 int CDoDTeamPlay::GetClassMask(int) (dod/dlls/dod_gamerules.cpp:6259)
 int CDoDTeamPlay::GetClassMask( int team )
 {
+	int iFirst;
+	int iLast;
+
 	if ( team == 1 )
-		return (int)CVAR_GET_FLOAT( "mp_alliesclasses" );
-	if ( team == 2 )
-		return (int)CVAR_GET_FLOAT( "mp_axisclasses" );
-	return 0;
+	{
+		iFirst = m_GamePlayRules.m_bAlliesAreBrit ? 21 : 1;
+		iLast = m_GamePlayRules.m_bAlliesAreBrit ? 26 : 9;
+	}
+	else
+	{
+		iFirst = 10;
+		iLast = 20;
+	}
+
+	// the classes that reached their limit go into the upper 16 bits
+	int iLimitBits = 0;
+
+	for ( int iClass = iFirst; iClass <= iLast; iClass++ )
+	{
+		if ( (unsigned int)( iClass - 1 ) <= 26 && ReachedClassLimit( iClass ) )
+			iLimitBits |= 1 << ( iClass - iFirst );
+	}
+
+	int iMask = iLimitBits << 16;
+
+	if ( team == 1 )
+	{
+		int iClasses = (int)pcvar_mp_alliesclasses->value;
+
+		iMask |= iClasses >= 0 ? (unsigned short)iClasses : 0xFFFF;
+
+		if ( !m_GamePlayRules.m_bAlliesAreBrit )
+			return iMask & 0xFFFFFEFF;
+
+		return iMask & 0xFFFFFFDF;
+	}
+
+	int iClasses = (int)pcvar_mp_axisclasses->value;
+
+	iMask |= iClasses >= 0 ? (unsigned short)iClasses : 0xFFFF;
+
+	return iMask & 0xFFFFFBFF;
 }
-// .text:000eb920 void CDoDTeamPlay::ShowClassSelectMenu(CBasePlayer*) (dod/dlls/dod_gamerules.cpp:6331)
 void CDoDTeamPlay::ShowClassSelectMenu( CBasePlayer *pPlayer )
 {
-	char cmd[64];
-	sprintf( cmd, "classmenu %d\n", pPlayer->pev->team );
-	CLIENT_COMMAND( pPlayer->edict(), cmd );
+	int team = pPlayer->pev->team;
+
+	if ( team == 1 )
+	{
+		if ( m_GamePlayRules.m_bAlliesArePara )
+			ShowVGUI( pPlayer, 11, GetClassMask( 1 ) );
+		else if ( m_GamePlayRules.m_bAlliesAreBrit )
+			ShowVGUI( pPlayer, 12, GetClassMask( 1 ) );
+		else
+			ShowVGUI( pPlayer, 10, GetClassMask( 1 ) );
+	}
+	else if ( team == 2 )
+	{
+		if ( m_GamePlayRules.m_bAxisArePara )
+			ShowVGUI( pPlayer, 14, GetClassMask( 2 ) );
+		else
+			ShowVGUI( pPlayer, 13, GetClassMask( 2 ) );
+	}
 }
 // .text:000edfd0 BOOL CDoDTeamPlay::AllowSpawnableBazookas() (dod/dlls/dod_gamerules.cpp:6368)
 BOOL CDoDTeamPlay::AllowSpawnableBazookas( void )
@@ -2700,18 +2827,27 @@ BOOL CDoDTeamPlay::AllowSpawnableBazookas( void )
 	return (int)CVAR_GET_FLOAT( "mp_spawnbazookas" ) != 0;
 }
 // NOTE: CDoDDetect ctor lives in objective.h zone (not our files) - see binary 000ee020 sz=132
-class CMultiplayGameMgrHelper
+class CMultiplayGameMgrHelper : public IVoiceGameMgrHelper
 {
 public:
-	virtual BOOL CanPlayerHearPlayer( CBasePlayer *pListener, CBasePlayer *pTalker );
+	virtual bool CanPlayerHearPlayer( CBasePlayer *pListener, CBasePlayer *pTalker );
 };
-// .text:000eeac0 BOOL CMultiplayGameMgrHelper::CanPlayerHearPlayer(CBasePlayer*,CBasePlayer*) (dod/dlls/dod_gamerules.cpp:149)
-BOOL CMultiplayGameMgrHelper::CanPlayerHearPlayer( CBasePlayer *pListener, CBasePlayer *pTalker )
+bool CMultiplayGameMgrHelper::CanPlayerHearPlayer( CBasePlayer *pListener, CBasePlayer *pTalker )
 {
-	if ( pListener->pev->team != pTalker->pev->team )
-		return FALSE;
-	return TRUE;
+	if ( g_teamplay )
+	{
+		// only the team hears, and the living are heard by the dead but not the other way round
+		if ( pTalker->pev->team != pListener->pev->team )
+			return false;
+
+		if ( pTalker->pev->deadflag != pListener->pev->deadflag )
+			return pTalker->pev->deadflag == 0;
+	}
+
+	return true;
 }
+
+CMultiplayGameMgrHelper g_GameMgrHelper;
 // .text:000e4b90 void CDoDTeamPlay::AddToTeamScores(int, int) (dod/dlls/dod_gamerules.cpp:4876)
 void CDoDTeamPlay::AddToTeamScores( int iTeam, int iScore )
 {
@@ -3537,11 +3673,10 @@ void CDoDTeamPlay::ReadInClassInfo( void )
 extern float g_flTimeLimit;
 extern cvar_t *pcvar_mp_log_scores_delay;
 
-// .text:000d8900 CDoDTeamPlay::CDoDTeamPlay (file:dod_gamerules.cpp)
 CDoDTeamPlay::CDoDTeamPlay( void )
 {
-	// this codebase has no CMultiplayGameMgrHelper; voice is inited elsewhere.
-	(void)0;
+	g_VoiceGameMgr.Init( &g_GameMgrHelper, gpGlobals->maxClients );
+
 	CGameRules::RefreshSkillData();
 
 	gSkillData.plrDmgCOLT = 40.0f;
@@ -3582,21 +3717,25 @@ CDoDTeamPlay::CDoDTeamPlay( void )
 	g_flTimeLimit = gpGlobals->time;
 	m_flDoDMapTime = gpGlobals->time;
 
-	if ( !( *g_engfuncs.pfnIsDedicatedServer )() )
+	if ( !IS_DEDICATED_SERVER() )
 	{
-		const char *lservercfgfile = ( *g_engfuncs.pfnCVarGetString )( "lservercfgfile" );
-		if ( lservercfgfile != NULL && *lservercfgfile != '\0' )
+		const char *lservercfgfile = CVAR_GET_STRING( "lservercfgfile" );
+
+		if ( lservercfgfile && *lservercfgfile )
 		{
 			char szCommand[256];
+
+			ALERT( at_console, "Executing listen server config file\n" );
+
 			sprintf( szCommand, "exec %s\n", lservercfgfile );
 			SERVER_COMMAND( szCommand );
 		}
 	}
-	{
-		char szCommand[256];
-		sprintf( szCommand, "exec %s.cfg\n", STRING( gpGlobals->mapname ) );
-		SERVER_COMMAND( szCommand );
-	}
+
+	char szTemp[44];
+
+	sprintf( szTemp, "exec %s.cfg\n", STRING( gpGlobals->mapname ) );
+	SERVER_COMMAND( szTemp );
 
 	m_pParaTimer = NULL;
 	m_iNumAlliesAlive = 0;
@@ -3634,6 +3773,7 @@ CDoDTeamPlay::CDoDTeamPlay( void )
 
 	if ( MapChangeFromTime != 1 )
 		SetNextMap();
+
 	MapChangeFromTime = 1;
 
 	m_flAlliesWaveTime = 0.0f;
@@ -3641,14 +3781,30 @@ CDoDTeamPlay::CDoDTeamPlay( void )
 	m_flAlliesRespawn = 0.0f;
 	m_flAxisRespawn = 0.0f;
 
-	float fLogDelay = 30.0f;
-	if ( pcvar_mp_log_scores_delay != NULL )
+	float flLogDelay = 10.0f;
+
+	if ( pcvar_mp_log_scores_delay )
 	{
-		float v = pcvar_mp_log_scores_delay->value;
-		if ( v >= 1.0f )
-			fLogDelay = ( v > 120.0f ) ? 120.0f : v;
+		if ( pcvar_mp_log_scores_delay->value >= 1.0 )
+		{
+			flLogDelay = pcvar_mp_log_scores_delay->value;
+
+			if ( flLogDelay > 600.0 )
+				flLogDelay = 600.0;
+		}
+		else
+		{
+			flLogDelay = 1.0f;
+		}
 	}
-	m_fLogScoresTime = gpGlobals->time + fLogDelay;
+
+	m_fLogScoresTime = gpGlobals->time + flLogDelay;
+
+	// the cvars of the class limits, class 0 has none
+	pcvar_classlimitcvars[0] = NULL;
+
+	for ( int i = 1; i != 27; i++ )
+		pcvar_classlimitcvars[i] = CVAR_GET_POINTER( classlimitcvarNames[i] );
 }
 
 // .text:000de460 CDoDPreRound::Launch (file:dod_gamerules.cpp)
