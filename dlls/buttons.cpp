@@ -35,6 +35,8 @@
 #define SF_BUTTON_TOGGLE 32		   // button stays pushed until reactivated
 #define SF_BUTTON_SPARK_IF_OFF 64  // button sparks in OFF state
 #define SF_BUTTON_TOUCH_ONLY 256   // button only fires as a result of USE key.
+#define SF_BUTTON_IGNORE_PLAYER_USE 512  // the use key does not work on the button
+#define SF_BUTTON_NOTSOLID 0x80000000
 
 #define SF_GLOBAL_SET 1	 // Set global state to initial state on spawn
 
@@ -90,6 +92,13 @@ void CEnvGlobal::Spawn( void )
 		REMOVE_ENTITY( ENT( pev ) );
 		return;
 	}
+
+	RoundStore();
+
+	m_rstriggermode = m_triggermode;
+	m_rsglobalstate = m_globalstate;
+	m_rsinitialstate = m_initialstate;
+
 	if ( FBitSet( pev->spawnflags, SF_GLOBAL_SET ) )
 	{
 		if ( !gGlobalState.EntityInTable( m_globalstate ) )
@@ -520,7 +529,17 @@ void CBaseButton::Spawn()
 	SetMovedir( pev );
 
 	pev->movetype = MOVETYPE_PUSH;
-	pev->solid = SOLID_BSP;
+
+	if ( pev->spawnflags & SF_BUTTON_NOTSOLID )
+	{
+		pev->solid = SOLID_NOT;
+		pev->skin = -1;
+	}
+	else
+	{
+		pev->solid = SOLID_BSP;
+	}
+
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );
 
 	if ( pev->speed == 0 )
@@ -530,6 +549,10 @@ void CBaseButton::Spawn()
 	{
 		pev->takedamage = DAMAGE_YES;
 	}
+
+	RoundStore();
+
+	m_rrWait = m_flWait;
 
 	if ( m_flWait == 0 )
 		m_flWait = 1;
@@ -553,14 +576,14 @@ void CBaseButton::Spawn()
 	// if the button is flagged for USE button activation only, take away it's touch function and add a use function
 
 	if ( FBitSet( pev->spawnflags, SF_BUTTON_TOUCH_ONLY ) )	 // touchable button
-	{
 		SetTouch( &CBaseButton::ButtonTouch );
-	}
 	else
-	{
 		SetTouch( NULL );
+
+	if ( pev->spawnflags & SF_BUTTON_IGNORE_PLAYER_USE )
+		SetUse( &CBaseButton::ButtonUse_IgnorePlayer );
+	else
 		SetUse( &CBaseButton::ButtonUse );
-	}
 }
 
 // Button sound table.
@@ -574,48 +597,6 @@ const char *ButtonSound( int sound )
 	{
 	case 0:
 		pszSound = "common/null.wav";
-		break;
-	case 1:
-		pszSound = "buttons/button1.wav";
-		break;
-	case 2:
-		pszSound = "buttons/button2.wav";
-		break;
-	case 3:
-		pszSound = "buttons/button3.wav";
-		break;
-	case 4:
-		pszSound = "buttons/button4.wav";
-		break;
-	case 5:
-		pszSound = "buttons/button5.wav";
-		break;
-	case 6:
-		pszSound = "buttons/button6.wav";
-		break;
-	case 7:
-		pszSound = "buttons/button7.wav";
-		break;
-	case 8:
-		pszSound = "buttons/button8.wav";
-		break;
-	case 9:
-		pszSound = "buttons/button9.wav";
-		break;
-	case 10:
-		pszSound = "buttons/button10.wav";
-		break;
-	case 11:
-		pszSound = "buttons/button11.wav";
-		break;
-	case 12:
-		pszSound = "buttons/latchlocked1.wav";
-		break;
-	case 13:
-		pszSound = "buttons/latchunlocked1.wav";
-		break;
-	case 14:
-		pszSound = "buttons/lightswitch2.wav";
 		break;
 
 		// next 6 slots reserved for any additional sliding button sounds we may add
@@ -637,7 +618,7 @@ const char *ButtonSound( int sound )
 		break;
 
 	default:
-		pszSound = "buttons/button9.wav";
+		pszSound = "buttons/latchlocked1.wav";
 		break;
 	}
 
@@ -941,6 +922,8 @@ void CRotButton::Spawn( void )
 	if ( pev->speed == 0 )
 		pev->speed = 40;
 
+	m_rrWait = m_flWait;
+
 	if ( m_flWait == 0 )
 		m_flWait = 1;
 
@@ -949,24 +932,25 @@ void CRotButton::Spawn( void )
 		pev->takedamage = DAMAGE_YES;
 	}
 
+	RoundStore();
+
 	m_toggle_state = TS_AT_BOTTOM;
 	m_vecAngle1 = pev->angles;
 	m_vecAngle2 = pev->angles + pev->movedir * m_flMoveDistance;
-	ASSERTSZ( m_vecAngle1 != m_vecAngle2, "rotating button start/end positions are equal" );
 
 	m_fStayPushed = ( m_flWait == -1 ? TRUE : FALSE );
 	m_fRotating = TRUE;
 
 	// if the button is flagged for USE button activation only, take away it's touch function and add a use function
-	if ( !FBitSet( pev->spawnflags, SF_BUTTON_TOUCH_ONLY ) )
-	{
-		SetTouch( NULL );
-		SetUse( &CRotButton::ButtonUse );
-	}
-	else  // touchable button
+	if ( FBitSet( pev->spawnflags, SF_BUTTON_TOUCH_ONLY ) )	 // touchable button
 		SetTouch( &CRotButton::ButtonTouch );
+	else
+		SetTouch( NULL );
 
-	//SetTouch( ButtonTouch );
+	if ( pev->spawnflags & SF_BUTTON_IGNORE_PLAYER_USE )
+		SetUse( &CRotButton::ButtonUse_IgnorePlayer );
+	else
+		SetUse( &CRotButton::ButtonUse );
 }
 
 // Make this button behave like a door (HACKHACK)
@@ -1033,6 +1017,8 @@ void CMomentaryRotButton::Spawn( void )
 	if ( pev->speed == 0 )
 		pev->speed = 100;
 
+	m_rrMoveDistance = m_flMoveDistance;
+
 	if ( m_flMoveDistance < 0 )
 	{
 		m_start = pev->angles + pev->movedir * m_flMoveDistance;
@@ -1060,6 +1046,8 @@ void CMomentaryRotButton::Spawn( void )
 	PRECACHE_SOUND( pszSound );
 	pev->noise = ALLOC_STRING( pszSound );
 	m_lastUsed = 0;
+
+	RoundStore();
 }
 
 void CMomentaryRotButton::KeyValue( KeyValueData *pkvd )
@@ -1434,6 +1422,8 @@ void CButtonTarget::Spawn( void )
 
 	if ( FBitSet( pev->spawnflags, SF_BTARGET_ON ) )
 		pev->frame = 1;
+
+	RoundStore();
 }
 
 void CButtonTarget::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )

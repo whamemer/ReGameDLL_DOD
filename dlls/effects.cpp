@@ -81,6 +81,8 @@ void CBubbling::Spawn( void )
 	pev->rendercolor.y = speed & 255;
 	pev->rendercolor.z = ( pev->speed < 0 ) ? 1 : 0;
 
+	RoundStore();
+
 	if ( !( pev->spawnflags & SF_BUBBLES_STARTOFF ) )
 	{
 		SetThink( &CBubbling::FizzThink );

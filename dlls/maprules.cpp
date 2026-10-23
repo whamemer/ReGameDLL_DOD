@@ -165,6 +165,8 @@ LINK_ENTITY_TO_CLASS( game_score, CGameScore );
 void CGameScore::Spawn( void )
 {
 	CRulePointEntity::Spawn();
+
+	RoundStore();
 }
 
 void CGameScore::KeyValue( KeyValueData *pkvd )
@@ -681,6 +683,8 @@ void CGameCounter::Spawn( void )
 	// Save off the initial count
 	SetInitialValue( CountValue() );
 	CRulePointEntity::Spawn();
+
+	RoundStore();
 }
 
 void CGameCounter::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )

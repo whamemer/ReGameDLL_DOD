@@ -309,7 +309,6 @@ void CBaseDoor::Spawn()
 	m_vecPosition2 = m_vecPosition1 + ( pev->movedir * ( fabs( pev->movedir.x * ( pev->size.x - 2 ) ) +
 														 fabs( pev->movedir.y * ( pev->size.y - 2 ) ) +
 														 fabs( pev->movedir.z * ( pev->size.z - 2 ) ) - m_flLip ) );
-	ASSERTSZ( m_vecPosition1 != m_vecPosition2, "door start/end positions are equal" );
 	if ( FBitSet( pev->spawnflags, SF_DOOR_START_OPEN ) )
 	{  // swap pos1 and pos2, put door at pos2
 		UTIL_SetOrigin( pev, m_vecPosition2 );
@@ -320,12 +319,14 @@ void CBaseDoor::Spawn()
 	m_toggle_state = TS_AT_BOTTOM;
 
 	// if the door is flagged for USE button activation only, use NULL touch function
-	if ( FBitSet( pev->spawnflags, SF_DOOR_USE_ONLY ) )
-	{
+	if ( ( pev->spawnflags & ( SF_DOOR_USE_ONLY | SF_DOOR_TOUCH_ONLY_CLIENTS ) ) == SF_DOOR_USE_ONLY )
 		SetTouch( NULL );
-	}
 	else  // touchable button
 		SetTouch( &CBaseDoor::DoorTouch );
+
+	RoundStore();
+
+	m_lastBlockedTimestamp = 0;
 }
 
 void CBaseDoor ::SetToggleState( int state )
@@ -783,8 +784,6 @@ void CRotDoor::Spawn( void )
 	m_vecAngle1 = pev->angles;
 	m_vecAngle2 = pev->angles + pev->movedir * m_flMoveDistance;
 
-	ASSERTSZ( m_vecAngle1 != m_vecAngle2, "rotating door start/end positions are equal" );
-
 	if ( FBitSet( pev->spawnflags, SF_DOOR_PASSABLE ) )
 		pev->solid = SOLID_NOT;
 	else
@@ -810,12 +809,12 @@ void CRotDoor::Spawn( void )
 
 	m_toggle_state = TS_AT_BOTTOM;
 
-	if ( FBitSet( pev->spawnflags, SF_DOOR_USE_ONLY ) )
-	{
+	if ( ( pev->spawnflags & ( SF_DOOR_USE_ONLY | SF_DOOR_TOUCH_ONLY_CLIENTS ) ) == SF_DOOR_USE_ONLY )
 		SetTouch( NULL );
-	}
 	else  // touchable button
 		SetTouch( &CRotDoor::DoorTouch );
+
+	RoundStore();
 }
 
 void CRotDoor ::SetToggleState( int state )

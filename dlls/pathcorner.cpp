@@ -64,7 +64,7 @@ void CPathCorner ::KeyValue( KeyValueData *pkvd )
 
 void CPathCorner ::Spawn()
 {
-	ASSERTSZ( !FStringNull( pev->targetname ), "path_corner without a targetname" );
+	RoundStore();
 }
 
 #if 0

@@ -161,11 +161,14 @@ void CLight::Spawn( void )
 		REMOVE_ENTITY( ENT( pev ) );
 		return;
 	}
+
 	m_bDefaultOn = FBitSet( pev->spawnflags, SF_LIGHT_START_OFF ) ? FALSE : TRUE;
 	m_iState = FBitSet( pev->spawnflags, SF_LIGHT_START_OFF ) ? STATE_OFF : STATE_ON;
+
 	if ( m_iStyle >= 32 )
 		SetCorrectStyle();
-	Precache();
+
+	RoundStore();
 }
 void CLight::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
