@@ -1298,8 +1298,6 @@ extern p_wpninfo_s P_WpnInfo[];	// defined in dod_shared.cpp
 
 class CWeaponBox : public CBaseEntity
 {
-	void EXPORT ActivateThink( void );
-	BOOL m_bTouch;  // DoD CWeaponBox+640
 	void Precache( void );
 	void Spawn( void );
 	void Touch( CBaseEntity *pOther );
@@ -1309,6 +1307,8 @@ class CWeaponBox : public CBaseEntity
 	void SetObjectCollisionBox( void );
 
   public:
+	void EXPORT ActivateThink( void );
+	BOOL m_bTouch;  // DoD CWeaponBox+640
 	void EXPORT Kill( void );
 	int Save( CSave &save );
 	int Restore( CRestore &restore );

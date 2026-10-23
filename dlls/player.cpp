@@ -3807,70 +3807,129 @@ int CBasePlayer ::GetCustomDecalFrames( void )
 // DoD: 2-arg overload declared in player.h but never defined (link gap in dodsrc too).
 // bRemove is reserved; behavior matches the single-arg drop.
 
-// .text:00130b20 link 0x120b20 (dod/dlls/player.cpp:4634) - full 2-arg DoD body.
 void CBasePlayer::DropPlayerItem( char *pszItemName, bool bForceDrop )
 {
-	if ( pszItemName && pszItemName[0] == '\0' )
+	if ( !pszItemName[0] )
+	{
+		// no name means drop the active item
 		pszItemName = NULL;
-	if ( pszItemName && ( !strcmp( pszItemName, "weapon_handgrenade_ex" ) ||
-						  !strcmp( pszItemName, "weapon_stickgrenade_ex" ) ) )
+	}
+	else if ( !strcmp( pszItemName, "weapon_handgrenade_ex" ) || !strcmp( pszItemName, "weapon_stickgrenade_ex" ) )
+	{
 		return;
+	}
+
 	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
 	{
 		CBasePlayerItem *pWeapon = m_rgpPlayerItems[i];
+
 		while ( pWeapon )
 		{
-			bool bMatch;
 			if ( pszItemName )
-				bMatch = ( strcmp( pszItemName, STRING( pWeapon->pev->classname ) ) == 0 );
-			else
-				bMatch = ( pWeapon == m_pActiveItem );
-			if ( bMatch )
 			{
-				if ( !pWeapon->CanHolster() && !bForceDrop )
-				{
-					int slot = pWeapon->iItemSlot();
-					if ( m_bShowHints && slot != 0x200 && slot != 0x100 )
-						HintMessage( "#Hint_cannot_drop", 0 );
-					return;
-				}
-				pWeapon->Holster();
-				g_pGameRules->GetNextBestWeapon( this, pWeapon );
-				UTIL_MakeVectors( pev->angles );
-				Vector vecOrigin = pev->origin + gpGlobals->v_forward * 10.0f;
-				CWeaponBox *pWeaponBox =
-					(CWeaponBox *) CBaseEntity::Create( "weaponbox", vecOrigin, pev->angles, edict() );
-				pWeaponBox->pev->angles.x = 0;
-				pWeaponBox->pev->angles.z = 0;
-				pWeaponBox->SetThink( &CWeaponBox::Kill );
-				pWeaponBox->pev->nextthink = gpGlobals->time + 1.0;
-				if ( !pWeaponBox->PackWeapon( pWeapon ) )
-				{
-					UTIL_Remove( pWeaponBox );
-					return;
-				}
-				ClearHasWeapon( pWeapon->m_iId );
-				pWeaponBox->pev->velocity =
-					gpGlobals->v_forward * 200.0f + gpGlobals->v_right * RANDOM_FLOAT( -80.0f, 80.0f );
-				const char *pszAmmo = pWeapon->pszAmmo1();
-				int iAmmoIndex = GetAmmoIndex( pszAmmo );
-				if ( iAmmoIndex != -1 )
-				{
-					if ( pWeapon->iFlags() & ITEM_FLAG_EXHAUSTIBLE )
-					{
-						pWeaponBox->PackAmmo( MAKE_STRING( pszAmmo ), m_rgAmmo[iAmmoIndex] );
-						m_rgAmmo[iAmmoIndex] = 0;
-					}
-					else
-					{
-						pWeaponBox->PackAmmo( MAKE_STRING( pszAmmo ), m_rgAmmo[iAmmoIndex] / 2 );
-						m_rgAmmo[iAmmoIndex] /= 2;
-					}
-				}
-				return;
+				if ( !strcmp( pszItemName, STRING( pWeapon->pev->classname ) ) )
+					break;
 			}
+			else
+			{
+				if ( pWeapon == m_pActiveItem )
+					break;
+			}
+
 			pWeapon = pWeapon->m_pNext;
 		}
+
+		if ( !pWeapon )
+			continue;
+
+		if ( !pWeapon->CanDrop() && !bForceDrop )
+		{
+			if ( pWeapon->Classify() == CLASS_ROCKET || pWeapon->Classify() == CLASS_MACHINEGUN )
+				HintMessage( "#game_cannot_drop_while", 0 );
+			else
+				HintMessage( "#game_cannot_drop", 0 );
+
+			return;
+		}
+
+		pWeapon->Holster();
+
+		g_pGameRules->GetNextBestWeapon( this, pWeapon );
+
+		UTIL_MakeVectors( pev->angles );
+
+		Vector vecOrigin = pev->origin + gpGlobals->v_forward * 10;
+
+		CWeaponBox *pWeaponBox = (CWeaponBox *) CBaseEntity::Create( "weaponbox", vecOrigin, pev->angles, edict() );
+
+		pWeaponBox->pev->angles.x = 0;
+		pWeaponBox->pev->angles.z = 0;
+		pWeaponBox->SetThink( &CWeaponBox::ActivateThink );
+		pWeaponBox->m_bTouch = FALSE;
+		pWeaponBox->pev->nextthink = gpGlobals->time + 1;
+
+		( (CBasePlayerWeapon *) pWeapon )->m_flNextPrimaryAttack = 0;
+		( (CBasePlayerWeapon *) pWeapon )->m_flNextSecondaryAttack = 0;
+		( (CBasePlayerWeapon *) pWeapon )->m_flTimeWeaponIdle = 0;
+
+		if ( !pWeaponBox->PackWeapon( pWeapon ) )
+		{
+			UTIL_Remove( pWeaponBox );
+			return;
+		}
+
+		ClearHasWeapon( pWeapon->m_iId );
+
+		pWeaponBox->pev->velocity = gpGlobals->v_forward * 200 + gpGlobals->v_right * RANDOM_FLOAT( -80, 80 );
+
+		const char *pszAmmo = CBasePlayerItem::ItemInfoArray[pWeapon->m_iId].pszAmmo1;
+
+		if ( CBasePlayerItem::ItemInfoArray[pWeapon->m_iId].iFlags & ITEM_FLAG_EXHAUSTIBLE )
+		{
+			if ( pszAmmo )
+			{
+				int iAmmoIndex = GetAmmoIndex( pszAmmo );
+
+				if ( iAmmoIndex != -1 )
+				{
+					pWeaponBox->PackAmmo( MAKE_STRING( pszAmmo ), m_rgAmmo[iAmmoIndex] > 0 );
+					m_rgAmmo[iAmmoIndex] = 0;
+				}
+			}
+		}
+		else if ( pszAmmo )
+		{
+			int iAmmoIndex = GetAmmoIndex( pszAmmo );
+
+			if ( iAmmoIndex != -1 )
+			{
+				pWeaponBox->PackAmmo( MAKE_STRING( pszAmmo ), m_rgAmmo[iAmmoIndex] );
+				m_rgAmmo[iAmmoIndex] = 0;
+			}
+		}
+
+		int iId = pWeapon->m_iId;
+		int iModel = iId;
+
+		if ( iId == WEAPON_M1CARBINE )
+		{
+			if ( g_pGameRules && ( (CDoDTeamPlay *) g_pGameRules )->IsTeamPara( pev->team ) )
+				iModel = WEAPON_FOLDINGCARBINE;
+		}
+		else if ( iId == WEAPON_FG42 )
+		{
+			if ( ( (CBasePlayerWeapon *) pWeapon )->m_iWeaponState & 1 )
+				iModel = WEAPON_SCOPED_FG42;
+		}
+		else if ( iId == WEAPON_ENFIELD )
+		{
+			if ( ( (CBasePlayerWeapon *) pWeapon )->m_iWeaponState & 1 )
+				iModel = WEAPON_SCOPEDENFIELD;
+		}
+
+		SET_MODEL( pWeaponBox->edict(), P_WpnInfo[iModel].wmodel );
+
+		return;
 	}
 }
 
