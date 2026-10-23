@@ -45,7 +45,7 @@ endif()
 # The sources are listed explicitly, a new file has to be added here as well as it is picked up by waf (dlls/wscript) automatically.
 # wxdebug.h is only a header, the weapons in wpn_shared are shared with the client.
 set (SVDLL_SOURCES
-	MemPool.cpp
+	../public/MemPool.cpp
 	alias.cpp
 	animating.cpp
 	animation.cpp

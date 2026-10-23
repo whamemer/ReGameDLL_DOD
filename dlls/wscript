@@ -27,6 +27,7 @@ def build(bld):
 	source += bld.path.parent.ant_glob([
 					'pm_shared/*.cpp',
 					'public/safe_snprintf.c',
+					'public/MemPool.cpp',
 					'game_shared/voice_gamemgr.cpp'
 					])
 
