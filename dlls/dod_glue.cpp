@@ -266,31 +266,6 @@ void REMOVE_ENTITY( edict_t *e )
 	( *g_engfuncs.pfnRemoveEntity )( e );
 }
 
-// .text:000ceb70 SetObjectCollisionBox
-void SetObjectCollisionBox( entvars_t *pev )
-{
-	if ( pev->solid == SOLID_BSP && ( pev->angles.x != 0.0 || pev->angles.y != 0.0 || pev->angles.z != 0.0 ) )
-	{
-		float max = 0.0f;
-		float v;
-		v = fabs( pev->mins.x ); if ( v > max ) max = v;
-		v = fabs( pev->maxs.x ); if ( v > max ) max = v;
-		v = fabs( pev->mins.y ); if ( v > max ) max = v;
-		v = fabs( pev->maxs.y ); if ( v > max ) max = v;
-		v = fabs( pev->mins.z ); if ( v > max ) max = v;
-		v = fabs( pev->maxs.z ); if ( v > max ) max = v;
-		pev->absmin = pev->origin - Vector( max, max, max );
-		pev->absmax = pev->origin + Vector( max, max, max );
-	}
-	else
-	{
-		pev->absmin = pev->origin + pev->mins;
-		pev->absmax = pev->origin + pev->maxs;
-	}
-	pev->absmin = pev->absmin - Vector( 1, 1, 1 );
-	pev->absmax = pev->absmax + Vector( 1, 1, 1 );
-}
-
 // DoD entity factories (dod.so: player.cpp). LINK registers the classname and allocates
 // the private entity (vtable + pev), exactly like the shipped factories.
 LINK_ENTITY_TO_CLASS( dod_ammo, CDodAmmoBox )
