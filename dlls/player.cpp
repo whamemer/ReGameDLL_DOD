@@ -1908,45 +1908,56 @@ int CBasePlayer::Classify( void )
 
 void CBasePlayer::AddPoints( int score, BOOL bAllowNegativeScore )
 {
-	// Positive score always adds
-	if ( score < 0 )
+	// the points count outside of a clan match, or when the match is on
+	if ( !g_pGameRules->IsClanMatch() || g_pGameRules->IsClanMatchActive() )
 	{
-		if ( !bAllowNegativeScore )
+		// Positive score always adds
+		if ( score < 0 )
 		{
-			if ( pev->frags < 0 )  // Can't go more negative
-				return;
-
-			if ( -score > pev->frags )	// Will this go negative?
+			if ( !bAllowNegativeScore )
 			{
-				score = -pev->frags;  // Sum will be 0
+				if ( pev->frags < 0 )  // Can't go more negative
+					return;
+
+				if ( -score > pev->frags )	// Will this go negative?
+				{
+					score = -pev->frags;  // Sum will be 0
+				}
 			}
 		}
+
+		pev->frags += score;
+
+		MESSAGE_BEGIN( MSG_ALL, gmsgFrags );
+		WRITE_BYTE( ENTINDEX( edict() ) );
+		WRITE_SHORT( (int) pev->frags );
+		MESSAGE_END();
 	}
-
-	pev->frags += score;
-
-	MESSAGE_BEGIN( MSG_ALL, gmsgScoreInfo );
-	WRITE_BYTE( ENTINDEX( edict() ) );
-	WRITE_SHORT( pev->frags );
-	WRITE_SHORT( m_iDeaths );
-	WRITE_SHORT( 0 );
-	WRITE_SHORT( g_pGameRules->GetTeamIndex( m_szTeamName ) + 1 );
-	MESSAGE_END();
 }
 
 void CBasePlayer::AddPointsToTeam( int score, BOOL bAllowNegativeScore )
 {
+	if ( g_pGameRules->IsClanMatch() && !g_pGameRules->IsClanMatchActive() )
+		return;
+
 	int index = entindex();
 
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
+		CBasePlayer *pPlayer = (CBasePlayer *) UTIL_PlayerByIndex( i );
 
 		if ( pPlayer && i != index )
 		{
-			if ( g_pGameRules->PlayerRelationship( this, pPlayer ) == GR_TEAMMATE )
+			if ( g_pGameRules->PlayerRelationship( this, pPlayer ) == GR_TEAMMATE &&
+				 ( !g_pGameRules->IsClanMatch() || g_pGameRules->IsClanMatchActive() ) )
 			{
-				pPlayer->AddPoints( score, bAllowNegativeScore );
+				// the teammates get the points as objective score
+				pPlayer->m_iObjScore += score;
+
+				MESSAGE_BEGIN( MSG_ALL, gmsgObjScore );
+				WRITE_BYTE( ENTINDEX( pPlayer->edict() ) );
+				WRITE_SHORT( pPlayer->m_iObjScore );
+				MESSAGE_END();
 			}
 		}
 	}
@@ -3728,29 +3739,18 @@ int CBasePlayer ::GiveAmmo( int iCount, const char *szName, int iMax )
 		return -1;
 	}
 
-	int i = 0;
-
-	i = GetAmmoIndex( szName );
+	int i = GetAmmoIndex( szName );
 
 	if ( i < 0 || i >= MAX_AMMO_SLOTS )
 		return -1;
 
 	int iAdd = min( iCount, iMax - m_rgAmmo[i] );
-	if ( iAdd < 1 )
-		return i;
-
-	m_rgAmmo[i] += iAdd;
-
-	if ( gmsgAmmoPickup )  // make sure the ammo messages have been linked first
+	if ( iAdd > 0 )
 	{
-		// Send the message that ammo has been picked up
-		MESSAGE_BEGIN( MSG_ONE, gmsgAmmoPickup, NULL, pev );
-		WRITE_BYTE( GetAmmoIndex( szName ) );  // ammo ID
-		WRITE_BYTE( iAdd );					   // amount
-		MESSAGE_END();
-	}
+		m_rgAmmo[i] += iAdd;
 
-	TabulateAmmo();
+		TabulateAmmo();
+	}
 
 	return i;
 }
@@ -4833,28 +4833,34 @@ void CBasePlayer::UpdateScope( int weapon_id )
 
 void CBasePlayer::AddFrags( int num, BOOL bSendMsgToAll )
 {
-	if ( g_pGameRules->IsMultiplayer() && !( (CDoDTeamPlay *) g_pGameRules )->IsClanMatchActive() )
-		return;
-	pev->frags += num;
-	if ( !bSendMsgToAll )
-		return;
-	MESSAGE_BEGIN( MSG_ALL, gmsgFrags );
-	WRITE_BYTE( ENTINDEX( edict() ) );
-	WRITE_SHORT( (int) pev->frags );
-	MESSAGE_END();
+	if ( !g_pGameRules->IsClanMatch() || g_pGameRules->IsClanMatchActive() )
+	{
+		pev->frags += num;
+
+		if ( bSendMsgToAll )
+		{
+			MESSAGE_BEGIN( MSG_ALL, gmsgFrags );
+			WRITE_BYTE( ENTINDEX( edict() ) );
+			WRITE_SHORT( (int) pev->frags );
+			MESSAGE_END();
+		}
+	}
 }
 
 void CBasePlayer::AddObjScore( int num, BOOL bSendMsgToAll )
 {
-	if ( g_pGameRules->IsMultiplayer() && !( (CDoDTeamPlay *) g_pGameRules )->IsClanMatchActive() )
-		return;
-	m_iObjScore += num;
-	if ( !bSendMsgToAll )
-		return;
-	MESSAGE_BEGIN( MSG_ALL, gmsgObjScore );
-	WRITE_BYTE( ENTINDEX( edict() ) );
-	WRITE_SHORT( m_iObjScore );
-	MESSAGE_END();
+	if ( !g_pGameRules->IsClanMatch() || g_pGameRules->IsClanMatchActive() )
+	{
+		m_iObjScore += num;
+
+		if ( bSendMsgToAll )
+		{
+			MESSAGE_BEGIN( MSG_ALL, gmsgObjScore );
+			WRITE_BYTE( ENTINDEX( edict() ) );
+			WRITE_SHORT( m_iObjScore );
+			MESSAGE_END();
+		}
+	}
 }
 
 void CBasePlayer::DelayedSpawn( void )
