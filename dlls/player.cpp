@@ -39,6 +39,7 @@
 #include "hltv.h"
 
 #include "objective.h"
+#include "mapmarker.h"
 #include "dod_shared.h"
 #include "combat.h"
 

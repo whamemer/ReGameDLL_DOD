@@ -3,6 +3,7 @@
 #include "extdll.h"
 #include "util.h"
 #include "objective.h"
+#include "mapmarker.h"
 // Full bodies in restore/objectives/timers_relays.cpp comments - player side in player agent
 
 // rehash classname dod_mapmarker, nextthink = time + max(pcvar_mp_markerstaytime,2.0),
@@ -20,6 +21,11 @@ void CMapMarker::Spawn( void )
 	pev->nextthink = gpGlobals->time + stay;
 	SetThink( &CMapMarker::Die );
 	pev->flags |= FL_CUSTOMENTITY;
+}
+
+int CMapMarker::GetIcon( void )
+{
+	return pev->body;
 }
 
 void CMapMarker::Die( void )

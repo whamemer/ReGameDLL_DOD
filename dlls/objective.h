@@ -303,34 +303,7 @@ class CLocation : public CBaseEntity
 	virtual void KeyValue( KeyValueData *pkvd );
 };
 
-// dod_mapmarker
-class CMapMarker : public CBaseEntity
-{
-  public:
-	// pev->body = icon, pev->fuser1 = create time, angles fixed (0,90,0)
-	static CMapMarker *CreateMapMarker( Vector o, Vector a, CBaseEntity *w, int icon );
-	void Spawn( void );
-	void EXPORT Die();
-};
 
-// info_doddetect (dod_gamerules.cpp) - DWARF-canonical (gdb ptype /o CDoDDetect)
-// legacy trailing ints kept for exact layout parity (unused by the binary body)
-class CDoDDetect : public CBaseEntity
-{
-  public:
-	gameplay_rules_t m_GamePlayRules;   // 344 (48)
-	int m_iAlliesInfiniteLives;			// 392
-	int m_iAxisInfiniteLives;			// 396
-	int m_iAlliesPara;					// 400
-	int m_iAxisPara;					// 404
-	int m_iAlliesElimPoints;			// 408
-	int m_iAxisElimPoints;				// 412
-	string_t m_sMaster;					// 416
-	bool IsMasteredOn( void );
-	CDoDDetect( void );
-	void Spawn( void );
-	virtual void KeyValue( KeyValueData *pkvd );
-};
 
 // para timer (code-created, dod_gamerules.cpp) - DWARF-canonical
 class CDodParaRoundTimer : public CBaseEntity

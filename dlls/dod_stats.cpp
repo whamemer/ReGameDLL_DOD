@@ -4,6 +4,7 @@
 #include "cbase.h"
 #include "gamerules.h"
 #include "dod_gamerules.h"
+#include "dod_stats.h"
 
 char StatNames[4][64] = { "Kills", "Deaths", "Hits", "Shots" };
 

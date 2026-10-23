@@ -437,3 +437,114 @@ extern DLL_GLOBAL CGameRules *g_pGameRules;
 class CDoDTeamPlay;
 class CSPDoDRules;
 class CDoDStatMgr;
+
+class CSPDoDRules : public CGameRules
+{
+  public:
+	CSPDoDRules( void );
+	virtual void Think( void );
+	void PlayerKilled( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags );
+	void DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags );
+	virtual void PlayerKilled( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor ) {}
+	virtual void DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor ) {}
+	void PlayerDeathThink( CBasePlayer *pPlayer );
+	virtual void PlayerThink( CBasePlayer *pPlayer );
+	virtual void PlayerSpawn( CBasePlayer *pPlayer );
+	BOOL ClientConnected( edict_t *pEntity, char *pszName, char *pszAddress, char *szRejectReason );
+	virtual BOOL CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon );
+	virtual BOOL ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress,
+								  char szRejectReason[128] )
+	{
+		return TRUE;
+	}
+	virtual void InitHUD( CBasePlayer *pPlayer );
+	virtual void ClientDisconnected( edict_t *pClient );
+	virtual BOOL IsMultiplayer( void ) { return FALSE; }
+	virtual BOOL IsDeathmatch( void ) { return FALSE; }
+	virtual BOOL IsCoOp( void ) { return FALSE; }
+	virtual BOOL FAllowFlashlight( void ) { return TRUE; }
+	virtual BOOL AllowAutoTargetCrosshair( void );
+	virtual BOOL FShouldSwitchWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon );
+	virtual BOOL GetNextBestWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pCurrentWeapon ) { return FALSE; }
+	virtual BOOL IsAllowedToSpawn( CBaseEntity *pEntity ) { return TRUE; }
+	virtual float FlPlayerFallDamage( CBasePlayer *pPlayer );
+	virtual BOOL FPlayerCanRespawn( CBasePlayer *pPlayer ) { return TRUE; }
+	virtual float FlPlayerSpawnTime( CBasePlayer *pPlayer ) { return 0; }
+	virtual int IPointsForKill( CBasePlayer *pAttacker, CBasePlayer *pKilled ) { return 1; }
+	virtual void PlayerGotWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon ) {}
+	virtual int WeaponShouldRespawn( CBasePlayerItem *pWeapon ) { return 0; }
+	virtual float FlWeaponRespawnTime( CBasePlayerItem *pWeapon ) { return 0; }
+	virtual float FlWeaponTryRespawn( CBasePlayerItem *pWeapon ) { return 0; }
+	virtual Vector VecWeaponRespawnSpot( CBasePlayerItem *pWeapon );
+	virtual BOOL CanHaveItem( CBasePlayer *pPlayer, CItem *pItem ) { return TRUE; }
+	virtual void PlayerGotItem( CBasePlayer *pPlayer, CItem *pItem ) {}
+	virtual int ItemShouldRespawn( CItem *pItem ) { return 0; }
+	virtual float FlItemRespawnTime( CItem *pItem ) { return 0; }
+	virtual Vector VecItemRespawnSpot( CItem *pItem );
+	virtual void PlayerGotAmmo( CBasePlayer *pPlayer, char *szName, int iCount ) {}
+	virtual int AmmoShouldRespawn( CBasePlayerAmmo *pAmmo ) { return 0; }
+	virtual float FlAmmoRespawnTime( CBasePlayerAmmo *pAmmo ) { return 0; }
+	virtual Vector VecAmmoRespawnSpot( CBasePlayerAmmo *pAmmo );
+	virtual float FlHealthChargerRechargeTime( void ) { return 0; }
+	virtual int DeadPlayerWeapons( CBasePlayer *pPlayer ) { return 0; }
+	virtual int DeadPlayerAmmo( CBasePlayer *pPlayer ) { return 0; }
+	virtual const char *GetTeamID( CBaseEntity *pEntity ) { return ""; }
+	virtual int PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget ) { return 0; }
+	virtual BOOL FAllowMonsters( void ) { return TRUE; }
+
+	virtual unsigned short Camera( void );
+	virtual unsigned short usVoice( void );
+	virtual unsigned short bodyDamage( void );
+	virtual unsigned short roundRestartSound( void );
+	virtual unsigned short gerVoice( void );
+	virtual unsigned short Pain( void );
+	virtual unsigned short Smoke( void );
+	virtual unsigned short Prone( void );
+	virtual unsigned short BloodSprite( void );
+	virtual unsigned short BloodStream( void );
+	virtual unsigned short BulletTracers( void );
+	virtual unsigned short SparkShower( void );
+	virtual unsigned short ScreenFades( void );
+	virtual unsigned short BubbleTrails( void );
+	virtual unsigned short Bubbles( void );
+	virtual unsigned short Shards( void );
+	virtual unsigned short Explosion( void );
+	virtual unsigned short PopHelmet( void );
+	virtual unsigned short RoundReset( void );
+	virtual unsigned short StartTrail( void );
+	virtual void SetCamera( short s );
+	virtual void SetusVoice( short s );
+	virtual void SetbodyDamage( short s );
+	virtual void SetroundRestartSound( short s );
+	virtual void SetgerVoice( short s );
+	virtual void SetPain( short s );
+	virtual void SetSmoke( short s );
+	virtual void SetProne( short s );
+	virtual void SetBloodSprite( short s );
+	virtual void SetBloodStream( short s );
+	virtual void SetBulletTracers( short s );
+	virtual void SetSparkShower( short s );
+	virtual void SetScreenFades( short s );
+	virtual void SetBubbleTrails( short s );
+	virtual void SetBubbles( short s );
+	virtual void SetShards( short s );
+	virtual void SetExplosion( short s );
+	virtual void SetPopHelmet( short s );
+	virtual void SetRoundReset( short s );
+	virtual void SetRocketTrail( short s );
+	int RoundState( void );
+	int TeamScores( int iTeam );
+	float getWaveTime( int iTeam );
+	void setWaveTime( int iTeam, float fTime );
+	float GetMaxWaveTime( int nTeam );
+	void setMapTime( void );
+	void SetRoundState( int iState );
+	void SetTeamScores( int iTeam, int iScore );
+	void SendTeamScores( int iTeam );
+	void SetRestartTime( float fTime );
+	void AddToTeamScores( int iTeam, int iScore );
+	void SetMapChangeFromTime( int iTime );
+	int ReturnGameRules( void );
+	void Init( void );
+	void VoteKick( CBasePlayer *pPlayer, int id, bool b );
+};
