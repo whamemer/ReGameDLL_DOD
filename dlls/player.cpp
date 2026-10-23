@@ -1481,12 +1481,15 @@ void CBasePlayer::WaterMove()
 	if ( pev->health < 0 )
 		return;
 
+	if ( !IsAlive() )
+		return;
+
 	// waterlevel 0 - not in water
 	// waterlevel 1 - feet in water
 	// waterlevel 2 - waist in water
 	// waterlevel 3 - head in water
 
-	if ( pev->waterlevel != 3 )
+	if ( pev->waterlevel != 3 || pev->watertype < -16 )
 	{
 		// not underwater
 
@@ -1543,7 +1546,7 @@ void CBasePlayer::WaterMove()
 		}
 	}
 
-	if ( !pev->waterlevel )
+	if ( !pev->waterlevel || pev->watertype < -16 )
 	{
 		if ( FBitSet( pev->flags, FL_INWATER ) )
 		{
@@ -2502,16 +2505,7 @@ void CBasePlayer::PostThink()
 	}
 
 	// do weapon stuff
-	if ( !m_pTank && m_flNextAttack <= 0 )
-	{
-		ImpulseCommands();
-
-		if ( m_pActiveItem )
-		{
-			UTIL_MakeVectors( pev->v_angle );
-			m_pActiveItem->ItemPostFrame();
-		}
-	}
+	ItemPostFrame();
 
 	// check to see if player landed hard enough to make a sound
 	if ( FBitSet( pev->flags, FL_ONGROUND ) )
@@ -2724,16 +2718,21 @@ pt_end:
 BOOL IsSpawnPointValid( CBaseEntity *pPlayer, CBaseEntity *pSpot )
 {
 	CBaseEntity *ent = NULL;
+	CBaseDMStart *pStart = (CBaseDMStart *) pSpot;
 
-	if ( !pSpot->IsTriggered( pPlayer ) )
-	{
+	if ( pStart->GetState( pPlayer ) != STATE_ON )
 		return FALSE;
-	}
 
-	while ( ( ent = UTIL_FindEntityInSphere( ent, pSpot->pev->origin, 128 ) ) != NULL )
+	if ( !pStart->IsMasteredOn() )
+		return FALSE;
+
+	if ( pSpot->pev->fuser1 > gpGlobals->time )
+		return FALSE;
+
+	while ( ( ent = UTIL_FindEntityInSphere( ent, pSpot->pev->origin, 96 ) ) != NULL )
 	{
 		// if ent is a client, don't spawn on 'em
-		if ( ent->IsPlayer() && ent != pPlayer )
+		if ( ent->IsPlayer() && pPlayer != ent )
 			return FALSE;
 	}
 
@@ -2741,6 +2740,7 @@ BOOL IsSpawnPointValid( CBaseEntity *pPlayer, CBaseEntity *pSpot )
 }
 
 DLL_GLOBAL CBaseEntity *g_pLastSpawn;
+edict_t *ReturnSpot( CBaseEntity *pSpot, CBasePlayer *cbPlayer, BOOL bJustChecking );
 inline int FNullEnt( CBaseEntity *ent )
 {
 	return ( ent == NULL ) || FNullEnt( ent->edict() );
@@ -2756,62 +2756,43 @@ USES AND SETS GLOBAL g_pLastSpawn
 ============
 */
 
-// .text:0011f750 link 0x11f750 (dod/dlls/player.cpp:3167) - 2-arg binary signature.
 edict_t *EntSelectSpawnPoint( CBaseEntity *pPlayer, BOOL bJustChecking )
 {
 	CBaseEntity *pSpot = NULL;
 	CBaseEntity *pFirstSpot;
+	const char *pszClassname;
 
-	if ( g_pLastSpawn && !FNullEnt( g_pLastSpawn ) )
+	if ( g_pLastSpawn && !FNullEnt( g_pLastSpawn->edict() ) )
 		pSpot = g_pLastSpawn;
 
 	if ( pPlayer->pev->team == 1 || pPlayer->pev->team == 2 )
 	{
-		const char *pszClass = ( pPlayer->pev->team == 1 ) ? "info_player_allies" : "info_player_axis";
-		pFirstSpot = UTIL_FindEntityByClassname( pSpot, pszClass );
+		if ( pPlayer->pev->team == 1 )
+			pszClassname = "info_player_allies";
+		else
+			pszClassname = "info_player_axis";
+
+		// pick the first valid spot of the team after the last one used
+		pFirstSpot = UTIL_FindEntityByClassname( pSpot, pszClassname );
 		pSpot = pFirstSpot;
-		do
+
+		while ( 1 )
 		{
-			if ( !FNullEnt( pSpot ) && pSpot->IsTriggered( pPlayer ) )
-			{
-				if ( pSpot->pev->fuser1 <= gpGlobals->time )
-				{
-					CBaseEntity *ent = NULL;
-					bool bFree = true;
-					while ( ( ent = UTIL_FindEntityInSphere( ent, pSpot->pev->origin, 96.0f ) ) != NULL )
-					{
-						if ( ent->IsPlayer() && ent != pPlayer )
-						{
-							bFree = false;
-							break;
-						}
-					}
-					if ( bFree )
-						goto ReturnSpot;
-				}
-			}
-			pSpot = UTIL_FindEntityByClassname( pSpot, pszClass );
-		} while ( pSpot != pFirstSpot );
+			if ( pSpot && !FNullEnt( pSpot->edict() ) && IsSpawnPointValid( pPlayer, pSpot ) )
+				break;
+
+			pSpot = UTIL_FindEntityByClassname( pSpot, pszClassname );
+
+			if ( pSpot == pFirstSpot )
+				return NULL;
+		}
 	}
 	else
 	{
 		pSpot = UTIL_FindEntityByClassname( NULL, "info_player_observer" );
-		if ( !FNullEnt( pSpot ) )
-			goto ReturnSpot;
 	}
 
-ReturnSpot:
-	if ( FNullEnt( pSpot ) )
-	{
-		ALERT( at_console, "PutClientInServer: ReturnSpot: passed a null pSpot" );
-		return NULL;
-	}
-	if ( !bJustChecking )
-	{
-		pSpot->pev->fuser1 = gpGlobals->time + 0.5f;
-		g_pLastSpawn = pSpot;
-	}
-	return pSpot->edict();
+	return ReturnSpot( pSpot, (CBasePlayer *) pPlayer, bJustChecking );
 }
 
 
@@ -3828,27 +3809,17 @@ Called every frame by the player PostThink
 */
 void CBasePlayer::ItemPostFrame()
 {
-	static int fInSelect = FALSE;
-
 	// check if the player is using a tank
-	if ( m_pTank != NULL )
-		return;
-
-#if defined( CLIENT_WEAPONS )
-	if ( m_flNextAttack > 0 )
-#else
-	if ( gpGlobals->time < m_flNextAttack )
-#endif
+	if ( !m_pTank && m_flNextAttack <= 0 )
 	{
-		return;
+		ImpulseCommands();
+
+		if ( m_pActiveItem )
+		{
+			UTIL_MakeVectors( pev->v_angle );
+			m_pActiveItem->ItemPostFrame();
+		}
 	}
-
-	ImpulseCommands();
-
-	if ( !m_pActiveItem )
-		return;
-
-	m_pActiveItem->ItemPostFrame();
 }
 
 int CBasePlayer::AmmoInventory( int iAmmoIndex )

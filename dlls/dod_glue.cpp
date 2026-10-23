@@ -293,9 +293,6 @@ void SetObjectCollisionBox( entvars_t *pev )
 
 // DoD entity factories (dod.so: player.cpp). LINK registers the classname and allocates
 // the private entity (vtable + pev), exactly like the shipped factories.
-LINK_ENTITY_TO_CLASS( info_player_allies, CBaseEntity )
-LINK_ENTITY_TO_CLASS( info_player_axis, CBaseEntity )
-LINK_ENTITY_TO_CLASS( info_player_observer, CBaseEntity )
 LINK_ENTITY_TO_CLASS( dod_ammo, CDodAmmoBox )
 
 // ---------------------------------------------------------------------------

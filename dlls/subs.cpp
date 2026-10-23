@@ -54,21 +54,11 @@ void CNullEntity ::Spawn( void )
 }
 LINK_ENTITY_TO_CLASS( info_null, CNullEntity );
 
-class CBaseDMStart : public CPointEntity
-{
-  public:
-	void KeyValue( KeyValueData *pkvd );
-	int GetState( CBaseEntity *pEntity );
-
-  private:
-	string_t m_sCPMaster;
-	int m_bNeutral;
-	int m_bInControl;
-	int m_bNotInControl;
-};
-
 // These are the new entry points to entities.
 LINK_ENTITY_TO_CLASS( info_player_deathmatch, CBaseDMStart );
+LINK_ENTITY_TO_CLASS( info_player_allies, CBaseDMStart );
+LINK_ENTITY_TO_CLASS( info_player_axis, CBaseDMStart );
+LINK_ENTITY_TO_CLASS( info_player_observer, CBaseDMStart );
 LINK_ENTITY_TO_CLASS( info_player_start, CPointEntity );
 LINK_ENTITY_TO_CLASS( info_landmark, CPointEntity );
 
@@ -106,6 +96,11 @@ void CBaseDMStart::KeyValue( KeyValueData *pkvd )
 	}
 	else
 		CPointEntity::KeyValue( pkvd );
+}
+
+int CBaseDMStart::IsMasteredOn( void )
+{
+	return UTIL_IsMasterTriggered( m_sMaster, this );
 }
 
 int CBaseDMStart::GetState( CBaseEntity *pEntity )
