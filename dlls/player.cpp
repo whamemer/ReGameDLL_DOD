@@ -1601,56 +1601,70 @@ BOOL CBasePlayer::IsOnLadder( void )
 
 void CBasePlayer::PlayerDeathThink( void )
 {
-	// .text:00131be0 wrapper link 0x121be0 -> .part.40 0x121880 (dod/dlls/player.cpp:2060)
+	float flForward;
+
 	if ( m_iJoiningState != JOINED )
 		return;
-	float flForward;
+
 	if ( FBitSet( pev->flags, FL_ONGROUND ) )
 	{
 		flForward = pev->velocity.Length() - 20;
+
 		if ( flForward <= 0 )
 			pev->velocity = g_vecZero;
 		else
 			pev->velocity = flForward * pev->velocity.Normalize();
 	}
+
 	SetTouch( NULL );
-	if ( m_rgpPlayerItems[0] || m_rgpPlayerItems[1] || m_rgpPlayerItems[2] || m_rgpPlayerItems[3] ||
-		 m_rgpPlayerItems[4] || m_rgpPlayerItems[5] )
+
+	if ( m_rgpPlayerItems[0] || m_rgpPlayerItems[1] || m_rgpPlayerItems[2] || m_rgpPlayerItems[3] || m_rgpPlayerItems[4] ||
+		 m_rgpPlayerItems[5] )
 		RemoveAllItems( 1 );
+
 	if ( HasObject )
 		DropObject();
+
 	if ( pev->movetype != MOVETYPE_NONE && FBitSet( pev->flags, FL_ONGROUND ) )
 		pev->movetype = MOVETYPE_NONE;
-	if ( pev->modelindex && ( !m_fSequenceFinished ) && ( pev->deadflag == DEAD_DYING ) )
+
+	if ( pev->modelindex && !m_fSequenceFinished && pev->deadflag == DEAD_DYING )
 	{
 		StudioFrameAdvance();
-		m_iRespawnFrames += 1.0f;
-		if ( m_iRespawnFrames < 120.0f )
+
+		m_iRespawnFrames = m_iRespawnFrames + 1;  // Note, these aren't necessarily real "frames", so behavior is dependent on # of client movement commands
+
+		if ( m_iRespawnFrames < 240 )  // Animations should be no longer than this
 			return;
 	}
+
 	if ( pev->deadflag == DEAD_DYING )
 		pev->deadflag = DEAD_DEAD;
+
 	pev->framerate = 0.0;
 	pev->effects |= EF_NOINTERP;
+
 	pev->button = 0;
+
 	if ( pev->deadflag == DEAD_DEAD )
 	{
 		if ( g_pGameRules->FPlayerCanRespawn( this ) )
 		{
 			m_fDeadTime = gpGlobals->time;
 			pev->deadflag = DEAD_RESPAWNABLE;
-			return;
 		}
 	}
 	else
 	{
 		if ( g_pGameRules->IsMultiplayer() )
-			StartDeathCam();
+			g_pGameRules->PlayerDeathThink( this );
+
 		pev->button = 0;
-		m_iRespawnFrames = 0.0f;
+		m_iRespawnFrames = 0;
+
 		if ( !g_pGameRules->IsMultiplayer() )
 		{
-			respawn( pev, !( m_afPhysicsFlags & PFLAG_OBSERVER ) );
+			respawn( pev, !( m_afPhysicsFlags & PFLAG_OBSERVER ) );  // don't copy a corpse if we're in deathcam.
 			pev->nextthink = -1;
 		}
 	}
@@ -2470,42 +2484,238 @@ void CBasePlayer ::UpdatePlayerSound( void )
 
 void CBasePlayer::PostThink()
 {
-	// .text:00136c10 link 0x126c10 (dod/dlls/player.cpp:2845)
-	if ( g_fGameOver || !IsAlive() )
-		return;
+	if ( g_fGameOver )
+		goto pt_end;  // intermission or finale
+
+	if ( !IsAlive() )
+		goto pt_end;
+
+	// Handle Tank controlling
 	if ( m_pTank )
 	{
-		if ( !m_pTank->OnControls( pev ) || pev->weaponmodel != 0 )
+		// if they've moved too far from the gun,  or selected a weapon, unuse the gun
+		if ( !m_pTank->OnControls( pev ) || pev->weaponmodel )
 		{
 			m_pTank->Use( this, this, USE_OFF, 0 );
 			m_pTank = NULL;
 		}
 	}
-	if ( !m_pTank && m_flNextAttack <= 0 && m_pActiveItem )
+
+	// do weapon stuff
+	if ( !m_pTank && m_flNextAttack <= 0 )
 	{
-		UTIL_MakeVectors( pev->v_angle );
-		m_pActiveItem->ItemPostFrame();
+		ImpulseCommands();
+
+		if ( m_pActiveItem )
+		{
+			UTIL_MakeVectors( pev->v_angle );
+			m_pActiveItem->ItemPostFrame();
+		}
 	}
-	if ( FBitSet( pev->flags, FL_ONGROUND ) && m_flFallVelocity >= 200.0f )
+
+	// check to see if player landed hard enough to make a sound
+	if ( FBitSet( pev->flags, FL_ONGROUND ) )
 	{
-		if ( m_flFallVelocity > 500.0f )
-			EMIT_SOUND_DYN( ENT( pev ), CHAN_BODY, "common/bodysplat.wav", 1.0, ATTN_NORM, 0, 100 );
-		if ( m_flFallVelocity > 300.0f && m_iFOV > 0 )
-			m_iFOV = 0;
+		if ( pev->health > 0 && m_flFallVelocity >= PLAYER_FALL_PUNCH_THRESHHOLD )
+		{
+			if ( m_flFallVelocity > PLAYER_MAX_SAFE_FALL_SPEED )
+			{
+				// after this point, we start doing damage
+				float flFallDamage = g_pGameRules->FlPlayerFallDamage( this );
+
+				if ( flFallDamage > pev->health )
+				{
+					// splat
+					EMIT_SOUND_DYN( edict(), CHAN_ITEM, "common/bodysplat.wav", 1.0, ATTN_NORM, 0, PITCH_NORM );
+				}
+
+				if ( flFallDamage > 0 )
+				{
+					TakeDamage( VARS( eoNullEntity ), VARS( eoNullEntity ), flFallDamage, DMG_FALL );
+					pev->punchangle.x = 0;
+				}
+			}
+
+			// a hard landing takes the player out of the scope
+			if ( m_flFallVelocity > 250 && m_iFOV > 0 )
+			{
+				for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
+				{
+					CBasePlayerItem *pItem = m_rgpPlayerItems[i];
+
+					while ( pItem )
+					{
+						if ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & ITEM_FLAG_RIFLE )
+							break;
+
+						pItem = pItem->m_pNext;
+					}
+
+					if ( pItem )
+					{
+						m_iFOV = ( (CBasePlayerWeapon *) pItem )->ZoomOut();
+						break;
+					}
+				}
+			}
+
+			if ( IsAlive() )
+			{
+				if ( pev->deadflag || (unsigned int) ( pev->iuser3 - 1 ) > 1 )
+				{
+					if ( m_IdealActivity != DOD_PRONE_GETUP || m_fSequenceFinished )
+						SetAnimation( PLAYER_WALK );
+				}
+				else if ( m_IdealActivity != DOD_PRONE_GETDOWN || m_fSequenceFinished )
+				{
+					SetAnimation( PLAYER_PRONE2 );
+				}
+			}
+		}
+
+		if ( FBitSet( pev->flags, FL_ONGROUND ) )
+		{
+			if ( m_flFallVelocity > 64 && !g_pGameRules->IsMultiplayer() )
+			{
+				CSoundEnt::InsertSound( bits_SOUND_PLAYER, pev->origin, m_flFallVelocity, 0.2 );
+			}
+
+			m_flFallVelocity = 0;
+		}
 	}
-	if ( pev->waterlevel > 1 && pev->iuser3 >= 1 && pev->iuser3 <= 2 )
+
+	// a prone player that ends up deep in the water gets up
+	if ( pev->waterlevel > 2 && !pev->deadflag && pev->iuser3 == 1 )
 	{
 		pev->iuser3 = 0;
 		m_ianimupdate = 1;
 		SetAnimation( PLAYER_PRONE3 );
+		m_inextprone = gpGlobals->time + 1.0;
 	}
+
+	// running drains the stamina
+	if ( ( pev->button & IN_RUN ) && ( pev->button & ( IN_FORWARD | IN_BACK | IN_MOVELEFT | IN_MOVERIGHT ) ) )
+	{
+		if ( gpGlobals->time > m_nextRunThink && pev->velocity.Length() > 100 )
+		{
+			pev->fuser4 = clamp( pev->fuser4 - 30, 0, 100 );
+			m_nextRunThink = gpGlobals->time + 1.0;
+		}
+	}
+	else
+	{
+		m_nextRunThink = gpGlobals->time - 0.1;
+	}
+
+	// select the proper animation for the player character
+	if ( IsAlive() )
+	{
+		if ( pev->velocity.x != 0 || pev->velocity.y != 0 )
+		{
+			if ( FBitSet( pev->flags, FL_ONGROUND ) )
+			{
+				if ( !pev->deadflag && (unsigned int) ( pev->iuser3 - 1 ) <= 1 )
+				{
+					pev->angles.x = 0;
+
+					if ( m_IdealActivity != DOD_PRONE_GETDOWN || m_fSequenceFinished )
+						SetAnimation( PLAYER_PRONE2 );
+				}
+				else
+				{
+					pev->angles.x = clamp( pev->angles.x, -30, 30 );
+
+					if ( m_IdealActivity != DOD_PRONE_GETUP || m_fSequenceFinished )
+						SetAnimation( PLAYER_WALK );
+				}
+			}
+			else if ( pev->waterlevel > 1 )
+			{
+				if ( !pev->deadflag && (unsigned int) ( pev->iuser3 - 1 ) <= 1 )
+				{
+					pev->button &= ~IN_JUMP;
+					pev->button &= ~IN_DUCK;
+					pev->flags &= ~FL_DUCKING;
+					m_afPhysicsFlags &= ~PFLAG_DUCKING;
+				}
+
+				SetAnimation( PLAYER_WALK );
+			}
+		}
+		else if ( !pev->deadflag && (unsigned int) ( pev->iuser3 - 1 ) <= 1 )
+		{
+			if ( m_fSequenceFinished )
+				SetAnimation( PLAYER_PRONE2 );
+
+			pev->angles.x = clamp( pev->angles.x, -15, 15 );
+		}
+		else
+		{
+			if ( m_IdealActivity == ACT_RANGE_ATTACK1 )
+			{
+				if ( m_fSequenceFinished && m_bBazookaDeployed )
+					SetAnimation( PLAYER_IDLE );
+			}
+			else if ( m_IdealActivity != DOD_PRONE_GETUP || m_fSequenceFinished )
+			{
+				SetAnimation( PLAYER_IDLE );
+			}
+
+			pev->angles.x = clamp( pev->angles.x, -30, 30 );
+		}
+	}
+
 	CheckPlayerSpeed();
-	CBaseAnimating::StudioFrameAdvance( 0.0 );
-	if ( pev->health > 0 )
+
+	StudioFrameAdvance();
+
+	if ( 0 < pev->health )
 		pev->modelindex = g_ulModelIndexPlayer;
+
 	UpdatePlayerSound();
+
+pt_end:
+#if defined( CLIENT_WEAPONS )
+	// Decay timers on weapons
+	// go through all of the weapons and make a list of the ones to pack
+	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
+	{
+		CBasePlayerItem *pPlayerItem = m_rgpPlayerItems[i];
+
+		while ( pPlayerItem )
+		{
+			CBasePlayerWeapon *gun = (CBasePlayerWeapon *) pPlayerItem->GetWeaponPtr();
+
+			if ( gun && gun->UseDecrement() )
+			{
+				gun->m_flNextPrimaryAttack = max( gun->m_flNextPrimaryAttack - gpGlobals->frametime, -1.0f );
+				gun->m_flNextSecondaryAttack = max( gun->m_flNextSecondaryAttack - gpGlobals->frametime, -0.001f );
+
+				if ( gun->m_flTimeWeaponIdle != 1000 )
+				{
+					gun->m_flTimeWeaponIdle = max( gun->m_flTimeWeaponIdle - gpGlobals->frametime, -0.001f );
+				}
+
+				if ( gun->pev->fuser1 != 1000 )
+				{
+					gun->pev->fuser1 = max( gun->pev->fuser1 - gpGlobals->frametime, -0.001f );
+				}
+			}
+
+			pPlayerItem = pPlayerItem->m_pNext;
+		}
+	}
+
+	m_flNextAttack -= gpGlobals->frametime;
+
+	if ( m_flNextAttack < -0.001 )
+		m_flNextAttack = -0.001;
+#endif
+
+	// Track button info so we can detect 'pressed' and 'released' buttons next frame
 	m_afButtonLast = pev->button;
 	m_iGaitsequence = pev->gaitsequence;
+
 	StudioProcessGait();
 }
 
