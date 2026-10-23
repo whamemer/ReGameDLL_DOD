@@ -3634,144 +3634,174 @@ reflecting all of the HUD state info.
 
 void CBasePlayer ::UpdateClientData( void )
 {
-	// .text:00135550 link 0x125550 (dod/dlls/player.cpp:4306)
 	if ( m_fInitHUD )
 	{
 		m_fInitHUD = FALSE;
 		gInitHUD = FALSE;
+
 		m_signals.m_flState = m_signals.m_flSignal;
 		m_signals.m_flSignal = 0;
+
 		MESSAGE_BEGIN( MSG_ONE, gmsgResetHUD, NULL, pev );
-		WRITE_BYTE( 0 );
 		MESSAGE_END();
+
 		if ( !m_fGameHUDInitialized )
 		{
 			MESSAGE_BEGIN( MSG_ONE, gmsgInitHUD, NULL, pev );
 			MESSAGE_END();
+
 			g_pGameRules->InitHUD( this );
 			m_fGameHUDInitialized = TRUE;
+
 			if ( g_pGameRules->IsMultiplayer() )
+			{
 				FireTargets( "game_playerjoin", this, this, USE_TOGGLE, 0 );
+			}
+
 			m_iObserverLastMode = OBS_ROAMING;
+
 			( (CDoDTeamPlay *) g_pGameRules )->SendObjectiveStatus( this );
 		}
+
 		FireTargets( "game_playerspawn", this, this, USE_TOGGLE, 0 );
+
 		if ( pev->team == 1 )
 		{
-			if ( pev->iuser1 == 0 && pev->iuser2 == 0 )
+			if ( !pev->iuser1 && !pev->iuser2 )
 				FireTargets( "dod_alliespawn", this, this, USE_TOGGLE, 0 );
 		}
-		else if ( pev->team == 2 && pev->iuser1 == 0 && pev->iuser2 == 0 )
+		else if ( pev->team == 2 && !pev->iuser1 && !pev->iuser2 )
 		{
 			FireTargets( "dod_axisspawn", this, this, USE_TOGGLE, 0 );
 		}
+
 		InitStatusBar();
+
 		( (CDoDTeamPlay *) g_pGameRules )->SendClientGamerules( this );
-		int sleeve = ( pev->team == 1 ) ? ( (unsigned) ( pev->playerclass - 0x15 ) < 6 ) : 2;
-		MESSAGE_BEGIN( MSG_ONE, gmsgTeamInfo, NULL, pev );
-		WRITE_BYTE( pev->weaponanim );
-		WRITE_BYTE( sleeve );
+
+		int iSleeve = 2;
+
+		if ( pev->team == 1 )
+			iSleeve = (unsigned int) ( pev->playerclass - 21 ) <= 5;
+
+		MESSAGE_BEGIN( MSG_ONE, SVC_WEAPONANIM, NULL, pev );
+			WRITE_BYTE( pev->weaponanim );
+			WRITE_BYTE( iSleeve );
 		MESSAGE_END();
 	}
+
 	if ( m_iHideHUD != m_iClientHideHUD )
 	{
 		MESSAGE_BEGIN( MSG_ONE, gmsgHideWeapon, NULL, pev );
-		WRITE_BYTE( m_iHideHUD );
+			WRITE_BYTE( m_iHideHUD );
 		MESSAGE_END();
+
 		m_iClientHideHUD = m_iHideHUD;
 	}
+
 	if ( m_iFOV != m_iClientFOV )
 	{
 		pev->fov = m_iFOV;
+
 		MESSAGE_BEGIN( MSG_ONE, gmsgSetFOV, NULL, pev );
-		WRITE_BYTE( m_iFOV );
+			WRITE_BYTE( m_iFOV );
 		MESSAGE_END();
-		MESSAGE_BEGIN( MSG_ALL, gmsgHLTV );
-		WRITE_BYTE( ENTINDEX( edict() ) );
-		WRITE_BYTE( m_iFOV );
+
+		MESSAGE_BEGIN( MSG_SPEC, gmsgHLTV );
+			WRITE_BYTE( ENTINDEX( edict() ) );
+			WRITE_BYTE( m_iFOV );
 		MESSAGE_END();
 	}
+
+	// HACKHACK -- send the message to display the game title
 	if ( pev->health != m_iClientHealth )
 	{
-		int iHealth = clamp( (int) pev->health, 0, 255 );
-		if ( pev->health > 0.0f && pev->health <= 1.0f )
+		int iHealth = clamp( (int) pev->health, 0, 255 );  // make sure that no negative health values are sent
+
+		// send "health" update message
+		if ( pev->health > 0 && pev->health <= 1 )
 			iHealth = 1;
+
 		MESSAGE_BEGIN( MSG_ONE, gmsgHealth, NULL, pev );
-		WRITE_BYTE( iHealth );
+			WRITE_BYTE( iHealth );
 		MESSAGE_END();
-		m_iClientHealth = (int) pev->health;
+
+		m_iClientHealth = pev->health;
 	}
+
 	if ( pev->dmg_take || pev->dmg_save || m_bitsHUDDamage != m_bitsDamageType )
 	{
-		Vector damageOrigin = pev->origin;
-		edict_t *other = pev->dmg_inflictor;
-		if ( other )
-		{
-			CBaseEntity *pEntity = CBaseEntity::Instance( other );
-			if ( pEntity )
-				damageOrigin = pEntity->Center();
-		}
-		int visibleDamageBits = m_bitsDamageType & DMG_SHOWNHUD;
-		MESSAGE_BEGIN( MSG_ONE, gmsgDamage, NULL, pev );
-		WRITE_BYTE( pev->dmg_save );
-		WRITE_BYTE( pev->dmg_take );
-		WRITE_LONG( visibleDamageBits );
-		WRITE_COORD( damageOrigin.x );
-		WRITE_COORD( damageOrigin.y );
-		WRITE_COORD( damageOrigin.z );
-		MESSAGE_END();
 		pev->dmg_take = 0;
 		pev->dmg_save = 0;
 		m_bitsHUDDamage = m_bitsDamageType;
-		m_bitsDamageType &= 0xffffc040;
+
+		// Clear off non-time-based damage indicators
+		m_bitsDamageType &= DMG_TIMEBASED | DMG_BLAST;
 	}
+
 	if ( !m_fKnownItem )
 	{
 		m_fKnownItem = TRUE;
+
+		// Send ALL the weapon info now
 		for ( int i = 0; i < MAX_WEAPONS; i++ )
 		{
 			ItemInfo &II = CBasePlayerItem::ItemInfoArray[i];
+
 			if ( !II.iId )
 				continue;
+
 			MESSAGE_BEGIN( MSG_ONE, gmsgWeaponList, NULL, pev );
-			WRITE_STRING( II.pszName ? II.pszName : "Empty" );
-			WRITE_BYTE( GetAmmoIndex( II.pszAmmo1 ) );
-			WRITE_BYTE( II.iMaxAmmo1 );
-			WRITE_BYTE( GetAmmoIndex( II.pszAmmo2 ) );
-			WRITE_BYTE( II.iMaxAmmo2 );
-			WRITE_BYTE( II.iSlot );
-			WRITE_BYTE( II.iPosition );
-			WRITE_SHORT( II.iId );
-			WRITE_BYTE( II.iFlags );
-			WRITE_BYTE( II.iMaxClip );
+				WRITE_BYTE( GetAmmoIndex( II.pszAmmo1 ) );
+				WRITE_BYTE( II.iMaxAmmo1 );
+				WRITE_BYTE( GetAmmoIndex( II.pszAmmo2 ) );
+				WRITE_BYTE( II.iMaxAmmo2 );
+				WRITE_BYTE( II.iSlot );
+				WRITE_BYTE( II.iPosition );
+				WRITE_SHORT( II.iId );
+				WRITE_BYTE( II.iFlags );
+				WRITE_BYTE( II.iMaxClip );
 			MESSAGE_END();
 		}
 	}
+
 	SendAmmoUpdate();
+
+	// Update all the items
 	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
 	{
-		if ( m_rgpPlayerItems[i] )
+		if ( m_rgpPlayerItems[i] )  // each item updates it's successors
 			m_rgpPlayerItems[i]->UpdateClientData( this );
 	}
+
+	// Cache and client weapon change
 	m_pClientActiveItem = m_pActiveItem;
 	m_iClientFOV = m_iFOV;
+
+	// Update Status Bar
 	if ( m_flNextSBarUpdateTime < gpGlobals->time )
 	{
 		UpdateStatusBar();
-		m_flNextSBarUpdateTime = gpGlobals->time + 0.5f;
+		m_flNextSBarUpdateTime = gpGlobals->time + 0.5;
 	}
+
 	if ( !( m_flDisplayHistory & 0x1000 ) && m_pActiveItem &&
-		 !( CBasePlayerItem::ItemInfoArray[m_pActiveItem->m_iId].iFlags & 0x10 ) &&
-		 m_rgAmmo[m_pActiveItem->PrimaryAmmoIndex()] == 0 && ( (CBasePlayerWeapon *) m_pActiveItem )->m_iClip == 0 )
+		 !( CBasePlayerItem::ItemInfoArray[m_pActiveItem->m_iId].iFlags & ITEM_FLAG_EXHAUSTIBLE ) )
 	{
-		m_flDisplayHistory |= 0x1000;
-		if ( m_bShowHints )
-			HintMessage( "#Hint_no_ammo", 0 );
+		CBasePlayerWeapon *pWeapon = (CBasePlayerWeapon *) m_pActiveItem;
+
+		if ( pWeapon->m_iPrimaryAmmoType != -1 && !m_rgAmmo[pWeapon->m_iPrimaryAmmoType] && !pWeapon->m_iClip )
+		{
+			m_flDisplayHistory |= 0x1000;
+			HintMessage( "#Hint_out_of_ammo", 0 );
+		}
 	}
-	if ( gpGlobals->time <= m_fHandleSignalsTime )
-		return;
-	m_fHandleSignalsTime = gpGlobals->time + 0.5f;
-	HandleSignals();
+
+	if ( gpGlobals->time > m_fHandleSignalsTime )
+	{
+		m_fHandleSignalsTime = gpGlobals->time + 0.5;
+		HandleSignals();
+	}
 }
 
 
