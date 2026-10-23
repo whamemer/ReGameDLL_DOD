@@ -51,6 +51,15 @@
 
 extern DLL_GLOBAL BOOL g_fGameOver;
 extern int gmsgCameraView;
+extern int gmsgStartProgressBar;
+extern int gmsgStartProgressBarF;
+extern int gmsgSetObjOwner;
+extern int gmsgInitObjDisplay;
+extern int gmsgTimeLeft;
+extern cvar_t *pcvar_mp_clan_match;
+extern cvar_t *pcvar_mp_clan_scoring;
+extern cvar_t *pcvar_mp_clan_scoring_delay;
+extern int get_maptime_left( void );
 
 extern void SetMovedir( entvars_t *pev );
 extern Vector VecBModelOrigin( entvars_t *pevBModel );
@@ -4270,4 +4279,1653 @@ void CMultiManager::RoundRespawn( void )
 			}
 		}
 	} while ( swapped );
+}
+
+void CObjectCapture::KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "capobj_group" ) )
+	{
+		strcpy( sz_Group, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "capobj_donetarget" ) )
+	{
+		strcpy( sz_DoneTarget, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "capobj_hud_sprite" ) )
+	{
+		strcpy( sz_HudIcon, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else
+		CBaseTrigger::KeyValue( pkvd );
+}
+
+void CObjectCapture::Spawn()
+{
+	UTIL_SetOrigin( pev, pev->origin );
+	CBaseTrigger::InitTrigger();
+	RoundStore();
+	m_bCapped = false;
+}
+
+void CObjectCapture::RoundRespawn()
+{
+	UTIL_SetOrigin( pev, pev->origin );
+	CBaseTrigger::InitTrigger();
+	m_bCapped = false;
+}
+
+void CObjectCapture::Precache()
+{
+	if ( sz_HudIcon[0] )
+		PRECACHE_MODEL( sz_HudIcon );
+}
+
+void CLocation::Spawn()
+{
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetSize( pev, g_vecZero, g_vecZero );
+	SetTouch( NULL );
+	pev->movedir = g_vecZero;
+	RoundStore();
+}
+
+void CLocation::RoundRespawn()
+{
+	UTIL_SetSize( pev, g_vecZero, g_vecZero );
+	SetTouch( NULL );
+}
+
+void CLocation::KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "location_name" ) )
+	{
+		pev->netname = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "master" ) )
+	{
+		m_sMaster = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else
+		pkvd->fHandled = FALSE;
+}
+
+BOOL IsThisIndexUnique( CControlPoint *pThis )
+{
+	CControlPoint *p = (CControlPoint *) UTIL_FindEntityByClassname( NULL, "dod_control_point" );
+	while ( p )
+	{
+		if ( p->m_iPointIndex == pThis->m_iPointIndex && p != pThis )
+			return FALSE;
+		p = (CControlPoint *) UTIL_FindEntityByClassname( p, "dod_control_point" );
+	}
+	return TRUE;
+}
+
+void CControlPoint::Spawn()
+{
+	Precache();
+	pev->solid = SOLID_BBOX;  // 1
+	pev->movetype = MOVETYPE_NONE;
+	pev->sequence = 0;
+	pev->framerate = 1.0;
+	m_fCapDelayTime = 1.0;
+	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetSize( pev, pev->mins, pev->maxs );
+	pev->movedir = g_vecZero;
+	UTIL_MakeVectors( pev->angles );
+	SetTouch( NULL );
+	if ( m_bActive )
+	{
+		SetOwner( m_iDefaultOwner, FALSE, NULL );
+	}
+	else
+	{
+		SET_MODEL( edict(), sz_ResetModel );
+		SetBodygroup( 0, m_iResetModelBodygroup );
+	}
+	RoundStore();
+}
+
+// Instant steal on touch. Guards: RoundState()==ROUNDSTATE_RUNNING, m_bActive,
+// gpGlobals->time >= m_fNextCapTime, IsPlayer + IsAlive checks,
+// per-team can-touch block, no-op when toucher team == owner.
+void CControlPoint::Touch( CBaseEntity *pOther )
+{
+	if ( g_pGameRules->RoundState() == ROUNDSTATE_RUNNING && m_bActive && m_fNextCapTime <= gpGlobals->time && pOther->IsPlayer() &&
+		 pOther->IsAlive() )
+	{
+		int team = pOther->pev->team;
+
+		if ( team == TEAM_ALLIES )
+		{
+			if ( m_bAlliesCantTouch )
+				return;
+		}
+		else if ( team == TEAM_AXIS && m_bAxisCantTouch )
+		{
+			return;
+		}
+
+		if ( team != m_iTeam )
+		{
+			if ( m_bActive )
+			{
+				SetOwner( team, TRUE, (CBasePlayer *) pOther );
+			}
+			else
+			{
+				SET_MODEL( edict(), sz_ResetModel );
+				SetBodygroup( 0, m_iResetModelBodygroup );
+			}
+
+			CBasePlayer *pPlayer = (CBasePlayer *) pOther;
+
+			if ( !( pPlayer->m_flDisplayHistory & HINT_TOUCHED_CONTROL_POINT ) )
+			{
+				pPlayer->m_flDisplayHistory |= HINT_TOUCHED_CONTROL_POINT;
+				pPlayer->HintMessage( "#Hint_touched_control_point", 0 );
+			}
+
+			UTIL_LogPrintf( "\"%s<%i><%s><%s>\" triggered a \"dod_control_point\" - \"%s\"\n", STRING( pOther->pev->netname ),
+							GETPLAYERUSERID( pOther->edict() ), GETPLAYERAUTHID( pOther->edict() ),
+							pOther->pev->team == TEAM_ALLIES ? "Allies" : "Axis", STRING( pev->netname ) );
+
+			m_fNextCapTime = gpGlobals->time + m_fCapDelayTime;
+		}
+	}
+}
+
+void CControlPoint::SendCapString( int team, CBasePlayer *pPlayer )
+{
+	if ( sz_WinString[0] == 0 )
+		return;
+	MESSAGE_BEGIN( MSG_ALL, gmsgCapMsg );
+	WRITE_BYTE( pPlayer ? ENTINDEX( pPlayer->edict() ) : 0 );
+	WRITE_STRING( STRING( pev->netname ) );
+	WRITE_BYTE( team );
+	MESSAGE_END();
+}
+
+// Active: SetOwner(m_iDefaultOwner, FALSE, NULL) (verified by disasm:
+// EDX=[this+0x184], ECX=EAX=0, JMP SetOwner). Inactive: reset model.
+void CControlPoint::Reset()
+{
+	if ( m_bActive )
+		SetOwner( m_iDefaultOwner, FALSE, NULL );
+	else
+	{
+		SET_MODEL( edict(), sz_ResetModel );
+		SetBodygroup( 0, m_iResetModelBodygroup );
+	}
+}
+
+void CControlPoint::SetIndex( int i_index )
+{
+	if ( g_pGameRules && m_iAlliesIcon == 1 && g_pGameRules->IsAlliesBrit() )
+		m_iAlliesIcon = 0x1b;  // 27, brit HUD icon
+	m_iIndex = i_index;
+}
+
+void CControlPoint::RoundRespawn()
+{
+	if ( m_bActive )
+		SetOwner( m_iDefaultOwner, FALSE, NULL );
+	else
+	{
+		SET_MODEL( edict(), sz_ResetModel );
+		SetBodygroup( 0, m_iResetModelBodygroup );
+	}
+}
+
+// Guards: not freeze/restart, RoundState 0/1, not game over.
+// Effects: m_iTeam, team model + bodygroup, cap sound, team target,
+// AddObjScore(player, m_iCapPoints), team score update, SetObjOwner msg,
+// cap string, m_fNextCapTime = time + m_fCapDelayTime.
+void CControlPoint::SetOwner( int owner, BOOL bMakeSound, CBasePlayer *pPlayer )
+{
+	if ( !m_bActive )
+	{
+		SET_MODEL( edict(), sz_ResetModel );
+		SetBodygroup( 0, m_iResetModelBodygroup );
+
+		return;
+	}
+
+	if ( g_pGameRules->IsClanMatch() && !g_pGameRules->IsClanMatchActive() )
+		return;
+
+	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING && g_pGameRules->RoundState() != ROUNDSTATE_PREROUND )
+		return;
+
+	if ( g_fGameOver )
+		return;
+
+	m_iTeam = owner;
+
+	if ( owner == TEAM_ALLIES )
+	{
+		if ( bMakeSound && pev->noise1 )
+			EMIT_SOUND_DYN( edict(), CHAN_STATIC, STRING( pev->noise1 ), 1.0, ATTN_NONE, 0, PITCH_NORM );
+
+		SET_MODEL( edict(), sz_AlliesModel );
+		SetBodygroup( 0, m_iAlliesModelBodygroup );
+
+		FireTargets( sz_AlliesTarget, this, this, USE_TOGGLE, 0.0 );
+	}
+	else if ( owner == TEAM_AXIS )
+	{
+		if ( bMakeSound && pev->noise2 )
+			EMIT_SOUND_DYN( edict(), CHAN_STATIC, STRING( pev->noise2 ), 1.0, ATTN_NONE, 0, PITCH_NORM );
+
+		SET_MODEL( edict(), sz_AxisModel );
+		SetBodygroup( 0, m_iAxisModelBodygroup );
+
+		FireTargets( sz_AxisTarget, this, this, USE_TOGGLE, 0.0 );
+	}
+	else if ( owner == TEAM_UNASSIGNED )
+	{
+		if ( bMakeSound && pev->noise )
+			EMIT_SOUND_DYN( edict(), CHAN_STATIC, STRING( pev->noise ), 1.0, ATTN_NONE, 0, PITCH_NORM );
+
+		SET_MODEL( edict(), sz_ResetModel );
+		SetBodygroup( 0, m_iResetModelBodygroup );
+
+		FireTargets( sz_ResetTarget, this, this, USE_TOGGLE, 0.0 );
+	}
+
+	// the points count only while the round counts
+	if ( bMakeSound && g_pGameRules && ( (CDoDTeamPlay *)g_pGameRules )->m_RoundDoesCount == 1 )
+	{
+		if ( pPlayer )
+			pPlayer->AddObjScore( m_iCapPoints, TRUE );
+
+		if ( owner == TEAM_ALLIES || owner == TEAM_AXIS )
+			g_pGameRules->AddToTeamScores( owner, m_iTeamPoints );
+	}
+
+	if ( !( pev->spawnflags & SF_CONTROLPOINT_HIDDEN ) )
+	{
+		if ( !gmsgSetObjOwner )
+			return;
+
+		MESSAGE_BEGIN( MSG_ALL, gmsgSetObjOwner );
+			WRITE_BYTE( m_iIndex );
+			WRITE_BYTE( owner );
+			WRITE_BYTE( 0 );
+		MESSAGE_END();
+
+		UTIL_SendDirectorMessage( this, NULL, 11 );
+	}
+
+	if ( bMakeSound && owner != TEAM_UNASSIGNED )
+		SendCapString( owner, pPlayer );
+
+	m_fNextCapTime = gpGlobals->time + m_fCapDelayTime;
+}
+
+void CControlPoint::Precache()
+{
+	if ( pev->noise )
+		PRECACHE_SOUND( STRING( pev->noise ) );
+	if ( pev->noise1 )
+		PRECACHE_SOUND( STRING( pev->noise1 ) );
+	if ( pev->noise2 )
+		PRECACHE_SOUND( STRING( pev->noise2 ) );
+	PRECACHE_MODEL( sz_AlliesModel );
+	PRECACHE_MODEL( sz_AxisModel );
+	PRECACHE_MODEL( sz_ResetModel );
+}
+
+void CControlPoint::KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "point_name" ) )
+	{
+		pev->netname = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_pointvalue" ) )
+	{
+		m_iPointValue = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_team_points" ) )
+	{
+		m_iTeamPoints = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_points_for_cap" ) )
+	{
+		m_iCapPoints = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_reset_time" ) )
+	{
+		m_iResetTime = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_default_owner" ) )
+	{
+		int v = atoi( pkvd->szValue );
+		m_iDefaultOwner = ( v < 3 ) ? v : 0;
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_axis_capsound" ) )
+	{
+		if ( pkvd->szValue )
+			pev->noise2 = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_allies_capsound" ) )
+	{
+		if ( pkvd->szValue )
+			pev->noise1 = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_resetsound" ) )
+	{
+		if ( pkvd->szValue )
+			pev->noise = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_allies_model" ) )
+	{
+		strcpy( sz_AlliesModel, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_axis_model" ) )
+	{
+		strcpy( sz_AxisModel, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_reset_model" ) )
+	{
+		strcpy( sz_ResetModel, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_allies_model_bodygroup" ) )
+	{
+		m_iAlliesModelBodygroup = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_axis_model_bodygroup" ) )
+	{
+		m_iAxisModelBodygroup = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_reset_model_bodygroup" ) )
+	{
+		m_iResetModelBodygroup = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_allies_target" ) )
+	{
+		strcpy( sz_AlliesTarget, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_axis_target" ) )
+	{
+		strcpy( sz_AxisTarget, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_reset_target" ) )
+	{
+		strcpy( sz_ResetTarget, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_can_allies_touch" ) )
+	{
+		if ( atoi( pkvd->szValue ) > 0 )
+			m_bAlliesCantTouch = true;
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_can_axis_touch" ) )
+	{
+		if ( atoi( pkvd->szValue ) > 0 )
+			m_bAxisCantTouch = true;
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "visible" ) )
+	{
+		m_bPointVisible = atoi( pkvd->szValue );
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_win_string" ) )
+	{
+		strcpy( sz_WinString, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_index" ) )
+	{
+		m_iPointIndex = atoi( pkvd->szValue ) - 1;
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_group" ) )
+	{
+		strcpy( m_szGroup, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "master" ) )
+	{
+		m_sMaster = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_hud_icon_allies" ) )
+	{
+		m_iAlliesIcon = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_hud_icon_axis" ) )
+	{
+		m_iAxisIcon = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_hud_icon_neutral" ) )
+	{
+		m_iNeutralIcon = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_allies_win_string" ) )
+	{
+		m_sAlliesCapString = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "point_axis_win_string" ) )
+	{
+		m_sAxisCapString = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else
+		pkvd->fHandled = FALSE;
+}
+
+void CControlPoint::SetActive( bool active )
+{
+	m_bActive = active;
+	if ( !active )
+		pev->effects |= EF_NODRAW;	// 0x80
+	else
+		pev->effects &= ~EF_NODRAW;
+}
+
+CControlPointMaster::CControlPointMaster()
+{
+	m_szGroup[0] = 0;
+}
+
+void CControlPointMaster::Spawn()
+{
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	pev->effects = EF_NODRAW;  // 0x80
+	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetSize( pev, g_vecZero, g_vecZero );
+	SetTouch( NULL );
+	SetThink( &CControlPointMaster::CPMThink );
+	FoundPoints = 0;
+	m_bActive = 0;
+	pev->nextthink = gpGlobals->time + 2.0;				   // _DAT_00192a44
+	m_flNextSpectatorUpdateTime = gpGlobals->time + 10.0;  // _DAT_0018fde8
+	RoundStore();
+}
+
+// Clan scoring active: next give = now + pcvar_mp_clan_scoring_delay (default 30.0).
+// Else: now + m_iGivePointsDelay.
+void CControlPointMaster::RoundRespawn()
+{
+	if ( pcvar_mp_clan_match && pcvar_mp_clan_match->value > 0.0 && pcvar_mp_clan_scoring && pcvar_mp_clan_scoring->value > 0.0 )
+	{
+		float d = 30.0;
+		if ( pcvar_mp_clan_scoring_delay )
+			d = pcvar_mp_clan_scoring_delay->value;
+		m_fGivePointsTime = gpGlobals->time + d;
+		return;
+	}
+	m_fGivePointsTime = (float) m_iGivePointsDelay + gpGlobals->time;
+}
+
+void CControlPointMaster::KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "point_give_delay_time" ) )
+	{
+		m_iGivePointsDelay = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "allies_capture_target" ) )
+	{
+		strcpy( sz_AlliesTarget, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "axis_capture_target" ) )
+	{
+		strcpy( sz_AxisTarget, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "main" ) )
+	{
+		m_iMainObjective = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "master" ) )
+	{
+		m_sMaster = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "cpm_group" ) )
+	{
+		strcpy( m_szGroup, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else
+		pkvd->fHandled = FALSE;
+}
+
+void CControlPointMaster::Reset( void )
+{
+	m_bTeamHasWon = false;
+}
+
+void CControlPointMaster::CPMThink()
+{
+	// ---- stage 1: master gate / activation ----
+	if ( !m_sMaster )
+	{
+		if ( !m_bActive )
+			BecomeActive();
+	}
+	else if ( !FoundPoints )
+	{
+		m_bMasteredOn = UTIL_IsMasterTriggered( m_sMaster, this ) ? 1 : 0;
+		if ( !m_bMasteredOn )
+		{
+			for ( int i = 0; i < m_iNumPoints; i++ )
+			{
+				ControlPointArray[i]->m_bActive = false;
+				ControlPointArray[i]->pev->effects |= EF_NODRAW;
+			}
+			m_bActive = 0;
+		}
+		else if ( !m_bActive )
+			BecomeActive();
+	}
+	else
+	{
+		BOOL on = UTIL_IsMasterTriggered( m_sMaster, this ) ? 1 : 0;
+		if ( m_bMasteredOn != on )
+		{
+			m_bMasteredOn = on;
+			if ( !on )
+			{
+				for ( int i = 0; i < m_iNumPoints; i++ )
+				{
+					ControlPointArray[i]->m_bActive = false;
+					ControlPointArray[i]->pev->effects |= EF_NODRAW;
+				}
+				m_bActive = 0;
+			}
+			else if ( !m_bActive )
+				BecomeActive();
+		}
+	}
+
+	// ---- stage 2: one-time discovery ----
+	if ( !FoundPoints )
+	{
+		CControlPoint *pPoint = (CControlPoint *) UTIL_FindEntityByClassname( NULL, "dod_control_point" );
+		if ( !pPoint )
+		{
+			ALERT( at_aiconsole, "Error! No control points found in map!\n" );
+			return;
+		}
+		BOOL bUnique = TRUE;
+		int num = 0;
+		do
+		{
+			if ( strcmp( m_szGroup, pPoint->m_szGroup ) == 0 )
+			{
+				if ( pPoint->m_iPointIndex < 0 )
+					bUnique = FALSE;
+				ControlPointArray[num] = pPoint;
+				for ( int i = num - 1; i >= 0; i-- )
+				{
+					if ( ControlPointArray[i]->m_iPointIndex == pPoint->m_iPointIndex )
+						bUnique = FALSE;
+				}
+				if ( g_pGameRules && pPoint->m_iAlliesIcon == 1 &&
+					 ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
+					pPoint->m_iAlliesIcon = 0x1b;
+				pPoint->m_iIndex = pPoint->m_iPointIndex;
+				pPoint->m_bActive = ( m_bActive != 0 );
+				if ( pPoint->m_bActive )
+					pPoint->pev->effects &= ~EF_NODRAW;
+				else
+					pPoint->pev->effects |= EF_NODRAW;
+				num++;
+			}
+			pPoint = (CControlPoint *) UTIL_FindEntityByClassname( pPoint, "dod_control_point" );
+		} while ( num < 20 && pPoint );
+
+		if ( !bUnique )
+		{
+			CBaseEntity *pSpawn = UTIL_FindEntityByClassname( NULL, "info_player_allies" );
+			if ( !pSpawn )
+			{
+				if ( num == 0 )
+				{
+					ALERT( at_aiconsole, "Error! No control points found in map!\n" );
+					return;
+				}
+				for ( int i = 0; i < num; i++ )
+				{
+					CControlPoint *p = ControlPointArray[i];
+					if ( p )
+					{
+						if ( g_pGameRules && p->m_iAlliesIcon == 1 &&
+							 ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
+							p->m_iAlliesIcon = 0x1b;
+						p->m_iIndex = i;
+					}
+				}
+			}
+			else
+			{
+				Vector spawnpos = pSpawn->pev->origin;
+				int handled[20];
+				for ( int i = 0; i < num; i++ )
+					handled[i] = 0;
+				for ( int slot = 0; slot < num; slot++ )
+				{
+					float leastdist = 99999.0f;
+					int selected = 0;
+					for ( int i = 0; i < num; i++ )
+					{
+						if ( handled[i] )
+							continue;
+						float dx = spawnpos.x - ControlPointArray[i]->pev->origin.x;
+						float dy = spawnpos.y - ControlPointArray[i]->pev->origin.y;
+						float dz = spawnpos.z - ControlPointArray[i]->pev->origin.z;
+						float dist = sqrt( dx * dx + dy * dy + dz * dz );
+						if ( dist < leastdist )
+						{
+							leastdist = dist;
+							selected = i;
+						}
+					}
+					CControlPoint *p = ControlPointArray[selected];
+					if ( g_pGameRules && p->m_iAlliesIcon == 1 &&
+						 ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
+						p->m_iAlliesIcon = 0x1b;
+					p->m_iIndex = slot;
+					handled[selected] = 1;
+				}
+			}
+		}
+		else if ( num == 0 )
+		{
+			ALERT( at_aiconsole, "Error! No control points found in map!\n" );
+			return;
+		}
+
+		m_iNumPoints = num;
+		FoundPoints = 1;
+		SendObjectiveStatus( NULL );
+	}
+
+	// ---- stage 3: idle round states ----
+	int iRoundState = g_pGameRules->RoundState();
+	if ( iRoundState == 5 || !m_bActive || iRoundState == 4 || iRoundState == 3 )
+	{
+		pev->nextthink = gpGlobals->time + 0.5;	 // _DAT_0018eca4
+		return;
+	}
+
+	// ---- stage 4: periodic scoring ----
+	CDoDTeamPlay *pRules = (CDoDTeamPlay *) g_pGameRules;
+	BOOL bClanMatch = pRules->IsClanMatch() && pRules->IsTeamplay();
+	BOOL bClanScoring = ( pcvar_mp_clan_scoring && pcvar_mp_clan_scoring->value > 0.0 );
+
+	int numPoints = m_iNumPoints;
+	int alliesPoints = 0;
+	int axisPoints = 0;
+	if ( gpGlobals->time > m_fGivePointsTime )
+	{
+		if ( bClanMatch && bClanScoring )
+		{
+			for ( int i = 0; i < numPoints; i++ )
+			{
+				int team = ControlPointArray[i]->m_iTeam;
+				if ( team == TEAM_ALLIES )
+					alliesPoints += GetClanScoringValues( 1, i );
+				else if ( team == TEAM_AXIS )
+					axisPoints += GetClanScoringValues( 2, i );
+			}
+		}
+		else
+		{
+			for ( int i = 0; i < numPoints; i++ )
+			{
+				if ( ControlPointArray[i]->m_iTeam == TEAM_ALLIES )
+					alliesPoints += ControlPointArray[i]->m_iPointValue;
+				else if ( ControlPointArray[i]->m_iTeam == TEAM_AXIS )
+					axisPoints += ControlPointArray[i]->m_iPointValue;
+			}
+		}
+		BOOL bAxisPoints = ( axisPoints > 0 );
+
+		BOOL bFoundAllies = FALSE;
+		BOOL bFoundAxis = FALSE;
+		for ( int i = 1; i <= gpGlobals->maxClients && !( bFoundAllies && bFoundAxis ); i++ )
+		{
+			CBaseEntity *pPlr = UTIL_PlayerByIndex( i );
+			if ( !pPlr )
+				continue;
+			if ( pPlr->pev->team == TEAM_ALLIES )
+				bFoundAllies = TRUE;
+			else if ( pPlr->pev->team == TEAM_AXIS )
+				bFoundAxis = TRUE;
+		}
+
+		if ( bFoundAllies && alliesPoints > 0 && g_pGameRules->RoundState() == ROUNDSTATE_RUNNING && !g_fGameOver )
+		{
+			if ( bClanMatch )
+			{
+				if ( alliesPoints == 1 )
+					UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_score_allie_point", 0, 0, 0, 0 );
+				else
+					UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_score_allie_points", UTIL_dtos1( alliesPoints ), 0, 0, 0 );
+			}
+			pRules->AddToTeamScores( 1, alliesPoints );
+		}
+		if ( bAxisPoints && bFoundAxis && g_pGameRules->RoundState() == ROUNDSTATE_RUNNING && !g_fGameOver )
+		{
+			if ( bClanMatch )
+			{
+				if ( axisPoints == 1 )
+					UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_score_axis_point", 0, 0, 0, 0 );
+				else
+					UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_score_axis_points", UTIL_dtos1( axisPoints ), 0, 0, 0 );
+			}
+			pRules->AddToTeamScores( 2, axisPoints );
+		}
+
+		if ( bClanMatch && bClanScoring )
+		{
+			float d = 30.0;	 // _DAT_0018fdec
+			if ( pcvar_mp_clan_scoring_delay )
+				d = pcvar_mp_clan_scoring_delay->value;
+			m_fGivePointsTime = gpGlobals->time + d;
+		}
+		else
+			m_fGivePointsTime = (float) m_iGivePointsDelay + gpGlobals->time;
+	}
+
+	// ---- stage 5: full-hold win check ----
+	int team = ControlPointArray[0]->m_iTeam;
+	BOOL allSame = ( numPoints < 2 );
+	if ( !allSame && ControlPointArray[1]->m_iTeam == team )
+	{
+		allSame = TRUE;
+		for ( int i = 1; i < numPoints; i++ )
+		{
+			if ( ControlPointArray[i]->m_iTeam != team )
+			{
+				allSame = FALSE;
+				break;
+			}
+		}
+	}
+	if ( allSame && team > 0 )
+	{
+		if ( team == TEAM_ALLIES )
+		{
+			FireTargets( sz_AlliesTarget, NULL, this, USE_TOGGLE, 0.0 );
+			m_bTeamHasWon = true;
+		}
+		else if ( team == TEAM_AXIS )
+		{
+			FireTargets( sz_AxisTarget, NULL, this, USE_TOGGLE, 0.0 );
+			m_bTeamHasWon = true;
+		}
+	}
+
+	// ---- stage 6: spectator refresh every 20 s ----
+	if ( m_flNextSpectatorUpdateTime < gpGlobals->time )
+	{
+		MESSAGE_BEGIN( MSG_SPEC, gmsgInitObjDisplay );
+		WRITE_BYTE( m_iNumPoints );
+		for ( int i = 0; i < m_iNumPoints; i++ )
+		{
+			CControlPoint *p = ControlPointArray[i];
+			WRITE_SHORT( ENTINDEX( p->edict() ) );
+			WRITE_BYTE( p->m_iIndex );
+			WRITE_BYTE( ( i < 20 && p ) ? p->m_iTeam : 0 );
+			WRITE_BYTE( ( p->pev->spawnflags & SF_CONTROLPOINT_HIDDEN ) ^ 1 );
+			WRITE_BYTE( p->m_iNeutralIcon );
+			WRITE_BYTE( p->m_iAlliesIcon );
+			WRITE_BYTE( p->m_iAxisIcon );
+			WRITE_COORD( p->pev->origin.x );
+			WRITE_COORD( p->pev->origin.y );
+		}
+		MESSAGE_END();
+		MESSAGE_BEGIN( MSG_SPEC, gmsgTimeLeft );
+		WRITE_SHORT( get_maptime_left() );
+		MESSAGE_END();
+		m_flNextSpectatorUpdateTime = gpGlobals->time + 20.0;  // _DAT_00190294
+	}
+	pev->nextthink = gpGlobals->time + 0.5;	 // _DAT_0018eca4
+}
+
+// Activates every discovered point (m_bActive, clear EF_NODRAW) and broadcasts
+// InitObjDisplay to all.
+void CControlPointMaster::BecomeActive()
+{
+	if ( m_bActive )
+		return;
+
+	for ( int i = 0; i < m_iNumPoints; i++ )
+	{
+		ControlPointArray[i]->m_bActive = true;
+		ControlPointArray[i]->pev->effects &= ~EF_NODRAW;
+	}
+	SendObjectiveStatus( NULL );
+	m_bActive = 1;
+}
+
+void CControlPointMaster::BecomeInactive()
+{
+	for ( int i = 0; i < m_iNumPoints; i++ )
+	{
+		ControlPointArray[i]->m_bActive = false;
+		ControlPointArray[i]->pev->effects |= EF_NODRAW;
+	}
+	m_bActive = 0;
+}
+
+// Per player or broadcast InitObjDisplay: numPoints, then per point
+// edict index, m_iIndex, team, visible bit, 3 HUD icons, origin x/y.
+void CControlPointMaster::SendObjectiveStatus( CBasePlayer *pPlayer )
+{
+	if ( !pPlayer )
+		MESSAGE_BEGIN( MSG_ALL, gmsgInitObjDisplay );
+	else
+		MESSAGE_BEGIN( MSG_ONE, gmsgInitObjDisplay, NULL, pPlayer->edict() );
+	WRITE_BYTE( m_iNumPoints );
+	for ( int i = 0; i < m_iNumPoints; i++ )
+	{
+		CControlPoint *p = ControlPointArray[i];
+		WRITE_SHORT( ENTINDEX( p->edict() ) );
+		WRITE_BYTE( p->m_iIndex );
+		WRITE_BYTE( ( i < 20 && p ) ? p->m_iTeam : 0 );
+		WRITE_BYTE( ( p->pev->spawnflags & SF_CONTROLPOINT_HIDDEN ) ^ 1 );
+		WRITE_BYTE( p->m_iNeutralIcon );
+		WRITE_BYTE( p->m_iAlliesIcon );
+		WRITE_BYTE( p->m_iAxisIcon );
+		WRITE_COORD( p->pev->origin.x );
+		WRITE_COORD( p->pev->origin.y );
+	}
+	MESSAGE_END();
+}
+
+bool CControlPointMaster::IsMasteredOn()
+{
+	if ( m_sMaster )
+		return UTIL_IsMasterTriggered( m_sMaster, this ) != 0;
+	return true;
+}
+
+void CAreaCapture::Spawn()
+{
+	CBaseTrigger::InitTrigger();
+	Precache();
+	m_iAreaIndex = -1;
+	pev->sequence = 0;
+	pev->framerate = 1.0;
+	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetSize( pev, pev->mins, pev->maxs );
+	SetThink( NULL );
+	SetTouch( &CAreaCapture::AreaTouch );
+	m_bCapturing = 0;
+	m_nCapturingTeam = -1;
+	m_nOwningTeam = -1;
+	m_fTimeRemaining = 0.0;
+	pev->nextthink = gpGlobals->time + 0.1;
+	RoundStore();
+}
+
+void CAreaCapture::Precache()
+{
+	if ( sz_HudIcon[0] )
+		PRECACHE_MODEL( sz_HudIcon );
+}
+
+// Master gate, RoundState==1, game live. Lazily resolves m_pPoint by target
+// and mirrors owner. Players only (IsPlayer+IsAlive): sets HUD area slot,
+// area icon + hint, requires-object group check. Records presence via
+// player area field = m_iAreaIndex.
+void CAreaCapture::AreaTouch( CBaseEntity *pOther )
+{
+	if ( !UTIL_IsMasterTriggered( m_sMaster, pOther ) )
+		return;
+	if ( g_pGameRules && g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
+		return;
+	if ( g_fGameOver )
+		return;
+	if ( !m_pPoint )
+	{
+		m_pPoint = (CControlPoint *) UTIL_FindEntityByTargetname( NULL, STRING( pev->target ) );
+		if ( m_pPoint )
+			m_nOwningTeam = m_pPoint->m_iTeam;
+	}
+	else
+		m_nOwningTeam = m_pPoint->m_iTeam;
+	if ( !pOther->IsPlayer() || !pOther->IsAlive() )
+		return;
+	CBasePlayer *pPlayer = (CBasePlayer *) pOther;
+	int team = pOther->pev->team;
+	BOOL can = ( team == TEAM_ALLIES ) ? m_bAlliesCanCap : ( team == TEAM_AXIS ? m_bAxisCanCap : FALSE );
+	if ( ( pPlayer->m_flDisplayHistory & HINT_TOUCHED_AREA_CAPTURE ) == 0 && team != m_nOwningTeam )
+	{
+		if ( !can )
+		{
+			pPlayer->m_iCapAreaIconIndex = m_iAreaIndex;
+			goto presentState;
+		}
+		pPlayer->m_flDisplayHistory |= HINT_TOUCHED_AREA_CAPTURE;
+		pPlayer->HintMessage( "#Hint_touched_area_capture", 0 );
+		pPlayer->m_iCapAreaIconIndex = m_iAreaIndex;
+	}
+	else
+	{
+		pPlayer->m_iCapAreaIconIndex = m_iAreaIndex;
+		if ( !can )
+			goto presentState;
+	}
+	pPlayer->SetClientAreaIcon( m_iAreaIndex, true );
+presentState:
+	pPlayer->m_signals.Signal( SIGNAL_CAPTUREAREA );
+	if ( m_bRequiresObject && can )
+	{
+		if ( !pPlayer->HasObject || !pPlayer->m_pObject )
+		{
+			if ( pPlayer->m_flDisplayHistory & HINT_AREA_REQUIRES_OBJECT )
+				return;
+			if ( m_nOwningTeam == pPlayer->pev->team )
+				return;
+			pPlayer->m_flDisplayHistory |= HINT_AREA_REQUIRES_OBJECT;
+			pPlayer->HintMessage( "#Hint_area_requires_object", 0 );
+			return;
+		}
+		if ( strcmp( sz_RequiredObjectGroup, pPlayer->m_pObject->sz_Group ) != 0 )
+			return;
+	}
+	pPlayer->m_iCapAreaIndex = m_iAreaIndex;
+}
+
+// Census: count allies/axis with matching area slot; carrier without the
+// required object group is ejected (slot = -1). On change: m_nNumAllies /
+// m_nNumAxis update + SendNumPlayers broadcast.
+// Idle: nobody present => return. Single team present + canCap + not owner +
+// count >= required => StartCapture(team, 0). Catchup path (CanUseCatchup):
+// alive count == present count => StartCapture(team, 1).
+// Capturing capmode 0: time -= 0.1; contest/empty/requirement lost =>
+// BreakCapture; expiry => EndCapture. Mode 1: time -= (players/required)*0.1
+// with ProgBarUpdate resend on count change.
+void CAreaCapture::Think()
+{
+	if ( g_fGameOver )
+		return;
+	pev->nextthink = gpGlobals->time + 0.1;	 // _DAT_0018ee74
+
+	int numAllies = 0;
+	int numAxis = 0;
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBasePlayer *plr = (CBasePlayer *)UTIL_PlayerByIndex( i );
+		if ( !plr )
+			continue;
+		if ( ( plr->m_signals.GetState() & SIGNAL_CAPTUREAREA ) == 0 || plr->m_iCapAreaIndex != m_iAreaIndex )
+			continue;
+		if ( m_bRequiresObject )
+		{
+			if ( !plr->HasObject || !plr->m_pObject ||
+				 strcmp( sz_RequiredObjectGroup, plr->m_pObject->sz_Group ) != 0 )
+			{
+				plr->m_iCapAreaIndex = -1;
+				continue;
+			}
+		}
+		if ( plr->pev->team == TEAM_ALLIES )
+			numAllies++;
+		else if ( plr->pev->team == TEAM_AXIS )
+			numAxis++;
+	}
+
+	if ( m_nNumAllies != numAllies || m_nNumAxis != numAxis )
+	{
+		m_nNumAllies = numAllies;
+		m_nNumAxis = numAxis;
+		SendNumPlayers( NULL );
+	}
+
+	int requiredAllies = 1;
+	int requiredAxis = 1;
+	GetNumRequiredPlayers( &requiredAllies, &requiredAxis );
+
+	if ( !m_bCapturing )
+	{
+		if ( numAllies < 1 && numAxis < 1 )
+			return;
+		if ( numAllies > 0 && numAxis < 1 )
+		{
+			if ( m_bAlliesCanCap && m_nOwningTeam != TEAM_ALLIES && requiredAllies <= numAllies )
+			{
+				m_iCappingRequired = requiredAllies;
+				m_iCappingPlayers = numAllies;
+				StartCapture( 1, 0 );
+				return;
+			}
+		}
+		else if ( numAxis > 0 && numAllies < 1 && m_bAxisCanCap && m_nOwningTeam != TEAM_AXIS && requiredAxis <= numAxis )
+		{
+			m_iCappingRequired = requiredAxis;
+			m_iCappingPlayers = numAxis;
+			StartCapture( 2, 0 );
+			return;
+		}
+
+		if ( !( pev->spawnflags & SF_AREA_CATCHUP ) )
+			return;
+		if ( !CanUseCatchup() )
+			return;
+		if ( numAllies > 0 && numAxis < 1 && m_bAlliesCanCap && m_nOwningTeam != TEAM_ALLIES )
+		{
+			int n = GetNumAlive( 1 );
+			if ( n == numAllies )
+			{
+				m_iCappingRequired = requiredAllies;
+				m_iCappingPlayers = n;
+				StartCapture( 1, 1 );
+				return;
+			}
+		}
+		if ( numAxis < 1 || numAllies > 0 )
+			return;
+		if ( !m_bAxisCanCap || m_nOwningTeam == TEAM_AXIS )
+			return;
+		int n = GetNumAlive( 2 );
+		if ( n != numAxis )
+			return;
+		m_iCappingRequired = requiredAxis;
+		m_iCappingPlayers = n;
+		StartCapture( 2, 1 );
+		return;
+	}
+
+	if ( m_iCapMode == 1 )
+	{
+		int players = ( m_nCapturingTeam == TEAM_ALLIES ) ? numAllies : numAxis;
+		int required = ( m_nCapturingTeam == TEAM_ALLIES ) ? requiredAllies : requiredAxis;
+		if ( (float)required <= (float)players )
+			m_iCapMode = 0;
+		float t = m_fTimeRemaining - ( (float)players / (float)required ) * 0.1f;
+		m_fTimeRemaining = t;
+		if ( ( numAllies != 0 || numAxis != 0 ) && ( numAxis < 1 || numAllies < 1 ) )
+		{
+			if ( t <= 0.0f )
+			{
+				EndCapture( m_nCapturingTeam );
+				return;
+			}
+			if ( (float)players == (float)m_iCappingPlayers )
+				return;
+			m_iCappingPlayers = players;
+			// the capturing team can be gone while the other one stands in the area, don't divide by nobody
+			if ( !m_pPoint || ( m_pPoint->pev->spawnflags & SF_CONTROLPOINT_HIDDEN ) || players < 1 )
+				return;
+			MESSAGE_BEGIN( MSG_ALL, gmsgProgBarUpdate );
+				WRITE_BYTE( m_pPoint->m_iIndex );
+				WRITE_COORD( (float)m_nCapTime * (float)( m_iCappingRequired / players ) );
+			MESSAGE_END();
+			return;
+		}
+		BreakCapture( m_nCapturingTeam );
+		return;
+	}
+
+	float t = m_fTimeRemaining - 0.1f;
+	m_fTimeRemaining = t;
+	if ( numAxis > 0 && numAllies > 0 )
+	{
+		BreakCapture( m_nCapturingTeam );
+		return;
+	}
+	if ( numAllies == 0 && numAxis == 0 )
+	{
+		BreakCapture( m_nCapturingTeam );
+		return;
+	}
+	if ( m_nCapturingTeam == TEAM_ALLIES )
+	{
+		if ( requiredAllies <= numAllies )
+			goto timeCheck;
+		if ( ( pev->spawnflags & SF_AREA_CATCHUP ) && CanUseCatchup() && GetNumAlive( 1 ) == numAllies )
+		{
+			m_iCapMode = 1;
+			goto timeCheck;
+		}
+		if ( m_bCapturing )
+		{
+			BreakCapture( m_nCapturingTeam );
+			t = m_fTimeRemaining;
+		}
+	}
+	else
+	{
+		if ( m_nCapturingTeam != TEAM_AXIS || requiredAxis <= numAxis )
+			goto timeCheck;
+		if ( ( pev->spawnflags & SF_AREA_CATCHUP ) && CanUseCatchup() && GetNumAlive( 2 ) == numAxis )
+		{
+			m_iCapMode = 1;
+			goto timeCheck;
+		}
+		if ( m_bCapturing )
+			BreakCapture( m_nCapturingTeam );
+	}
+	t = m_fTimeRemaining;
+timeCheck:
+	if ( t > 0.0f )
+		return;
+	EndCapture( m_nCapturingTeam );
+}
+
+void CAreaCapture::SetOwner( int team )
+{
+	if ( m_bCapturing )
+		BreakCapture( m_nCapturingTeam );
+	m_nOwningTeam = team;
+}
+
+// Fire start targets, m_nCapturingTeam = team, m_bCapturing = 1,
+// m_fTimeRemaining = m_nCapTime. HUD: StartProgressBar(index, team, captime)
+// or StartProgressBarF(index, team, captime * required / players) in
+// catchup mode. Skipped when point hidden (spawnflags & 1). Director msg 12.
+void CAreaCapture::StartCapture( int team, int capmode )
+{
+	if ( team == TEAM_ALLIES )
+		FireTargets( sz_AlliesStart, NULL, this, USE_TOGGLE, 0.0 );
+	else if ( team == TEAM_AXIS )
+		FireTargets( sz_AxisStart, NULL, this, USE_TOGGLE, 0.0 );
+	m_nCapturingTeam = team;
+	m_iCapMode = capmode;
+	m_bCapturing = 1;
+	m_fTimeRemaining = (float) m_nCapTime;
+	if ( m_pPoint && !( m_pPoint->pev->spawnflags & SF_CONTROLPOINT_HIDDEN ) )
+	{
+		if ( capmode == 1 )
+		{
+			MESSAGE_BEGIN( MSG_ALL, gmsgStartProgressBarF );
+			WRITE_BYTE( m_pPoint->m_iIndex );
+			WRITE_BYTE( team );
+			WRITE_COORD( (float) ( m_iCappingRequired / m_iCappingPlayers * m_nCapTime ) );
+			MESSAGE_END();
+		}
+		else
+		{
+			MESSAGE_BEGIN( MSG_ALL, gmsgStartProgressBar );
+			WRITE_BYTE( m_pPoint->m_iIndex );
+			WRITE_BYTE( team );
+			WRITE_SHORT( m_nCapTime );
+			MESSAGE_END();
+		}
+	}
+	UTIL_SendDirectorMessage( this, NULL, 12 );
+}
+
+// Fire end targets + team logs. Every qualifying player in area is logged;
+// non-first cappers get AddObjScore(m_pPoint->m_iCapPoints). Consumes a
+// carried required object (sound, icon clear, PStatus refresh). Then
+// m_bCapturing = 0, m_nOwningTeam = team, point SetOwner / reset model,
+// director msg 12.
+void CAreaCapture::EndCapture( int team )
+{
+	if ( team == TEAM_ALLIES )
+	{
+		FireTargets( sz_AlliesCap, NULL, this, USE_TOGGLE, 0.0 );
+		if ( !m_pPoint )
+			UTIL_LogPrintf( "Team \"Allies\" triggered a \"dod_capture_area\"\n" );
+		else
+			UTIL_LogPrintf( "Team \"Allies\" triggered a \"dod_capture_area\" - \"%s\"\n", STRING( m_pPoint->pev->netname ) );
+	}
+	else if ( team == TEAM_AXIS )
+	{
+		FireTargets( sz_AxisCap, NULL, this, USE_TOGGLE, 0.0 );
+		if ( !m_pPoint )
+			UTIL_LogPrintf( "Team \"Axis\" triggered a \"dod_capture_area\"\n" );
+		else
+			UTIL_LogPrintf( "Team \"Axis\" triggered a \"dod_capture_area\" - \"%s\"\n", STRING( m_pPoint->pev->netname ) );
+	}
+	m_iCappingRequired = 0;
+	m_iCappingPlayers = 0;
+
+	CBasePlayer *pFirstCapper = NULL;
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBasePlayer *plr = (CBasePlayer *)UTIL_PlayerByIndex( i );
+		if ( !plr )
+			continue;
+		if ( ( plr->m_signals.GetState() & SIGNAL_CAPTUREAREA ) == 0 || plr->m_iCapAreaIndex != m_iAreaIndex )
+			continue;
+		const char *teamName = ( plr->pev->team == TEAM_ALLIES ) ? "Allies" : "Axis";
+		if ( !m_pPoint )
+			UTIL_LogPrintf( "\"%s<%i><%s><%s>\" triggered a \"dod_capture_area\"\n", STRING( plr->pev->netname ),
+				GETPLAYERUSERID( plr->edict() ), GETPLAYERAUTHID( plr->edict() ), teamName );
+		else
+			UTIL_LogPrintf( "\"%s<%i><%s><%s>\" triggered a \"dod_capture_area\" - \"%s\"\n", STRING( plr->pev->netname ),
+				GETPLAYERUSERID( plr->edict() ), GETPLAYERAUTHID( plr->edict() ), teamName, STRING( m_pPoint->pev->netname ) );
+
+		if ( pFirstCapper && plr != pFirstCapper && m_pPoint )
+			plr->AddObjScore( m_pPoint->m_iCapPoints, TRUE );
+		if ( !pFirstCapper )
+			pFirstCapper = plr;
+
+		if ( m_bRequiresObject && plr->HasObject && plr->m_pObject )
+		{
+			CObject *pObj = plr->m_pObject;
+			if ( pObj->pev->noise1 )
+				EMIT_SOUND_DYN( plr->edict(), CHAN_STATIC, STRING( pObj->pev->noise1 ), 1.0, 0.0, 0, 100 );
+			plr->HasObject = FALSE;
+			plr->m_pObject = NULL;
+			plr->RemoveObjectIcon();
+			int idx = ENTINDEX( plr->edict() );
+			for ( int j = 1; j <= gpGlobals->maxClients; j++ )
+			{
+				CBaseEntity *pMate = UTIL_PlayerByIndex( j );
+				if ( pMate && pMate->pev->team == plr->pev->team )
+				{
+					MESSAGE_BEGIN( MSG_ONE, gmsgPStatus, NULL, pMate->pev );
+					WRITE_BYTE( idx );
+					WRITE_BYTE( plr->PlayerStatus() );
+					MESSAGE_END();
+				}
+			}
+		}
+	}
+	m_bCapturing = 0;
+	m_fTimeRemaining = 0.0;
+	m_nOwningTeam = team;
+	if ( m_pPoint )
+	{
+		if ( !m_pPoint->m_bActive )
+		{
+			SET_MODEL( m_pPoint->edict(), m_pPoint->sz_ResetModel );
+			m_pPoint->SetBodygroup( 0, m_pPoint->m_iResetModelBodygroup );
+		}
+		else
+			m_pPoint->SetOwner( team, TRUE, pFirstCapper );
+	}
+	UTIL_SendDirectorMessage( this, NULL, 12 );
+}
+
+void CAreaCapture::RoundRespawn()
+{
+	CBaseTrigger::InitTrigger();
+	m_iAreaIndex = -1;
+	pev->sequence = 0;
+	pev->framerate = 1.0;
+	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetSize( pev, pev->mins, pev->maxs );
+	SetTouch( &CAreaCapture::AreaTouch );
+	pev->nextthink = gpGlobals->time + 0.1;
+	if ( m_bCapturing )
+		BreakCapture( m_nCapturingTeam );
+	m_nCapturingTeam = -1;
+	m_bCapturing = 0;
+	m_nOwningTeam = -1;
+	m_fTimeRemaining = 0.0;
+}
+
+void CAreaCapture::KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "area_allies_cancap" ) )
+	{
+		m_bAlliesCanCap = ( atoi( pkvd->szValue ) > 0 );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "area_axis_cancap" ) )
+	{
+		m_bAxisCanCap = ( atoi( pkvd->szValue ) > 0 );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "area_allies_numcap" ) )
+	{
+		int v = atoi( pkvd->szValue );
+		m_nAlliesNumCap = ( v > 0 ) ? v : 1;
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "area_axis_numcap" ) )
+	{
+		int v = atoi( pkvd->szValue );
+		m_nAxisNumCap = ( v > 0 ) ? v : 1;
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "area_allies_startcap" ) )
+	{
+		strcpy( sz_AlliesStart, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "area_axis_startcap" ) )
+	{
+		strcpy( sz_AxisStart, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "area_allies_endcap" ) )
+	{
+		strcpy( sz_AlliesCap, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "area_axis_endcap" ) )
+	{
+		strcpy( sz_AxisCap, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "area_allies_breakcap" ) )
+	{
+		strcpy( sz_AlliesBreak, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "area_axis_breakcap" ) )
+	{
+		strcpy( sz_AxisBreak, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "master" ) )
+	{
+		m_sMaster = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "area_hud_sprite" ) )
+	{
+		strcpy( sz_HudIcon, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "area_time_to_cap" ) )
+	{
+		m_nCapTime = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "area_cap_point" ) )
+	{
+		strcpy( sz_CapPointName, pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "area_object_group" ) )
+	{
+		strcpy( sz_RequiredObjectGroup, pkvd->szValue );
+		m_bRequiresObject = ( sz_RequiredObjectGroup[0] != 0 );
+		pkvd->fHandled = TRUE;
+	}
+	else
+		CBaseTrigger::KeyValue( pkvd );
+}
+
+void CDodPointRelay::Spawn()
+{
+	pev->solid = SOLID_NOT;
+	SetUse( &CDodPointRelay::DodRelayUse );
+}
+
+// ---- dod_point_relay (CDodPointRelay, triggers.cpp) ----
+// KeyValue: dod_relay_team => m_nTeam (default -1), else unhandled.
+// USE_START (and point visible): StartProgressBar(index, m_nTeam, value).
+// USE_BREAK (and visible): CancelProgressBar. Else: SetOwner path when the
+// point is active: activator player + useType/value forwarded as
+// (owner, sound, player) args; inactive point + no player activator =>
+// reset model + bodygroup.
+void CDodPointRelay::DodRelayUse( CBaseEntity *pA, CBaseEntity *pC, USE_TYPE u, float v )
+{
+	CControlPoint *p = (CControlPoint *) UTIL_FindEntityByTargetname( NULL, STRING( pev->target ) );
+	if ( !p )
+		return;
+	if ( u == USE_START )
+	{
+		if ( p->pev->spawnflags & SF_CONTROLPOINT_HIDDEN )
+			return;
+		MESSAGE_BEGIN( MSG_ALL, gmsgStartProgressBar );
+		WRITE_BYTE( p->m_iIndex );
+		WRITE_BYTE( m_nTeam );
+		WRITE_SHORT( (int) v );
+		MESSAGE_END();
+		return;
+	}
+	if ( u == USE_BREAK )
+	{
+		if ( p->pev->spawnflags & SF_CONTROLPOINT_HIDDEN )
+			return;
+		MESSAGE_BEGIN( MSG_ALL, gmsgCancelProgressBar );
+		WRITE_BYTE( p->m_iIndex );
+		WRITE_BYTE( m_nTeam );
+		MESSAGE_END();
+		return;
+	}
+	if ( !p->m_bActive )
+	{
+		SET_MODEL( p->edict(), p->sz_ResetModel );
+		p->SetBodygroup( 0, p->m_iResetModelBodygroup );
+		return;
+	}
+	int owner = 0;
+	CBasePlayer *pPlayer = NULL;
+	if ( pA && pA->IsPlayer() )
+	{
+		owner = pA->pev->team;
+		pPlayer = (CBasePlayer *) pA;
+	}
+	p->SetOwner( owner, TRUE, pPlayer );
+}
+
+void CDodPointRelay::KeyValue( KeyValueData *pkvd )
+{
+	m_nTeam = -1;
+	if ( FStrEq( pkvd->szKeyName, "dod_relay_team" ) )
+	{
+		m_nTeam = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else
+		pkvd->fHandled = FALSE;
+}
+
+void CDodRoundTimer::Spawn()
+{
+	m_bTimer = false;
+	pev->solid = SOLID_NOT;
+	m_fLastThinkTime = 0.0;
+	pev->nextthink = gpGlobals->time + 0.1;	 // _DAT_0018ee74
+}
+
+void CDodRoundTimer::Think()
+{
+	pev->nextthink = gpGlobals->time + 0.1;	 // _DAT_0018ee74
+	if ( !m_bTimer )
+		return;
+	m_fRoundTime -= 0.1f;
+	m_fUpdateTimer -= 0.1f;
+	if ( m_fUpdateTimer <= 0.0f )
+	{
+		if ( ( pev->spawnflags & SF_ROUNDTIMER_SHOW ) && UTIL_IsMasterTriggered( m_sMaster, this ) && m_bTimer )
+		{
+			MESSAGE_BEGIN( MSG_ALL, gmsgTimerStatus );
+			WRITE_BYTE( m_bTimer );
+			WRITE_COORD( m_fRoundTime );
+			MESSAGE_END();
+		}
+		m_fUpdateTimer = 30.0;
+	}
+	if ( m_fRoundTime <= 0.0f )
+	{
+		m_bTimer = false;
+		if ( ( pev->spawnflags & SF_ROUNDTIMER_SHOW ) && UTIL_IsMasterTriggered( m_sMaster, this ) )
+		{
+			MESSAGE_BEGIN( MSG_ALL, gmsgTimerStatus );
+			WRITE_BYTE( m_bTimer );
+			WRITE_COORD( 0.0 );
+			MESSAGE_END();
+		}
+		if ( pev->target )
+			FireTargets( STRING( pev->target ), this, NULL, USE_TOGGLE, 0.0 );
+	}
+}
+
+void CDodRoundTimer::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	if ( !m_bTimer )
+	{
+		if ( UTIL_IsMasterTriggered( m_sMaster, this ) )
+		{
+			m_bTimer = true;
+			if ( ( pev->spawnflags & SF_ROUNDTIMER_SHOW ) && UTIL_IsMasterTriggered( m_sMaster, this ) && m_bTimer )
+			{
+				MESSAGE_BEGIN( MSG_ALL, gmsgTimerStatus );
+				WRITE_BYTE( m_bTimer );
+				WRITE_COORD( m_fRoundTime );
+				MESSAGE_END();
+			}
+		}
+	}
+	else
+	{
+		m_bTimer = false;
+		if ( ( pev->spawnflags & SF_ROUNDTIMER_SHOW ) && UTIL_IsMasterTriggered( m_sMaster, this ) )
+		{
+			MESSAGE_BEGIN( MSG_ALL, gmsgTimerStatus );
+			WRITE_BYTE( m_bTimer );
+			WRITE_COORD( 0.0 );
+			MESSAGE_END();
+		}
+	}
+}
+
+void CDodRoundTimer::KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "round_timer_length" ) )
+	{
+		m_fTimerLength = (float) atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "master" ) )
+	{
+		m_sMaster = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else
+		pkvd->fHandled = FALSE;
+}
+
+LINK_ENTITY_TO_CLASS( dod_control_point, CControlPoint );
+LINK_ENTITY_TO_CLASS( dod_control_point_master, CControlPointMaster );
+LINK_ENTITY_TO_CLASS( dod_capture_area, CAreaCapture );
+LINK_ENTITY_TO_CLASS( dod_object_goal, CObjectCapture );
+LINK_ENTITY_TO_CLASS( dod_round_timer, CDodRoundTimer );
+LINK_ENTITY_TO_CLASS( dod_point_relay, CDodPointRelay );
+LINK_ENTITY_TO_CLASS( dod_location, CLocation );
+
+// link 0x141310 size 0x56a Ghidra 0x151310
+void CObjectCapture::Touch( CBaseEntity *pOther )
+{
+	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
+		return;
+	if ( !UTIL_IsMasterTriggered( m_sMaster, pOther ) )
+		return;
+	if ( g_pGameRules != NULL && g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
+		return;
+	if ( !pOther->IsPlayer() || !pOther->IsAlive() )
+		return;
+	if ( m_bCapped )
+		return;
+	CBasePlayer *pPlayer = (CBasePlayer *)pOther;
+	pPlayer->m_signals.Signal( SIGNAL_OBJECTAREA );
+	pPlayer->m_iObjectAreaIndex = m_iAreaIndex;
+	pPlayer->SetClientAreaIcon( m_iAreaIndex, true );
+	if ( !pPlayer->HasObject || !pPlayer->m_pObject )
+	{
+		if ( ( pPlayer->m_flDisplayHistory & HINT_AREA_REQUIRES_OBJECT ) == 0 )
+		{
+			pPlayer->m_flDisplayHistory |= HINT_AREA_REQUIRES_OBJECT;
+			pPlayer->HintMessage( "#Hint_area_requires_object", 0 );
+		}
+		return;
+	}
+	CObject *pObj = pPlayer->m_pObject;
+	if ( strcmp( sz_Group, pObj->sz_Group ) != 0 )
+		return;
+	CBaseEntity *pLast = NULL;
+	int NumObjects = 0;
+	CBaseEntity *pEnt = UTIL_FindEntityByClassname( NULL, "dod_object" );
+	while ( pEnt )
+	{
+		if ( pEnt == (CBaseEntity *)pObj )
+		{
+			UTIL_SendDirectorMessage( this, pOther, 11 );
+		}
+		else if ( strcmp( ( (CObject *)pEnt )->sz_Group, pObj->sz_Group ) == 0 )
+		{
+			if ( ( pEnt->pev->effects & EF_NODRAW ) == 0 )
+				NumObjects++;
+		}
+		pLast = pEnt;
+		pEnt = UTIL_FindEntityByClassname( pEnt, "dod_object" );
+	}
+	pPlayer->HasObject = FALSE;
+	CDoDTeamPlay *pRules = (CDoDTeamPlay *)g_pGameRules;
+	if ( pRules->m_RoundDoesCount )
+		pPlayer->AddObjScore( pObj->m_iCapPoints, TRUE );
+	if ( NumObjects == 0 || ( pev->spawnflags & SF_OBJECTGOAL_ONE_IS_ENOUGH ) )
+	{
+		FireTargets( sz_DoneTarget, pOther, this, USE_ON, 0.0 );
+		if ( pObj->sz_DoneTarget[0] )
+			FireTargets( pObj->sz_DoneTarget, pOther, this, USE_ON, 0.0 );
+		if ( pev->spawnflags & SF_OBJECTGOAL_ONCE )
+			m_bCapped = true;
+		int idx = ENTINDEX( pOther->edict() );
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CBaseEntity *pTeammate = UTIL_PlayerByIndex( i );
+			if ( pTeammate && pTeammate->pev->team == pOther->pev->team )
+			{
+				MESSAGE_BEGIN( MSG_ONE, gmsgPStatus, NULL, pTeammate->pev );
+				WRITE_BYTE( idx );
+				WRITE_BYTE( pPlayer->PlayerStatus() );
+				MESSAGE_END();
+			}
+		}
+	}
+	else
+	{
+		if ( NumObjects == 1 )
+			UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_left_object", UTIL_dtos1( 1 ), 0, 0, 0 );
+		else
+			UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_left_plural_object", UTIL_dtos1( NumObjects ), 0, 0, 0 );
+		if ( pev->target )
+			FireTargets( STRING( pev->target ), pOther, this, USE_TOGGLE, 0.0 );
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CBasePlayer *pPlr = (CBasePlayer *)UTIL_PlayerByIndex( i );
+			if ( pPlr && pPlr->pev->team == pOther->pev->team && pPlr != pPlayer && pRules->m_RoundDoesCount )
+				pPlr->AddObjScore( pObj->m_iOtherPoints, TRUE );
+		}
+	}
+	const char *teamName = ( pOther->pev->team == TEAM_ALLIES ) ? "Allies" : "Axis";
+	UTIL_LogPrintf( "\"%s<%i><%s><%s>\" triggered a \"dod_object_goal\"\n", STRING( pOther->pev->netname ),
+		GETPLAYERUSERID( pOther->edict() ), GETPLAYERAUTHID( pOther->edict() ), teamName );
+	if ( pLast && pLast->pev->noise1 )
+		EMIT_SOUND_DYN( pOther->edict(), CHAN_STATIC, STRING( ( (CObject *)pLast )->pev->noise1 ), 1.0, 0.0, 0, 100 );
+	else if ( pObj->pev->noise1 )
+		EMIT_SOUND_DYN( pOther->edict(), CHAN_STATIC, STRING( pObj->pev->noise1 ), 1.0, 0.0, 0, 100 );
+	pPlayer->HasObject = FALSE;
+	pPlayer->RemoveObjectIcon();
 }

@@ -2645,3 +2645,128 @@ void UTIL_EffectPrint( CBasePlayer *pPlayer, int color, int effect, int channel,
 	}
 }
 // DoD blood owners - UTIL_DodBloodPuff in player.cpp line 815 - SpawnBlood in weapons.cpp line 161 - not duplicated here - binary 0012d9f0 0016c5b0
+
+CBaseEntity *UTIL_FollowAliasReference( CBaseEntity *pStartEntity, const char *szValue )
+{
+	CBaseEntity *pBest = 0;
+	int bestOff = -1;
+	CBaseEntity *pEnt = UTIL_FindEntityByString( 0, "targetname", szValue );
+	while ( pEnt != 0 )
+	{
+		if ( FClassnameIs( pEnt->pev, "info_alias" ) )
+		{
+			CBaseEntity *pT = UTIL_FindEntityByString( pStartEntity, "targetname", STRING( pEnt->pev->target ) );
+			if ( pT != 0 )
+			{
+				int off = ENTINDEX( pT->edict() );
+				if ( bestOff == -1 || off < bestOff )
+				{
+					bestOff = off;
+					pBest = pT;
+				}
+			}
+		}
+		else if ( FClassnameIs( pEnt->pev, "multi_alias" ) )
+		{
+			CMultiAlias *pMult = (CMultiAlias *) pEnt;
+			for ( int i = 0; i < pMult->m_cTargets; i++ )
+			{
+				CBaseEntity *pT =
+					UTIL_FindEntityByString( pStartEntity, "targetname", STRING( pMult->m_iszTargets[i] ) );
+				if ( pT != 0 )
+				{
+					int off = ENTINDEX( pT->edict() );
+					if ( bestOff == -1 || off < bestOff )
+					{
+						bestOff = off;
+						pBest = pT;
+					}
+				}
+			}
+		}
+		pEnt = UTIL_FindEntityByString( pEnt, "targetname", szValue );
+	}
+	return pBest;
+}
+
+CBaseEntity *UTIL_FollowGroupReference( CBaseEntity *pStartEntity, const char *szGroupName, const char *szMemberName )
+{
+	char buf[80];
+	const char *tail = 0;
+	const char *head = szMemberName;
+	if ( *szMemberName != 0 )
+	{
+		if ( *szMemberName == 46 )
+		{
+			head = szMemberName + 1;
+		}
+		else
+		{
+			int n = 0;
+			while ( szMemberName[n] != 0 && szMemberName[n] != 46 )
+				n++;
+			if ( szMemberName[n] == 0 )
+			{
+				head = szMemberName;
+			}
+			else
+			{
+				strncpy( buf, szMemberName, n );
+				buf[n] = 0;
+				head = buf;
+				tail = szMemberName + n + 1;
+			}
+		}
+	}
+	CBaseEntity *pBest = 0;
+	int bestOff = -1;
+	CBaseEntity *pGrp = UTIL_FindEntityByString( 0, "targetname", szGroupName );
+	while ( pGrp != 0 )
+	{
+		if ( FClassnameIs( pGrp->pev, "info_group" ) )
+		{
+			int iszVal = ( (CInfoGroup *) pGrp )->GetMember( head );
+			if ( iszVal != 0 )
+			{
+				CBaseEntity *pT = 0;
+				if ( tail == 0 )
+					pT = UTIL_FindEntityByString( pStartEntity, "targetname", STRING( iszVal ) );
+				else
+					pT = UTIL_FollowGroupReference( pStartEntity, STRING( iszVal ), tail );
+				if ( pT != 0 )
+				{
+					int off = ENTINDEX( pT->edict() );
+					if ( bestOff == -1 || off < bestOff )
+					{
+						bestOff = off;
+						pBest = pT;
+					}
+				}
+			}
+		}
+		pGrp = UTIL_FindEntityByString( pGrp, "targetname", szGroupName );
+	}
+	return pBest;
+}
+
+CBaseEntity *UTIL_FollowReference( CBaseEntity *pStartEntity, const char *szName )
+{
+	if ( szName == 0 || *szName == 0 )
+		return 0;
+	if ( *szName == 42 )
+		return UTIL_FollowAliasReference( pStartEntity, szName + 1 );
+	int n = 0;
+	if ( *szName == 46 )
+		n = 0;
+	else
+	{
+		while ( szName[n] != 0 && szName[n] != 46 )
+			n++;
+		if ( szName[n] == 0 )
+			return 0;
+	}
+	char root[96];
+	strncpy( root, szName, n );
+	root[n] = 0;
+	return UTIL_FollowGroupReference( pStartEntity, root, szName + n + 1 );
+}

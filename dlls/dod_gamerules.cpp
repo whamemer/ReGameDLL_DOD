@@ -20,13 +20,15 @@ extern DLL_GLOBAL CGameRules *g_pGameRules;
 extern DLL_GLOBAL BOOL g_fGameOver;
 extern float g_flIntermissionStartTime;
 extern int m_SaveRoundState;
+#define MAX_RULE_BUFFER 1024
+
 struct mapcycle_item_s
 {
 	struct mapcycle_item_s *next;
 	char mapname[32];
 	int minplayers;
 	int maxplayers;
-	char rulebuffer[1024];
+	char rulebuffer[MAX_RULE_BUFFER];
 };
 typedef struct mapcycle_item_s mapcycle_item_t;
 struct mapcycle_s
@@ -37,7 +39,6 @@ struct mapcycle_s
 typedef struct mapcycle_s mapcycle_t;
 extern void DestroyMapCycle( mapcycle_t *cycle );
 extern int ReloadMapCycleFile( const char *filename, mapcycle_t *cycle );
-extern void GetNextMap( mapcycle_t cycle, int cur, char *nextMap, char *firstMap );
 struct TESTSTATS
 {
 	int lastAmmo;
@@ -72,6 +73,7 @@ extern char classlimitcvarNames[27][32];
 extern cvar_t *pcvar_mp_chattime;
 extern cvar_t *pcvar_mp_tkpenalty;
 extern int gmsgScoreShort;
+extern int gmsgTimerStatus;
 extern int gmsgHLTV;
 extern int gmsgDeathMsg;
 extern int gmsgScoreInfoLong;
@@ -2650,7 +2652,8 @@ int CountPlayers( void )
 	}
 	return n;
 }
-extern char com_token[1024];
+static char com_token[1500];
+
 char *COM_Parse( char *data )
 {
 	com_token[0] = 0;
@@ -4067,4 +4070,371 @@ void CDoDPreRound::Launch( int iRoundState )
 bool CDoDTeamPlay::IsAlliesBrit( void )
 {
 	return m_GamePlayRules.m_bAlliesAreBrit;
+}
+
+CDoDDetect::CDoDDetect( void )
+{
+	m_GamePlayRules.m_iTimerTeam = 0;
+	m_GamePlayRules.m_sAxisElimTarget = 0;
+	m_GamePlayRules.m_sAlliesElimTarget = 0;
+	m_GamePlayRules.m_iPointsAlliesElim = 5;
+	m_GamePlayRules.m_sTimerExpireTarget = 0;
+	m_GamePlayRules.m_iPointsTimerExpires = 0;
+	m_GamePlayRules.m_bAlliesInfiniteLives = true;
+	m_GamePlayRules.m_bAxisInfiniteLives = true;
+	m_GamePlayRules.m_bAlliesArePara = false;
+	m_GamePlayRules.m_bAlliesAreBrit = false;
+	m_GamePlayRules.m_bAxisArePara = false;
+	m_GamePlayRules.m_bUseTimer = false;
+	m_GamePlayRules.m_iPointsAxisElim = 5;
+	m_GamePlayRules.m_fAlliesRespawnFactor = 1.0f;
+	m_GamePlayRules.m_fAxisRespawnFactor = 1.0f;
+}
+
+void CDoDDetect::Spawn( void )
+{
+	AddEntityHashValue( pev, "info_doddetect", CLASSNAME );
+	pev->solid = SOLID_NOT;
+	((CDoDTeamPlay *)g_pGameRules)->DetectGameRules();
+}
+
+void CDoDDetect::KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "detect_axis_infinite" ) || FStrEq( pkvd->szKeyName, "axis_infinite_lifes" ) )
+	{
+		m_GamePlayRules.m_bAxisInfiniteLives = ( atoi( pkvd->szValue ) == 1 );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "detect_allies_infinite" ) || FStrEq( pkvd->szKeyName, "allies_infinite_lifes" ) )
+	{
+		m_GamePlayRules.m_bAlliesInfiniteLives = ( atoi( pkvd->szValue ) == 1 );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "detect_axis_paras" ) )
+	{
+		m_GamePlayRules.m_bAxisArePara = ( atoi( pkvd->szValue ) > 0 );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "detect_allies_country" ) )
+	{
+		m_GamePlayRules.m_bAlliesAreBrit = ( atoi( pkvd->szValue ) == 1 );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "detect_allies_paras" ) )
+	{
+		m_GamePlayRules.m_bAlliesArePara = ( atoi( pkvd->szValue ) > 0 );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "detect_points_allieseliminated" ) )
+	{
+		m_GamePlayRules.m_iPointsAlliesElim = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "detect_points_axiseliminated" ) )
+	{
+		m_GamePlayRules.m_iPointsAxisElim = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "master" ) )
+	{
+		m_sMaster = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "detect_target_allieseliminated" ) )
+	{
+		m_GamePlayRules.m_sAlliesElimTarget = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "detect_target_axiseliminated" ) )
+	{
+		m_GamePlayRules.m_sAxisElimTarget = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "detect_use_timer" ) )
+	{
+		m_GamePlayRules.m_bUseTimer = ( atoi( pkvd->szValue ) > 0 );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "detect_target_timerexpired" ) )
+	{
+		m_GamePlayRules.m_sTimerExpireTarget = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "detect_timer_team" ) )
+	{
+		m_GamePlayRules.m_iTimerTeam = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "detect_points_timerexpired" ) )
+	{
+		m_GamePlayRules.m_iPointsTimerExpires = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "detect_allies_respawnfactor" ) )
+	{
+		m_GamePlayRules.m_fAlliesRespawnFactor = atof( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "detect_axis_respawnfactor" ) )
+	{
+		m_GamePlayRules.m_fAxisRespawnFactor = atof( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else
+		pkvd->fHandled = FALSE;
+}
+
+bool CDoDDetect::IsMasteredOn( void )
+{
+	if ( m_sMaster != 0 )
+		return UTIL_IsMasterTriggered( m_sMaster, this ) > 0;
+	return true;
+}
+
+void CDodParaRoundTimer::Spawn( void )
+{
+	m_bTimer = false;
+	pev->solid = SOLID_NOT;
+	m_fUpdateTimer = 30.0f;
+	m_fRoundTimer = 0.0f;
+	m_fLastThinkTime = gpGlobals->time;
+	SetThink( &CDodParaRoundTimer::TimerThink );
+	pev->nextthink = gpGlobals->time + 0.1f;
+}
+
+void CDodParaRoundTimer::TimerThink( void )
+{
+	float now = gpGlobals->time;
+	float last = m_fLastThinkTime;
+	m_fLastThinkTime = now;
+	pev->nextthink = now + 0.1f;
+
+	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
+	{
+		if ( !m_bTimer )
+			return;
+		m_bTimer = false;
+		MESSAGE_BEGIN( MSG_BROADCAST, gmsgTimerStatus, NULL, (edict_t *)NULL );
+		WRITE_BYTE( (int)m_bTimer );
+		WRITE_COORD( m_fRoundTimer > 0.0f ? m_fRoundTimer : 0.0f );
+		MESSAGE_END();
+		SetThink( NULL );
+	}
+
+	if ( m_bTimer )
+	{
+		m_fRoundTimer -= ( now - last );
+		if ( m_fRoundTimer > 0.0f )
+		{
+			m_fUpdateTimer -= 0.1f;
+			if ( m_fUpdateTimer <= 0.0f )
+			{
+				MESSAGE_BEGIN( MSG_BROADCAST, gmsgTimerStatus, NULL, (edict_t *)NULL );
+				WRITE_BYTE( (int)m_bTimer );
+				WRITE_COORD( m_fRoundTimer > 0.0f ? m_fRoundTimer : 0.0f );
+				MESSAGE_END();
+				m_fUpdateTimer = 30.0f;
+			}
+		}
+		else
+		{
+			if ( g_pGameRules != NULL )
+				((CDoDTeamPlay *)g_pGameRules)->TimerExpired();
+			m_bTimer = false;
+			MESSAGE_BEGIN( MSG_BROADCAST, gmsgTimerStatus, NULL, (edict_t *)NULL );
+			WRITE_BYTE( (int)m_bTimer );
+			WRITE_COORD( m_fRoundTimer > 0.0f ? m_fRoundTimer : 0.0f );
+			MESSAGE_END();
+			SetThink( NULL );
+		}
+	}
+}
+
+void CDodParaRoundTimer::StartTimer( void )
+{
+	m_bTimer = true;
+	float t = m_fRoundTimer;
+	if ( t <= 0.0f ) t = 0.0f;
+	MESSAGE_BEGIN( MSG_BROADCAST, gmsgTimerStatus, NULL, (edict_t *)NULL );
+	WRITE_BYTE( (int)m_bTimer );
+	WRITE_COORD( t );
+	MESSAGE_END();
+	SetThink( &CDodParaRoundTimer::TimerThink );
+	pev->nextthink = gpGlobals->time + 0.1f;
+}
+
+void CDodParaRoundTimer::StopTimer( void )
+{
+	m_bTimer = false;
+	float t = m_fRoundTimer;
+	if ( t <= 0.0f ) t = 0.0f;
+	MESSAGE_BEGIN( MSG_BROADCAST, gmsgTimerStatus, NULL, (edict_t *)NULL );
+	WRITE_BYTE( (int)m_bTimer );
+	WRITE_COORD( t );
+	MESSAGE_END();
+	SetThink( NULL );
+}
+
+void CDodParaRoundTimer::ResetTimer( void )
+{
+	m_fRoundTimer = 240.0f;
+	m_bTimer = true;
+	m_fUpdateTimer = 30.0f;
+	MESSAGE_BEGIN( MSG_BROADCAST, gmsgTimerStatus, NULL, (edict_t *)NULL );
+	WRITE_BYTE( (int)m_bTimer );
+	WRITE_COORD( 240.0f );
+	MESSAGE_END();
+	SetThink( &CDodParaRoundTimer::TimerThink );
+	pev->nextthink = gpGlobals->time + 0.1f;
+}
+
+void CDodParaRoundTimer::SendStatus( CBasePlayer *pPlayer )
+{
+	float t = m_fRoundTimer;
+	MESSAGE_BEGIN( MSG_ONE, gmsgTimerStatus, NULL, pPlayer->pev );
+	WRITE_BYTE( (int)m_bTimer );
+	if ( t <= 0.0f ) t = 0.0f;
+	WRITE_COORD( t );
+	MESSAGE_END();
+}
+
+void DestroyMapCycle( mapcycle_t *cycle )
+{
+	mapcycle_item_s *p, *n, *start;
+	p = cycle->items;
+	if ( p )
+	{
+		start = p;
+		p = p->next;
+		while ( p != start )
+		{
+			n = p->next;
+			delete p;
+			p = n;
+		}
+
+		delete cycle->items;
+	}
+	cycle->items = NULL;
+	cycle->next_item = NULL;
+}
+
+int ReloadMapCycleFile( const char *filename, mapcycle_t *cycle )
+{
+	char szBuffer[MAX_RULE_BUFFER];
+	char szMap[32];
+	int length;
+	char *pFileList;
+	char *aFileList = pFileList = (char *)LOAD_FILE_FOR_ME( filename, &length );
+	int hasbuffer;
+	mapcycle_item_s *item, *newlist = NULL, *next;
+
+	if ( pFileList && length )
+	{
+		// the first map name in the file becomes the default
+		while ( 1 )
+		{
+			hasbuffer = 0;
+			memset( szBuffer, 0, MAX_RULE_BUFFER );
+
+			pFileList = COM_Parse( pFileList );
+			if ( strlen( com_token ) <= 0 )
+				break;
+
+			strncpy( szMap, com_token, sizeof( szMap ) );
+			szMap[sizeof( szMap ) - 1] = '\0';
+
+			// Any more tokens on this line?
+			if ( COM_TokenWaiting( pFileList ) )
+			{
+				pFileList = COM_Parse( pFileList );
+				if ( strlen( com_token ) > 0 )
+				{
+					hasbuffer = 1;
+					strncpy( szBuffer, com_token, sizeof( szBuffer ) );
+					szBuffer[sizeof( szBuffer ) - 1] = '\0';
+				}
+			}
+
+			// Check map
+			if ( IS_MAP_VALID( szMap ) )
+			{
+				// Create entry
+				char *s;
+
+				item = new mapcycle_item_s;
+
+				strcpy( item->mapname, szMap );
+
+				item->minplayers = 0;
+				item->maxplayers = 0;
+
+				memset( item->rulebuffer, 0, MAX_RULE_BUFFER );
+
+				if ( hasbuffer )
+				{
+					s = g_engfuncs.pfnInfoKeyValue( szBuffer, "minplayers" );
+					if ( s && s[0] )
+					{
+						item->minplayers = atoi( s );
+						item->minplayers = max( item->minplayers, 0 );
+						item->minplayers = min( item->minplayers, gpGlobals->maxClients );
+					}
+					s = g_engfuncs.pfnInfoKeyValue( szBuffer, "maxplayers" );
+					if ( s && s[0] )
+					{
+						item->maxplayers = atoi( s );
+						item->maxplayers = max( item->maxplayers, 0 );
+						item->maxplayers = min( item->maxplayers, gpGlobals->maxClients );
+					}
+
+					// Remove keys
+					//
+					g_engfuncs.pfnInfo_RemoveKey( szBuffer, "minplayers" );
+					g_engfuncs.pfnInfo_RemoveKey( szBuffer, "maxplayers" );
+
+					strcpy( item->rulebuffer, szBuffer );
+				}
+
+				item->next = cycle->items;
+				cycle->items = item;
+			}
+			else
+			{
+				ALERT( at_console, "Skipping %s from mapcycle, not a valid map\n", szMap );
+			}
+		}
+
+		FREE_FILE( aFileList );
+	}
+
+	// Fixup circular list pointer
+	item = cycle->items;
+
+	// Reverse it to get original order
+	while ( item )
+	{
+		next = item->next;
+		item->next = newlist;
+		newlist = item;
+		item = next;
+	}
+	cycle->items = newlist;
+	item = cycle->items;
+
+	// Didn't parse anything
+	if ( !item )
+	{
+		return 0;
+	}
+
+	while ( item->next )
+	{
+		item = item->next;
+	}
+	item->next = cycle->items;
+
+	cycle->next_item = item->next;
+
+	return 1;
 }

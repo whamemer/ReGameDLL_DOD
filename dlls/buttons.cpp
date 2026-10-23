@@ -1880,3 +1880,10 @@ void CEnvGlobal::RoundRespawn( void )
 			gGlobalState.EntityAdd( m_globalstate, gpGlobals->mapname, (GLOBALESTATE) m_initialstate );
 	}
 }
+
+void CMultiSource::RoundRespawn( void )
+{
+	pev->nextthink = gpGlobals->time + 0.1f;
+	pev->spawnflags |= SF_MULTI_INIT;
+	SetThink( &CMultiSource::Register );
+}

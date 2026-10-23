@@ -690,22 +690,6 @@ void CBaseEntity::RoundRespawnEnt( void )
 	RoundRespawn();
 }
 
-// Maps TOGGLE_STATE to the DoD STATE enum: table 0x19a628 = {2,0,1,3}.
-STATE CBaseToggle::GetState( void )
-{
-	switch ( m_toggle_state )
-	{
-		case TS_AT_TOP:
-			return STATE_ON;
-		case TS_AT_BOTTOM:
-			return STATE_OFF;
-		case TS_GOING_UP:
-			return STATE_TURN_ON;
-		case TS_GOING_DOWN:
-			return STATE_TURN_OFF;
-	}
-	return STATE_OFF;
-}
 
 int CBaseEntity::Restore( CRestore &restore )
 {
@@ -1099,15 +1083,4 @@ void InitHashTable( void )
 	}
 }
 
-void CPointEntity::Precache( void )
-{
-	if ( pev->spawnflags & SF_POINT_NULL_SPRITE )
-		PRECACHE_MODEL( "sprites/null.spr" );
-}
 
-void CMultiSource::RoundRespawn( void )
-{
-	pev->nextthink = gpGlobals->time + 0.1f;
-	pev->spawnflags |= SF_MULTI_INIT;
-	SetThink( &CMultiSource::Register );
-}

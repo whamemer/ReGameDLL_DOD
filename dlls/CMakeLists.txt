@@ -61,7 +61,6 @@ set (SVDLL_SOURCES
 	defaultai.cpp
 	dod_gamerules.cpp
 	dod_glue.cpp
-	dod_mapcycle.cpp
 	dod_shared.cpp
 	dod_stats.cpp
 	doors.cpp

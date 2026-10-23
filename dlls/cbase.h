@@ -1095,3 +1095,50 @@ class CWorld : public CBaseEntity
 	void KeyValue( KeyValueData *pkvd );
 	int m_nPlayerTeam;
 };
+
+class CInfoAlias : public CBaseEntity
+{
+  public:
+	void Spawn();
+	void RoundRespawn();
+	void Think();
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	int ObjectCaps();
+	STATE GetState();
+};
+
+class CInfoGroup : public CBaseEntity
+{
+  public:
+	virtual int ObjectCaps( void ) { return 0; }
+	void KeyValue( KeyValueData *pkvd );
+	void EXPORT Think();
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	int Save( CSave &save );
+	int Restore( CRestore &restore );
+	int GetMember( const char *szMemberName );
+	static TYPEDESCRIPTION m_SaveData[];
+	int m_cMembers;
+	int m_iszMemberName[16];
+	int m_iszMemberValue[16];
+};
+
+class CMultiAlias : public CBaseEntity
+{
+  public:
+	virtual int ObjectCaps( void ) { return 0; }
+	void KeyValue( KeyValueData *pkvd );
+	int Save( CSave &save );
+	int Restore( CRestore &restore );
+	static TYPEDESCRIPTION m_SaveData[];
+	int m_cTargets;
+	int m_iszTargets[16];
+};
+
+class CTriggerChangeAlias : public CBaseEntity
+{
+  public:
+	void Spawn();
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	int ObjectCaps();
+};

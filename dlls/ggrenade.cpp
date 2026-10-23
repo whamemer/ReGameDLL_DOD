@@ -27,6 +27,7 @@
 #include "soundent.h"
 #include "decals.h"
 #include "gamerules.h"
+#include "player.h"
 #include "func_break.h"
 #include "combat.h"
 
@@ -631,3 +632,44 @@ CGrenade *CGrenade::ShootPickup( entvars_t *pevOwner, Vector vecStart, Vector ve
 }
 // NOTE(DOD): DetonateUse/PreDetonate/UseSatchelCharges/ShootTimed/ShootContact keep SDK bodies
 // above (SDK-IDENTICAL per restore, DoD speed-damage tweaks owned by barrel balance pass).
+
+void CGrenade::PickupUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	if ( !pActivator->IsPlayer() )
+		return;
+	if ( pActivator->pev->iuser3 == 2 )
+		return;
+
+	CBasePlayer *pPlayer = (CBasePlayer *)pActivator;
+	if ( pPlayer->PlayerHasExplodingGrenades() )
+		return;
+
+	if ( (int)g_GrenType >= 0 )
+	{
+		if ( (int)g_GrenType < 2 )
+			pPlayer->GiveNamedItem( "weapon_handgrenade_ex" );
+		else if ( g_GrenType == G_STICKGRENADE )
+			pPlayer->GiveNamedItem( "weapon_stickgrenade_ex" );
+	}
+
+	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
+	{
+		CBasePlayerItem *pWeapon = pPlayer->m_rgpPlayerItems[i];
+		while ( pWeapon != NULL )
+		{
+			if ( FClassnameIs( pWeapon->pev, "weapon_stickgrenade_ex" ) ||
+				 FClassnameIs( pWeapon->pev, "weapon_handgrenade_ex" ) )
+			{
+				pPlayer->SwitchWeapon( pWeapon, 0 );
+
+				// the picked up grenade goes on burning in the hand
+				if ( pPlayer->m_pActiveItem )
+					pPlayer->m_pActiveItem->SetDmgTime( pev->dmgtime );
+
+				UTIL_Remove( this );
+				break;
+			}
+			pWeapon = pWeapon->m_pNext;
+		}
+	}
+}
