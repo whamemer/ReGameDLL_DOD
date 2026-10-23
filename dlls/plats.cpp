@@ -398,16 +398,25 @@ void CFuncPlat ::PlatUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 			return;
 
 		if ( m_toggle_state == TS_AT_TOP )
-			GoDown();
+		{
+			pev->nextthink = gpGlobals->time + 0.01;
+			SetThink( &CFuncPlat::GoDown );
+		}
 		else if ( m_toggle_state == TS_AT_BOTTOM )
-			GoUp();
+		{
+			pev->nextthink = gpGlobals->time + 0.01;
+			SetThink( &CFuncPlat::GoUp );
+		}
 	}
 	else
 	{
 		SetUse( NULL );
 
 		if ( m_toggle_state == TS_AT_TOP )
-			GoDown();
+		{
+			pev->nextthink = gpGlobals->time + 0.01;
+			SetThink( &CFuncPlat::GoDown );
+		}
 	}
 }
 
@@ -485,12 +494,17 @@ void CFuncPlat ::Blocked( CBaseEntity *pOther )
 	if ( pev->noiseMovement )
 		STOP_SOUND( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseMovement ) );
 
-	// Send the platform back where it came from
-	ASSERT( m_toggle_state == TS_GOING_UP || m_toggle_state == TS_GOING_DOWN );
+	// Send the platform back where it came from, on the next think
 	if ( m_toggle_state == TS_GOING_UP )
-		GoDown();
+	{
+		pev->nextthink = gpGlobals->time;
+		SetThink( &CFuncPlat::GoDown );
+	}
 	else if ( m_toggle_state == TS_GOING_DOWN )
-		GoUp();
+	{
+		pev->nextthink = gpGlobals->time;
+		SetThink( &CFuncPlat::GoUp );
+	}
 }
 
 class CFuncPlatRot : public CFuncPlat
