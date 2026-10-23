@@ -5,7 +5,7 @@
 #include "objective.h"
 // Full bodies in restore/objectives/timers_relays.cpp comments - player side in player agent
 
-// rehash classname dod_mapmarker, nextthink = time + max(mp_markerstaytime,2.0),
+// rehash classname dod_mapmarker, nextthink = time + max(pcvar_mp_markerstaytime,2.0),
 // Think=Die, FL_CUSTOMENTITY.
 void CMapMarker::Spawn( void )
 {
@@ -14,9 +14,9 @@ void CMapMarker::Spawn( void )
 	UTIL_SetSize( pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ) );
 	pev->classname = MAKE_STRING( "dod_mapmarker" );
 	float stay = 10.0;
-	extern cvar_t *mp_markerstaytime;
-	if ( mp_markerstaytime && 2.0 <= mp_markerstaytime->value )
-		stay = mp_markerstaytime->value;
+	extern cvar_t *pcvar_mp_markerstaytime;
+	if ( pcvar_mp_markerstaytime && 2.0 <= pcvar_mp_markerstaytime->value )
+		stay = pcvar_mp_markerstaytime->value;
 	pev->nextthink = gpGlobals->time + stay;
 	SetThink( &CMapMarker::Die );
 	pev->flags |= FL_CUSTOMENTITY;

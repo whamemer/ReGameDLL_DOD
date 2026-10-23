@@ -40,9 +40,9 @@ extern int gmsgPStatus;
 extern int gmsgProgBarUpdate;
 extern int gmsgCancelProgressBar;
 extern int gmsgTimerStatus;
-extern cvar_t *mp_clan_match;
-extern cvar_t *mp_clan_scoring;
-extern cvar_t *mp_clan_scoring_delay;
+extern cvar_t *pcvar_mp_clan_match;
+extern cvar_t *pcvar_mp_clan_scoring;
+extern cvar_t *pcvar_mp_clan_scoring_delay;
 const char *PlayerLogLine( CBaseEntity *pEntity );
 
 class CRuleEntity : public CBaseEntity
@@ -1619,15 +1619,15 @@ void CControlPointMaster::Spawn()
 	RoundStore();
 }
 
-// Clan scoring active: next give = now + mp_clan_scoring_delay (default 30.0).
+// Clan scoring active: next give = now + pcvar_mp_clan_scoring_delay (default 30.0).
 // Else: now + m_iGivePointsDelay.
 void CControlPointMaster::RoundRespawn()
 {
-	if ( mp_clan_match && mp_clan_match->value > 0.0 && mp_clan_scoring && mp_clan_scoring->value > 0.0 )
+	if ( pcvar_mp_clan_match && pcvar_mp_clan_match->value > 0.0 && pcvar_mp_clan_scoring && pcvar_mp_clan_scoring->value > 0.0 )
 	{
 		float d = 30.0;
-		if ( mp_clan_scoring_delay )
-			d = mp_clan_scoring_delay->value;
+		if ( pcvar_mp_clan_scoring_delay )
+			d = pcvar_mp_clan_scoring_delay->value;
 		m_fGivePointsTime = gpGlobals->time + d;
 		return;
 	}
@@ -1860,7 +1860,7 @@ void CControlPointMaster::CPMThink()
 	// ---- stage 4: periodic scoring ----
 	CDoDTeamPlay *pRules = (CDoDTeamPlay *) g_pGameRules;
 	BOOL bClanMatch = pRules->IsClanMatch() && pRules->IsTeamplay();
-	BOOL bClanScoring = ( mp_clan_scoring && mp_clan_scoring->value > 0.0 );
+	BOOL bClanScoring = ( pcvar_mp_clan_scoring && pcvar_mp_clan_scoring->value > 0.0 );
 
 	int numPoints = m_iNumPoints;
 	int alliesPoints = 0;
@@ -1929,8 +1929,8 @@ void CControlPointMaster::CPMThink()
 		if ( bClanMatch && bClanScoring )
 		{
 			float d = 30.0;	 // _DAT_0018fdec
-			if ( mp_clan_scoring_delay )
-				d = mp_clan_scoring_delay->value;
+			if ( pcvar_mp_clan_scoring_delay )
+				d = pcvar_mp_clan_scoring_delay->value;
 			m_fGivePointsTime = gpGlobals->time + d;
 		}
 		else

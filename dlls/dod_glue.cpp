@@ -15,19 +15,6 @@
 #include "voice_gamemgr.h"
 
 // ---------------------------------------------------------------------------
-// cvars: registered in game.cpp as cvar_clan*/cvar_markerstaytime (dod.so DWARF)
-// ---------------------------------------------------------------------------
-extern cvar_t cvar_clanMatch;
-extern cvar_t cvar_clanScoring;
-extern cvar_t cvar_clanScoringDelay;
-extern cvar_t cvar_markerstaytime;
-
-cvar_t *mp_clan_match = &cvar_clanMatch;
-cvar_t *mp_clan_scoring = &cvar_clanScoring;
-cvar_t *mp_clan_scoring_delay = &cvar_clanScoringDelay;
-cvar_t *mp_markerstaytime = &cvar_markerstaytime;
-
-// ---------------------------------------------------------------------------
 // pcvar_* engine cvar pointers, filled by GetCVARPointers() (dod.so player.cpp:547)
 // ---------------------------------------------------------------------------
 cvar_t *pcvar_developer;
