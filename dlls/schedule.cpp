@@ -888,33 +888,26 @@ void CBaseMonster ::StartTask( Task_t *pTask )
 		}
 		break;
 	}
-	case TASK_RUN_TO_TARGET:
-	case TASK_WALK_TO_TARGET:
+	case TASK_WALK_TO_SCRIPT:
+	case TASK_RUN_TO_SCRIPT:
 	{
-		Activity newActivity;
+		Activity newActivity = ( pTask->iTask == TASK_WALK_TO_SCRIPT ) ? ACT_WALK : ACT_RUN;
 
-		if ( ( m_hTargetEnt->pev->origin - pev->origin ).Length() < 1 )
+		if ( m_pCine == NULL || ( m_pCine->pev->origin - pev->origin ).Length() < 1 ||
+			 LookupActivity( newActivity ) == ACTIVITY_NOT_AVAILABLE )
+		{
 			TaskComplete();
+		}
 		else
 		{
-			if ( pTask->iTask == TASK_WALK_TO_TARGET )
-				newActivity = ACT_WALK;
-			else
-				newActivity = ACT_RUN;
-			// This monster can't do this!
-			if ( LookupActivity( newActivity ) == ACTIVITY_NOT_AVAILABLE )
-				TaskComplete();
-			else
+			if ( m_pCine == NULL || !MoveToLocation( newActivity, 2, m_pCine->pev->origin ) )
 			{
-				if ( m_hTargetEnt == NULL || !MoveToTarget( newActivity, 2 ) )
-				{
-					TaskFail();
-					ALERT( at_aiconsole, "%s Failed to reach target!!!\n", STRING( pev->classname ) );
-					RouteClear();
-				}
+				TaskFail();
+				ALERT( at_aiconsole, "%s Failed to reach script!!!\n", STRING( pev->classname ) );
+				RouteClear();
 			}
+			TaskComplete();
 		}
-		TaskComplete();
 		break;
 	}
 	case TASK_CLEAR_MOVE_WAIT:
@@ -1048,6 +1041,21 @@ void CBaseMonster ::StartTask( Task_t *pTask )
 	{
 		RouteClear();
 		if ( m_hTargetEnt != NULL && MoveToTarget( m_movementActivity, 1 ) )
+		{
+			TaskComplete();
+		}
+		else
+		{
+			// no way to get there =(
+			ALERT( at_aiconsole, "GetPathToSpot failed!!\n" );
+			TaskFail();
+		}
+		break;
+	}
+	case TASK_GET_PATH_TO_SCRIPT:
+	{
+		RouteClear();
+		if ( m_pCine != NULL && MoveToLocation( m_movementActivity, 1, m_pCine->pev->origin ) )
 		{
 			TaskComplete();
 		}
