@@ -46,6 +46,7 @@ CBaseEntity
 // archtypes.h is not shipped with the engine headers; uint32 comes from extdll.h stdint compat (DoD)
 #include "saverestore.h"
 #include "schedule.h"
+#include "UtlVector.h"
 
 #ifndef MONSTEREVENT_H
 #include "monsterevent.h"
@@ -550,20 +551,7 @@ struct hash_item_t
 	hash_item_t *lastHash;
 	int pevIndex;
 };
-struct CUtlMemory_Hash
-{
-	hash_item_t *m_pMemory;
-	int m_nAllocationCount;
-	int m_nGrowSize;
-	hash_item_t &operator[]( int i ) { return m_pMemory[i]; }
-};
-struct CUtlVector_Hash
-{
-	CUtlMemory_Hash m_Memory;
-	int m_Size;
-	hash_item_t *m_pElements;
-};
-extern CUtlVector_Hash stringsHashTable;
+extern CUtlVector<hash_item_t> stringsHashTable;
 enum hash_types_e
 {
 	CLASSNAME

@@ -510,9 +510,9 @@ CBaseEntity *UTIL_FindEntityByString( CBaseEntity *pStartEntity, const char *szK
 	int startEntityIndex = ENTINDEX( pentEntity );
 	if ( szKeyword[0] == 99 )
 	{
-		int hash = CaseInsensitiveHash( szValue, stringsHashTable.m_Size );
-		int size = stringsHashTable.m_Size;
-		hash_item_t *base = stringsHashTable.m_Memory.m_pMemory;
+		int hash = CaseInsensitiveHash( szValue, stringsHashTable.Count() );
+		int size = stringsHashTable.Count();
+		hash_item_t *base = stringsHashTable.Base();
 		hash_item_t *item = base + hash;
 		if ( item->pev )
 		{

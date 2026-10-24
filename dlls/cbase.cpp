@@ -880,7 +880,7 @@ CBaseEntity *CBaseEntity::Create( const char *szName, const Vector &vecOrigin, c
 	return pEntity;
 }
 
-CUtlVector_Hash stringsHashTable;
+CUtlVector<hash_item_t> stringsHashTable;
 // dod.so: hashItemMemPool CMemoryPool(blockSize=16, numElements=256) -- ctor args from
 // _GLOBAL__sub_I_stringsHashTable @0x0a9603 (mov $0x10 blockSize, mov $0x100 numElements).
 CMemoryPool hashItemMemPool( sizeof( hash_item_t ), 256 );
@@ -973,10 +973,10 @@ int CaseInsensitiveHash( const char *s, int size )
 
 void AddEntityHashValue( entvars_t *pev, const char *value, hash_types_e fieldType )
 {
-	if ( stringsHashTable.m_Size < 1 )
+	if ( stringsHashTable.Count() < 1 )
 		InitHashTable();
 
-	int size = stringsHashTable.m_Size;
+	int size = stringsHashTable.Count();
 	if ( fieldType != CLASSNAME )
 		return;
 	if ( pev->classname == 0 )
@@ -984,7 +984,7 @@ void AddEntityHashValue( entvars_t *pev, const char *value, hash_types_e fieldTy
 
 	int hash = CaseInsensitiveHash( value, size );
 	int pevIndex = ENTINDEX( pev->pContainingEntity );
-	hash_item_t *base = stringsHashTable.m_Memory.m_pMemory;
+	hash_item_t *base = stringsHashTable.Base();
 	hash_item_t *item = base + hash;
 	while ( item->pev )
 	{
@@ -1035,14 +1035,14 @@ void AddEntityHashValue( entvars_t *pev, const char *value, hash_types_e fieldTy
 
 void RemoveEntityHashValue( entvars_t *pev, const char *value, hash_types_e fieldType )
 {
-	int size = stringsHashTable.m_Size;
+	int size = stringsHashTable.Count();
 	if ( fieldType != CLASSNAME )
 		return;
-	if ( size < 1 || stringsHashTable.m_Memory.m_pMemory == NULL )
+	if ( size < 1 || stringsHashTable.Base() == NULL )
 		return;
 
 	int hash = CaseInsensitiveHash( value, size );
-	hash_item_t *base = stringsHashTable.m_Memory.m_pMemory;
+	hash_item_t *base = stringsHashTable.Base();
 	hash_item_t *item = base + hash;
 	entvars_t *ev = item->pev;
 	if ( !ev )
@@ -1099,16 +1099,29 @@ void RemoveEntityHashValue( entvars_t *pev, const char *value, hash_types_e fiel
 	}
 }
 
+// The hash of a classname is in 0..Count() (CaseInsensitiveHash takes the remainder of size + 1), the original has no element
+// for the last value and writes behind the end of the table
+static int GetEntityHashSlots( void )
+{
+#if defined( FIX_ENTITY_HASH_OVERFLOW )
+	return stringsHashTable.Count() + 1;
+#else
+	return stringsHashTable.Count();
+#endif
+}
+
 void EmptyEntityHashTable( void )
 {
-	for ( int i = 0; i < stringsHashTable.m_Size; i++ )
-	{
-		hash_item_t *next = stringsHashTable.m_Memory.m_pMemory[i].next;
+	hash_item_t *table = stringsHashTable.Base();
 
-		stringsHashTable.m_Memory.m_pMemory[i].pev = NULL;
-		stringsHashTable.m_Memory.m_pMemory[i].pevIndex = 0;
-		stringsHashTable.m_Memory.m_pMemory[i].lastHash = NULL;
-		stringsHashTable.m_Memory.m_pMemory[i].next = NULL;
+	for ( int i = 0; i < GetEntityHashSlots(); i++ )
+	{
+		hash_item_t *next = table[i].next;
+
+		table[i].pev = NULL;
+		table[i].pevIndex = 0;
+		table[i].lastHash = NULL;
+		table[i].next = NULL;
 
 		while ( next )
 		{
@@ -1122,32 +1135,17 @@ void EmptyEntityHashTable( void )
 
 void InitHashTable( void )
 {
-	int newSize = stringsHashTable.m_Size + 0x1050;	 // binary: grows by 0x1050 slots @InitHashTable
-	if ( stringsHashTable.m_Memory.m_nAllocationCount < newSize )
-	{
-		stringsHashTable.m_Memory.m_nAllocationCount = newSize;
-		if ( stringsHashTable.m_Memory.m_pMemory == NULL )
-			stringsHashTable.m_Memory.m_pMemory = (hash_item_t *) malloc( ( stringsHashTable.m_Memory.m_nAllocationCount + 1 ) * sizeof( hash_item_t ) );
-		else
-			stringsHashTable.m_Memory.m_pMemory = (hash_item_t *) realloc( stringsHashTable.m_Memory.m_pMemory,
-																			( stringsHashTable.m_Memory.m_nAllocationCount + 1 ) * sizeof( hash_item_t ) );
-	}
-	stringsHashTable.m_Size = newSize;
+	stringsHashTable.AddMultipleToTail( 0x1050 );
 
-	for ( int i = 0; i < stringsHashTable.m_Size + 1; i++ )
-	{
-		hash_item_t *next = stringsHashTable.m_Memory.m_pMemory[i].next;
-		stringsHashTable.m_Memory.m_pMemory[i].pev = NULL;
-		stringsHashTable.m_Memory.m_pMemory[i].pevIndex = 0;
-		stringsHashTable.m_Memory.m_pMemory[i].lastHash = NULL;
-		stringsHashTable.m_Memory.m_pMemory[i].next = NULL;
-		while ( next )
-		{
-			hash_item_t *tmp = next->next;
-			hashItemMemPool.Free( next );
-			next = tmp;
-		}
-	}
+#if defined( FIX_ENTITY_HASH_OVERFLOW )
+	stringsHashTable.EnsureCapacity( GetEntityHashSlots() );
+#endif
+
+	// the new elements are not constructed, the chains must be empty before they are emptied
+	for ( int i = 0; i < GetEntityHashSlots(); i++ )
+		stringsHashTable.Base()[i].next = NULL;
+
+	EmptyEntityHashTable();
 }
 
 edict_t *CREATE_NAMED_ENTITY( string_t iClass )
@@ -1202,14 +1200,14 @@ void printEntities( void )
 {
 	int ents = 0;
 
-	for ( int i = 0; i < stringsHashTable.m_Size; i++ )
+	for ( int i = 0; i < stringsHashTable.Count(); i++ )
 	{
-		hash_item_t *item = &stringsHashTable.m_Memory.m_pMemory[i];
+		hash_item_t *item = &stringsHashTable[i];
 
 		if ( item->pev )
 		{
 			CONSOLE_ECHO( "%i - %i: Head: %s %i %p\n", i, ents++, STRING( item->pev->classname ), ENTINDEX( item->pev->pContainingEntity ), item->pev );
-			item = &stringsHashTable.m_Memory.m_pMemory[i];
+			item = &stringsHashTable[i];
 		}
 
 		for ( hash_item_t *child = item->next; child; child = child->next )
