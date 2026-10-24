@@ -57,8 +57,8 @@ class CEnvGlobal : public CPointEntity
 	string_t m_globalstate;
 	int m_triggermode;
 	int m_initialstate;
-	int m_rstriggermode;
 	string_t m_rsglobalstate;
+	int m_rstriggermode;
 	int m_rsinitialstate;
 	void RoundRespawn( void );
 };
@@ -1042,13 +1042,13 @@ class CMomentaryRotButton : public CBaseToggle
 
 	static TYPEDESCRIPTION m_SaveData[];
 
+	float m_rrMoveDistance;
 	int m_lastUsed;
 	int m_direction;
 	float m_returnSpeed;
 	vec3_t m_start;
 	vec3_t m_end;
 	int m_sounds;
-	float m_rrMoveDistance;
 	void RoundRespawn( void );
 };
 TYPEDESCRIPTION CMomentaryRotButton::m_SaveData[] = {

@@ -138,9 +138,9 @@ class CAutoTrigger : public CBaseDelay
 	static TYPEDESCRIPTION m_SaveData[];
 
   private:
+	int m_iEnabled;
 	int m_globalstate;
 	USE_TYPE triggerType;
-	int m_iEnabled;
 	bool b_isRoundRestart;
 	void RoundRespawn( void );
 };

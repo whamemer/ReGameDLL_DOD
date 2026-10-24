@@ -587,19 +587,19 @@ void CDoDTeamPlay::RestartRound( void )
 	CBaseEntity *e = NULL;
 	while ( ( e = UTIL_FindEntityByClassname( e, "dod_capture_area" ) ) != NULL )
 	{
-		e->Reset( idx );
+		e->area_SetIndex( idx );
 		idx++;
 	}
 	e = NULL;
 	while ( ( e = UTIL_FindEntityByClassname( e, "dod_object_goal" ) ) != NULL )
 	{
-		e->Reset( idx );
+		e->area_SetIndex( idx );
 		idx++;
 	}
 	e = NULL;
 	while ( ( e = UTIL_FindEntityByClassname( e, "func_breakable" ) ) != NULL )
 	{
-		e->Reset( idx );
+		e->area_SetIndex( idx );
 		idx++;
 	}
 }
@@ -1533,18 +1533,18 @@ void CDoDTeamPlay::SetNextMap( void )
 
 	if ( bAdvance )
 	{
-		strcpy( m_szNextMap, STRING( gpGlobals->mapname ) );
+		strcpy( sNextMap, STRING( gpGlobals->mapname ) );
 		strcpy( szFirstMapInList, STRING( gpGlobals->mapname ) );
 
 		const char *pszNext = mapcycle.next_item->mapname;
 
 		mapcycle.next_item = mapcycle.next_item->next;
 
-		strcpy( m_szNextMap, pszNext );
+		strcpy( sNextMap, pszNext );
 	}
 
-	if ( !IS_MAP_VALID( m_szNextMap ) )
-		strcpy( m_szNextMap, szFirstMapInList );
+	if ( !IS_MAP_VALID( sNextMap ) )
+		strcpy( sNextMap, szFirstMapInList );
 }
 void CDoDTeamPlay::StartClanMatch( void )
 {
@@ -1997,7 +1997,7 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 
 	if ( FStrEq( pcmd, "nextmap" ) )
 	{
-		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_nextmap", m_szNextMap );
+		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_nextmap", sNextMap );
 		return TRUE;
 	}
 

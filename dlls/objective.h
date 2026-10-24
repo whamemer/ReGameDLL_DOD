@@ -361,13 +361,14 @@ class CWeatherSystem : public CBaseEntity
 class CScoreEvent : public CBaseEntity
 {
   public:
+	int m_iMain;
 	int m_iResetItemsTime;	 // score_resetitemtime
 	int m_iResetPlayersTime; // score_resetplayerstime
 	int m_iTeamPoints;		 // score_points
 	float ResetItemsTime;	 // next reset time
-	int ResetItems;			 // pending reset flag
+	BOOL ResetItems;		 // pending reset flag
 	char szNextMap[256];	 // score_nextmap
-	int bChangeLevel;		 // pending changelevel
+	BOOL bChangeLevel;		 // pending changelevel
 	float ChangeLevelTime;	 // changelevel time
 	int m_iChangeLevelDelay; // score_nextmapdelay
   public:

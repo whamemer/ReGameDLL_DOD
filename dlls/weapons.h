@@ -1311,7 +1311,6 @@ class CWeaponBox : public CBaseEntity
 
   public:
 	void EXPORT ActivateThink( void );
-	BOOL m_bTouch;  // DoD CWeaponBox+640
 	void EXPORT Kill( void );
 	int Save( CSave &save );
 	int Restore( CRestore &restore );
@@ -1327,6 +1326,10 @@ class CWeaponBox : public CBaseEntity
 	int m_rgAmmo[MAX_AMMO_SLOTS];	  // ammo quantities
 
 	int m_cAmmoTypes;  // how many ammo types packed into this box (if packed by a level designer)
+	BOOL m_bDontTouch;
+	BOOL m_bAmmoBox;
+	BOOL m_bMGAmmoBoxTeam;
+	BOOL m_bTouch;
 	void RoundRespawn( void );
 };
 

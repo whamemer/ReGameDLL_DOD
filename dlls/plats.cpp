@@ -634,8 +634,8 @@ class CFuncTrain : public CBasePlatTrain
 	entvars_t *m_pevCurrentTarget;
 	int m_sounds;
 	BOOL m_activated;
+	STATE m_iState;
 	string_t m_pInitialTarget;
-	int m_iState;
 	BOOL m_bMoving;
 };
 
@@ -2257,7 +2257,7 @@ void CFuncTrain::RoundRespawn( void )
 	STOP_SOUND( ENT( pev ), CHAN_STATIC, (char *)STRING( pev->noise ) );
 	CBaseEntity *pTarg = UTIL_FindEntityByTargetname( NULL, STRING( m_pInitialTarget ) );
 	pev->target = pTarg->pev->target;
-	m_iState = 0;
+	m_iState = STATE_OFF;
 	m_pevCurrentTarget = pTarg->pev;
 	m_activated = FALSE;
 	UTIL_SetOrigin( pev, pTarg->pev->origin - ( pev->mins + pev->maxs ) * 0.5 );

@@ -409,10 +409,10 @@ class CGameTeamMaster : public CRulePointEntity
 
 	int m_iEnabled;
 	int m_teamIndex;
+	int m_rrteamIndex;
 	USE_TYPE triggerType;
 	void Spawn( void );
 	void RoundRespawn( void );
-	int m_rrteamIndex;
 };
 
 LINK_ENTITY_TO_CLASS( game_team_master, CGameTeamMaster );
