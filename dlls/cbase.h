@@ -262,7 +262,7 @@ class CBaseEntity
 	virtual void OverrideReset( void ) {}
 	virtual int DamageDecal( int bitsDamageType );
 	// This is ONLY used by the node graph to test movement through a door
-	virtual void SetToggleState( int state ) {}
+	virtual void SetToggleState( TOGGLE_STATE state ) {}
 	virtual void StartSneaking( void ) {}
 	virtual void StopSneaking( void ) {}
 	virtual BOOL OnControls( entvars_t *pev ) { return FALSE; }
@@ -470,14 +470,6 @@ class CBaseEntity
 
 	// dod.so DWARF keeps UpdateOnRemove non-virtual (declared after Blocked).
 	void UpdateOnRemove( void );
-
-	// DoD/HLSDK virtuals retained for other modules. These are NOT present in the
-	// dod.so DWARF vtable; they are appended after every binary entry so the real
-	// virtual indices stay aligned with the shipped binary.
-	virtual BOOL IsTriggered( CBaseEntity *pActivator ) { return TRUE; }
-	virtual CBaseToggle *MyTogglePointer( void ) { return NULL; }
-	virtual void Reset( int idx ) {}
-	virtual void SendStatus( CBasePlayer *pPlayer ) {}
 };
 
 // dod.so DWARF CBaseEntity layout proof (size 344).
@@ -796,15 +788,6 @@ class CBaseToggle : public CBaseAnimating
 	void EXPORT AngularMoveDone( void );
 	BOOL IsLockedByMaster( void );
 
-	virtual CBaseToggle *MyTogglePointer( void ) { return this; }
-
-	// monsters use this, but so could buttons for instance
-	virtual void PlaySentence( const char *pszSentence, float duration, float volume, float attenuation );
-	virtual void PlayScriptedSentence( const char *pszSentence, float duration, float volume, float attenuation,
-									   BOOL bConcurrent, CBaseEntity *pListener );
-	virtual void SentenceStop( void );
-	virtual BOOL IsAllowedToSpeak() { return FALSE; }
-
 	static float AxisValue( int flags, const Vector &angles );
 	static void AxisDir( entvars_t *pev );
 	static float AxisDelta( int flags, const Vector &angle1, const Vector &angle2 );
@@ -998,7 +981,6 @@ class CBaseButton : public CBaseToggle
 	{
 		return ( CBaseToggle::ObjectCaps() & ~FCAP_ACROSS_TRANSITION ) | ( pev->takedamage ? 0 : FCAP_IMPULSE_USE );
 	}
-	virtual BOOL IsAllowedToSpeak() { return TRUE; }
 
 	BOOL m_fStayPushed;	 // button stays pushed in until touched again?
 	BOOL m_fRotating;	 // a rotating button?  default is a sliding button.

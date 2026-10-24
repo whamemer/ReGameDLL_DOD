@@ -585,19 +585,6 @@ void CBreakable::BreakTouch( CBaseEntity *pOther )
 // Smash the our breakable object
 //
 
-// Break when triggered
-void CBreakable::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{
-	if ( IsBreakable() )
-	{
-		pev->angles.y = m_angle;
-		UTIL_MakeVectors( pev->angles );
-		g_vecAttackDir = gpGlobals->v_forward;
-
-		Die();
-	}
-}
-
 void CBreakable::TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr,
 							  int bitsDamageType )
 {
@@ -1062,15 +1049,19 @@ void CPushable ::KeyValue( KeyValueData *pkvd )
 // Pull the func_pushable
 void CPushable ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if ( !pActivator || !pActivator->IsPlayer() )
+	if ( pActivator && pActivator->IsPlayer() )
 	{
-		if ( pev->spawnflags & SF_PUSH_BREAKABLE )
-			this->CBreakable::Use( pActivator, pCaller, useType, value );
-		return;
+		if ( !( pev->spawnflags & SF_PUSH_NOPULL ) )
+		{
+			if ( pActivator->pev->velocity != g_vecZero )
+				Move( pActivator, 0 );
+		}
 	}
-
-	if ( pActivator->pev->velocity != g_vecZero )
-		Move( pActivator, 0 );
+	else if ( pev->spawnflags & SF_PUSH_BREAKABLE )
+	{
+		if ( m_pfnUse )
+			( this->*m_pfnUse )( pActivator, pCaller, useType, value );
+	}
 }
 
 void CPushable ::Touch( CBaseEntity *pOther )

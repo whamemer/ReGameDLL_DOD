@@ -49,7 +49,7 @@ class CBaseDoor : public CBaseToggle
 
 	static TYPEDESCRIPTION m_SaveData[];
 
-	virtual void SetToggleState( int state );
+	virtual void SetToggleState( TOGGLE_STATE state );
 
 	// used to selectivly override defaults
 	void EXPORT DoorTouch( CBaseEntity *pOther );
@@ -329,7 +329,7 @@ void CBaseDoor::Spawn()
 	m_lastBlockedTimestamp = 0;
 }
 
-void CBaseDoor ::SetToggleState( int state )
+void CBaseDoor ::SetToggleState( TOGGLE_STATE state )
 {
 	if ( state == TS_AT_TOP )
 		UTIL_SetOrigin( pev, m_vecPosition2 );
@@ -832,7 +832,7 @@ class CRotDoor : public CBaseDoor
 {
   public:
 	void Spawn( void );
-	virtual void SetToggleState( int state );
+	virtual void SetToggleState( TOGGLE_STATE state );
 	void RoundRespawn( void );
 	void Activate( void );
 };
@@ -886,7 +886,7 @@ void CRotDoor::Spawn( void )
 	RoundStore();
 }
 
-void CRotDoor ::SetToggleState( int state )
+void CRotDoor ::SetToggleState( TOGGLE_STATE state )
 {
 	if ( state == TS_AT_TOP )
 		pev->angles = m_vecAngle2;

@@ -27,6 +27,8 @@
 #define SF_TANK_ALIENS 0x0008
 #define SF_TANK_LINEOFSIGHT 0x0010
 #define SF_TANK_CANCONTROL 0x0020
+#define SF_TANK_UPDATESPOT 0x0040  // traces from the barrel every frame
+#define SF_TANK_TRACEAIM 0x0080	   // the controller aims at the point he looks at, not along his view angles
 #define SF_TANK_SOUNDON 0x8000
 
 enum TANKBULLET
@@ -42,6 +44,8 @@ enum TANKBULLET
 //			rockets
 //			explosion?
 
+class CFuncTankControls;
+
 class CFuncTank : public CBaseEntity
 {
   public:
@@ -49,8 +53,15 @@ class CFuncTank : public CBaseEntity
 	void Precache( void );
 	void KeyValue( KeyValueData *pkvd );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	void Think( void );
+
+  protected:
+	void EXPORT TrackThink( void );  // the Windows dll exports it as protected
+
+  public:
 	void TrackTarget( void );
+
+	virtual CBaseEntity *BestVisibleEnemy( void );
+	int IRelationship( CBaseEntity *pTarget );
 
 	virtual void Fire( const Vector &barrelEnd, const Vector &forward, entvars_t *pevAttacker );
 	virtual Vector UpdateTargetPosition( CBaseEntity *pTarget ) { return pTarget->BodyTarget( pev->origin ); }
@@ -95,15 +106,13 @@ class CFuncTank : public CBaseEntity
 	virtual int Restore( CRestore &restore );
 	static TYPEDESCRIPTION m_SaveData[];
 
-	BOOL OnControls( entvars_t *pevTest );
-	BOOL StartControl( CBasePlayer *pController );
-	void StopControl( void );
-	void ControllerPostFrame( void );
+	BOOL StartControl( CBasePlayer *pController, CFuncTankControls *pControls );
+	void StopControl( CFuncTankControls *pControls );
+	void UpdateSpot( void );
 
   protected:
-	CBasePlayer *m_pController;
+	CFuncTankControls *m_pControls;
 	float m_flNextAttack;
-	Vector m_vecControllerUsePos;
 
 	float m_yawCenter;	   // "Center" yaw
 	float m_yawRate;	   // Max turn rate to track targets
@@ -132,13 +141,26 @@ class CFuncTank : public CBaseEntity
 
 	Vector m_sightOrigin;  // Last sight of target
 	int m_spread;		   // firing spread
-	int m_iszMaster;
+	int m_iszMaster;  // Master entity (game_team_master or multisource)
 	int m_iTankClass;
-	// Master entity (game_team_master or multisource)
-	CBaseEntity *BestVisibleEnemy( void );
-	int IRelationship( CBaseEntity *pTarget );
-	void UpdateSpot( void );
-	void EXPORT TrackThink( void );
+};
+
+class CFuncTankControls : public CBaseEntity
+{
+  public:
+	virtual int ObjectCaps( void );
+	void Spawn( void );
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+
+	virtual int Save( CSave &save );
+	virtual int Restore( CRestore &restore );
+	static TYPEDESCRIPTION m_SaveData[];
+
+	virtual BOOL OnControls( entvars_t *pevTest );
+
+	BOOL m_active;
+	Vector m_vecControllerUsePos;  // where the controller stood when he took the controls
+	CBasePlayer *m_pController;
 };
 
 TYPEDESCRIPTION CFuncTank::m_SaveData[] = {
@@ -163,8 +185,7 @@ TYPEDESCRIPTION CFuncTank::m_SaveData[] = {
 	DEFINE_FIELD( CFuncTank, m_bulletType, FIELD_INTEGER ),
 	DEFINE_FIELD( CFuncTank, m_sightOrigin, FIELD_VECTOR ),
 	DEFINE_FIELD( CFuncTank, m_spread, FIELD_INTEGER ),
-	DEFINE_FIELD( CFuncTank, m_pController, FIELD_CLASSPTR ),
-	DEFINE_FIELD( CFuncTank, m_vecControllerUsePos, FIELD_VECTOR ),
+	DEFINE_FIELD( CFuncTank, m_pControls, FIELD_CLASSPTR ),
 	DEFINE_FIELD( CFuncTank, m_flNextAttack, FIELD_TIME ),
 	DEFINE_FIELD( CFuncTank, m_iBulletDamage, FIELD_INTEGER ),
 	DEFINE_FIELD( CFuncTank, m_iszMaster, FIELD_STRING ),
@@ -203,6 +224,8 @@ void CFuncTank ::Spawn( void )
 		m_spread = 0;
 
 	pev->oldorigin = pev->origin;
+
+	SetThink( &CFuncTank::TrackThink );
 }
 
 void CFuncTank ::Precache( void )
@@ -333,98 +356,34 @@ void CFuncTank ::KeyValue( KeyValueData *pkvd )
 		CBaseEntity::KeyValue( pkvd );
 }
 
-////////////// START NEW STUFF //////////////
-
-//==================================================================================
-// TANK CONTROLLING
-BOOL CFuncTank ::OnControls( entvars_t *pevTest )
+BOOL CFuncTank ::StartControl( CBasePlayer *pController, CFuncTankControls *pControls )
 {
-	if ( !( pev->spawnflags & SF_TANK_CANCONTROL ) )
-		return FALSE;
-
-	Vector offset = pevTest->origin - pev->origin;
-
-	if ( ( m_vecControllerUsePos - pevTest->origin ).Length() < 30 )
-		return TRUE;
-
-	return FALSE;
-}
-
-BOOL CFuncTank ::StartControl( CBasePlayer *pController )
-{
-	if ( m_pController != NULL )
+	if ( m_pControls )
 		return FALSE;
 
 	// Team only or disabled?
-	if ( m_iszMaster )
-	{
-		if ( !UTIL_IsMasterTriggered( m_iszMaster, pController ) )
-			return FALSE;
-	}
+	if ( m_iszMaster && !UTIL_IsMasterTriggered( m_iszMaster, pController ) )
+		return FALSE;
 
-	ALERT( at_console, "using TANK!\n" );
-
-	m_pController = pController;
-	if ( m_pController->m_pActiveItem )
-	{
-		m_pController->m_pActiveItem->Holster();
-		m_pController->pev->weaponmodel = 0;
-		m_pController->pev->viewmodel = 0;
-	}
-
-	m_pController->m_iHideHUD |= HIDEHUD_WEAPONS;
-	m_vecControllerUsePos = m_pController->pev->origin;
-
+	m_pControls = pControls;
 	pev->nextthink = pev->ltime + 0.1;
 
 	return TRUE;
 }
 
-void CFuncTank ::StopControl()
+void CFuncTank ::StopControl( CFuncTankControls *pControls )
 {
-	// NOTE-binary-verified: bring back the controllers current weapon
-	if ( !m_pController )
+	if ( !m_pControls || m_pControls != pControls )
 		return;
 
-	if ( m_pController->m_pActiveItem )
-		m_pController->m_pActiveItem->Deploy();
-
-	ALERT( at_console, "stopped using TANK\n" );
-
-	m_pController->m_iHideHUD &= ~HIDEHUD_WEAPONS;
+	StopRotSound();
 
 	pev->nextthink = 0;
-	m_pController = NULL;
+	m_pControls = NULL;
 
 	if ( IsActive() )
 		pev->nextthink = pev->ltime + 1.0;
 }
-
-// Called each frame by the player's ItemPostFrame
-void CFuncTank ::ControllerPostFrame( void )
-{
-	ASSERT( m_pController != NULL );
-
-	if ( gpGlobals->time < m_flNextAttack )
-		return;
-
-	if ( m_pController->pev->button & IN_ATTACK )
-	{
-		Vector vecForward;
-		UTIL_MakeVectorsPrivate( pev->angles, vecForward, NULL, NULL );
-
-		m_fireLast = gpGlobals->time - ( 1 / m_fireRate ) - 0.01;  // to make sure the gun doesn't fire too many bullets
-
-		Fire( BarrelPosition(), vecForward, m_pController->pev );
-
-		// HACKHACK -- make some noise (that the AI can hear)
-		if ( m_pController && m_pController->IsPlayer() )
-			( (CBasePlayer *) m_pController )->m_iWeaponVolume = LOUD_GUN_VOLUME;
-
-		m_flNextAttack = gpGlobals->time + ( 1 / m_fireRate );
-	}
-}
-////////////// END NEW STUFF //////////////
 
 void CFuncTank ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
@@ -461,53 +420,72 @@ BOOL CFuncTank ::InRange( float range )
 	return TRUE;
 }
 
-void CFuncTank ::Think( void )
-{
-	pev->avelocity = g_vecZero;
-	TrackTarget();
-
-	if ( fabs( pev->avelocity.x ) > 1 || fabs( pev->avelocity.y ) > 1 )
-		StartRotSound();
-	else
-		StopRotSound();
-}
-
 void CFuncTank::TrackTarget( void )
 {
 	TraceResult tr;
-	edict_t *pPlayer = FIND_CLIENT_IN_PVS( edict() );
-	BOOL updateTime = FALSE, lineOfSight;
+	BOOL updateTime = FALSE;
 	Vector angles, direction, targetPosition, barrelEnd;
-	edict_t *pTarget;
+	CBaseEntity *pTarget = NULL;
+	CBasePlayer *pController = NULL;
+
+	if ( m_pControls )
+		pController = m_pControls->m_pController;
 
 	// Get a position to aim for
-	if ( m_pController )
+	if ( pController )
 	{
-		// Tanks attempt to mirror the player's angles
-		angles = m_pController->pev->v_angle;
-		angles[0] = 0 - angles[0];
+		UpdateSpot();
 		pev->nextthink = pev->ltime + 0.05;
+		angles = pController->pev->v_angle;
+
+		if ( pev->spawnflags & SF_TANK_TRACEAIM )
+		{
+			// Aim at the point the controller looks at
+			Vector vecForward;
+			UTIL_MakeVectorsPrivate( angles, vecForward, NULL, NULL );
+			targetPosition = pController->GetGunPosition() + vecForward * 1000;
+
+			if ( !pev->owner || pev->owner == pController->edict() )
+				pev->owner = pController->edict();
+			else
+				ALERT( at_console, "func_tank has owner\n" );
+
+			UTIL_TraceLine( pController->GetGunPosition(), targetPosition, missile, ignore_glass, edict(), &tr );
+
+			direction = tr.vecEndPos - pev->origin;
+			angles = UTIL_VecToAngles( direction );
+			targetPosition = tr.vecEndPos;
+
+			AdjustAnglesForBarrel( angles, direction.Length() );
+		}
+		else
+		{
+			// Tanks attempt to mirror the player's angles
+			angles.x = 0 - angles.x;
+		}
 	}
 	else
 	{
-		if ( IsActive() )
-			pev->nextthink = pev->ltime + 0.1;
-		else
-			return;
-
-		if ( FNullEnt( pPlayer ) )
+		if ( !IsActive() )
 		{
-			if ( IsActive() )
-				pev->nextthink = pev->ltime + 2;  // Wait 2 secs
+			pev->nextthink = 0;
 			return;
 		}
-		pTarget = FindTarget( pPlayer );
-		if ( !pTarget )
+
+		pev->nextthink = pev->ltime + 0.1;
+		UpdateSpot();
+
+		pTarget = BestVisibleEnemy();
+		if ( !pTarget || FNullEnt( pTarget->edict() ) )
+		{
+			if ( IsActive() )
+				pev->nextthink = pev->ltime + 0.2;
 			return;
+		}
 
 		// Calculate angle needed to aim at target
 		barrelEnd = BarrelPosition();
-		targetPosition = pTarget->v.origin + pTarget->v.view_ofs;
+		targetPosition = pTarget->pev->origin + pTarget->pev->view_ofs;
 		float range = ( targetPosition - barrelEnd ).Length();
 
 		if ( !InRange( range ) )
@@ -515,25 +493,18 @@ void CFuncTank::TrackTarget( void )
 
 		UTIL_TraceLine( barrelEnd, targetPosition, dont_ignore_monsters, edict(), &tr );
 
-		lineOfSight = FALSE;
 		// No line of sight, don't track
-		if ( tr.flFraction == 1.0 || tr.pHit == pTarget )
+		if ( tr.flFraction == 1.0 || tr.pHit == pTarget->edict() )
 		{
-			lineOfSight = TRUE;
-
-			CBaseEntity *pInstance = CBaseEntity::Instance( pTarget );
-			if ( InRange( range ) && pInstance && pInstance->IsAlive() )
+			if ( InRange( range ) && pTarget->IsAlive() )
 			{
 				updateTime = TRUE;
-				m_sightOrigin = UpdateTargetPosition( pInstance );
+				m_sightOrigin = UpdateTargetPosition( pTarget );
 			}
 		}
 
 		// Track sight origin
-
-		// !!! I'm not sure what i changed
 		direction = m_sightOrigin - pev->origin;
-		//		direction = m_sightOrigin - barrelEnd;
 		angles = UTIL_VecToAngles( direction );
 
 		// Calculate the additional rotation to point the end of the barrel at the target (not the gun's center)
@@ -546,16 +517,19 @@ void CFuncTank::TrackTarget( void )
 	angles.y = m_yawCenter + UTIL_AngleDistance( angles.y, m_yawCenter );
 	angles.x = m_pitchCenter + UTIL_AngleDistance( angles.x, m_pitchCenter );
 
-	// Limit against range in y
-	if ( angles.y > m_yawCenter + m_yawRange )
+	// Limit against range in y (a range of 360 or more is a full rotation)
+	if ( m_yawRange < 360.0 )
 	{
-		angles.y = m_yawCenter + m_yawRange;
-		updateTime = FALSE;	 // Don't update if you saw the player, but out of range
-	}
-	else if ( angles.y < ( m_yawCenter - m_yawRange ) )
-	{
-		angles.y = ( m_yawCenter - m_yawRange );
-		updateTime = FALSE;	 // Don't update if you saw the player, but out of range
+		if ( angles.y > m_yawCenter + m_yawRange )
+		{
+			angles.y = m_yawCenter + m_yawRange;
+			updateTime = FALSE;	 // Don't update if you saw the player, but out of range
+		}
+		else if ( angles.y < ( m_yawCenter - m_yawRange ) )
+		{
+			angles.y = ( m_yawCenter - m_yawRange );
+			updateTime = FALSE;	 // Don't update if you saw the player, but out of range
+		}
 	}
 
 	if ( updateTime )
@@ -584,8 +558,25 @@ void CFuncTank::TrackTarget( void )
 	else if ( pev->avelocity.x < -m_pitchRate )
 		pev->avelocity.x = -m_pitchRate;
 
-	if ( m_pController )
+	if ( pController )
+	{
+		if ( gpGlobals->time >= m_flNextAttack && ( pController->pev->button & IN_ATTACK ) )
+		{
+			Vector vecForward;
+			UTIL_MakeVectorsPrivate( pev->angles, vecForward, NULL, NULL );
+
+			m_fireLast = gpGlobals->time - ( 1 / m_fireRate ) - 0.01;  // to make sure the gun doesn't fire too many bullets
+
+			Fire( BarrelPosition(), vecForward, pController->pev );
+
+			// HACKHACK -- make some noise (that the AI can hear)
+			if ( pController->IsPlayer() )
+				pController->m_iWeaponVolume = LOUD_GUN_VOLUME;
+
+			m_flNextAttack = gpGlobals->time + ( 1 / m_fireRate );
+		}
 		return;
+	}
 
 	if ( CanFire() && ( ( fabs( distX ) < m_pitchTolerance && fabs( distY ) < m_yawTolerance ) ||
 						( pev->spawnflags & SF_TANK_LINEOFSIGHT ) ) )
@@ -598,7 +589,7 @@ void CFuncTank::TrackTarget( void )
 		{
 			float length = direction.Length();
 			UTIL_TraceLine( barrelEnd, barrelEnd + forward * length, dont_ignore_monsters, edict(), &tr );
-			if ( tr.pHit == pTarget )
+			if ( tr.pHit == pTarget->edict() )
 				fire = TRUE;
 		}
 		else
@@ -942,59 +933,77 @@ void CFuncTankMortar::Fire( const Vector &barrelEnd, const Vector &forward, entv
 //============================================================================
 // FUNC TANK CONTROLS
 //============================================================================
-class CFuncTankControls : public CBaseEntity
-{
-  public:
-	virtual int ObjectCaps( void );
-	void Spawn( void );
-	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	void Think( void );
-
-	virtual int Save( CSave &save );
-	virtual int Restore( CRestore &restore );
-	static TYPEDESCRIPTION m_SaveData[];
-
-	CFuncTank *m_pTank;
-	BOOL OnControls( entvars_t *pevTest );
-	Vector m_vecControllerUsePos;  // DoD: controller use reference position
-};
 LINK_ENTITY_TO_CLASS( func_tankcontrols, CFuncTankControls );
 
 TYPEDESCRIPTION CFuncTankControls::m_SaveData[] = {
-	DEFINE_FIELD( CFuncTankControls, m_pTank, FIELD_CLASSPTR ),
+	DEFINE_FIELD( CFuncTankControls, m_active, FIELD_BOOLEAN ),
+	DEFINE_FIELD( CFuncTankControls, m_pController, FIELD_CLASSPTR ),
+	DEFINE_FIELD( CFuncTankControls, m_vecControllerUsePos, FIELD_VECTOR ),
 };
 
 IMPLEMENT_SAVERESTORE( CFuncTankControls, CBaseEntity );
 
 int CFuncTankControls ::ObjectCaps( void )
 {
-	return ( CBaseEntity::ObjectCaps() & ~FCAP_ACROSS_TRANSITION ) | FCAP_IMPULSE_USE;
+	return FCAP_IMPULSE_USE;
 }
 
 void CFuncTankControls ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{  // pass the Use command onto the controls
-	if ( m_pTank )
-		m_pTank->Use( pActivator, pCaller, useType, value );
-
-	ASSERT( m_pTank != NULL );	// if this fails,  most likely means save/restore hasn't worked properly
-}
-
-void CFuncTankControls ::Think( void )
 {
-	edict_t *pTarget = NULL;
+	CBaseEntity *pTank = NULL;
 
-	do
+	if ( useType != USE_OFF && !m_pController )
 	{
-		pTarget = FIND_ENTITY_BY_TARGETNAME( pTarget, STRING( pev->target ) );
-	} while ( !FNullEnt( pTarget ) && strncmp( STRING( pTarget->v.classname ), "func_tank", 9 ) );
+		if ( !m_active && pActivator && pActivator->IsPlayer() )
+		{
+			CBasePlayer *pPlayer = (CBasePlayer *) pActivator;
 
-	if ( FNullEnt( pTarget ) )
-	{
-		ALERT( at_console, "No tank %s\n", STRING( pev->target ) );
-		return;
+			if ( !pPlayer->m_pTank )
+			{
+				while ( ( pTank = UTIL_FindEntityByClassname( pTank, "func_tank" ) ) != NULL )
+				{
+					if ( FStrEq( STRING( pTank->pev->targetname ), STRING( pev->target ) ) )
+					{
+						if ( ( (CFuncTank *) pTank )->StartControl( pPlayer, this ) )
+							m_active = TRUE;
+					}
+				}
+
+				if ( m_active )
+				{
+					m_pController = pPlayer;
+					pPlayer->m_pTank = this;
+
+					if ( m_pController->m_pActiveItem )
+					{
+						m_pController->m_pActiveItem->Holster( 0 );
+						m_pController->pev->weaponmodel = 0;
+					}
+
+					m_pController->m_iHideHUD |= HIDEHUD_WEAPONS;
+					m_vecControllerUsePos = m_pController->pev->origin;
+				}
+			}
+		}
 	}
+	else
+	{
+		while ( ( pTank = UTIL_FindEntityByClassname( pTank, "func_tank" ) ) != NULL )
+		{
+			if ( FStrEq( STRING( pTank->pev->targetname ), STRING( pev->target ) ) )
+				( (CFuncTank *) pTank )->StopControl( this );
+		}
 
-	m_pTank = (CFuncTank *) Instance( pTarget );
+		if ( m_pController )
+		{
+			if ( m_pController->m_pActiveItem )
+				m_pController->m_pActiveItem->Deploy();
+
+			m_pController->m_iHideHUD &= ~HIDEHUD_WEAPONS;
+			m_pController = NULL;
+			m_active = FALSE;
+		}
+	}
 }
 
 void CFuncTankControls::Spawn( void )
@@ -1005,11 +1014,7 @@ void CFuncTankControls::Spawn( void )
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );
 
 	UTIL_SetSize( pev, pev->mins, pev->maxs );
-	UTIL_SetOrigin( pev, pev->origin );
-
-	pev->nextthink = gpGlobals->time + 0.3;	 // After all the func_tank's have spawned
-
-	CBaseEntity::Spawn();
+	UTIL_SetOrigin( this, pev->origin );
 }
 
 CBaseEntity *CFuncTank::BestVisibleEnemy( void )
@@ -1099,6 +1104,16 @@ int CFuncTank::IRelationship( CBaseEntity *pTarget )
 
 void CFuncTank::UpdateSpot( void )
 {
+	if ( pev->spawnflags & SF_TANK_UPDATESPOT )
+	{
+		TraceResult tr;
+		Vector vecAiming;
+		UTIL_MakeVectorsPrivate( pev->angles, vecAiming, NULL, NULL );
+
+		Vector vecSrc = BarrelPosition();
+		Vector vecEnd = vecSrc + vecAiming * 8192;
+		UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, ENT( pev ), &tr );
+	}
 }
 
 void CFuncTank::TrackThink( void )

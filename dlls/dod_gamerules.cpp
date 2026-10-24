@@ -3887,12 +3887,12 @@ void CDoDPreRound::KeyValue( KeyValueData *pkvd )
 		pkvd->fHandled = FALSE;
 }
 
-BOOL CDoDTeamPlay::IsValidTeam( char *pTeamName )
+BOOL CDoDTeamPlay::IsValidTeam( const char *pTeamName )
 {
 	return 1;
 }
 
-int CDoDTeamPlay::GetTeamIndex( char *pTeamName )
+int CDoDTeamPlay::GetTeamIndex( const char *pTeamName )
 {
 	return -1;
 }

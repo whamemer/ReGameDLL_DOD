@@ -536,6 +536,7 @@ extern DLL_GLOBAL int g_Language;
 
 // func_pushable (it's also func_breakable, so don't collide with those flags)
 #define SF_PUSH_BREAKABLE 128
+#define SF_PUSH_NOPULL 512	// +use does not pull the pushable
 
 #define SF_LIGHT_START_OFF 1
 

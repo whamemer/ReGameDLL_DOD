@@ -166,6 +166,11 @@ float CSPDoDRules::getWaveTime( int iTeam ) { return 0.0f; }
 void CSPDoDRules::setWaveTime( int iTeam, float fTime ) {}
 float CSPDoDRules::GetMaxWaveTime( int nTeam ) { return 0.0f; }
 void CSPDoDRules::setMapTime( void ) {}
+float CSPDoDRules::getMapTime( void ) { return 0.0f; }
+bool CSPDoDRules::IsRoundFrozen( void ) { return false; }
+void CSPDoDRules::SetClanMatch( bool bMatchOn ) {}
+bool CSPDoDRules::IsClanMatch( void ) { return false; }
+bool CSPDoDRules::IsClanMatchActive( void ) { return false; }
 void CSPDoDRules::SetRoundState( int iState ) {}
 void CSPDoDRules::SetTeamScores( int iTeam, int iScore ) {}
 void CSPDoDRules::SendTeamScores( int iTeam ) {}

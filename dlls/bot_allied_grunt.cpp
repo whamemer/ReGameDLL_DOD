@@ -174,7 +174,6 @@ public:
 	int m_voicePitch;
 
 	int		m_iBrassShell;
-	int		m_iShotgunShell;
 
 	int		m_iSentence;
 
@@ -193,8 +192,6 @@ TYPEDESCRIPTION	CAlliedGrunt::m_SaveData[] =
 	DEFINE_FIELD( CAlliedGrunt, m_fFirstEncounter, FIELD_BOOLEAN ),
 	DEFINE_FIELD( CAlliedGrunt, m_cClipSize, FIELD_INTEGER ),
 	DEFINE_FIELD( CAlliedGrunt, m_voicePitch, FIELD_INTEGER ),
-//  DEFINE_FIELD( CShotgun, m_iBrassShell, FIELD_INTEGER ),
-//  DEFINE_FIELD( CShotgun, m_iShotgunShell, FIELD_INTEGER ),
 	DEFINE_FIELD( CAlliedGrunt, m_iSentence, FIELD_INTEGER ),
 };
 

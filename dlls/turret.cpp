@@ -53,7 +53,6 @@ typedef enum
 
 class CBaseTurret : public CBaseMonster
 {
-	STATE getState( void );
   public:
 	void Spawn( void );
 	virtual void Precache( void );
@@ -102,6 +101,7 @@ class CBaseTurret : public CBaseMonster
 	void SetTurretAnim( TURRET_ANIM anim );
 	int MoveTurret( void );
 	virtual void Shoot( Vector &vecSrc, Vector &vecDirToEnemy ) {};
+	virtual STATE getState( void );
 
 	float m_flMaxSpin;	// Max time to spin the barrel w/o a target
 	int m_iSpin;

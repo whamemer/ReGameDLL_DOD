@@ -644,9 +644,7 @@ TYPEDESCRIPTION CFuncTrain::m_SaveData[] = {
 	DEFINE_FIELD( CFuncTrain, m_sounds, FIELD_INTEGER ),
 	DEFINE_FIELD( CFuncTrain, m_pevCurrentTarget, FIELD_EVARS ),
 	DEFINE_FIELD( CFuncTrain, m_activated, FIELD_BOOLEAN ),
-	DEFINE_FIELD( CFuncTrain, m_pInitialTarget, FIELD_STRING ),
 	DEFINE_FIELD( CFuncTrain, m_iState, FIELD_INTEGER ),
-	DEFINE_FIELD( CFuncTrain, m_bMoving, FIELD_BOOLEAN ),
 };
 
 IMPLEMENT_SAVERESTORE( CFuncTrain, CBasePlatTrain );

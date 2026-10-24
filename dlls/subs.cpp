@@ -402,6 +402,7 @@ TYPEDESCRIPTION CBaseToggle::m_SaveData[] = {
 	DEFINE_FIELD( CBaseToggle, m_hActivator, FIELD_EHANDLE ),
 	DEFINE_FIELD( CBaseToggle, m_pfnCallWhenMoveDone, FIELD_FUNCTION ),
 	DEFINE_FIELD( CBaseToggle, m_vecFinalDest, FIELD_POSITION_VECTOR ),
+	DEFINE_FIELD( CBaseToggle, m_flLinearMoveSpeed, FIELD_FLOAT ),
 	DEFINE_FIELD( CBaseToggle, m_vecFinalAngle, FIELD_VECTOR ),
 	DEFINE_FIELD( CBaseToggle, m_sMaster, FIELD_STRING ),
 	DEFINE_FIELD( CBaseToggle, m_bitsDamageInflict, FIELD_INTEGER ),  // damage type inflicted
@@ -508,28 +509,6 @@ BOOL CBaseToggle ::IsLockedByMaster( void )
 		return TRUE;
 	else
 		return FALSE;
-}
-
-void CBaseToggle::PlaySentence( const char *pszSentence, float duration, float volume, float attenuation )
-{
-	if ( pszSentence && IsAllowedToSpeak() )
-	{
-		if ( pszSentence[0] == '!' )
-			EMIT_SOUND_DYN( edict(), CHAN_VOICE, pszSentence, volume, attenuation, 0, PITCH_NORM );
-		else
-			SENTENCEG_PlayRndSz( edict(), pszSentence, volume, attenuation, 0, PITCH_NORM );
-	}
-}
-
-void CBaseToggle::PlayScriptedSentence( const char *pszSentence, float duration, float volume, float attenuation,
-										BOOL bConcurrent, CBaseEntity *pListener )
-{
-	PlaySentence( pszSentence, duration, volume, attenuation );
-}
-
-void CBaseToggle::SentenceStop( void )
-{
-	EMIT_SOUND( edict(), CHAN_VOICE, "common/null.wav", 1.0, ATTN_IDLE );
 }
 
 /*

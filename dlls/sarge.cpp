@@ -76,9 +76,6 @@ public:
 	float	m_checkAttackTime;
 	BOOL	m_lastAttackCheck;
 
-	// UNDONE: What is this for?  It isn't used?
-	float	m_flPlayerDamage;// how much pain has the player inflicted on me?
-
 	CUSTOM_SCHEDULES;
 };
 

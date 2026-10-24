@@ -291,8 +291,8 @@ class CDoDTeamPlay : public CGameRules
 	virtual void ChangePlayerTeam( CBasePlayer *pPlayer, int iTeam, int bKill, int bGib );
 	virtual void GoToIntermission( void );
 	virtual void ChangeLevel( void );
-	BOOL IsValidTeam( char *pTeamName );
-	int GetTeamIndex( char *pTeamName );
+	BOOL IsValidTeam( const char *pTeamName );
+	int GetTeamIndex( const char *pTeamName );
 	void ReadInClassInfo( void );
 	CDoDTeamPlay( void );
 

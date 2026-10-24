@@ -3395,6 +3395,7 @@ extern int gmsgCancelProgressBar;
 
 // ---- CDoDCamera SaveData (binary SaveData[13], mirrors CTriggerCamera 13 fields) ----
 TYPEDESCRIPTION CDoDCamera::m_SaveData[] = {
+	DEFINE_FIELD( CDoDCamera, m_hPlayer, FIELD_EHANDLE ),
 	DEFINE_FIELD( CDoDCamera, m_hTarget, FIELD_EHANDLE ),
 	DEFINE_FIELD( CDoDCamera, m_pentPath, FIELD_CLASSPTR ),
 	DEFINE_FIELD( CDoDCamera, m_sPath, FIELD_STRING ),
@@ -3407,7 +3408,6 @@ TYPEDESCRIPTION CDoDCamera::m_SaveData[] = {
 	DEFINE_FIELD( CDoDCamera, m_acceleration, FIELD_FLOAT ),
 	DEFINE_FIELD( CDoDCamera, m_deceleration, FIELD_FLOAT ),
 	DEFINE_FIELD( CDoDCamera, m_state, FIELD_INTEGER ),
-	DEFINE_FIELD( CDoDCamera, m_teamBound, FIELD_INTEGER ),
 };
 IMPLEMENT_SAVERESTORE( CDoDCamera, CBaseDelay );
 

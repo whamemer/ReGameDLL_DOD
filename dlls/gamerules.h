@@ -445,8 +445,6 @@ class CSPDoDRules : public CGameRules
 	virtual void Think( void );
 	void PlayerKilled( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags );
 	void DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags );
-	virtual void PlayerKilled( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor ) {}
-	virtual void DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor ) {}
 	void PlayerDeathThink( CBasePlayer *pPlayer );
 	virtual void PlayerThink( CBasePlayer *pPlayer );
 	virtual void PlayerSpawn( CBasePlayer *pPlayer );
@@ -538,6 +536,11 @@ class CSPDoDRules : public CGameRules
 	void setWaveTime( int iTeam, float fTime );
 	float GetMaxWaveTime( int nTeam );
 	void setMapTime( void );
+	float getMapTime( void );
+	bool IsRoundFrozen( void );
+	void SetClanMatch( bool bMatchOn );
+	bool IsClanMatch( void );
+	bool IsClanMatchActive( void );
 	void SetRoundState( int iState );
 	void SetTeamScores( int iTeam, int iScore );
 	void SendTeamScores( int iTeam );
@@ -547,4 +550,27 @@ class CSPDoDRules : public CGameRules
 	int ReturnGameRules( void );
 	void Init( void );
 	void VoteKick( CBasePlayer *pPlayer, int id, bool b );
+
+  protected:
+	unsigned short m_Camera;
+	unsigned short m_usVoice;
+	unsigned short m_bodyDamage;
+	unsigned short m_roundRestartSound;
+	unsigned short m_gerVoice;
+	unsigned short m_Pain;
+	unsigned short m_Smoke;
+	unsigned short m_BloodSprite;
+	unsigned short m_Prone;
+	unsigned short m_BloodStream;
+	unsigned short m_BulletTracers;
+	unsigned short m_SparkShower;
+	unsigned short m_ScreenFades;
+	unsigned short m_BubbleTrails;
+	unsigned short m_Bubbles;
+	unsigned short m_Shards;
+	unsigned short m_Explosion;
+	unsigned short m_DeadBodies;
+	unsigned short m_PopHelmet;
+	unsigned short m_RoundReset;
+	unsigned short m_RocketTrail;
 };

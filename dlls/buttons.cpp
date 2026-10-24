@@ -1058,7 +1058,6 @@ TYPEDESCRIPTION CMomentaryRotButton::m_SaveData[] = {
 	DEFINE_FIELD( CMomentaryRotButton, m_start, FIELD_VECTOR ),
 	DEFINE_FIELD( CMomentaryRotButton, m_end, FIELD_VECTOR ),
 	DEFINE_FIELD( CMomentaryRotButton, m_sounds, FIELD_INTEGER ),
-	DEFINE_FIELD( CMomentaryRotButton, m_rrMoveDistance, FIELD_FLOAT ),
 };
 
 IMPLEMENT_SAVERESTORE( CMomentaryRotButton, CBaseToggle );
@@ -1637,8 +1636,8 @@ class CEnvState : public CPointEntity
 TYPEDESCRIPTION CEnvState::m_SaveData[] = {
 	// Binary stores the float times as FIELD_INTEGER (4-byte bit-preserving).
 	DEFINE_FIELD( CEnvState, m_fTurnOnTime, FIELD_INTEGER ),
-	DEFINE_FIELD( CEnvState, m_iOnMode, FIELD_INTEGER ),
 	DEFINE_FIELD( CEnvState, m_fTurnOffTime, FIELD_INTEGER ),
+	DEFINE_FIELD( CEnvState, m_iOnMode, FIELD_INTEGER ),
 	DEFINE_FIELD( CEnvState, m_iOffMode, FIELD_INTEGER ),
 	DEFINE_FIELD( CEnvState, m_sMaster, FIELD_STRING ),
 };

@@ -3431,6 +3431,11 @@ void CBaseMonster::DoDSetScriptReset( void )
 	*(int *) ( (char *) this + 0x39c ) = 2;
 }
 
+int CBaseMonster::Classify( void )
+{
+	return m_iClass;
+}
+
 void CBaseMonster::PlaySentence( const char *pszSentence, float duration, float volume, float attenuation )
 {
 	if ( pszSentence != NULL && IsAlive() )
@@ -3444,7 +3449,7 @@ void CBaseMonster::PlaySentence( const char *pszSentence, float duration, float 
 
 void CBaseMonster::SentenceStop( void )
 {
-	EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "common/null.wav", 1.0, ATTN_NORM, 0, 100 );
+	EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "common/null.wav", 1.0, ATTN_IDLE, 0, 100 );
 }
 
 void CBaseMonster::PlayScriptedSentence( const char *pszSentence, float duration, float volume, float attenuation, BOOL bConcurrent, CBaseEntity *pListener )

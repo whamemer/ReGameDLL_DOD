@@ -24,7 +24,7 @@ class CSaveRestoreBuffer
 public:
 	CSaveRestoreBuffer( void );
 	CSaveRestoreBuffer( SAVERESTOREDATA *pdata );
-	virtual ~CSaveRestoreBuffer( void );
+	~CSaveRestoreBuffer( void );
 
 	int			EntityIndex( entvars_t *pevLookup );
 	int			EntityIndex( edict_t *pentLookup );

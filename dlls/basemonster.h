@@ -116,7 +116,6 @@ class CBaseMonster : public CBaseToggle
 	static TYPEDESCRIPTION m_SaveData[];
 
 	void KeyValue( KeyValueData *pkvd );
-	virtual void DoDSetScriptReset( void );
 
 	// monster use function
 	void EXPORT MonsterUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -195,8 +194,10 @@ class CBaseMonster : public CBaseToggle
 	virtual void ScheduleChange( void ) {}
 	// virtual int CanPlaySequence( void ) { return ((m_pCine == NULL) && (m_MonsterState == MONSTERSTATE_NONE || m_MonsterState == MONSTERSTATE_IDLE || m_IdealMonsterState == MONSTERSTATE_IDLE)); }
 	virtual int CanPlaySequence( BOOL fDisregardState, int interruptLevel );
-	virtual int CanPlaySentence( BOOL fDisregardState ) { return IsAllowedToSpeak(); }
-	virtual BOOL IsAllowedToSpeak() { return IsAlive(); }
+	virtual int CanPlaySentence( BOOL fDisregardState ) { return IsAlive(); }
+	virtual void PlaySentence( const char *pszSentence, float duration, float volume, float attenuation );
+	virtual void PlayScriptedSentence( const char *pszSentence, float duration, float volume, float attenuation, BOOL bConcurrent, CBaseEntity *pListener );
+	virtual void SentenceStop( void );
 
 	Task_t *GetTask( void );
 	virtual MONSTERSTATE GetIdealState( void );
@@ -284,6 +285,7 @@ class CBaseMonster : public CBaseToggle
 	BOOL FBecomeProne( void );
 	virtual void BarnacleVictimBitten( entvars_t *pevBarnacle );
 	virtual void BarnacleVictimReleased( void );
+	virtual void DoDSetScriptReset( void );
 
 	void SetEyePosition( void );
 
@@ -344,6 +346,7 @@ class CBaseMonster : public CBaseToggle
 	virtual void PainSound( void ) { return; };
 
 	virtual void StopFollowing( BOOL clearSchedule ) {}
+	virtual int Classify( void );
 
 	inline void Remember( int iMemory ) { m_afMemory |= iMemory; }
 	inline void Forget( int iMemory ) { m_afMemory &= ~iMemory; }
@@ -364,9 +367,6 @@ class CBaseMonster : public CBaseToggle
 	BOOL CineCleanup();
 
 	CBaseEntity *DropItem( const char *pszItemName, const Vector &vecPos, const Vector &vecAng );	 // drop an item.
-	virtual void PlaySentence( const char *pszSentence, float duration, float volume, float attenuation );
-	virtual void SentenceStop( void );
-	virtual void PlayScriptedSentence( const char *pszSentence, float duration, float volume, float attenuation, BOOL bConcurrent, CBaseEntity *pListener );
 };
 
 // dod.so DWARF CBaseMonster layout proof (size 940).

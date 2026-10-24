@@ -45,7 +45,6 @@ class CBreakable : public CBaseDelay
 	void Precache( void );
 	void KeyValue( KeyValueData *pkvd );
 	void EXPORT BreakTouch( CBaseEntity *pOther );
-	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void EXPORT BreakUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void EXPORT ObjectDie( void );
 	void DamageSound( void );
