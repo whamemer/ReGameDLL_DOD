@@ -78,7 +78,7 @@ void CInfoAlias::Think()
 	pev->netname = pev->target;
 	pev->target = tmp;
 	if ( pev->spawnflags & SF_ALIAS_DEBUG )
-		ALERT( at_console, ": target becomes %s", STRING( pev->target ) );
+		ALERT( at_console, ": target becomes \"%s\"\n", STRING( pev->target ) );
 }
 void CInfoAlias::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {

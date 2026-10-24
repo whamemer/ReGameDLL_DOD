@@ -555,9 +555,7 @@ extern DLL_GLOBAL int g_Language;
 
 // sentence groups
 #define CBSENTENCENAME_MAX 16
-#define CVOXFILESENTENCEMAX                                                                                            \
-	2048  // max number of sentences in game. NOTE: this must match                                                    \
-		  // CVOXFILESENTENCEMAX in engine\sound.h!!!
+#define CVOXFILESENTENCEMAX 1536  // max number of sentences in game. NOTE: this must match CVOXFILESENTENCEMAX in engine/sound.h!!!
 
 extern char gszallsentencenames[CVOXFILESENTENCEMAX][CBSENTENCENAME_MAX];
 extern int gcallsentences;
