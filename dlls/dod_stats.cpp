@@ -6,6 +6,8 @@
 #include "dod_gamerules.h"
 #include "dod_stats.h"
 
+CDoDStatMgr *g_DoDStats;
+
 char StatNames[4][64] = { "Kills", "Deaths", "Hits", "Shots" };
 
 CDoDStatMgr::CDoDStatMgr( void )

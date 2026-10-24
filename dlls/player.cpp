@@ -113,42 +113,28 @@ TYPEDESCRIPTION CBasePlayer::m_playerSaveData[] = {
 int giPrecacheGrunt = 0;
 int gmsgShake = 0;
 int gmsgFade = 0;
-int gmsgSelAmmo = 0;
-int gmsgFlashlight = 0;
-int gmsgFlashBattery = 0;
 int gmsgResetHUD = 0;
 int gmsgInitHUD = 0;
-int gmsgShowGameTitle = 0;
 int gmsgCurWeapon = 0;
 int gmsgHealth = 0;
-int gmsgDamage = 0;
-int gmsgBattery = 0;
-int gmsgTrain = 0;
-int gmsgLogo = 0;
 int gmsgWeaponList = 0;
 int gmsgAmmoX = 0;
 int gmsgHudText = 0;
 int gmsgVGUIMenu = 0; // DoD VGUIMenu (dod.so BSS 0x2161c4)
 int gmsgDeathMsg = 0;
 int gmsgScoreInfo = 0;
-int gmsgTeamInfo = 0;
 int gmsgTeamScore = 0;
-int gmsgGameMode = 0;
 int gmsgMOTD = 0;
 int gmsgServerName = 0;
 int gmsgAmmoPickup = 0;
 int gmsgWeapPickup = 0;
-int gmsgItemPickup = 0;
 int gmsgHideWeapon = 0;
 int gmsgSetCurWeap = 0;
 int gmsgSayText = 0;
 int gmsgTextMsg = 0;
 int gmsgSetFOV = 0;
 int gmsgShowMenu = 0;
-int gmsgGeigerRange = 0;
-int gmsgTeamNames = 0;
 
-int gmsgStatusText = 0;
 int gmsgStatusValue = 0;
 int gmsgScope = 0;
 int gmsgFrags = 0;
@@ -2401,18 +2387,6 @@ Play suit update if it's time
 #define SUITFIRSTUPDATETIME 0.1
 
 
-// add sentence to suit playlist queue. if fgroup is true, then
-// name is a sentence group (HEV_AA), otherwise name is a specific
-// sentence name ie: !HEV_AA0.  If iNoRepeat is specified in
-// seconds, then we won't repeat playback of this word or sentence
-// for at least that number of seconds.
-
-// DoD: CBasePlayer::SetSuitUpdate has no symbol in dod.so (suit system removed).
-// Kept as an empty stub because items.cpp still calls it during the restore.
-void CBasePlayer::SetSuitUpdate( const char *name, int fgroup, int iNoRepeatTime )
-{
-}
-
 /*
 ================
 CheckPowerups
@@ -3479,170 +3453,6 @@ void CBasePlayer::ImpulseCommands()
 	}
 
 	pev->impulse = 0;
-}
-
-//=========================================================
-//=========================================================
-void CBasePlayer::CheatImpulseCommands( int iImpulse )
-{
-#if !defined( HLDEMO_BUILD )
-	if ( CVAR_GET_FLOAT( "sv_cheats" ) == 0.0 )
-	{
-		return;
-	}
-
-	CBaseEntity *pEntity;
-	TraceResult tr;
-
-	switch ( iImpulse )
-	{
-	case 76:
-	{
-		if ( !giPrecacheGrunt )
-		{
-			giPrecacheGrunt = 1;
-			ALERT( at_console, "You must now restart to use Grunt-o-matic.\n" );
-		}
-		else
-		{
-			UTIL_MakeVectors( Vector( 0, pev->v_angle.y, 0 ) );
-			Create( "monster_human_grunt", pev->origin + gpGlobals->v_forward * 128, pev->angles );
-		}
-		break;
-	}
-
-	case 101:
-		gEvilImpulse101 = TRUE;
-		GiveNamedItem( "item_suit" );
-		GiveNamedItem( "item_battery" );
-		GiveNamedItem( "weapon_crowbar" );
-		GiveNamedItem( "weapon_9mmhandgun" );
-		GiveNamedItem( "ammo_9mmclip" );
-		GiveNamedItem( "weapon_shotgun" );
-		GiveNamedItem( "ammo_buckshot" );
-		GiveNamedItem( "weapon_9mmAR" );
-		GiveNamedItem( "ammo_9mmAR" );
-		GiveNamedItem( "ammo_ARgrenades" );
-		GiveNamedItem( "weapon_handgrenade" );
-		GiveNamedItem( "weapon_tripmine" );
-#ifndef OEM_BUILD
-		GiveNamedItem( "weapon_357" );
-		GiveNamedItem( "ammo_357" );
-		GiveNamedItem( "weapon_crossbow" );
-		GiveNamedItem( "ammo_crossbow" );
-		GiveNamedItem( "weapon_egon" );
-		GiveNamedItem( "weapon_gauss" );
-		GiveNamedItem( "ammo_gaussclip" );
-		GiveNamedItem( "weapon_rpg" );
-		GiveNamedItem( "ammo_rpgclip" );
-		GiveNamedItem( "weapon_satchel" );
-		GiveNamedItem( "weapon_snark" );
-		GiveNamedItem( "weapon_hornetgun" );
-#endif
-		gEvilImpulse101 = FALSE;
-		break;
-
-	case 102:
-		// Gibbage!!!
-		CGib::SpawnRandomGibs( pev, 1, 1 );
-		break;
-
-	case 103:
-		// What the hell are you doing?
-		pEntity = FindEntityForward( this );
-		if ( pEntity )
-		{
-			CBaseMonster *pMonster = pEntity->MyMonsterPointer();
-			if ( pMonster )
-				pMonster->ReportAIState();
-		}
-		break;
-
-	case 104:
-		// Dump all of the global state varaibles (and global entity names)
-		gGlobalState.DumpGlobals();
-		break;
-
-	case 106:
-		// Give me the classname and targetname of this entity.
-		pEntity = FindEntityForward( this );
-		if ( pEntity )
-		{
-			ALERT( at_console, "Classname: %s", STRING( pEntity->pev->classname ) );
-
-			if ( !FStringNull( pEntity->pev->targetname ) )
-			{
-				ALERT( at_console, " - Targetname: %s\n", STRING( pEntity->pev->targetname ) );
-			}
-			else
-			{
-				ALERT( at_console, " - TargetName: No Targetname\n" );
-			}
-
-			ALERT( at_console, "Model: %s\n", STRING( pEntity->pev->model ) );
-			if ( pEntity->pev->globalname )
-				ALERT( at_console, "Globalname: %s\n", STRING( pEntity->pev->globalname ) );
-		}
-		break;
-
-	case 107:
-	{
-		TraceResult tr;
-
-		edict_t *pWorld = g_engfuncs.pfnPEntityOfEntIndex( 0 );
-
-		Vector start = pev->origin + pev->view_ofs;
-		Vector end = start + gpGlobals->v_forward * 1024;
-		UTIL_TraceLine( start, end, ignore_monsters, edict(), &tr );
-		if ( tr.pHit )
-			pWorld = tr.pHit;
-		const char *pTextureName = TRACE_TEXTURE( pWorld, start, end );
-		if ( pTextureName )
-			ALERT( at_console, "Texture: %s\n", pTextureName );
-	}
-	break;
-	case 195:  // show shortest paths for entire level to nearest node
-	{
-		Create( "node_viewer_fly", pev->origin, pev->angles );
-	}
-	break;
-	case 196:  // show shortest paths for entire level to nearest node
-	{
-		Create( "node_viewer_large", pev->origin, pev->angles );
-	}
-	break;
-	case 197:  // show shortest paths for entire level to nearest node
-	{
-		Create( "node_viewer_human", pev->origin, pev->angles );
-	}
-	break;
-	case 199:  // show nearest node and all connections
-	{
-		ALERT( at_console, "%d\n", WorldGraph.FindNearestNode( pev->origin, bits_NODE_GROUP_REALM ) );
-		WorldGraph.ShowNodeConnections( WorldGraph.FindNearestNode( pev->origin, bits_NODE_GROUP_REALM ) );
-	}
-	break;
-	case 202:  // Random blood splatter
-		UTIL_MakeVectors( pev->v_angle );
-		UTIL_TraceLine( pev->origin + pev->view_ofs, pev->origin + pev->view_ofs + gpGlobals->v_forward * 128,
-						ignore_monsters, ENT( pev ), &tr );
-
-		if ( tr.flFraction != 1.0 )
-		{  // line hit something, so paint a decal
-			CBloodSplat *pBlood = GetClassPtr( (CBloodSplat *) NULL );
-			pBlood->Spawn( pev );
-		}
-		break;
-	case 203:  // remove creature.
-		pEntity = FindEntityForward( this );
-		if ( pEntity )
-		{
-			if ( pEntity->pev->takedamage )
-				pEntity->SetThink( &CBaseEntity::SUB_Remove );
-		}
-		break;
-	}
-#endif	// HLDEMO_BUILD
 }
 
 //
@@ -5683,17 +5493,6 @@ void UTIL_EdictScreenFadeWrite( const ScreenFade &fade, edict_t *pEntity )
 	WRITE_BYTE( fade.b );
 	WRITE_BYTE( fade.a );
 	MESSAGE_END();
-}
-
-// No standalone symbols in dod.so (inlined at call sites). Used by objectives/maprules.
-BOOL CBasePlayer::HasObjectOfGroup( const char *grp )
-{
-	return ( m_pObject != NULL && grp != NULL && FStrEq( m_pObject->sz_Group, grp ) ) ? TRUE : FALSE;
-}
-
-BOOL CBasePlayer::IsCarryingObject( void )
-{
-	return m_pObject != NULL;
 }
 
 float GetPlayerGaitYaw( const edict_t *pEdict )

@@ -12,9 +12,6 @@
 *   without written permission from Valve LLC.
 *
 ****/
-// Robin, 4-22-98: Moved set_suicide_frame() here from player.cpp to allow us to
-//				   have one without a hardcoded player.mdl in tf_client.cpp
-
 /*
 
 ===== client.cpp ========================================================
@@ -55,8 +52,6 @@ extern int giPrecacheGrunt;
 extern int gmsgSayText;
 extern int gmsgVGUIMenu;
 
-extern cvar_t allow_spectators;
-
 extern int g_teamplay;
 
 extern cvar_t cvar_timelimit;
@@ -86,22 +81,6 @@ int get_maptime_left( void )
 		return 0;
 
 	return iTimeLeft;
-}
-
-/*
- * used by kill command and disconnect command
- * ROBIN: Moved here from player.cpp, to allow multiple player models
- */
-void set_suicide_frame( entvars_t *pev )
-{
-	if ( !FStrEq( STRING( pev->model ), "models/player.mdl" ) )
-		return;	 // allready gibbed
-
-	//	pev->frame		= $deatha11;
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_TOSS;
-	pev->deadflag = DEAD_DEAD;
-	pev->nextthink = -1;
 }
 
 /*
@@ -257,118 +236,6 @@ void ClientPutInServer( edict_t *pEntity )
 
 #include "voice_gamemgr.h"
 extern CVoiceGameMgr g_VoiceGameMgr;
-
-#if defined( _MSC_VER ) || defined( WIN32 )
-typedef wchar_t uchar16;
-typedef unsigned int uchar32;
-#else
-typedef unsigned short uchar16;
-typedef wchar_t uchar32;
-#endif
-
-//-----------------------------------------------------------------------------
-// Purpose: determine if a uchar32 represents a valid Unicode code point
-//-----------------------------------------------------------------------------
-bool Q_IsValidUChar32( uchar32 uVal )
-{
-	// Values > 0x10FFFF are explicitly invalid; ditto for UTF-16 surrogate halves,
-	// values ending in FFFE or FFFF, or values in the 0x00FDD0-0x00FDEF reserved range
-	return ( uVal < 0x110000u ) && ( ( uVal - 0x00D800u ) > 0x7FFu ) && ( ( uVal & 0xFFFFu ) < 0xFFFEu ) &&
-		   ( ( uVal - 0x00FDD0u ) > 0x1Fu );
-}
-
-// Decode one character from a UTF-8 encoded string. Treats 6-byte CESU-8 sequences
-// as a single character, as if they were a correctly-encoded 4-byte UTF-8 sequence.
-int Q_UTF8ToUChar32( const char *pUTF8_, uchar32 &uValueOut, bool &bErrorOut )
-{
-	const uint8 *pUTF8 = (const uint8 *) pUTF8_;
-
-	int nBytes = 1;
-	uint32 uValue = pUTF8[0];
-	uint32 uMinValue = 0;
-
-	// 0....... single byte
-	if ( uValue < 0x80 )
-		goto decodeFinishedNoCheck;
-
-	// Expecting at least a two-byte sequence with 0xC0 <= first <= 0xF7 (110...... and 11110...)
-	if ( ( uValue - 0xC0u ) > 0x37u || ( pUTF8[1] & 0xC0 ) != 0x80 )
-		goto decodeError;
-
-	uValue = ( uValue << 6 ) - ( 0xC0 << 6 ) + pUTF8[1] - 0x80;
-	nBytes = 2;
-	uMinValue = 0x80;
-
-	// 110..... two-byte lead byte
-	if ( !( uValue & ( 0x20 << 6 ) ) )
-		goto decodeFinished;
-
-	// Expecting at least a three-byte sequence
-	if ( ( pUTF8[2] & 0xC0 ) != 0x80 )
-		goto decodeError;
-
-	uValue = ( uValue << 6 ) - ( 0x20 << 12 ) + pUTF8[2] - 0x80;
-	nBytes = 3;
-	uMinValue = 0x800;
-
-	// 1110.... three-byte lead byte
-	if ( !( uValue & ( 0x10 << 12 ) ) )
-		goto decodeFinishedMaybeCESU8;
-
-	// Expecting a four-byte sequence, longest permissible in UTF-8
-	if ( ( pUTF8[3] & 0xC0 ) != 0x80 )
-		goto decodeError;
-
-	uValue = ( uValue << 6 ) - ( 0x10 << 18 ) + pUTF8[3] - 0x80;
-	nBytes = 4;
-	uMinValue = 0x10000;
-
-	// 11110... four-byte lead byte. fall through to finished.
-
-decodeFinished:
-	if ( uValue >= uMinValue && Q_IsValidUChar32( uValue ) )
-	{
-	decodeFinishedNoCheck:
-		uValueOut = uValue;
-		bErrorOut = false;
-		return nBytes;
-	}
-decodeError:
-	uValueOut = '?';
-	bErrorOut = true;
-	return nBytes;
-
-decodeFinishedMaybeCESU8:
-	// Do we have a full UTF-16 surrogate pair that's been UTF-8 encoded afterwards?
-	// That is, do we have 0xD800-0xDBFF followed by 0xDC00-0xDFFF? If so, decode it all.
-	if ( ( uValue - 0xD800u ) < 0x400u && pUTF8[3] == 0xED && (uint8) ( pUTF8[4] - 0xB0 ) < 0x10 &&
-		 ( pUTF8[5] & 0xC0 ) == 0x80 )
-	{
-		uValue = 0x10000 + ( ( uValue - 0xD800u ) << 10 ) + ( (uint8) ( pUTF8[4] - 0xB0 ) << 6 ) + pUTF8[5] - 0x80;
-		nBytes = 6;
-		uMinValue = 0x10000;
-	}
-	goto decodeFinished;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Returns true if UTF-8 string contains invalid sequences.
-//-----------------------------------------------------------------------------
-bool Q_UnicodeValidate( const char *pUTF8 )
-{
-	bool bError = false;
-	while ( *pUTF8 )
-	{
-		uchar32 uVal;
-		// Our UTF-8 decoder silently fixes up 6-byte CESU-8 (improperly re-encoded UTF-16) sequences.
-		// However, these are technically not valid UTF-8. So if we eat 6 bytes at once, it's an error.
-		int nCharSize = Q_UTF8ToUChar32( pUTF8, uVal, bError );
-		if ( bError || nCharSize == 6 )
-			return false;
-		pUTF8 += nCharSize;
-	}
-	return true;
-}
 
 //// HOST_SAY
 // String comes in as
@@ -905,57 +772,11 @@ void StartFrame( void )
 	g_ulFrameCount++;
 }
 
-static const char *s_USVoiceFiles[] = {
-	"",
-	"player/usattack.wav", "player/ushold.wav", "player/usfallback.wav", "player/usflankleft.wav",
-	"player/usflankright.wav", "player/ussticktogether.wav", "player/uscover.wav", "player/ususegrenades.wav",
-	"player/usceasefire.wav", "player/usyessir.wav", "player/usnegative.wav", "player/usbackup.wav",
-	"player/usfireinhole.wav", "player/usgrenade.wav", "player/ussniper.wav", "player/ustakingfireleft.wav",
-	"player/ustakingfireright.wav", "player/usareaclear.wav", "player/usgogogo.wav", "player/usdisplace.wav",
-	"player/usenemyahead.wav", "player/usbehindus.wav", "player/usmgahead.wav", "player/usmoveupmg.wav",
-	"player/usneedammo.wav", "player/ususebazooka.wav", "player/uspanzerschreck.wav",
-};
-
-static const char *s_BRITVoiceFiles[] = {
-	"",
-	"player/britattack.wav", "player/brithold.wav", "player/britfallback.wav", "player/britflankleft.wav",
-	"player/britflankright.wav", "player/britsticktogether.wav", "player/britcover.wav", "player/britusegrenades.wav",
-	"player/britceasefire.wav", "player/brityessir.wav", "player/britnegative.wav", "player/britbackup.wav",
-	"player/britfireinhole.wav", "player/britgrenade.wav", "player/britsniper.wav", "player/brittakingfireleft.wav",
-	"player/brittakingfireright.wav", "player/britareaclear.wav", "player/britgogogo.wav", "player/britdisplace.wav",
-	"player/britenemyahead.wav", "player/britbehindus.wav", "player/britmgahead.wav", "player/britmoveupmg.wav",
-	"player/britneedammo.wav", "player/britusepiat.wav", "player/britpanzerschreck.wav",
-};
-
-static const char *s_GERVoiceFiles[] = {
-	"",
-	"player/gerattack.wav", "player/gerhold.wav", "player/gerfallback.wav", "player/gerflankleft.wav",
-	"player/gerflankright.wav", "player/gersticktogether.wav", "player/gercover.wav", "player/gerusegrenades.wav",
-	"player/gerceasefire.wav", "player/geryessir.wav", "player/gernegative.wav", "player/gerbackup.wav",
-	"player/gerfireinhole.wav", "player/gergrenade.wav", "player/gersniper.wav", "player/gertakingfireleft.wav",
-	"player/gertakingfireright.wav", "player/gerareaclear.wav", "player/gergogogo.wav", "player/gerdisplace.wav",
-	"player/gerenemyahead.wav", "player/gerbehindus.wav", "player/germgahead.wav", "player/germoveupmg.wav",
-	"player/gerneedammo.wav", "player/gerusepanzerschreck.wav", "player/gerbazooka.wav", "player/gerpiat.wav",
-};
-
-static const char *sPlayerModelFiles[] = {
-	"models/player.mdl",
-	"models/player/us-inf/us-inf.mdl",
-	"models/player/axis-inf/axis-inf.mdl",
-	"models/player/us-para/us-para.mdl",
-	"models/player/axis-para/axis-para.mdl",
-	"models/player/brit-inf/brit-inf.mdl",
-};
-
-static const char *sHelmetModels[] = {
-	"models/helmet_us.mdl",
-	"models/helmet_axis.mdl",
-	"models/hat_axis.mdl",
-	"models/helmet_brit.mdl",
-	"models/helmet_allie_para.mdl",
-	"models/helmet_allie_para_med.mdl",
-	"models/helmet_axis_para.mdl",
-};
+extern char *sPlayerModelFiles[];
+extern char *s_USVoiceFiles[];
+extern char *s_GERVoiceFiles[];
+extern char *s_BRITVoiceFiles[];
+extern char *sHelmetModels[];
 
 void ClientPrecache( void )
 {
@@ -1421,7 +1242,7 @@ struct PLAYERPVSSTATUS
 };
 
 static PLAYERPVSSTATUS g_PVSStatus[32];
-static float g_flPVSUpdateTime = 1.0f;  // .rodata 0x0018f3b4
+static const float g_flPVSUpdateTime = 1.0f;  // .rodata 0x0018f3b4
 
 void ResetPlayerPVS( edict_t *client, int clientnum )
 {

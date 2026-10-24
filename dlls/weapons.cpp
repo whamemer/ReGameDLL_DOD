@@ -41,7 +41,6 @@ DLL_GLOBAL const char *g_pModelNameLaser = "sprites/laserbeam.spr";
 DLL_GLOBAL short g_sModelIndexLaserDot;	   // holds the index for the laser beam dot
 DLL_GLOBAL short g_sModelIndexFireball;	   // holds the index for the fireball
 DLL_GLOBAL short g_sModelIndexSmoke;	   // holds the index for the smoke cloud
-DLL_GLOBAL short g_sModelIndexWExplosion;  // holds the index for the underwater explosion
 DLL_GLOBAL short g_sModelIndexBubbles;	   // holds the index for the bubbles model
 DLL_GLOBAL short g_sModelIndexBloodDrop;   // holds the sprite index for the initial blood
 DLL_GLOBAL short g_sModelIndexBloodSpray;  // holds the sprite index for splattered blood
@@ -496,6 +495,8 @@ void CBasePlayerItem::AttemptToMaterialize( void )
 
 	pev->nextthink = UTIL_WeaponTimeBase() + time;
 }
+
+char *szRespawnWeapons[3] = { "weapon_bazooka", "weapon_pschreck", "weapon_piat" };
 
 //=========================================================
 // CheckRespawn - a player is taking this weapon, should

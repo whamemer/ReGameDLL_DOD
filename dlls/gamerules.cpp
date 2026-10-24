@@ -35,7 +35,6 @@ extern int gmsgDeathMsg;  // client dll messages
 extern int gmsgMOTD;
 
 int g_teamplay = 0;
-extern cvar_t sv_busters;
 
 //=========================================================
 //=========================================================

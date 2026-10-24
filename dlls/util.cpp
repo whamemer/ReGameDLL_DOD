@@ -1144,19 +1144,28 @@ BOOL UTIL_IsMasterTriggered( string_t sMaster, CBaseEntity *pActivator )
 	return TRUE;
 }
 
+static cvar_t *violence_hblood = NULL;
+static cvar_t *violence_ablood = NULL;
+
 BOOL UTIL_ShouldShowBlood( int color )
 {
 	if ( color != DONT_BLEED )
 	{
 		if ( color == BLOOD_COLOR_RED )
 		{
-			if ( CVAR_GET_FLOAT( "violence_hblood" ) != 0 )
-				return TRUE;
+			if ( !violence_hblood )
+				violence_hblood = CVAR_GET_POINTER( "violence_hblood" );
+
+			if ( violence_hblood )
+				return violence_hblood->value != 0;
 		}
 		else
 		{
-			if ( CVAR_GET_FLOAT( "violence_ablood" ) != 0 )
-				return TRUE;
+			if ( !violence_ablood )
+				violence_ablood = CVAR_GET_POINTER( "violence_ablood" );
+
+			if ( violence_ablood )
+				return violence_ablood->value != 0;
 		}
 	}
 	return FALSE;

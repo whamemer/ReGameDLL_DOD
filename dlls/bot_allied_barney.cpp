@@ -162,7 +162,7 @@ Schedule_t	slAlBaFaceTarget[] =
 };
 
 
-static Task_t	tlIdleBaStand[] =
+Task_t	tlIdleAlBaStand[] =
 {
 	{ TASK_STOP_MOVING,			0				},
 	{ TASK_SET_ACTIVITY,		(float)ACT_IDLE },
@@ -170,11 +170,11 @@ static Task_t	tlIdleBaStand[] =
 	{ TASK_TLK_HEADRESET,		(float)0		}, // reset head position
 };
 
-static Schedule_t	slIdleBaStand[] =
+Schedule_t	slIdleAlBaStand[] =
 {
 	{ 
-		tlIdleBaStand,
-		ARRAYSIZE ( tlIdleBaStand ), 
+		tlIdleAlBaStand,
+		ARRAYSIZE ( tlIdleAlBaStand ), 
 		bits_COND_NEW_ENEMY		|
 		bits_COND_LIGHT_DAMAGE	|
 		bits_COND_HEAVY_DAMAGE	|
@@ -199,7 +199,7 @@ DEFINE_CUSTOM_SCHEDULES( CAlliedBarney )
 	slAlBaFollow,
 	slAlBarneyEnemyDraw,
 	slAlBaFaceTarget,
-	slIdleBaStand,
+	slIdleAlBaStand,
 };
 
 
@@ -662,7 +662,7 @@ Schedule_t* CAlliedBarney :: GetScheduleOfType ( int Type )
 		if (psched == slIdleStand)
 		{
 			// just look straight ahead.
-			return slIdleBaStand;
+			return slIdleAlBaStand;
 		}
 		else
 			return psched;	

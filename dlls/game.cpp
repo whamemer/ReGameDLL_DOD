@@ -17,40 +17,13 @@
 #include "util.h"
 #include "game.h"
 
-cvar_t displaysoundlist = { "displaysoundlist", "0" };
-
-// multiplayer server rules
-cvar_t fragsleft = { "mp_fragsleft", "0",
-					 FCVAR_SERVER | FCVAR_UNLOGGED };  // Don't spam console/log files/users with this changing
-cvar_t timeleft = { "mp_timeleft", "0", FCVAR_SERVER | FCVAR_UNLOGGED };  // "      "
-
-// multiplayer server rules
-cvar_t teamplay = { "mp_teamplay", "0", FCVAR_SERVER };
-cvar_t fraglimit = { "mp_fraglimit", "0", FCVAR_SERVER };
-cvar_t timelimit = { "mp_timelimit", "0", FCVAR_SERVER };
-cvar_t friendlyfire = { "mp_friendlyfire", "0", FCVAR_SERVER };
-cvar_t falldamage = { "mp_falldamage", "0", FCVAR_SERVER };
-cvar_t weaponstay = { "mp_weaponstay", "0", FCVAR_SERVER };
-cvar_t forcerespawn = { "mp_forcerespawn", "1", FCVAR_SERVER };
-cvar_t flashlight = { "mp_flashlight", "0", FCVAR_SERVER };
-cvar_t aimcrosshair = { "mp_autocrosshair", "1", FCVAR_SERVER };
-cvar_t teamlist = { "mp_teamlist", "hgrunt;scientist", FCVAR_SERVER };
-cvar_t teamoverride = { "mp_teamoverride", "1" };
-cvar_t defaultteam = { "mp_defaultteam", "0" };
-cvar_t allowmonsters = { "mp_allowmonsters", "0", FCVAR_SERVER };
-
 cvar_t cvar_fadetoblack = { "mp_fadetoblack", "0", FCVAR_SERVER };
-cvar_t cvar_forcechasecam = { "mp_forcechasecam", "1", FCVAR_SERVER }; // DoD binary: 1 (was HL 0)
-cvar_t cvar_forcecamera = { "mp_forcecamera", "1", FCVAR_SERVER }; // DoD binary: 1 (was HL 0)
-
-cvar_t allow_spectators = { "allow_spectators", "0.0", FCVAR_SERVER };	// 0 prevents players from being spectators
-
-cvar_t mp_chattime = { "mp_chattime", "10", FCVAR_SERVER };
+cvar_t cvar_forcechasecam = { "mp_forcechasecam", "1", FCVAR_SERVER };
+cvar_t cvar_forcecamera = { "mp_forcecamera", "1", FCVAR_SERVER };
 
 // Engine Cvars
 cvar_t *g_psv_gravity = NULL;
 cvar_t *g_psv_aim = NULL;
-cvar_t *g_psv_allow_autoaim = NULL;
 cvar_t *g_footsteps = NULL;
 
 //CVARS FOR SKILL LEVEL SETTINGS
@@ -428,10 +401,6 @@ cvar_t sk_player_leg2 = { "sk_player_leg2", "1" };
 cvar_t sk_player_leg3 = { "sk_player_leg3", "1" };
 
 // END Cvars for Skill Level settings
-
-cvar_t sv_pushable_fixed_tick_fudge = { "sv_pushable_fixed_tick_fudge", "15" };
-
-cvar_t sv_busters = { "sv_busters", "0" };
 
 // DoD 69 cvars - PORTED from dod.so GameDLLInit link 0x0f3800 Ghidra 0x103800 size 0x1070 (dod/dlls/game.cpp:516)
 // Order below is binary registration order; defs in .data order. Defaults/flags via objdump/nm.

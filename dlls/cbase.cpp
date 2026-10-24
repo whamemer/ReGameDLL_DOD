@@ -125,8 +125,7 @@ int ShouldCollide( edict_t *pentTouched, edict_t *pentOther )
 	return 1;
 }
 
-// the engine headers declare this extern (non-static); keep in sync, ours to define.
-NEW_DLL_FUNCTIONS gNewDLLFunctions = {
+static NEW_DLL_FUNCTIONS gNewFunctionTable = {
 	OnFreeEntPrivateData, GameShutdown, ShouldCollide, NULL, NULL,
 };
 
@@ -165,11 +164,7 @@ extern "C"
 			return FALSE;
 		}
 
-		pFunctionTable->pfnOnFreeEntPrivateData = gNewDLLFunctions.pfnOnFreeEntPrivateData;
-		pFunctionTable->pfnGameShutdown = gNewDLLFunctions.pfnGameShutdown;
-		pFunctionTable->pfnShouldCollide = gNewDLLFunctions.pfnShouldCollide;
-		pFunctionTable->pfnCvarValue = gNewDLLFunctions.pfnCvarValue;
-		pFunctionTable->pfnCvarValue2 = gNewDLLFunctions.pfnCvarValue2;
+		*pFunctionTable = gNewFunctionTable;
 		return TRUE;
 	}
 }

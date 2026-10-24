@@ -3094,7 +3094,7 @@ bool CMultiplayGameMgrHelper::CanPlayerHearPlayer( CBasePlayer *pListener, CBase
 	return true;
 }
 
-CMultiplayGameMgrHelper g_GameMgrHelper;
+static CMultiplayGameMgrHelper g_GameMgrHelper;
 void CDoDTeamPlay::AddToTeamScores( int iTeam, int iScore )
 {
 	if ( ( !IsClanMatch() || IsClanMatchActive() ) && m_RoundDoesCount == TRUE )

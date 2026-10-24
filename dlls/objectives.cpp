@@ -167,7 +167,7 @@ void CObject::ObjectTouch( CBaseEntity *pOther )
 		return;
 	if ( !pOther->IsPlayer() )
 		return;
-	if ( ( (CBasePlayer *) pOther )->IsCarryingObject() )
+	if ( ( (CBasePlayer *) pOther )->m_pObject )
 		return;
 	int taker = 0;
 	BOOL any = FALSE;

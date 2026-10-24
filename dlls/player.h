@@ -356,7 +356,6 @@ class CBasePlayer : public CBaseMonster
 	void UpdatePlayerSound( void );
 	virtual void DeathSound( void );
 	virtual void ImpulseCommands( void );
-	void CheatImpulseCommands( int iImpulse );
 	void EnableControl( BOOL fControl );
 	void PlayerUse( void );
 	void EXPORT PlayerDeathThink( void );
@@ -369,8 +368,6 @@ class CBasePlayer : public CBaseMonster
 	bool ShouldGunLower();
 	void AddObjectIcon( char *szIconName );
 	void RemoveObjectIcon();
-	BOOL HasObjectOfGroup( const char *grp );
-	BOOL IsCarryingObject( void );
 	bool PlayerHasExplodingGrenades();
 	BOOL FlashlightIsOn( void );
 	void FlashlightTurnOn( void );
@@ -400,7 +397,6 @@ class CBasePlayer : public CBaseMonster
 	virtual void AddPointsToTeam( int score, BOOL bAllowNegativeScore );
 	bool HintMessage( const char *pMessage, BOOL bOverride );
 	// No symbol in dod.so (suit system removed); kept because items.cpp still calls it.
-	void SetSuitUpdate( const char *name, int fgroup, int iNoRepeat );
 	void SetPrefsFromUserinfo( char *infobuffer );
 	void StudioEstimateGait( void );
 	void StudioPlayerBlend( int *pBlend, float *pflBlend );

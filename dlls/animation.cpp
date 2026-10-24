@@ -549,16 +549,17 @@ int GetBodygroup( void *pmodel, entvars_t *pev, int iGroup )
 #define Q_strcmp strcmp
 #define Q_memcpy memcpy
 #endif
-#ifndef ANIM_FIRST_DEATH_SEQUENCE
-#define ANIM_FIRST_DEATH_SEQUENCE 99999
-#define ANIM_SWIM_1 (-1)
-#define ANIM_SWIM_2 (-2)
-#endif
+// the sequences of the player models: the legs of these follow the gait animation of the player
+#define ANIM_FIRST_DEATH_SEQUENCE 19
+#define ANIM_LAST_DEATH_SEQUENCE 24
+#define ANIM_SWIM_1 7
+#define ANIM_SWIM_2 8
+#define ANIM_FIRST_SINGLE_GAIT_SEQUENCE 239
+#define ANIM_LAST_SINGLE_GAIT_SEQUENCE 286
 float GetPlayerYaw( const edict_t *pEdict );
-float GetPlayerPitch( const edict_t *pEdict );
+float GetPlayerPitchBlend( const edict_t *pEdict );
+float GetPlayerGaitYaw( const edict_t *pEdict );
 int GetPlayerGaitsequence( const edict_t *pEdict );
-inline float UTIL_GetPlayerGaitYaw( int ) { return 0.0f; }
-static inline int ENTINDEX( edict_t *pEdict ) { return ( *g_engfuncs.pfnIndexOfEdict )( pEdict ); }
 #ifndef Q_abs
 #define Q_abs fabs
 #endif
@@ -659,6 +660,8 @@ void AngleQuaternion(vec_t *angles, vec_t *quaternion)
 	quaternion[3] = sp_ * sr * sy + ftmp2 * cy;
 }
 
+float omega, cosom, sinom, sclp, sclq;
+
 void QuaternionSlerp(vec_t *p, vec_t *q, float t, vec_t *qt)
 {
 	int i;
@@ -677,17 +680,14 @@ void QuaternionSlerp(vec_t *p, vec_t *q, float t, vec_t *qt)
 			q[i] = -q[i];
 	}
 
-	float sclp, sclq;
-	float cosom = (p[0] * q[0] + p[1] * q[1] + p[2] * q[2] + p[3] * q[3]);
+	cosom = (p[0] * q[0] + p[1] * q[1] + p[2] * q[2] + p[3] * q[3]);
 
 	if ((1.0 + cosom) > 0.000001)
 	{
 		if ((1.0 - cosom) > 0.000001)
 		{
-			float cosomega = Q_acos(float(cosom));
-
-			float omega = cosomega;
-			float sinom = Q_sin(cosomega);
+			omega = Q_acos(float(cosom));
+			sinom = Q_sin(omega);
 
 			sclp = Q_sin((1.0f - t) * omega) / sinom;
 			sclq = Q_sin(float(omega * t)) / sinom;
@@ -1100,7 +1100,7 @@ void SV_StudioSetupBones(model_t *pModel, float frame, int sequence, const vec_t
 
 		float s, t;
 		s = GetPlayerYaw(pEdict);
-		t = GetPlayerPitch(pEdict);
+		t = GetPlayerPitchBlend(pEdict);
 
 		// Blending is 0-127 == Left to Middle, 128 to 255 == Middle to right
 		if (s <= 127.0f)
@@ -1189,7 +1189,9 @@ void SV_StudioSetupBones(model_t *pModel, float frame, int sequence, const vec_t
 		StudioSlerpBones(q, pos, q3, pos3, t);
 	}
 
-	if (pseqdesc->numblends == 9 && sequence < ANIM_FIRST_DEATH_SEQUENCE && sequence != ANIM_SWIM_1 && sequence != ANIM_SWIM_2)
+	if ((pseqdesc->numblends == NUM_BLENDING && !(sequence >= ANIM_FIRST_DEATH_SEQUENCE && sequence <= ANIM_LAST_DEATH_SEQUENCE) &&
+		 sequence != ANIM_SWIM_1 && sequence != ANIM_SWIM_2) ||
+		(pseqdesc->numblends == 1 && sequence >= ANIM_FIRST_SINGLE_GAIT_SEQUENCE && sequence <= ANIM_LAST_SINGLE_GAIT_SEQUENCE))
 	{
 		bool bCopy = true;
 		int gaitsequence = GetPlayerGaitsequence(pEdict);	// calc gait animation
@@ -1224,10 +1226,11 @@ void SV_StudioSetupBones(model_t *pModel, float frame, int sequence, const vec_t
 
 	if (pEdict)
 	{
-		temp_angles[1] = UTIL_GetPlayerGaitYaw(ENTINDEX((edict_t *)pEdict));
-
-		if (temp_angles[1] < 0)
-			temp_angles[1] += 360.0f;
+		if (!stricmp("player", gpGlobals->pStringBase + pEdict->v.classname))
+		{
+			temp_angles[0] = 0;
+			temp_angles[1] = GetPlayerGaitYaw(pEdict);
+		}
 	}
 
 	AngleMatrix(temp_angles, (*g_pRotationMatrix));
@@ -1274,9 +1277,11 @@ void DrawBox( float ( *p )[3], byte r, byte g, byte b )
 	DrawLine( p[3], p[2], r, g, b );
 }
 
+static float zero[3];
+
 void DrawLine( float *start, float *end, byte r, byte g, byte b )
 {
-	MESSAGE_BEGIN( MSG_ALL, SVC_TEMPENTITY );
+	MESSAGE_BEGIN( MSG_ALL, SVC_TEMPENTITY, zero );
 		WRITE_BYTE( TE_LINE );
 		WRITE_COORD( start[0] );
 		WRITE_COORD( start[1] );

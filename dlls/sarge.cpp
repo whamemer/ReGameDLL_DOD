@@ -161,7 +161,7 @@ Schedule_t	slBaFaceTarget[] =
 };
 
 
-static Task_t	tlIdleBaStand[] =
+Task_t	tlIdleBaStand[] =
 {
 	{ TASK_STOP_MOVING,			0				},
 	{ TASK_SET_ACTIVITY,		(float)ACT_IDLE },
@@ -169,7 +169,7 @@ static Task_t	tlIdleBaStand[] =
 	{ TASK_TLK_HEADRESET,		(float)0		}, // reset head position
 };
 
-static Schedule_t	slIdleBaStand[] =
+Schedule_t	slIdleBaStand[] =
 {
 	{ 
 		tlIdleBaStand,

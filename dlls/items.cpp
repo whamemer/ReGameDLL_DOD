@@ -29,7 +29,6 @@
 #include "items.h"
 #include "gamerules.h"
 
-extern int gmsgItemPickup;
 
 class CWorldItem : public CBaseEntity
 {
