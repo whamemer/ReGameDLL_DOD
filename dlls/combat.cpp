@@ -1063,24 +1063,27 @@ void CBaseEntity::FireBullets( ULONG cShots, Vector vecSrc, Vector vecDirShootin
 				vecTracerSrc = vecSrc + Vector( 0, 0, -4 ) + gpGlobals->v_right * 2 + gpGlobals->v_forward * 16;  // binary: +Vector(0,0,-4)+v_right*2+v_forward*16 @FireBullets (fadds/FMUL 0x185204=-4,0x17fdf4=16)
 			else
 				vecTracerSrc = vecSrc;
-			PLAYBACK_EVENT(
-				0, ENT( pev ),
-				g_pGameRules
-					->BulletTracers() );  // binary: vtbl+0x5a BulletTracers (CALL [EDX+0x168] @000db491, DWARF CGameRules::BulletTracers idx90, CDoDTeamPlay::BulletTracers @000e3820)
+			PLAYBACK_EVENT_FULL( 0, NULL, g_pGameRules->BulletTracers(), 0, (float *)&vecTracerSrc, (float *)&tr.vecEndPos, 0, 0, 0, 0, 0, 0 );
 		}
 
 		if ( tr.flFraction == 1.0 )
 			continue;
 
 		CBaseEntity *pEntity = CBaseEntity::Instance( tr.pHit );
+
+		if ( iDamage != 0 )
+		{
+			pEntity->TraceAttack( pevAttacker, iDamage, vecDir, &tr, DMG_BULLET );
+			TEXTURETYPE_PlaySound( &tr, vecSrc, vecEnd, iBulletType );
+			DecalGunshot( &tr, iBulletType );
+			continue;
+		}
+
 		if ( iBulletType == 0 )
 		{
-			// special (glass): TraceAttack, texture sound, glass decal if rendermode set
-			if ( iDamage > 0 )
-			{
-				pEntity->TraceAttack( pevAttacker, iDamage, vecDir, &tr, DMG_BULLET );
-				TEXTURETYPE_PlaySound( &tr, vecSrc, vecSrc + vecDir * flDistance * 2, iBulletType );
-			}
+			// glass: a blow, the texture sound and the glass decal if the entity is rendered
+			pEntity->TraceAttack( pevAttacker, 50.0f, vecDir, &tr, DMG_CLUB );
+			TEXTURETYPE_PlaySound( &tr, vecSrc, vecEnd, iBulletType );
 			if ( tr.pHit && !FNullEnt( tr.pHit ) && VARS( tr.pHit )->rendermode != 0 )
 				UTIL_DecalTrace( &tr, DECAL_GLASSBREAK1 + RANDOM_LONG( 0, 2 ) );  // 0x19 + rand
 			continue;
@@ -1179,17 +1182,8 @@ void CBaseEntity::FireBullets( ULONG cShots, Vector vecSrc, Vector vecDirShootin
 			bPenetrate = TRUE;
 			break;
 		}
-		if ( iDamage > 0 )
-		{
-			int bits =
-				( iBulletType >= 8 )
-					? ( DMG_BULLET | DMG_DOD_PENETRATE )
-					: DMG_BULLET;  // binary: OR 0x4000000 (0x4000002) when iBulletType>=8 @000db1d0, no Valve string (strings dod.so has no DMG_)
-			pEntity->TraceAttack( pevAttacker, flDmg, vecDir, &tr, bits );
-			TEXTURETYPE_PlaySound( &tr, vecSrc, vecSrc + vecDir * flDistance * 2, iBulletType );
-			DecalGunshot( &tr, iBulletType );
-		}
-		if ( bPenetrate && g_pGameRules->RoundState() == ROUNDSTATE_RUNNING )  // binary: RoundState vtbl+0x3d (see above)
+		pEntity->TraceAttack( pevAttacker, flDmg, vecDir, &tr, bPenetrate ? ( DMG_BULLET | DMG_DOD_PENETRATE ) : DMG_BULLET );
+		if ( bPenetrate && g_pGameRules->RoundState() == ROUNDSTATE_RUNNING )
 			FireTWalls( flDmg, iBulletType, pevAttacker, vecDir, vecSrc, vecRight, vecUp, vecEnd );
 	}
 	ApplyMultiDamage( pev, pevAttacker );
