@@ -527,7 +527,7 @@ void CDoDTeamPlay::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvar
 void CDoDTeamPlay::RestartRound( void )
 {
 	m_RoundDoesCount = TRUE;
-	SetRoundState( ROUNDSTATE_ALLIES_WON );
+	SendTeamScores( 3 );
 	MESSAGE_BEGIN( MSG_SPEC, gmsgHLTV );
 	WRITE_BYTE( 0 );
 	WRITE_BYTE( 228 );
@@ -542,7 +542,7 @@ void CDoDTeamPlay::RestartRound( void )
 	ResetEnts();
 	CBaseEntity *pr = NULL;
 	while ( ( pr = UTIL_FindEntityByClassname( pr, "dod_preround" ) ) != NULL )
-		( (CDoDPreRound *) pr )->Launch( m_SaveRoundState );
+		GetClassPtr( (CDoDPreRound *) pr->pev )->Launch( m_SaveRoundState );
 	if ( cvar_timelimit.value < 0.0f )
 		CVAR_SET_FLOAT( "timelimit", 0.0f );
 	int allies = 0;
@@ -611,7 +611,7 @@ void CDoDTeamPlay::GoToIntermission( void )
 	if ( IsClanMatch() && m_bClanMatch )
 	{
 		m_bClanMatchActive = FALSE;
-		SetClanMatch( FALSE );
+		setMapTime();
 		SendClientGamerules( NULL );
 	}
 	MESSAGE_BEGIN( MSG_ALL, SVC_INTERMISSION );
@@ -2501,16 +2501,25 @@ char *WeaponIDToChar( int id )
 		return weaponnames[id];
 	return NULL;
 }
-int CountTeamMembers( int team )
+// how many more players the team has than the opposite one
+int CountTeamMembers( int teamNum )
 {
-	int n = 0;
+	int iAllies = 0;
+	int iAxis = 0;
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBaseEntity *p = UTIL_PlayerByIndex( i );
-		if ( p && p->pev->team == team )
-			n++;
+		if ( p )
+		{
+			if ( p->pev->team == TEAM_ALLIES )
+				iAllies++;
+			else if ( p->pev->team == TEAM_AXIS )
+				iAxis++;
+		}
 	}
-	return n;
+	if ( teamNum == TEAM_ALLIES )
+		return iAllies - iAxis;
+	return iAxis - iAllies;
 }
 int DeadTeammates( entvars_t *pevPlr )
 {
@@ -2570,38 +2579,49 @@ BOOL CDoDTeamPlay::IsTeamInfinite( int team )
 }
 BOOL CDoDTeamPlay::FShouldSwitchWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon )
 {
+	if ( !pWeapon->CanDeploy() )
+		return FALSE;
 	if ( !pPlayer->m_pActiveItem )
 		return TRUE;
 	if ( !pPlayer->m_pActiveItem->CanHolster() )
 		return FALSE;
-	return TRUE;
+	return pWeapon->iWeight() > pPlayer->m_pActiveItem->iWeight();
 }
 BOOL CDoDTeamPlay::GetNextBestWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pCurrentWeapon )
 {
-	if ( pCurrentWeapon && ( pCurrentWeapon->iFlags() & ITEM_FLAG_EXHAUSTIBLE ) )
+	if ( !pCurrentWeapon->CanHolster() )
+		return FALSE;
+
+	CBasePlayerItem *pBest = NULL;
+	int iBestWeight = -1;
+
+	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
 	{
-		CBasePlayerItem *pBest = NULL;
-		int bestW = -1;
-		for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
+		for ( CBasePlayerItem *pCheck = pPlayer->m_rgpPlayerItems[i]; pCheck; pCheck = pCheck->m_pNext )
 		{
-			for ( CBasePlayerItem *p = pPlayer->m_rgpPlayerItems[i]; p; p = p->m_pNext )
+			if ( pCheck->iWeight() > -1 && pCheck->iWeight() == pCurrentWeapon->iWeight() && pCheck != pCurrentWeapon )
 			{
-				if ( p == pCurrentWeapon )
-					continue;
-				if ( p->iWeight() > bestW && p->CanDeploy() )
+				// this weapon is from the same category
+				if ( pCheck->CanDeploy() && pPlayer->SwitchWeapon( pCheck, 0 ) )
+					return TRUE;
+			}
+			else if ( pCheck->iWeight() > iBestWeight && pCheck != pCurrentWeapon )
+			{
+				// the best weapon in case there is none of the same weight
+				if ( pCheck->CanDeploy() )
 				{
-					bestW = p->iWeight();
-					pBest = p;
+					pBest = pCheck;
+					iBestWeight = pCheck->iWeight();
 				}
 			}
 		}
-		if ( pBest )
-		{
-			pPlayer->SwitchWeapon( pBest, FALSE );
-			return TRUE;
-		}
 	}
-	return FALSE;
+
+	if ( !pBest )
+		return FALSE;
+
+	pPlayer->SwitchWeapon( pBest, 0 );
+	return TRUE;
 }
 BOOL CDoDTeamPlay::IsAllowedToSpawn( CBaseEntity *pEntity )
 {
@@ -3719,150 +3739,118 @@ void CDoDTeamPlay::PlayerSpawn( CBasePlayer *pPlayer )
 
 void CDoDTeamPlay::TeamSelect( CBasePlayer *pPlayer, int iTeamSelect )
 {
-	if ( (unsigned) ( iTeamSelect - 1 ) > 4 )
-		return;
-	if ( iTeamSelect == 4 )
+	if ( (unsigned) ( iTeamSelect - 1 ) > 4 || iTeamSelect == 4 )
 		return;
 
-	BOOL bShowVGUI = FALSE;
-	if ( iTeamSelect == 3 )
+	if ( iTeamSelect == TEAM_SPECTATOR )
 	{
 		if ( pcvar_mp_allowspectators != NULL && pcvar_mp_allowspectators->value <= 0.0f )
-			bShowVGUI = TRUE;
+		{
+			ShowVGUI( pPlayer, 2, 0 );
+			return;
+		}
 	}
 	else if ( iTeamSelect == 5 )
 	{
-		int iAllies = 0;
-		int iAxis = 0;
-		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
-		{
-			CBaseEntity *p = UTIL_PlayerByIndex( i );
-			if ( p )
-			{
-				if ( p->pev->team == TEAM_ALLIES )
-					iAllies++;
-				else if ( p->pev->team == TEAM_AXIS )
-					iAxis++;
-			}
-		}
-		if ( iAllies - iAxis < 0 )
-			iTeamSelect = 1;
-		else if ( iAllies != iAxis )
-			iTeamSelect = 2;
+		int diff = CountTeamMembers( TEAM_ALLIES );
+		if ( diff < 0 )
+			iTeamSelect = TEAM_ALLIES;
+		else if ( diff > 0 )
+			iTeamSelect = TEAM_AXIS;
 		else
-			iTeamSelect = ( m_iTeamScores[2] <= m_iTeamScores[1] ) + 1;
+			iTeamSelect = ( m_iTeamScores[TEAM_ALLIES] >= m_iTeamScores[TEAM_AXIS] ) + 1;
 	}
 
 	int team = pPlayer->pev->team;
 	if ( team == iTeamSelect )
 		return;
 
-	if ( pcvar_mp_teamlimit != NULL && pcvar_mp_teamlimit->value > 0.0f && iTeamSelect != 3 )
+	int firstTime = ( team <= 0 );
+	BOOL b_playableteam = (unsigned) ( team - 1 ) < 3;
+
+	if ( pcvar_mp_teamlimit != NULL )
 	{
-		int iAllies = 0;
-		int iAxis = 0;
-		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		float teamOver = pcvar_mp_teamlimit->value;
+		if ( teamOver > 0.0f && iTeamSelect != TEAM_SPECTATOR )
 		{
-			CBaseEntity *p = UTIL_PlayerByIndex( i );
-			if ( p )
+			if ( (float) CountTeamMembers( iTeamSelect ) >= teamOver )
 			{
-				if ( p->pev->team == TEAM_ALLIES )
-					iAllies++;
-				else if ( p->pev->team == TEAM_AXIS )
-					iAxis++;
+				ClientPrint( pPlayer->pev, HUD_PRINTCENTER, "#game_uneven_teams", 0, 0, 0, 0 );
+				ShowVGUI( pPlayer, 2, 0 );
+				return;
 			}
 		}
-		int diff = ( iTeamSelect == 1 ) ? ( iAllies - iAxis ) : ( iAxis - iAllies );
-		if ( pcvar_mp_teamlimit->value <= (float) diff )
-		{
-			ClientPrint( pPlayer->pev, HUD_PRINTCENTER, "#game_uneven_teams", 0, 0, 0, 0 );
-			bShowVGUI = TRUE;
-		}
-		else
-			team = pPlayer->pev->team;
 	}
 
-	if ( !bShowVGUI )
+	if ( pPlayer->m_ilastteam == 1 && team != TEAM_SPECTATOR )
 	{
-		if ( pPlayer->m_ilastteam == 1 && team != 3 )
-		{
-			ClientPrint( pPlayer->pev, HUD_PRINTCENTER, "#game_switch_teams_once", 0, 0, 0, 0 );
-			return;
-		}
-		if ( team > 0 && iTeamSelect != team )
-			pPlayer->m_ilastteam = 1;
+		ClientPrint( pPlayer->pev, HUD_PRINTCENTER, "#game_switch_teams_once", 0, 0, 0, 0 );
+		return;
+	}
+	if ( !firstTime )
+		pPlayer->m_ilastteam = 1;
 
-		pPlayer->m_iNextClass = -1;
-		if ( pPlayer->pev->team != TEAM_SPECTATOR )
-		{
-			pPlayer->SetThink( &CBasePlayer::ServerSpawnCheck );
-			pPlayer->pev->nextthink = gpGlobals->time;
-		}
-		pPlayer->pev->playerclass = 0;
-		pPlayer->m_bIsRandomClass = false;
+	pPlayer->m_iNextClass = -1;
+	if ( pPlayer->pev->team != TEAM_SPECTATOR )
+	{
+		pPlayer->SetThink( &CBasePlayer::ServerSpawnCheck );
+		pPlayer->pev->nextthink = gpGlobals->time;
+	}
+	pPlayer->pev->playerclass = 0;
+	pPlayer->m_bIsRandomClass = false;
 
-		int team = pPlayer->pev->team;
-		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" joined team \"%s\"\n", STRING( pPlayer->pev->netname ),
-						GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ),
-						g_szTeamNames[team], g_szTeamNames[iTeamSelect] );
-		ChangePlayerTeam( pPlayer, iTeamSelect, 1, 0 );
-		pPlayer->pev->team = iTeamSelect;
+	UTIL_LogPrintf( "\"%s<%i><%s><%s>\" joined team \"%s\"\n", STRING( pPlayer->pev->netname ),
+					GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ),
+					g_szTeamNames[pPlayer->pev->team], g_szTeamNames[iTeamSelect] );
+	ChangePlayerTeam( pPlayer, iTeamSelect, 1, 0 );
+	pPlayer->pev->team = iTeamSelect;
 
-		if ( iTeamSelect == 3 )
-		{
-			pPlayer->m_iJoiningState = JOINED;
-			Vector color = g_vecZero;
-			pPlayer->UTIL_EdictScreenFade( pPlayer->edict(), color, 1.0f, 15.0f, 0, 5 );
-			pPlayer->pev->deadflag = DEAD_DEAD;
-			pPlayer->pev->effects |= EF_NOINTERP;
-			pPlayer->m_bIsObserver = 1;
-			pPlayer->StartObserver( pPlayer->pev->origin, pPlayer->pev->angles );
-			UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_joined_team", STRING( pPlayer->pev->netname ),
-								 g_szTeamNames[iTeamSelect], 0, 0 );
-			return;
-		}
-
-		BOOL b_playableteam = (unsigned) ( team - 1 ) < 3;
-		int myTeam = pPlayer->pev->team;
-		BOOL infinite = ( myTeam == 1 ) ? m_GamePlayRules.m_bAlliesInfiniteLives
-										: ( myTeam == 2 ) ? m_GamePlayRules.m_bAxisInfiniteLives : FALSE;
-		if ( infinite && b_playableteam )
-		{
-			float tempTime;
-			if ( pcvar_mp_clan_match != NULL && pcvar_mp_clan_match->value > 0.0f &&
-				 pcvar_mp_clan_respawntime != NULL && pcvar_mp_clan_respawntime->value > 0.0f )
-				tempTime = pcvar_mp_clan_respawntime->value;
-			else
-				tempTime = GetMaxWaveTime( myTeam );
-			float lVar13 = ( m_RoundState == ROUNDSTATE_RUNNING ) ? tempTime : 0.0f;
-			MESSAGE_BEGIN( MSG_ONE, gmsgWaveStatus, NULL, pPlayer->pev );
-			WRITE_BYTE( 1 );
-			MESSAGE_END();
-			setWaveTime( myTeam, lVar13 );
-		}
-		else if ( !infinite )
-		{
-			float waveTime = getWaveTime( myTeam );
-			if ( waveTime > 0.0f )
-			{
-				MESSAGE_BEGIN( MSG_ONE, gmsgWaveStatus, NULL, pPlayer->pev );
-				WRITE_BYTE( 1 );
-				MESSAGE_END();
-			}
-		}
-
-		ShowClassSelectMenu( pPlayer );
-		MESSAGE_BEGIN( MSG_ALL, gmsgPClass );
-		WRITE_BYTE( ENTINDEX( pPlayer->edict() ) );
-		WRITE_BYTE( pPlayer->pev->playerclass );
-		MESSAGE_END();
-
+	if ( iTeamSelect == TEAM_SPECTATOR )
+	{
+		pPlayer->m_iJoiningState = JOINED;
+		Vector color = g_vecZero;
+		pPlayer->UTIL_EdictScreenFade( pPlayer->edict(), color, 1.0f, 15.0f, 0, 5 );
+		pPlayer->pev->deadflag = DEAD_DEAD;
+		pPlayer->pev->effects |= EF_NOINTERP;
+		pPlayer->m_bIsObserver = 1;
+		pPlayer->StartObserver( pPlayer->pev->origin, pPlayer->pev->angles );
 		UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_joined_team", STRING( pPlayer->pev->netname ),
 							 g_szTeamNames[iTeamSelect], 0, 0 );
 		return;
 	}
 
-	ShowVGUI( pPlayer, 2, 0 );
+	float waveTime = getWaveTime( pPlayer->pev->team );
+	if ( waveTime <= 0.0f && ( ( iTeamSelect == TEAM_ALLIES && m_GamePlayRules.m_bAlliesInfiniteLives ) ||
+							   ( iTeamSelect == TEAM_AXIS && m_GamePlayRules.m_bAxisInfiniteLives ) ) )
+	{
+		if ( b_playableteam )
+		{
+			float tempTime = GetMaxWaveTime( pPlayer->pev->team );
+			if ( pcvar_mp_clan_match != NULL && pcvar_mp_clan_match->value > 0.0f && pcvar_mp_clan_respawntime != NULL )
+			{
+				if ( pcvar_mp_clan_respawntime->value > 0.0f )
+					tempTime = pcvar_mp_clan_respawntime->value;
+			}
+			if ( tempTime < 3.0f )
+				tempTime = 3.0f;
+			if ( m_RoundState != ROUNDSTATE_RUNNING )
+				tempTime = 0.5f;
+
+			SendWaveStatus( pPlayer, 1 );
+			setWaveTime( pPlayer->pev->team, tempTime );
+		}
+	}
+	else if ( b_playableteam && m_RoundState == ROUNDSTATE_RUNNING )
+		SendWaveStatus( pPlayer, 1 );
+
+	ShowClassSelectMenu( pPlayer );
+	MESSAGE_BEGIN( MSG_ALL, gmsgPClass );
+	WRITE_BYTE( ENTINDEX( pPlayer->edict() ) );
+	WRITE_BYTE( pPlayer->pev->playerclass );
+	MESSAGE_END();
+
+	UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_joined_team", STRING( pPlayer->pev->netname ),
+						 g_szTeamNames[iTeamSelect], 0, 0 );
 }
 
 // LINK entities

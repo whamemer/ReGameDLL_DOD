@@ -717,22 +717,21 @@ void RadiusDamage( Vector vecSrc, entvars_t *pevInflictor, entvars_t *pevAttacke
 	Vector vecSpot;
 	float falloff_ = flRadius ? flDamage / flRadius : 1.0;
 	falloff = falloff_;
-	int bInWater = ( UTIL_PointContents( vecSrc ) == CONTENTS_WATER );
+	UTIL_PointContents( vecSrc );
 	vecSrc.z += 1;
 	if ( !pevAttacker )
 		pevAttacker = pevInflictor;
 	CBaseEntity *pAttackerRef = CBaseEntity::Instance(
 		pevAttacker );	// binary: edict+0x7C = pvPrivateData (gdb ptype /o edict_t: pvPrivateData @124=0x7C; CBaseEntity+0x7C would be m_rrHealth float, not ptr). Disasm MOV EAX,[EDX+0x208](pContainingEntity) + MOV EAX,[EAX+0x7C](GET_PRIVATE) @000da368/000da376 (link 0xca368/0xca376, addr2line enginecallback.h:103 GET_PRIVATE). So attackerRef = Instance(pevAttacker).
 
+	if ( pAttackerRef )
+		pAttackerRef->IsPlayer();
+
 	while ( ( pEntity = UTIL_FindEntityInSphere( pEntity, vecSrc, flRadius ) ) != NULL )
 	{
 		if ( pEntity->pev->takedamage == DAMAGE_NO )
 			continue;
 		if ( iClassIgnore != CLASS_NONE && pEntity->Classify() == iClassIgnore )
-			continue;
-		if ( bInWater && pEntity->pev->waterlevel == 0 )
-			continue;
-		if ( !bInWater && pEntity->pev->waterlevel == 3 )
 			continue;
 		vecSpot = pEntity->BodyTarget( vecSrc );
 		UTIL_TraceLine( vecSrc, vecSpot, dont_ignore_monsters, ENT( pevInflictor ), &tr );

@@ -344,7 +344,7 @@ class CBasePlayer : public CBaseMonster
 	CBasePlayerWeapon *GetPrimaryWeapon();
 	void PackDeadPlayerItems( void );
 	void RemoveAllItems( BOOL removeSuit );
-	BOOL SwitchWeapon( CBasePlayerItem *pWeapon, BOOL bSetActive );
+	BOOL SwitchWeapon( CBasePlayerItem *pWeapon, BOOL bJustSpawned );
 	void DelayedSpawn( void );
 	void EXPORT SpawnThink( void );
 	void EXPORT ServerSpawnCheck();

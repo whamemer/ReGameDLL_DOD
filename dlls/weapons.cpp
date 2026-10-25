@@ -637,6 +637,9 @@ void CBasePlayerWeapon::ItemPostFrame( void )
 	if ( m_fInAttack && !( m_pPlayer->pev->button & IN_ATTACK ) )
 		m_fInAttack = 0;
 
+	ItemInfo ii;
+	GetItemInfo( &ii );
+
 	if ( ( m_pPlayer->pev->button & IN_ATTACK2 ) && UTIL_WeaponTimeBase() >= m_flNextSecondaryAttack )
 	{
 		if ( CBasePlayerItem::ItemInfoArray[m_iId].pszAmmo2 && !m_pPlayer->m_rgAmmo[SecondaryAmmoIndex()] )
@@ -1865,7 +1868,7 @@ void CBasePlayerItem::PickupUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 	{
 		if ( pPlayer->AddPlayerItem( this ) )
 		{
-			AddToPlayer( pPlayer );
+			AttachToPlayer( pPlayer );
 			EMIT_SOUND_DYN( ENT( pActivator->pev ), CHAN_ITEM, "items/weaponpickup.wav", 1.0, 0.8, 0, 100 );
 		}
 	}

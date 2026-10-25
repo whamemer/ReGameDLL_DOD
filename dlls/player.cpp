@@ -1840,21 +1840,7 @@ void CBasePlayer::Jump()
 			f = 100.0f;
 		pev->fuser4 = f;
 	}
-	if ( m_iFOV > 0 )
-	{
-		for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
-		{
-			for ( CBasePlayerItem *pItem = m_rgpPlayerItems[i]; pItem; pItem = pItem->m_pNext )
-			{
-				if ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & ITEM_FLAG_PRIMARY )
-				{
-					m_iFOV = ( (CBasePlayerWeapon *) pItem )->GetFOV();
-					goto done;
-				}
-			}
-		}
-	}
-done:
+	ForceZoomOut();
 	UTIL_MakeVectors( pev->angles );
 	SetAnimation( PLAYER_JUMP );
 	if ( pev->groundentity && FBitSet( pev->groundentity->v.flags, FL_CONVEYOR ) )
@@ -3473,6 +3459,7 @@ int CBasePlayer::AddPlayerItem( CBasePlayerItem *pItem )
 			{
 				g_pGameRules->PlayerGotWeapon( this, pItem );
 				pItem->CheckRespawn();
+				pItem->m_bReadyToRespawn = FALSE;
 
 				// ugly hack to update clip w/o an update clip message
 				pInsert->UpdateItemInfo();
@@ -3495,6 +3482,7 @@ int CBasePlayer::AddPlayerItem( CBasePlayerItem *pItem )
 	{
 		g_pGameRules->PlayerGotWeapon( this, pItem );
 		pItem->CheckRespawn();
+		pItem->m_bReadyToRespawn = FALSE;
 
 		pItem->m_pNext = m_rgpPlayerItems[pItem->iItemSlot()];
 		m_rgpPlayerItems[pItem->iItemSlot()] = pItem;
@@ -3502,7 +3490,7 @@ int CBasePlayer::AddPlayerItem( CBasePlayerItem *pItem )
 		// should we switch to this item?
 		if ( g_pGameRules->FShouldSwitchWeapon( this, pItem ) )
 		{
-			SwitchWeapon( pItem, FALSE );
+			SwitchWeapon( pItem, TRUE );
 		}
 
 		return TRUE;
@@ -4174,6 +4162,11 @@ BOOL CBasePlayer ::SwitchWeapon( CBasePlayerItem *pWeapon, BOOL bJustSpawned )
 	if ( m_pActiveItem )
 		m_pActiveItem->Holster();
 	m_pActiveItem = pWeapon;
+	if ( bJustSpawned && ( pWeapon->m_iId == WEAPON_M1CARBINE || pWeapon->m_iId == WEAPON_GREASEGUN ) )
+	{
+		pWeapon->SpawnDeploy();
+		return TRUE;
+	}
 	pWeapon->Deploy();
 	return TRUE;
 }
@@ -4524,19 +4517,7 @@ void CBasePlayer::GoProne( void )
 	m_flNextAttack = 0.1f;
 	SetAnimation( PLAYER_PRONE1 );
 	m_inextprone = gpGlobals->time + 1.0f;
-	if ( m_iFOV < 1 )
-		return;
-	for ( int i = 0; i < 6; i++ )
-	{
-		for ( CBasePlayerItem *pItem = m_rgpPlayerItems[i]; pItem; pItem = pItem->m_pNext )
-		{
-			if ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & ITEM_FLAG_PRIMARY )
-			{
-				m_iFOV = ( (CBasePlayerWeapon *)pItem )->GetFOV();
-				return;
-			}
-		}
-	}
+	ForceZoomOut();
 }
 
 void CBasePlayer::MortarDeploy( void )
@@ -4548,24 +4529,7 @@ void CBasePlayer::MortarDeploy( void )
 		m_flNextAttack = 0.1f;
 		SetAnimation( PLAYER_PRONE3 );
 		m_inextprone = gpGlobals->time + 1.0f;
-		if ( m_iFOV > 0 )
-		{
-			for ( int i = 0; i < 6; i++ )
-			{
-				BOOL fFound = FALSE;
-				for ( CBasePlayerItem *pItem = m_rgpPlayerItems[i]; pItem; pItem = pItem->m_pNext )
-				{
-					if ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & ITEM_FLAG_PRIMARY )
-					{
-						m_iFOV = ( (CBasePlayerWeapon *)pItem )->GetFOV();
-						fFound = TRUE;
-						break;
-					}
-				}
-				if ( fFound )
-					break;
-			}
-		}
+		ForceZoomOut();
 	}
 	pev->iuser3 = STANCE_MORTAR;
 	CheckPlayerSpeed();
@@ -4855,11 +4819,7 @@ void CBasePlayer::UnProne()
 	m_flNextAttack = 0.1f;
 	SetAnimation( PLAYER_PRONE3 );
 	m_inextprone = gpGlobals->time + 1.0f;
-	if ( m_iFOV < 1 )
-		return;
-	CBasePlayerWeapon *pWpn = GetPrimaryWeapon();
-	if ( pWpn )
-		m_iFOV = pWpn->GetFOV();
+	ForceZoomOut();
 }
 Activity CBasePlayer::SetIdealActivity( Activity i_RequestedActivity )
 {
@@ -4892,9 +4852,9 @@ void CBasePlayer::ForceZoomOut()
 {
 	if ( m_iFOV < 1 )
 		return;
-	CBasePlayerWeapon *pWpn = GetPrimaryWeapon();
-	if ( pWpn )
-		m_iFOV = pWpn->GetFOV();
+	CBasePlayerWeapon *wpn = GetPrimaryWeapon();
+	if ( wpn )
+		m_iFOV = wpn->ZoomOut();
 }
 bool CBasePlayer::ShouldGunLower()
 {

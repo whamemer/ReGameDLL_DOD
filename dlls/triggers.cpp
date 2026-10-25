@@ -4986,7 +4986,7 @@ void CControlPointMaster::CPMThink()
 
 	// ---- stage 4: periodic scoring ----
 	CDoDTeamPlay *pRules = (CDoDTeamPlay *) g_pGameRules;
-	BOOL bClanMatch = pRules->IsClanMatch() && pRules->IsTeamplay();
+	BOOL bClanMatch = pRules->IsClanMatch() && pRules->IsClanMatchActive();
 	BOOL bClanScoring = ( pcvar_mp_clan_scoring && pcvar_mp_clan_scoring->value > 0.0 );
 
 	int numPoints = m_iNumPoints;
