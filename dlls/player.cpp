@@ -42,6 +42,7 @@
 #include "mapmarker.h"
 #include "dod_shared.h"
 #include "combat.h"
+#include "studio.h"
 
 extern DodClassInfo_t g_ClassInfo[];
 extern DodClassInfo_t g_ParaClassInfo[];
@@ -878,7 +879,7 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 	}
 	else
 	{
-		pev->iuser1 = OBS_IN_EYE;
+		pev->iuser1 = OBS_CHASE_FREE;
 		pev->iuser2 = ENTINDEX( edict() );
 		pev->iuser3 = ENTINDEX( ENT( pevAttacker ) );
 		m_hObserverTarget = UTIL_PlayerByIndex( pev->iuser3 );
@@ -2111,7 +2112,7 @@ void CBasePlayer::PreThink( void )
 
 	UpdateClientData();
 
-	if ( pev->deadflag == DEAD_DEAD && gpGlobals->time > m_fDeadTime + 1.0 )
+	if ( pev->deadflag == DEAD_RESPAWNABLE && gpGlobals->time > m_fDeadTime + 1.0 )
 	{
 		if ( pev->iuser2 == ENTINDEX( edict() ) )
 		{
@@ -2805,8 +2806,8 @@ void CBasePlayer::Spawn( void )
 
 			UTIL_EdictScreenFade( edict(), Vector( 0, 0, 0 ), 1.0f, 15.0f, 0, 5 );
 
-			pev->deadflag = DEAD_RESPAWNABLE;
-			pev->effects |= EF_NODRAW;
+			pev->deadflag = DEAD_DEAD;
+			pev->effects |= EF_NOINTERP;
 
 			m_bIsObserver = 1;
 
@@ -2815,7 +2816,7 @@ void CBasePlayer::Spawn( void )
 
 			StartObserver( pev->origin, pev->angles );
 
-			ClientPrint( pev, HUD_PRINTCENTER, "#game_no_spawns" );
+			ClientPrint( pev, HUD_PRINTNOTIFY, "#game_no_spawns" );
 			return;
 		}
 	}
@@ -5419,27 +5420,94 @@ void CBasePlayer::StudioEstimateGait()
 		m_flGaitMovement = 0;
 		return;
 	}
-	Vector delta = pev->origin - m_prevgaitorigin;
+	vec3_t est_velocity = pev->origin - m_prevgaitorigin;
 	m_prevgaitorigin = pev->origin;
-	m_flGaitMovement = delta.Length();
-	if ( m_flGaitMovement / dt < 1.0f )
+	m_flGaitMovement = est_velocity.Length();
+	if ( dt <= 0 || m_flGaitMovement / dt < 5 )
+	{
 		m_flGaitMovement = 0;
+		est_velocity.x = 0;
+		est_velocity.y = 0;
+	}
+
+	// prone or behind a deployed sandbag: the legs follow the view
 	if ( ( pev->deadflag == DEAD_NO && STANCE_IS_PRONE( pev->iuser3 ) ) || pev->vuser1.x == SANDBAG_DEPLOYED )
 	{
 		m_flGaityaw = pev->angles.y;
+		return;
 	}
-	else if ( delta.x != 0.0f || delta.y != 0.0f )
+
+	if ( !est_velocity.x && !est_velocity.y )
 	{
-		m_flGaityaw = atan2( delta.y, delta.x ) * 180.0f / 3.14159265f;
+		float flYawDiff = pev->angles.y - m_flGaityaw;
+		flYawDiff = flYawDiff - (int) ( flYawDiff / 360 ) * 360;
+		if ( flYawDiff > 180 )
+			flYawDiff -= 360;
+		if ( flYawDiff < -180 )
+			flYawDiff += 360;
+
+		// how fast the legs turn depends on how far the view is from them
+		float flYawDelta = fmod( pev->angles.y - m_flGaityaw, 360.0f );
+		if ( flYawDelta < -180 )
+			flYawDelta += 360;
+		else if ( flYawDelta > 180 )
+			flYawDelta -= 360;
+
+		if ( flYawDelta > -5 && flYawDelta < 5 )
+			m_flYawModifier = 0.05;
+		else if ( flYawDelta < -90 || flYawDelta > 90 )
+			m_flYawModifier = 3.5;
+		else
+			m_flYawModifier = 0;
+
+		if ( dt < 0.25 )
+			flYawDiff *= dt * m_flYawModifier;
+		else
+			flYawDiff *= dt;
+
+		if ( abs( (int) flYawDiff ) < 0.1 )
+			flYawDiff = 0;
+
+		m_flGaityaw += flYawDiff;
+		m_flGaityaw = m_flGaityaw - (int) ( m_flGaityaw / 360 ) * 360;
+		m_flGaitMovement = 0;
+	}
+	else
+	{
+		m_flGaityaw = ( atan2( est_velocity.y, est_velocity.x ) * 180 / M_PI );
+		if ( m_flGaityaw > 180 )
+			m_flGaityaw = 180;
+		if ( m_flGaityaw < -180 )
+			m_flGaityaw = -180;
 	}
 }
 void CBasePlayer::StudioProcessGait()
 {
+	float dt = gpGlobals->frametime;
+	if ( dt < 0 )
+		dt = 0;
+	else if ( dt > 1.0 )
+		dt = 1.0;
+
 	CalculateYawBlend();
 	CalculatePitchBlend();
-	m_flGaitframe += gpGlobals->frametime * pev->framerate * m_flGaitMovement;
-	if ( m_flGaitframe > 256.0f )
-		m_flGaitframe = 0.0f;
+
+	studiohdr_t *pstudiohdr = (studiohdr_t *) GET_MODEL_PTR( ENT( pev ) );
+	if ( !pstudiohdr )
+		return;
+
+	mstudioseqdesc_t *pseqdesc = (mstudioseqdesc_t *) ( (byte *) pstudiohdr + pstudiohdr->seqindex ) + pev->gaitsequence;
+
+	// calc gait frame
+	if ( pseqdesc->linearmovement[0] > 0 )
+		m_flGaitframe += ( m_flGaitMovement / pseqdesc->linearmovement[0] ) * pseqdesc->numframes;
+	else
+		m_flGaitframe += pseqdesc->fps * dt * pev->framerate;
+
+	// do modulo
+	m_flGaitframe = m_flGaitframe - (int) ( m_flGaitframe / pseqdesc->numframes ) * pseqdesc->numframes;
+	if ( m_flGaitframe < 0 )
+		m_flGaitframe += pseqdesc->numframes;
 }
 float CBasePlayer::GetStamina() { return pev->fuser4; }
 void CBasePlayer::SetStamina( float s ) { pev->fuser4 = s; }

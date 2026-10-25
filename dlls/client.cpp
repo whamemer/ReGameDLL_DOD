@@ -224,7 +224,7 @@ void ClientPutInServer( edict_t *pEntity )
 	pPlayer->pev->movetype = MOVETYPE_NOCLIP;
 	pPlayer->pev->effects = EF_NODRAW | EF_NOINTERP;
 	pPlayer->pev->takedamage = DAMAGE_NO;
-	pPlayer->pev->deadflag = DEAD_RESPAWNABLE;
+	pPlayer->pev->deadflag = DEAD_DEAD;
 	pPlayer->pev->velocity = g_vecZero;
 	pPlayer->pev->punchangle = g_vecZero;
 	pPlayer->pev->fixangle = 1;
