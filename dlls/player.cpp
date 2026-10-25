@@ -2999,32 +2999,16 @@ int CBasePlayer::Restore( CRestore &restore )
 
 	g_ulModelIndexPlayer = pev->modelindex;
 
-	if ( FBitSet( pev->flags, FL_DUCKING ) )
-	{
-		// Use the crouch HACK
-		//FixPlayerCrouchStuck( edict() );
-		// Don't need to do this with new player prediction code.
-		UTIL_SetSize( pev, VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX );
-	}
-	else
-	{
-		UTIL_SetSize( pev, VEC_HULL_MIN, VEC_HULL_MAX );
-	}
+	// DoD does not make the hull of a ducking player smaller here
+	UTIL_SetSize( pev, VEC_HULL_MIN, VEC_HULL_MAX );
+
+	TabulateAmmo();
 
 	g_engfuncs.pfnSetPhysicsKeyValue( edict(), "hl", "1" );
 
 	g_engfuncs.pfnSetPhysicsKeyValue( edict(), "slj", "0" );
 
-
-	//Resync ammo data so you can reload - Solokiller
-	TabulateAmmo();
-
-#if defined( CLIENT_WEAPONS )
-	// HACK:	This variable is saved/restored in CBaseMonster as a time variable, but we're using it
-	//			as just a counter.  Ideally, this needs its own variable that's saved as a plain float.
-	//			Barring that, we clear it out here instead of using the incorrect restored time value.
-	m_flNextAttack = UTIL_WeaponTimeBase();
-#endif
+	m_flDisplayHistory &= HINT_KEPT_AFTER_RESTORE;
 
 	return status;
 }

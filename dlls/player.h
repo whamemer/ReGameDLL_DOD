@@ -141,6 +141,7 @@ enum sbar_data
 #define HINT_KILLED_WAVETIME_FIRST 0x10000
 #define HINT_KILLED_WAVETIME_AGAIN 0x20000
 #define HINT_MG_OVERHEAT 0x40000
+#define HINT_KEPT_AFTER_RESTORE 0xFFF80031	// the hints that stay marked as shown after a restored game, the others come again
 
 class CObject;
 class CBasePlayerWeapon;

@@ -1366,7 +1366,7 @@ void CBreakable::Killed( entvars_t *pevAttacker, int iGib )
 	Vector vecSpot = ( pev->mins + pev->maxs ) * 0.5f + pev->origin;
 	Vector vecVelocity = g_vecZero;
 	if ( m_Explosion == expDirected )
-		vecVelocity = g_vecAttackDir * 400.0f;
+		vecVelocity = g_vecAttackDir * 200.0f;
 
 	if ( CVAR_GET_FLOAT( "violence_hgibs" ) != 0.0f || m_Material != matFlesh )
 	{
@@ -1393,7 +1393,8 @@ void CBreakable::Killed( entvars_t *pevAttacker, int iGib )
 		CBaseEntity *pList[256];
 		Vector mins = pev->absmin;
 		Vector maxs = pev->absmax;
-		mins.z = pev->absmax.z + 1.0f;
+		mins.z = pev->absmax.z;
+		maxs.z += 8.0f;
 		int count = UTIL_EntitiesInBox( pList, 256, mins, maxs, FL_ONGROUND );
 		for ( int i = 0; i < count; i++ )
 		{
@@ -1404,11 +1405,7 @@ void CBreakable::Killed( entvars_t *pevAttacker, int iGib )
 
 	pev->solid = SOLID_NOT;
 
-	CBaseEntity *pEnt = NULL;
-	if ( pevAttacker && pevAttacker->pContainingEntity )
-		pEnt = (CBaseEntity *)pevAttacker->pContainingEntity->pvPrivateData;
-
-	SUB_UseTargets( pEnt, USE_TOGGLE, 0 );
+	SUB_UseTargets( CBaseEntity::Instance( pevAttacker ), USE_TOGGLE, 0 );
 
 	if ( g_pGameRules->IsMultiplayer() == 0 )
 	{
