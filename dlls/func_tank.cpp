@@ -443,14 +443,14 @@ void CFuncTank::TrackTarget( void )
 			// Aim at the point the controller looks at
 			Vector vecForward;
 			UTIL_MakeVectorsPrivate( angles, vecForward, NULL, NULL );
-			targetPosition = pController->GetGunPosition() + vecForward * 1000;
+			targetPosition = pController->EyePosition() + vecForward * 1000;
 
 			if ( !pev->owner || pev->owner == pController->edict() )
 				pev->owner = pController->edict();
 			else
 				ALERT( at_console, "func_tank has owner\n" );
 
-			UTIL_TraceLine( pController->GetGunPosition(), targetPosition, missile, ignore_glass, edict(), &tr );
+			UTIL_TraceLine( pController->EyePosition(), targetPosition, missile, ignore_glass, edict(), &tr );
 
 			direction = tr.vecEndPos - pev->origin;
 			angles = UTIL_VecToAngles( direction );

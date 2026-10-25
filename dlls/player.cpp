@@ -3046,6 +3046,9 @@ void CBasePlayer::SelectNextItem( int iItem )
 	// FIX, this needs to queue them up and delay
 	if ( m_pActiveItem )
 	{
+		if ( !m_pActiveItem->CanHolster() )
+			return;
+
 		m_pActiveItem->Holster();
 	}
 
@@ -3061,6 +3064,10 @@ void CBasePlayer::SelectNextItem( int iItem )
 void CBasePlayer::SelectItem( const char *pstr )
 {
 	if ( !pstr )
+		return;
+
+	// the active weapon may not be put away now
+	if ( m_pActiveItem && !m_pActiveItem->CanHolster() )
 		return;
 
 	CBasePlayerItem *pItem = NULL;

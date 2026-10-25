@@ -1443,6 +1443,9 @@ BOOL CWeaponBox::PackWeapon( CBasePlayerItem *pWeapon )
 
 	if ( pWeapon->m_pPlayer )
 	{
+		if ( pWeapon->m_pPlayer->m_pActiveItem == pWeapon )
+			pWeapon->Holster();
+
 		if ( !pWeapon->m_pPlayer->RemovePlayerItem( pWeapon ) )
 		{
 			// failed to unhook the weapon from the player!
@@ -1472,7 +1475,14 @@ BOOL CWeaponBox::PackWeapon( CBasePlayerItem *pWeapon )
 	pWeapon->pev->modelindex = 0;
 	pWeapon->pev->model = iStringNull;
 	pWeapon->pev->owner = edict();
-	pWeapon->SetThink( NULL );	// crowbar may be trying to swing again, etc.
+
+	ItemInfo ii;
+	pWeapon->GetItemInfo( &ii );
+
+	// the weapon that heats up keeps its think to cool down
+	if ( !( ii.iFlags & ITEM_FLAG_HEAT ) )
+		pWeapon->SetThink( NULL );	// crowbar may be trying to swing again, etc.
+
 	pWeapon->SetTouch( NULL );
 	pWeapon->m_pPlayer = NULL;
 
