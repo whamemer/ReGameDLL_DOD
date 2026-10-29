@@ -13,6 +13,25 @@
 #define SF_ALIAS_DEBUG 0x0002	// the alias entities print what they change
 #define SF_CHANGEALIAS_FOLLOW 0x0001	// trigger_changealias takes the name of the entity its netname refers to
 
+class CInfoAlias : public CBaseEntity
+{
+  public:
+	void Spawn();
+	void RoundRespawn();
+	void Think();
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	int ObjectCaps();
+	STATE GetState();
+};
+
+class CTriggerChangeAlias : public CBaseEntity
+{
+  public:
+	void Spawn();
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	int ObjectCaps();
+};
+
 TYPEDESCRIPTION CMultiAlias::m_SaveData[] = {
 	DEFINE_FIELD( CMultiAlias, m_cTargets, FIELD_INTEGER ),
 	DEFINE_ARRAY( CMultiAlias, m_iszTargets, FIELD_STRING, 16 ),

@@ -170,6 +170,20 @@ class EHANDLE
 	CBaseEntity *operator->();
 };
 
+// DoD entity hash table (the classname hash of FindEntityByClassname)
+struct hash_item_t
+{
+	entvars_t *pev;
+	hash_item_t *next;
+	hash_item_t *lastHash;
+	int pevIndex;
+};
+extern CUtlVector<hash_item_t> stringsHashTable;
+int CaseInsensitiveHash( const char *s, int size );
+void EmptyEntityHashTable();
+void InitHashTable();
+
+
 //
 // Base Entity.  All entity types derive from this
 //
@@ -213,9 +227,81 @@ class CBaseEntity
 
 	// initialization functions
 	// Virtual order below mirrors the dod.so DWARF vtable.
-	virtual void RoundRespawn( void );
-	virtual void RoundRespawnEnt( void );
-	virtual void RoundStore( void );
+	virtual void RoundRespawn( void ) {}
+
+	// clear pending think/touch/use/blocked callbacks, then restore the vars captured by RoundStore()
+	// and run the per-entity RoundRespawn()
+	virtual void RoundRespawnEnt( void )
+	{
+		pev->nextthink = 0;
+		m_pfnThink = NULL;
+		m_pfnTouch = NULL;
+		m_pfnUse = NULL;
+		m_pfnBlocked = NULL;
+
+		if ( m_rrOrigin == g_vecZero )
+		{
+			pev->mins = m_rrMins;
+			pev->maxs = m_rrMaxs;
+		}
+		pev->origin = m_rrOrigin;
+		pev->angles = m_rrAngles;
+		pev->movedir = m_rrMovedir;
+		pev->spawnflags = m_rrSpawnflags;
+		pev->solid = m_rrSolid;
+		pev->movetype = m_rrMovetype;
+		pev->effects = m_rrEffects;
+		pev->flags = m_rrFlags;
+		pev->frags = (float) m_rrFrags;
+		pev->rendermode = m_rrRendermode;
+		pev->renderamt = m_rrRenderamt;
+		pev->rendercolor = m_rrRendercolor;
+		pev->renderfx = m_rrRenderfx;
+		pev->health = m_rrHealth;
+		pev->frame = m_rrFrame;
+		pev->speed = m_rrSpeed;
+		pev->target = m_rrTarget;
+		pev->targetname = m_rrTargetname;
+		pev->netname = m_rrNetname;
+		pev->takedamage = m_rrTakedamage;
+		pev->scale = m_rrScale;
+		pev->gravity = m_rrGravity;
+
+		RoundRespawn();
+	}
+
+	// snapshot the entity's engine vars into the m_rr* block so a later RoundRespawnEnt() can restore them
+	virtual void RoundStore( void )
+	{
+		m_rrOrigin = pev->origin;
+		if ( m_rrOrigin == g_vecZero )
+		{
+			m_rrMins = pev->mins;
+			m_rrMaxs = pev->maxs;
+		}
+		m_rrAngles = pev->angles;
+		m_rrMovedir = pev->movedir;
+		m_rrSpawnflags = pev->spawnflags;
+		m_rrSolid = pev->solid;
+		m_rrMovetype = pev->movetype;
+		m_rrEffects = pev->effects;
+		m_rrFlags = pev->flags;
+		m_rrFrags = (int) pev->frags;
+		m_rrRendermode = pev->rendermode;
+		m_rrRenderamt = pev->renderamt;
+		m_rrRendercolor = pev->rendercolor;
+		m_rrRenderfx = pev->renderfx;
+		m_rrHealth = pev->health;
+		m_rrFrame = pev->frame;
+		m_rrSpeed = pev->speed;
+		m_rrTarget = pev->target;
+		m_rrTargetname = pev->targetname;
+		m_rrNetname = pev->netname;
+		m_rrTakedamage = pev->takedamage;
+		m_rrScale = pev->scale;
+		m_rrGravity = pev->gravity;
+	}
+
 	virtual void Spawn( void ) { return; }
 	virtual void Precache( void ) { return; }
 	virtual void KeyValue( KeyValueData *pkvd ) { pkvd->fHandled = FALSE; }
@@ -540,35 +626,6 @@ static_assert( offsetof( CBaseEntity, m_trDecalTrace ) == 288, "CBaseEntity::m_t
 													float value )>( a )
 #define SetBlocked( a ) m_pfnBlocked = static_cast<void ( CBaseEntity::* )( CBaseEntity * )>( a )
 
-// DoD entity hash table ground truth dod.so DWARF (cbase.cpp:111,407,448)
-struct hash_item_t
-{
-	entvars_t *pev;
-	hash_item_t *next;
-	hash_item_t *lastHash;
-	int pevIndex;
-};
-extern CUtlVector<hash_item_t> stringsHashTable;
-enum hash_types_e
-{
-	CLASSNAME
-};
-int CaseInsensitiveHash( const char *s, int size );
-void EmptyEntityHashTable();
-void InitHashTable();
-void AddEntityHashValue( entvars_t *pev, const char *value, hash_types_e fieldType );
-void RemoveEntityHashValue( entvars_t *pev, const char *value, hash_types_e fieldType );
-
-// sets the classname of the entity and keeps the classname hash in sync (dod.so util.h:59)
-inline void MAKE_STRING_CLASS( const char *str, entvars_t *pev )
-{
-	if( pev->classname )
-		RemoveEntityHashValue( pev, STRING( pev->classname ), CLASSNAME );
-
-	pev->classname = MAKE_STRING( str );
-	AddEntityHashValue( pev, STRING( pev->classname ), CLASSNAME );
-}
-
 #endif
 
 #define SF_POINT_NULL_SPRITE 0x0001	// the point entity gets the null sprite, so the clients know it
@@ -588,7 +645,7 @@ class CBaseDMStart : public CPointEntity
   public:
 	void KeyValue( KeyValueData *pkvd );
 	int GetState( CBaseEntity *pEntity );
-	int IsMasteredOn( void );
+	int IsMasteredOn( void ) { return UTIL_IsMasterTriggered( m_sMaster, this ); }
 
   private:
 	string_t m_sMaster;
@@ -1096,17 +1153,6 @@ class CWorld : public CBaseEntity
 	int m_nPlayerTeam;
 };
 
-class CInfoAlias : public CBaseEntity
-{
-  public:
-	void Spawn();
-	void RoundRespawn();
-	void Think();
-	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	int ObjectCaps();
-	STATE GetState();
-};
-
 class CInfoGroup : public CBaseEntity
 {
   public:
@@ -1135,10 +1181,3 @@ class CMultiAlias : public CBaseEntity
 	int m_iszTargets[16];
 };
 
-class CTriggerChangeAlias : public CBaseEntity
-{
-  public:
-	void Spawn();
-	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	int ObjectCaps();
-};

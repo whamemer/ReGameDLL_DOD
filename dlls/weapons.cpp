@@ -1891,3 +1891,64 @@ void CBasePlayerItem::PickupUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 }
 
 LINK_ENTITY_TO_CLASS( dod_ammo, CDodAmmoBox )
+
+// Factory only allocates the entity (GetClassPtr); Spawn is invoked by the
+// engine via DispatchSpawn. DoD binary factory does NOT call Spawn.
+LINK_ENTITY_TO_CLASS( ammo_generic_american, GenericAmmoAmerican );
+LINK_ENTITY_TO_CLASS( ammo_generic_german, GenericAmmoGerman );
+LINK_ENTITY_TO_CLASS( ammo_generic_british, GenericAmmoBritish );
+
+void GenericAmmoAmerican::Spawn()
+{
+	Precache();
+	SET_MODEL( ENT( pev ), "models/allied_ammo.mdl" );
+	pev->movetype = MOVETYPE_TOSS;
+	pev->solid = SOLID_TRIGGER;
+	UTIL_SetSize( pev, Vector( -16, -16, 0 ), Vector( 16, 16, 16 ) );
+	UTIL_SetOrigin( pev, pev->origin );
+	SetTouch( &CBasePlayerAmmo::DefaultTouch );
+	pev->team = TEAM_ALLIES;	// Allies
+}
+
+void GenericAmmoAmerican::Precache()
+{
+	PRECACHE_MODEL( "models/allied_ammo.mdl" );
+	PRECACHE_MODEL( "models/axis_ammo.mdl" );
+	PRECACHE_SOUND( "items/ammopickup.wav" );
+}
+
+// Shared give logic lives in CBasePlayerAmmo::GiveGenericAmmo (weapons agent).
+BOOL GenericAmmoAmerican::AddAmmo( CBaseEntity *pOther )
+{
+	if ( CBasePlayerAmmo::GiveGenericAmmo( pOther ) )
+	{
+		EMIT_SOUND_DYN( ENT( pev ), CHAN_ITEM, "items/ammopickup.wav", 1.0, 0.8, 0, 100 );
+		return TRUE;
+	}
+	return FALSE;
+}
+
+void GenericAmmoGerman::Spawn()
+{
+	Precache();
+	SET_MODEL( ENT( pev ), "models/axis_ammo.mdl" );
+	pev->movetype = MOVETYPE_TOSS;
+	pev->solid = SOLID_TRIGGER;
+	UTIL_SetSize( pev, Vector( -16, -16, 0 ), Vector( 16, 16, 16 ) );
+	UTIL_SetOrigin( pev, pev->origin );
+	SetTouch( &CBasePlayerAmmo::DefaultTouch );
+	pev->team = TEAM_AXIS;	// Axis
+}
+
+// QUIRK: British box uses the Allied model and team 1 (same as American).
+void GenericAmmoBritish::Spawn()
+{
+	Precache();
+	SET_MODEL( ENT( pev ), "models/allied_ammo.mdl" );
+	pev->movetype = MOVETYPE_TOSS;
+	pev->solid = SOLID_TRIGGER;
+	UTIL_SetSize( pev, Vector( -16, -16, 0 ), Vector( 16, 16, 16 ) );
+	UTIL_SetOrigin( pev, pev->origin );
+	SetTouch( &CBasePlayerAmmo::DefaultTouch );
+	pev->team = TEAM_ALLIES;	// Allies (shared box)
+}

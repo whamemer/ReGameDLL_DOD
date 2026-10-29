@@ -194,10 +194,6 @@ class CGameRules
 	virtual void SetRocketTrail( short s ) {}					// vtbl+0x1e4
 	virtual int ReturnGameRules( void ) = 0;					// vtbl+0x1e8
 	virtual void SetMapChangeFromTime( int iTime ) {}			// vtbl+0x1ec
-
-	// ---- extras kept for this restoration (non-virtual: absent from the binary vtable) ----
-	void UpdateGameMode( CBasePlayer *pPlayer ) {}
-	BOOL IsAlliesBrit( void ) { return FALSE; }
 };
 
 extern CGameRules *InstallGameRules( void );
@@ -217,47 +213,42 @@ class CSPDoDRules : public CGameRules
 	void PlayerDeathThink( CBasePlayer *pPlayer );
 	virtual void PlayerThink( CBasePlayer *pPlayer );
 	virtual void PlayerSpawn( CBasePlayer *pPlayer );
-	BOOL ClientConnected( edict_t *pEntity, char *pszName, char *pszAddress, char *szRejectReason );
 	virtual BOOL CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon );
-	virtual BOOL ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress,
-								  char szRejectReason[128] )
-	{
-		return TRUE;
-	}
+	virtual BOOL ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress, char *szRejectReason );
 	virtual void InitHUD( CBasePlayer *pPlayer );
 	virtual void ClientDisconnected( edict_t *pClient );
-	virtual BOOL IsMultiplayer( void ) { return FALSE; }
-	virtual BOOL IsDeathmatch( void ) { return FALSE; }
-	virtual BOOL IsCoOp( void ) { return FALSE; }
+	virtual BOOL IsMultiplayer( void );
+	virtual BOOL IsDeathmatch( void );
+	virtual BOOL IsCoOp( void );
 	virtual BOOL FAllowFlashlight( void ) { return TRUE; }
 	virtual BOOL AllowAutoTargetCrosshair( void );
 	virtual BOOL FShouldSwitchWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon );
-	virtual BOOL GetNextBestWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pCurrentWeapon ) { return FALSE; }
-	virtual BOOL IsAllowedToSpawn( CBaseEntity *pEntity ) { return TRUE; }
+	virtual BOOL GetNextBestWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pCurrentWeapon );
+	virtual BOOL IsAllowedToSpawn( CBaseEntity *pEntity );
 	virtual float FlPlayerFallDamage( CBasePlayer *pPlayer );
-	virtual BOOL FPlayerCanRespawn( CBasePlayer *pPlayer ) { return TRUE; }
-	virtual float FlPlayerSpawnTime( CBasePlayer *pPlayer ) { return 0; }
-	virtual int IPointsForKill( CBasePlayer *pAttacker, CBasePlayer *pKilled ) { return 1; }
-	virtual void PlayerGotWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon ) {}
-	virtual int WeaponShouldRespawn( CBasePlayerItem *pWeapon ) { return 0; }
-	virtual float FlWeaponRespawnTime( CBasePlayerItem *pWeapon ) { return 0; }
-	virtual float FlWeaponTryRespawn( CBasePlayerItem *pWeapon ) { return 0; }
+	virtual BOOL FPlayerCanRespawn( CBasePlayer *pPlayer );
+	virtual float FlPlayerSpawnTime( CBasePlayer *pPlayer );
+	virtual int IPointsForKill( CBasePlayer *pAttacker, CBasePlayer *pKilled );
+	virtual void PlayerGotWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon );
+	virtual int WeaponShouldRespawn( CBasePlayerItem *pWeapon );
+	virtual float FlWeaponRespawnTime( CBasePlayerItem *pWeapon );
+	virtual float FlWeaponTryRespawn( CBasePlayerItem *pWeapon );
 	virtual Vector VecWeaponRespawnSpot( CBasePlayerItem *pWeapon );
-	virtual BOOL CanHaveItem( CBasePlayer *pPlayer, CItem *pItem ) { return TRUE; }
-	virtual void PlayerGotItem( CBasePlayer *pPlayer, CItem *pItem ) {}
-	virtual int ItemShouldRespawn( CItem *pItem ) { return 0; }
-	virtual float FlItemRespawnTime( CItem *pItem ) { return 0; }
+	virtual BOOL CanHaveItem( CBasePlayer *pPlayer, CItem *pItem );
+	virtual void PlayerGotItem( CBasePlayer *pPlayer, CItem *pItem );
+	virtual int ItemShouldRespawn( CItem *pItem );
+	virtual float FlItemRespawnTime( CItem *pItem );
 	virtual Vector VecItemRespawnSpot( CItem *pItem );
-	virtual void PlayerGotAmmo( CBasePlayer *pPlayer, char *szName, int iCount ) {}
-	virtual int AmmoShouldRespawn( CBasePlayerAmmo *pAmmo ) { return 0; }
-	virtual float FlAmmoRespawnTime( CBasePlayerAmmo *pAmmo ) { return 0; }
+	virtual void PlayerGotAmmo( CBasePlayer *pPlayer, char *szName, int iCount );
+	virtual int AmmoShouldRespawn( CBasePlayerAmmo *pAmmo );
+	virtual float FlAmmoRespawnTime( CBasePlayerAmmo *pAmmo );
 	virtual Vector VecAmmoRespawnSpot( CBasePlayerAmmo *pAmmo );
-	virtual float FlHealthChargerRechargeTime( void ) { return 0; }
-	virtual int DeadPlayerWeapons( CBasePlayer *pPlayer ) { return 0; }
-	virtual int DeadPlayerAmmo( CBasePlayer *pPlayer ) { return 0; }
+	virtual float FlHealthChargerRechargeTime( void );
+	virtual int DeadPlayerWeapons( CBasePlayer *pPlayer );
+	virtual int DeadPlayerAmmo( CBasePlayer *pPlayer );
 	virtual const char *GetTeamID( CBaseEntity *pEntity ) { return ""; }
-	virtual int PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget ) { return 0; }
-	virtual BOOL FAllowMonsters( void ) { return TRUE; }
+	virtual int PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget );
+	virtual BOOL FAllowMonsters( void );
 
 	virtual unsigned short Camera( void );
 	virtual unsigned short usVoice( void );
@@ -305,11 +296,11 @@ class CSPDoDRules : public CGameRules
 	void setWaveTime( int iTeam, float fTime );
 	float GetMaxWaveTime( int nTeam );
 	void setMapTime( void );
-	float getMapTime( void );
-	bool IsRoundFrozen( void );
-	void SetClanMatch( bool bMatchOn );
-	bool IsClanMatch( void );
-	bool IsClanMatchActive( void );
+	float getMapTime( void ) { return 0.0f; }
+	bool IsRoundFrozen( void ) { return false; }
+	void SetClanMatch( bool bMatchOn ) {}
+	bool IsClanMatch( void ) { return false; }
+	bool IsClanMatchActive( void ) { return false; }
 	void SetRoundState( int iState );
 	void SetTeamScores( int iTeam, int iScore );
 	void SendTeamScores( int iTeam );

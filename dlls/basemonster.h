@@ -285,7 +285,7 @@ class CBaseMonster : public CBaseToggle
 	BOOL FBecomeProne( void );
 	virtual void BarnacleVictimBitten( entvars_t *pevBarnacle );
 	virtual void BarnacleVictimReleased( void );
-	virtual void DoDSetScriptReset( void );
+	virtual void DoDSetScriptReset( void ) { m_scriptState = SCRIPT_CLEANUP; }
 
 	void SetEyePosition( void );
 
@@ -346,7 +346,7 @@ class CBaseMonster : public CBaseToggle
 	virtual void PainSound( void ) { return; };
 
 	virtual void StopFollowing( BOOL clearSchedule ) {}
-	virtual int Classify( void );
+	virtual int Classify( void ) { return m_iClass; }
 
 	inline void Remember( int iMemory ) { m_afMemory |= iMemory; }
 	inline void Forget( int iMemory ) { m_afMemory &= ~iMemory; }

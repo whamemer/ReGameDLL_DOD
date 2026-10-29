@@ -40,17 +40,6 @@ struct mapcycle_s
 typedef struct mapcycle_s mapcycle_t;
 extern void DestroyMapCycle( mapcycle_t *cycle );
 extern int ReloadMapCycleFile( const char *filename, mapcycle_t *cycle );
-struct TESTSTATS
-{
-	int lastAmmo;
-	float lastHealth;
-	float lastOutputTime;
-	float nextOutputTime;
-	float dataTime;
-	float gameTime;
-	float lastGameTime;
-};
-extern TESTSTATS gStats;
 extern void Host_Say( edict_t *pEntity, int teamonly );
 extern void UpdateStatsFile( float t, char *m, float h, float a, int s );
 extern float AmmoDamage( const char *psz );
@@ -2294,7 +2283,7 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 
 	for ( int i = 1; i != 28; i++ )
 	{
-		if ( FStrEq( pcmd, s_VoiceCommands[i][0] ) )
+		if ( FStrEq( pcmd, s_VoiceCommands[i][SLOT_VOICECOMMAND] ) )
 		{
 			pPlayer->VoiceCom( i );
 			return TRUE;
@@ -4421,4 +4410,172 @@ int ReloadMapCycleFile( const char *filename, mapcycle_t *cycle )
 	cycle->next_item = item->next;
 
 	return 1;
+}
+
+BOOL CDoDTeamPlay::IsTeamplay( void )
+{
+	return TRUE;
+}
+
+unsigned short CDoDTeamPlay::RoundReset( void )
+{
+	return m_RoundReset;
+}
+
+int CDoDTeamPlay::RoundState( void )
+{
+	return m_RoundState;
+}
+
+unsigned short CDoDTeamPlay::StartTrail( void )
+{
+	return m_RocketTrail;
+}
+
+int CDoDTeamPlay::TeamScores( int team )
+{
+	return m_iTeamScores[team];
+}
+
+unsigned short CDoDTeamPlay::bodyDamage( void )
+{
+	return m_bodyDamage;
+}
+
+unsigned short CDoDTeamPlay::BloodSprite( void )
+{
+	return m_BloodSprite;
+}
+
+unsigned short CDoDTeamPlay::BloodStream( void )
+{
+	return m_BloodStream;
+}
+
+BOOL CDoDTeamPlay::CanHaveItem( CBasePlayer *pPlayer, CItem *pItem )
+{
+	return TRUE;
+}
+
+unsigned short CDoDTeamPlay::ScreenFades( void )
+{
+	return m_ScreenFades;
+}
+
+unsigned short CDoDTeamPlay::SparkShower( void )
+{
+	return m_SparkShower;
+}
+
+unsigned short CDoDTeamPlay::BubbleTrails( void )
+{
+	return m_BubbleTrails;
+}
+
+BOOL CDoDTeamPlay::IsDeathmatch( void )
+{
+	return FALSE;
+}
+
+unsigned short CDoDTeamPlay::BulletTracers( void )
+{
+	return m_BulletTracers;
+}
+
+BOOL CDoDTeamPlay::IsMultiplayer( void )
+{
+	return TRUE;
+}
+
+bool CDoDTeamPlay::IsRoundFrozen( void )
+{
+	return m_bIsRoundFrozen;
+}
+
+void CDoDTeamPlay::PlayerGotAmmo( CBasePlayer *pPlayer, char *szName, int iCount )
+{
+}
+
+void CDoDTeamPlay::PlayerGotItem( CBasePlayer *pPlayer, CItem *pItem )
+{
+}
+
+BOOL CDoDTeamPlay::FAllowMonsters( void )
+{
+	return FALSE;
+}
+
+int CDoDTeamPlay::ReturnGameRules( void )
+{
+	return gr_gameRules;
+}
+
+BOOL CDoDTeamPlay::FAllowFlashlight( void )
+{
+	return FALSE;
+}
+
+BOOL CDoDTeamPlay::FPlayerCanRespawn( CBasePlayer *pPlayer )
+{
+	return TRUE;
+}
+
+unsigned short CDoDTeamPlay::roundRestartSound( void )
+{
+	return m_roundRestartSound;
+}
+
+unsigned short CDoDTeamPlay::Pain( void )
+{
+	return m_Pain;
+}
+
+unsigned short CDoDTeamPlay::Prone( void )
+{
+	return m_Prone;
+}
+
+unsigned short CDoDTeamPlay::Smoke( void )
+{
+	return m_Smoke;
+}
+
+unsigned short CDoDTeamPlay::Camera( void )
+{
+	return m_Camera;
+}
+
+BOOL CDoDTeamPlay::IsCoOp( void )
+{
+	return FALSE;
+}
+
+unsigned short CDoDTeamPlay::Shards( void )
+{
+	return m_Shards;
+}
+
+unsigned short CDoDTeamPlay::Bubbles( void )
+{
+	return m_Bubbles;
+}
+
+unsigned short CDoDTeamPlay::usVoice( void )
+{
+	return m_usVoice;
+}
+
+unsigned short CDoDTeamPlay::gerVoice( void )
+{
+	return m_gerVoice;
+}
+
+unsigned short CDoDTeamPlay::Explosion( void )
+{
+	return m_Explosion;
+}
+
+unsigned short CDoDTeamPlay::PopHelmet( void )
+{
+	return m_PopHelmet;
 }

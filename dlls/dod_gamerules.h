@@ -2,7 +2,23 @@
 #define DOD_GAMERULES_H
 class CBasePlayer;
 class CBasePlayerItem;
-struct GamePlayRules_t
+class CDodParaRoundTimer : public CBaseEntity
+{
+  public:
+	float m_fUpdateTimer;  // 344, 30.0 s
+	float m_fRoundTimer;   // 348, default 240.0 on reset
+	float m_fLastThinkTime;// 352
+	bool m_bTimer;		   // 356
+	void Spawn( void );
+	void StartTimer( void );
+	void StopTimer( void );
+	void ResetTimer( void );
+	void SendStatus( void );
+	void SendStatus( class CBasePlayer *p );
+	void EXPORT TimerThink( void );
+};
+
+typedef struct
 {
 	bool m_bAlliesInfiniteLives;
 	bool m_bAxisInfiniteLives;
@@ -19,8 +35,7 @@ struct GamePlayRules_t
 	int m_iPointsTimerExpires;
 	float m_fAlliesRespawnFactor;
 	float m_fAxisRespawnFactor;
-};
-typedef GamePlayRules_t gameplay_rules_t;
+} gameplay_rules_t;
 // info_doddetect (dod_gamerules.cpp) - DWARF-canonical (gdb ptype /o CDoDDetect)
 // legacy trailing ints kept for exact layout parity (unused by the binary body)
 class CDoDDetect : public CBaseEntity
@@ -84,7 +99,7 @@ class CDoDTeamPlay : public CGameRules
 	virtual BOOL ClientCommand( CBasePlayer *pPlayer, const char *pcmd );
 	// verified vtable slots (binary CGameRules order): RoundState vtbl+0xfc, BloodSprite vtbl+0x168,
 	// BulletTracers vtbl+0x170, SparkShower vtbl+0x174, Explosion vtbl+0x188, etc.
-	virtual int RoundState( void ) { return m_RoundState; }
+	virtual int RoundState( void );
 	virtual bool IsClanMatch( void );
 	virtual bool IsClanMatchActive( void );
 	virtual BOOL PlayTextureSounds( void ) { return FALSE; }
@@ -92,32 +107,32 @@ class CDoDTeamPlay : public CGameRules
 	virtual void EndMultiplayerGame( void ) { GoToIntermission(); }
 	virtual float getMapTime( void ) { return m_flDoDMapTime; }
 	virtual void setMapTime( void );
-	virtual bool IsRoundFrozen( void ) { return m_bIsRoundFrozen; }
-	virtual int ReturnGameRules( void ) { return gr_gameRules; }
+	virtual bool IsRoundFrozen( void );
+	virtual int ReturnGameRules( void );
 	virtual void SetMapChangeFromTime( int iTime );
 	const char *GetIndexedTeamName( int teamIndex );
 	float getWaveTime( int iTeam );
 	void SetTeamScores( int iTeam, int iScore );
 	bool IsAlliesBrit( void );
-	unsigned short Camera( void ) { return m_Camera; }
-	unsigned short usVoice( void ) { return m_usVoice; }
-	unsigned short bodyDamage( void ) { return m_bodyDamage; }
-	unsigned short roundRestartSound( void ) { return m_roundRestartSound; }
-	unsigned short gerVoice( void ) { return m_gerVoice; }
-	unsigned short Pain( void ) { return m_Pain; }
-	unsigned short Smoke( void ) { return m_Smoke; }
-	unsigned short Prone( void ) { return m_Prone; }
-	virtual unsigned short BloodSprite( void ) { return m_BloodSprite; }
-	unsigned short BloodStream( void ) { return m_BloodStream; }
-	virtual unsigned short BulletTracers( void ) { return m_BulletTracers; }
-	virtual unsigned short SparkShower( void ) { return m_SparkShower; }
-	unsigned short ScreenFades( void ) { return m_ScreenFades; }
-	unsigned short BubbleTrails( void ) { return m_BubbleTrails; }
-	unsigned short Bubbles( void ) { return m_Bubbles; }
-	unsigned short Shards( void ) { return m_Shards; }
-	unsigned short Explosion( void ) { return m_Explosion; }
-	unsigned short PopHelmet( void ) { return m_PopHelmet; }
-	unsigned short RoundReset( void ) { return m_RoundReset; }
+	unsigned short Camera( void );
+	unsigned short usVoice( void );
+	unsigned short bodyDamage( void );
+	unsigned short roundRestartSound( void );
+	unsigned short gerVoice( void );
+	unsigned short Pain( void );
+	unsigned short Smoke( void );
+	unsigned short Prone( void );
+	virtual unsigned short BloodSprite( void );
+	unsigned short BloodStream( void );
+	virtual unsigned short BulletTracers( void );
+	virtual unsigned short SparkShower( void );
+	unsigned short ScreenFades( void );
+	unsigned short BubbleTrails( void );
+	unsigned short Bubbles( void );
+	unsigned short Shards( void );
+	unsigned short Explosion( void );
+	unsigned short PopHelmet( void );
+	unsigned short RoundReset( void );
 	void SetusVoice( short s );
 	void SetbodyDamage( short s );
 	void SetroundRestartSound( short s );
@@ -137,7 +152,7 @@ class CDoDTeamPlay : public CGameRules
 	void SetPopHelmet( short s );
 	void SetRoundReset( short s );
 	void SetRocketTrail( short s );
-	unsigned short StartTrail( void ) { return m_RocketTrail; }
+	unsigned short StartTrail( void );
 	void SetCamera( short s );
 	void ClientUserInfoChanged( CBasePlayer *pPlayer, char *infobuffer );
 	BOOL PlayFootstepSounds( CBasePlayer *pl, float fvol );
@@ -174,11 +189,11 @@ class CDoDTeamPlay : public CGameRules
 	void VoteKickTimeUp( void );
 	void CheckOneLifeRoundConditions( void );
 	const char *GetPlayerClassName( int cls );
-	virtual BOOL IsMultiplayer( void ) { return TRUE; }
-	virtual BOOL IsDeathmatch( void ) { return FALSE; }
-	virtual BOOL IsTeamplay( void ) { return TRUE; }
-	virtual BOOL IsCoOp( void ) { return FALSE; }
-	virtual BOOL FAllowFlashlight( void ) { return FALSE; }
+	virtual BOOL IsMultiplayer( void );
+	virtual BOOL IsDeathmatch( void );
+	virtual BOOL IsTeamplay( void );
+	virtual BOOL IsCoOp( void );
+	virtual BOOL FAllowFlashlight( void );
 	virtual BOOL AllowAutoTargetCrosshair( void );
 	virtual BOOL FShouldSwitchWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon );
 	virtual BOOL GetNextBestWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pCurrentWeapon );
@@ -187,7 +202,7 @@ class CDoDTeamPlay : public CGameRules
 	virtual void PlayerSpawn( CBasePlayer *pPlayer );
 	virtual void PlayerThink( CBasePlayer *pPlayer );
 	virtual void PlayerDeathThink( CBasePlayer *pPlayer );
-	virtual BOOL FPlayerCanRespawn( CBasePlayer *pPlayer ) { return TRUE; }
+	virtual BOOL FPlayerCanRespawn( CBasePlayer *pPlayer );
 	virtual float FlPlayerSpawnTime( CBasePlayer *pPlayer );
 	virtual BOOL FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAttacker );
 	virtual BOOL ShouldAutoAim( CBasePlayer *pPlayer, edict_t *target );
@@ -197,12 +212,12 @@ class CDoDTeamPlay : public CGameRules
 	virtual float FlWeaponRespawnTime( CBasePlayerItem *pWeapon );
 	virtual float FlWeaponTryRespawn( CBasePlayerItem *pWeapon );
 	virtual Vector VecWeaponRespawnSpot( CBasePlayerItem *pWeapon );
-	virtual BOOL CanHaveItem( CBasePlayer *pPlayer, CItem *pItem ) { return TRUE; }
-	virtual void PlayerGotItem( CBasePlayer *pPlayer, CItem *pItem ) {}
+	virtual BOOL CanHaveItem( CBasePlayer *pPlayer, CItem *pItem );
+	virtual void PlayerGotItem( CBasePlayer *pPlayer, CItem *pItem );
 	virtual int ItemShouldRespawn( CItem *pItem );
 	virtual float FlItemRespawnTime( CItem *pItem );
 	virtual Vector VecItemRespawnSpot( CItem *pItem );
-	virtual void PlayerGotAmmo( CBasePlayer *pPlayer, char *szName, int iCount ) {}
+	virtual void PlayerGotAmmo( CBasePlayer *pPlayer, char *szName, int iCount );
 	virtual int AmmoShouldRespawn( CBasePlayerAmmo *pAmmo );
 	virtual float FlAmmoRespawnTime( CBasePlayerAmmo *pAmmo );
 	virtual Vector VecAmmoRespawnSpot( CBasePlayerAmmo *pAmmo );
@@ -213,7 +228,7 @@ class CDoDTeamPlay : public CGameRules
 	virtual const char *GetTeamID( CBaseEntity *pEntity );
 	virtual int PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget );
 	virtual const char *SetDefaultPlayerTeam( CBasePlayer *pPlayer );
-	virtual BOOL FAllowMonsters( void ) { return FALSE; }
+	virtual BOOL FAllowMonsters( void );
 	int m_RoundDoesCount;
 	int m_DoDCameraState;
 	int m_RoundParaCanJoin;
@@ -281,7 +296,7 @@ class CDoDTeamPlay : public CGameRules
 	float m_fLogScoresTime;
 	float m_flIntermissionEndTime;
 	BOOL m_iEndIntermissionButtonHit;
-	int TeamScores( int team ) { return m_iTeamScores[team]; }
+	int TeamScores( int team );
 	virtual void SetClanMatch( bool b );
 	void ReturnToWarmup( void );
 	void SendWaveStatus( CBasePlayer *pPlayer, int wave );

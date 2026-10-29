@@ -105,11 +105,6 @@ void CBaseDMStart::KeyValue( KeyValueData *pkvd )
 		CPointEntity::KeyValue( pkvd );
 }
 
-int CBaseDMStart::IsMasteredOn( void )
-{
-	return UTIL_IsMasterTriggered( m_sMaster, this );
-}
-
 int CBaseDMStart::GetState( CBaseEntity *pEntity )
 {
 	// binary-verified 0x139530 subs.cpp:138 GetState returns 0 OFF else 2 ON; USE 0 OFF 1 ON 2 SET 3 TOGGLE 4 KILL 6 no-op; ShouldToggle 0xc1180 SDK gate, 0xc11c0 via GetState; GetState table 0x139240 [2,0,1,3]

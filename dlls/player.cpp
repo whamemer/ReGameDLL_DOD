@@ -177,6 +177,44 @@ int gmsgUseSound = 0;
 int gmsgReloadDone = 0;
 int gmsgAmmoShort = 0;
 
+enum PLAYER_ANIM_STATES
+{
+	PANIM_NONE = 0,
+	PANIM_SW_AIM = 1,
+	PANIM_SPRINT_AIM = 2,
+	PANIM_CROUCH_AIM = 3,
+	PANIM_PRONE_AIM = 4,
+	PANIM_EXTENDED_AIM = 5,
+	PANIM_SANDBAG_AIM = 6,
+	PANIM_SW_ZOOMIN = 7,
+	PANIM_CROUCH_ZOOMIN = 8,
+	PANIM_PRONE_ZOOMIN = 9,
+	PANIM_SW_SHOOT = 10,
+	PANIM_SPRINT_SHOOT = 11,
+	PANIM_CROUCH_SHOOT = 12,
+	PANIM_PRONE_SHOOT = 13,
+	PANIM_EXTENDED_SHOOT = 14,
+	PANIM_SANDBAG_SHOOT = 15,
+	PANIM_REF_STAB = 16,
+	PANIM_CROUCH_STAB = 17,
+	PANIM_PRONE_STAB = 18,
+	PANIM_PRONE_MOVE = 19,
+	PANIM_DEEPIDLE = 20,
+	PANIM_STAND_RELOAD = 21,
+	PANIM_CROUCH_RELOAD = 22,
+	PANIM_PRONE_RELOAD = 23,
+	PANIM_EXTENDED_RELOAD = 24,
+	PANIM_SANDBAG_RELOAD = 25,
+	PANIM_STAND_ROLL = 26,
+	PANIM_CROUCH_ROLL = 27,
+	PANIM_STAND_ZOOMLOAD = 28,
+	PANIM_CROUCH_ZOOMLOAD = 29,
+	PANIM_PRONE_ZOOMLOAD = 30,
+	PANIM_STAND_BUTSWING = 31,
+	PANIM_CROUCH_BUTSWING = 32,
+	PANIM_PRONE_BUTSWING = 33,
+};
+
 extern const char *g_PlayerAnimationNames[34];
 extern const char *sIdleAnimations[5];
 extern char *sHandSignals[30];	// defined in dod_shared.cpp
@@ -1040,49 +1078,49 @@ void CBasePlayer::SetAnimation( PLAYER_ANIM playerAnim )
 				if ( m_bBazookaDeployed )
 				{
 					if ( !bProne )
-						iState = ( pev->flags & FL_DUCKING ) ? 8 : 7;
+						iState = ( pev->flags & FL_DUCKING ) ? PANIM_CROUCH_ZOOMIN : PANIM_SW_ZOOMIN;
 					else
-						iState = 9;
+						iState = PANIM_PRONE_ZOOMIN;
 				}
 				else if ( pev->iuser3 == STANCE_PRONE_DEPLOYED )
 				{
-					iState = 5;
+					iState = PANIM_EXTENDED_AIM;
 				}
 				else if ( bProne )
 				{
-					iState = 4;
+					iState = PANIM_PRONE_AIM;
 
 					if ( m_iFOV <= 0 && speed > 0.0 )
-						iState = 19;
+						iState = PANIM_PRONE_MOVE;
 				}
 				else
 				{
-					iState = 6;
+					iState = PANIM_SANDBAG_AIM;
 
 					if ( pev->vuser1.x != SANDBAG_DEPLOYED )
 					{
 						if ( ( pev->button & IN_RUN ) && speed > 250.0 )
 						{
-							iState = 2;
+							iState = PANIM_SPRINT_AIM;
 						}
 						else if ( ( pev->flags & FL_DUCKING ) && !m_iFOV )
 						{
-							iState = 3;
+							iState = PANIM_CROUCH_AIM;
 						}
-						else if ( m_iCurrentAnimationState == 20 && !m_fSequenceFinished )
+						else if ( m_iCurrentAnimationState == PANIM_DEEPIDLE && !m_fSequenceFinished )
 						{
 							bKeepSequence = true;
 						}
 						else if ( m_iFOV <= 0 )
 						{
-							iState = 1;
+							iState = PANIM_SW_AIM;
 
 							if ( speed == 0.0 && bTimeToDeepIdle )
-								iState = pev->deadflag == DEAD_NO ? 20 : 1;
+								iState = pev->deadflag == DEAD_NO ? PANIM_DEEPIDLE : PANIM_SW_AIM;
 						}
 						else
 						{
-							iState = ( pev->flags & FL_DUCKING ) ? 8 : 7;
+							iState = ( pev->flags & FL_DUCKING ) ? PANIM_CROUCH_ZOOMIN : PANIM_SW_ZOOMIN;
 						}
 					}
 				}
@@ -1101,7 +1139,7 @@ void CBasePlayer::SetAnimation( PLAYER_ANIM playerAnim )
 
 						m_pszSavedWeaponModel = pev->weaponmodel - (unsigned int) (size_t) gpGlobals->pStringBase;
 
-						if ( iState == 20 )
+						if ( iState == PANIM_DEEPIDLE )
 							animDesired = LookupSequence( sIdleAnimations[RANDOM_LONG( 1, 4 )] );
 						else
 							animDesired = LookupSequence( szAnim );
@@ -1175,52 +1213,52 @@ void CBasePlayer::SetAnimation( PLAYER_ANIM playerAnim )
 			case ACT_RANGE_ATTACK1:
 				if ( ( pev->flags & FL_DUCKING ) && !bProne )
 				{
-					iState = 12;
+					iState = PANIM_CROUCH_SHOOT;
 				}
 				else if ( pev->iuser3 == STANCE_PRONE_DEPLOYED )
 				{
-					iState = 14;
+					iState = PANIM_EXTENDED_SHOOT;
 				}
 				else if ( !bProne )
 				{
-					iState = 15;
+					iState = PANIM_SANDBAG_SHOOT;
 
 					if ( pev->vuser1.x != SANDBAG_DEPLOYED )
 					{
-						iState = 10;
+						iState = PANIM_SW_SHOOT;
 
 						if ( pev->button & IN_RUN )
-							iState = ( speed > 0.0 ) + 10;
+							iState = ( speed > 0.0 ) + PANIM_SW_SHOOT;
 					}
 				}
 				else
 				{
-					iState = 13;
+					iState = PANIM_PRONE_SHOOT;
 				}
 
 				break;
 
 			case ACT_SPECIAL_ATTACK1:
 				if ( !bProne )
-					iState = ( pev->flags & FL_DUCKING ) ? 27 : 26;
+					iState = ( pev->flags & FL_DUCKING ) ? PANIM_CROUCH_ROLL : PANIM_STAND_ROLL;
 				else
-					iState = 13;
+					iState = PANIM_PRONE_SHOOT;
 
 				break;
 
 			case ACT_SPECIAL_ATTACK2:
 				if ( !bProne )
-					iState = ( pev->flags & FL_DUCKING ) ? 32 : 31;
+					iState = ( pev->flags & FL_DUCKING ) ? PANIM_CROUCH_BUTSWING : PANIM_STAND_BUTSWING;
 				else
-					iState = 33;
+					iState = PANIM_PRONE_BUTSWING;
 
 				break;
 
 			default:
 				if ( !bProne )
-					iState = ( pev->flags & FL_DUCKING ) ? 17 : 16;
+					iState = ( pev->flags & FL_DUCKING ) ? PANIM_CROUCH_STAB : PANIM_REF_STAB;
 				else
-					iState = 18;
+					iState = PANIM_PRONE_STAB;
 
 				break;
 			}
@@ -1262,24 +1300,24 @@ void CBasePlayer::SetAnimation( PLAYER_ANIM playerAnim )
 			if ( m_bBazookaDeployed )
 			{
 				if ( !bProne )
-					iState = ( pev->flags & FL_DUCKING ) ? 29 : 28;
+					iState = ( pev->flags & FL_DUCKING ) ? PANIM_CROUCH_ZOOMLOAD : PANIM_STAND_ZOOMLOAD;
 				else
-					iState = 9;
+					iState = PANIM_PRONE_ZOOMIN;
 			}
 			else
 			{
-				iState = 25;
+				iState = PANIM_SANDBAG_RELOAD;
 
 				if ( pev->vuser1.x != SANDBAG_DEPLOYED )
 				{
-					iState = 24;
+					iState = PANIM_EXTENDED_RELOAD;
 
 					if ( pev->iuser3 != STANCE_PRONE_DEPLOYED )
 					{
 						if ( !bProne )
-							iState = ( pev->flags & FL_DUCKING ) ? 22 : 21;
+							iState = ( pev->flags & FL_DUCKING ) ? PANIM_CROUCH_RELOAD : PANIM_STAND_RELOAD;
 						else
-							iState = 23;
+							iState = PANIM_PRONE_RELOAD;
 					}
 				}
 			}
@@ -1570,13 +1608,6 @@ void CBasePlayer::WaterMove()
 		pev->dmgtime = 0;
 	}
 }
-
-// TRUE if the player is attached to a ladder
-BOOL CBasePlayer::IsOnLadder( void )
-{
-	return ( pev->movetype == MOVETYPE_FLY );
-}
-
 
 void CBasePlayer::PlayerDeathThink( void )
 {
@@ -1870,14 +1901,6 @@ void CBasePlayer::Duck()
 		SetAnimation( PLAYER_WALK );
 }
 
-
-//
-// ID's player as such.
-//
-int CBasePlayer::Classify( void )
-{
-	return CLASS_PLAYER;
-}
 
 void CBasePlayer::AddPoints( int score, BOOL bAllowNegativeScore )
 {
@@ -3151,15 +3174,6 @@ BOOL CBasePlayer::HasWeapons( void )
 }
 
 void CBasePlayer::SelectPrevItem( int iItem ) {}
-
-const char *CBasePlayer::TeamID( void )
-{
-	if ( pev == NULL )	// Not fully connected yet
-		return "";
-
-	// return their team name
-	return m_szTeamName;
-}
 
 //==============================================
 // !!!UNDONE:ultra temporary SprayCan entity to apply
@@ -5457,8 +5471,6 @@ void CBasePlayer::StudioProcessGait()
 	if ( m_flGaitframe < 0 )
 		m_flGaitframe += pseqdesc->numframes;
 }
-float CBasePlayer::GetStamina() { return pev->fuser4; }
-void CBasePlayer::SetStamina( float s ) { pev->fuser4 = s; }
 void CBasePlayer::UTIL_EdictScreenFade( edict_t *pEdict, const Vector &color, float fadeTime, float fadeHold,
 										int alpha, int flags )
 {

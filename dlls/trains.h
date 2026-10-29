@@ -53,7 +53,7 @@ class CPathCorner : public CPointEntity
 
   private:
 	float m_flWait;
-	virtual void RoundRespawn( void );
+	virtual void RoundRespawn( void ) {}
 };
 
 //#define PATH_SPARKLE_DEBUG		1	// This makes a particle effect around path_track entities for debugging

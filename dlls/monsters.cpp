@@ -3425,17 +3425,6 @@ BOOL CBaseMonster ::ShouldFadeOnDeath( void )
 	return FALSE;
 }
 
-void CBaseMonster::DoDSetScriptReset( void )
-{
-	// binary-verified 0xb2ff0: mov dword [eax+0x39c], 2
-	*(int *) ( (char *) this + 0x39c ) = 2;
-}
-
-int CBaseMonster::Classify( void )
-{
-	return m_iClass;
-}
-
 void CBaseMonster::PlaySentence( const char *pszSentence, float duration, float volume, float attenuation )
 {
 	if ( pszSentence != NULL && IsAlive() )

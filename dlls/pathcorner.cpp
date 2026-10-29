@@ -422,6 +422,3 @@ void CPathTrack::RoundRespawn( void )
 	m_pprevious = NULL;
 }
 
-void CPathCorner::RoundRespawn( void )
-{
-}

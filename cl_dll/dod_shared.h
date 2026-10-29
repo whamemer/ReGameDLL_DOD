@@ -110,6 +110,14 @@ struct p_wpninfo_s
 	float base_accuracy2;
 };
 
+enum VOICECOMSLOTS_e
+{
+	SLOT_VOICECOMMAND = 0,
+	SLOT_TEXT,
+	SLOT_GER_ALTTEXT,
+	SLOT_BRIT_ALTTEXT,
+};
+
 enum HANDSIGNALS_e
 {
 	HS_STICK_TOGETHER = 0,

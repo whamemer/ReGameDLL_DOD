@@ -117,6 +117,11 @@ void CObject::KeyValue( KeyValueData *pkvd )
 		pkvd->fHandled = FALSE;
 }
 
+enum Object_Animations
+{
+	OBJECT_IDLE = 1,
+};
+
 void CObject::Spawn()
 {
 	Precache();
@@ -125,7 +130,7 @@ void CObject::Spawn()
 	UTIL_SetOrigin( pev, pev->origin );
 	UTIL_SetSize( pev, g_vecZero, g_vecZero );
 	m_vStartOrigin = Vector( 0, 0, 0 );
-	pev->sequence = 1;
+	pev->sequence = OBJECT_IDLE;
 	pev->framerate = 1.0;
 	m_bCarried = 0;
 	m_bDropped = 0;
@@ -470,6 +475,26 @@ void CWeatherSystem::SendData()
 	WRITE_BYTE( ENTINDEX( edict() ) );
 	WRITE_BYTE( m_iType );
 }
+
+class CScoreEvent : public CBaseEntity
+{
+  public:
+	int m_iMain;
+	int m_iResetItemsTime;	 // score_resetitemtime
+	int m_iResetPlayersTime; // score_resetplayerstime
+	int m_iTeamPoints;		 // score_points
+	float ResetItemsTime;	 // next reset time
+	BOOL ResetItems;		 // pending reset flag
+	char szNextMap[256];	 // score_nextmap
+	BOOL bChangeLevel;		 // pending changelevel
+	float ChangeLevelTime;	 // changelevel time
+	int m_iChangeLevelDelay; // score_nextmapdelay
+  public:
+	void Spawn( void );
+	void KeyValue( KeyValueData *pkvd );
+	void EXPORT ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	void EXPORT ScoreThink( void );
+};
 
 void CScoreEvent::Spawn( void )
 {

@@ -807,8 +807,108 @@ void CRenderFxManager ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_
 	}
 }
 
-// ODR: CBaseTrigger canonical in objective.h
+class CBaseTrigger : public CBaseToggle
+{
+  public:
+	void EXPORT TeleportTouch( CBaseEntity *pOther );
+	virtual void KeyValue( KeyValueData *pkvd );
+	void EXPORT MultiTouch( CBaseEntity *pOther );
+	void EXPORT HurtTouch( CBaseEntity *pOther );
+	void EXPORT CDAudioTouch( CBaseEntity *pOther );
+	void ActivateMultiTrigger( CBaseEntity *pActivator );
+	void EXPORT MultiWaitOver( void );
+	void EXPORT CounterUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	void EXPORT ToggleUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	void InitTrigger( void );
 
+	virtual int ObjectCaps( void );
+};
+
+class CObjectCapture : public CBaseTrigger
+{
+  public:
+	bool m_bCapped;	// set when spawnflags & 2 (one-shot)
+	char sz_Group[256];		 // capobj_group, must match carried object
+	char sz_DoneTarget[256];	 // capobj_donetarget
+	string_t m_sMaster;
+	int m_iAreaIndex;
+	char sz_HudIcon[256];	 // capobj_hud_sprite
+
+  public:
+	virtual void Precache( void );
+	virtual void Spawn( void );
+	virtual void Touch( CBaseEntity *pOther );
+	virtual void KeyValue( KeyValueData *pkvd );
+	virtual void RoundRespawn( void );
+	virtual void area_SendStatus( class CBasePlayer *p );
+	virtual void area_SetIndex( int index );
+};
+
+class CAreaCapture : public CBaseTrigger
+{
+  public:
+	int m_iCapMode;	 // 0 timed, 1 catchup (para rules)
+	int m_bCapturing;
+	int m_nCapturingTeam;  // -1 idle
+	int m_nOwningTeam;	   // mirrors point owner, -1 none
+	int m_nCapTime;		  // area_time_to_cap (seconds)
+	float m_fTimeRemaining;
+	int m_nAlliesNumCap;  // area_allies_numcap, min 1
+	int m_nAxisNumCap;	  // area_axis_numcap, min 1
+	int m_nNumAllies;
+	int m_nNumAxis;
+	bool m_bAlliesCanCap;  // area_allies_cancap
+	bool m_bAxisCanCap;	  // area_axis_cancap
+	int m_iCappingRequired;
+	int m_iCappingPlayers;
+	char sz_AlliesCap[256];			  // area_allies_endcap
+	char sz_AxisCap[256];			  // area_axis_endcap
+	char sz_AlliesStart[256];		  // area_allies_startcap
+	char sz_AxisStart[256];			  // area_axis_startcap
+	char sz_AlliesBreak[256];		  // area_allies_breakcap
+	char sz_AxisBreak[256];			  // area_axis_breakcap
+	int m_iAreaIndex;  // HUD area slot, -1 until assigned
+	char sz_HudIcon[256];			  // area_hud_sprite
+	CControlPoint *m_pPoint;		  // area_cap_point target
+	char sz_CapPointName[256];		  // area_cap_point
+	char sz_RequiredObjectGroup[256];  // area_object_group
+	bool m_bRequiresObject;
+
+  public:
+	virtual void Precache( void );
+	virtual void RoundRespawn( void );
+	virtual void area_SetIndex( int index );
+	virtual void area_SendStatus( class CBasePlayer *p );
+	int GetNumAlive( int team );
+	bool CanUseCatchup();
+	void GetNumRequiredPlayers( int *reqAllies, int *reqAxis );
+	virtual void Spawn( void );
+	void EXPORT AreaTouch( CBaseEntity *pOther );
+	virtual void Think( void );
+	virtual void KeyValue( KeyValueData *pkvd );
+	void StartCapture( int team, int capmode );
+	void ReSendSwipeInfo();
+	void EndCapture( int team );
+	void BreakCapture( int team );
+	void SendNumPlayers( class CBasePlayer *p );
+	void SetOwner( int team );
+};
+
+class CDodPointRelay : public CBaseEntity
+{
+  public:
+	int m_nTeam;  // dod_relay_team, default -1
+
+  public:
+	virtual void Spawn( void );
+	virtual void KeyValue( KeyValueData *pkvd );
+	void EXPORT DodRelayUse( CBaseEntity *pA, CBaseEntity *pC, USE_TYPE u, float v );
+};
+
+int CBaseTrigger::ObjectCaps( void )
+{
+	return CBaseToggle::ObjectCaps() & ~FCAP_ACROSS_TRANSITION;
+}
 
 LINK_ENTITY_TO_CLASS( trigger, CBaseTrigger );
 
@@ -2874,48 +2974,6 @@ void CSandBag::SandBagTouch( CBaseEntity *pOther )
 //   1 axis spawn | 2 allie spawn | 3 axis win | 4 allie win |
 //   5 axis loose | 6 allie loose | 7 axis draw | 8 allie draw
 
-class CDoDCamera : public CBaseDelay
-{
-  public:
-	virtual int Save( CSave &save );
-	virtual int Restore( CRestore &restore );
-	void Precache( void );
-	static TYPEDESCRIPTION m_SaveData[];
-	void Spawn( void );
-	void KeyValue( KeyValueData *pkvd );
-	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	void EXPORT FollowTarget();
-	void Move();
-	void SetCameraMode( const char *szTargetname, int nFade );
-	float ReturnTimeLeft( void );
-	int ObjectCaps( void ) { return 0; }
-
-	EHANDLE m_hPlayer[33];	 // +0x160, indices 1..32 used (MAX clients)
-	EHANDLE m_hTarget;		 // +0x268
-	string_t m_sPath;		 // +0x26c, moveto target (first path_corner)
-	int m_teamBound;		 // +0x270, 3 = both teams
-	string_t m_sTrigrStart;	 // +0x274
-	string_t m_sTrigrEnd;	 // +0x278
-	int m_iOverlay;			 // +0x27c
-	int m_iFOV;				 // +0x280, zoomlevel clamped 0..90
-	int m_iSubtitle;		 // +0x284
-	int m_iCamFade;			 // +0x288
-	float m_flWait;			 // +0x28c
-	float m_flReturnTime;	 // +0x290
-	float m_flStopTime;		 // +0x294
-	float m_moveDistance;	 // +0x298
-	float m_targetSpeed;	 // +0x29c
-	float m_initialSpeed;	 // +0x2a0
-	float m_acceleration;	 // +0x2a4
-	float m_deceleration;	 // +0x2a8
-	int m_state;			 // +0x2ac
-	CBaseEntity
-		*m_pentPath;  // +0x2b0 binary-verified 0x14c3d0 alloc 0x2c8, offsets 0x26c..0x2ac KeyValue block verified
-	Vector m_angles;  // +0x2b4 binary-verified Move origin-angles block 0x14c580
-	Vector
-		m_origin;  // +0x2c0 binary-verified Move origin-angles block 0x14c580; alloc 0x2c8 leaves 4 bytes tail verified
-};
-
 // Factory: GetClassPtr sets the vtable + pev (size 0x2c8).
 LINK_ENTITY_TO_CLASS( dod_camera, CDoDCamera );
 
@@ -4488,7 +4546,7 @@ void CControlPoint::Reset()
 
 void CControlPoint::SetIndex( int i_index )
 {
-	if ( g_pGameRules && m_iAlliesIcon == 1 && g_pGameRules->IsAlliesBrit() )
+	if ( g_pGameRules && m_iAlliesIcon == 1 && ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
 		m_iAlliesIcon = 0x1b;  // 27, brit HUD icon
 	m_iIndex = i_index;
 }

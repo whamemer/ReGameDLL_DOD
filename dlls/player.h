@@ -336,10 +336,17 @@ class CBasePlayer : public CBaseMonster
 	virtual BOOL ShouldFadeOnDeath( void ) { return FALSE; }
 	virtual BOOL IsPlayer( void ) { return TRUE; }
 	virtual BOOL IsNetClient( void ) { return TRUE; }
-	BOOL IsOnLadder( void );
-	virtual int Classify( void );
+	BOOL IsOnLadder( void ) { return ( pev->movetype == MOVETYPE_FLY ); }
+	virtual int Classify( void ) { return CLASS_PLAYER; }
 	virtual int ObjectCaps( void ) { return CBaseMonster ::ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
-	virtual const char *TeamID( void );
+	virtual const char *TeamID( void )
+	{
+		if ( pev == NULL )	// Not fully connected yet
+			return "";
+
+		// return their team name
+		return m_szTeamName;
+	}
 	virtual int Save( CSave &save );
 	virtual int Restore( CRestore &restore );
 	CBasePlayerWeapon *GetPrimaryWeapon();
@@ -376,8 +383,8 @@ class CBasePlayer : public CBaseMonster
 	void GetObject( CObject *pObject );
 	void DropObject();
 	void Stamina( void );
-	float GetStamina();
-	void SetStamina( float );
+	float GetStamina() { return pev->fuser4; }
+	void SetStamina( float s ) { pev->fuser4 = s; }
 	void DropGenericAmmo();
 	BOOL DropItemByClass( int iClass );
 	bool CheckPlayerSpeed( void );

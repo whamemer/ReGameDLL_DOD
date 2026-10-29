@@ -1371,5 +1371,29 @@ class CPschreckShell : public CGrenade
 	static CPschreckShell *CreateRocket( Vector vecSrc, Vector vecDir, CBaseEntity *pOwner );
 };
 
+// Generic team ammo box. German extends American; British extends American.
+// AddAmmo/Precache are inherited from GenericAmmoAmerican by German/British
+// (no overrides in the binary: only GenericAmmoAmerican::AddAmmo and GenericAmmoAmerican::Precache exist).
+
+class GenericAmmoAmerican : public CBasePlayerAmmo
+{
+  public:
+	void Spawn();
+	void Precache();
+	BOOL AddAmmo( CBaseEntity *pOther );
+};
+
+class GenericAmmoGerman : public GenericAmmoAmerican
+{
+  public:
+	void Spawn();
+};
+
+class GenericAmmoBritish : public GenericAmmoAmerican
+{
+  public:
+	void Spawn();
+};
+
 #endif // !CLIENT_DLL
 #endif // WEAPONS_H
