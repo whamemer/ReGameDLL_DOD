@@ -116,7 +116,7 @@ dynpitchvol_t rgdpvpreset[CDPVPRESETMAX] = {
 
 class CAmbientGeneric : public CBaseEntity
 {
-  public:
+public:
 	void KeyValue( KeyValueData *pkvd );
 	void Spawn( void );
 	void Precache( void );
@@ -167,7 +167,7 @@ void CAmbientGeneric::Spawn( void )
 	else if ( FBitSet( pev->spawnflags, AMBIENT_SOUND_LARGERADIUS ) )
 		m_flAttenuation = 0.8;
 	else
-		m_flAttenuation = 1.25;	 // DoD DIFF (SDK: ATTN_NORM)
+		m_flAttenuation = 1.25;
 	if ( !FStringNull( pev->message ) && STRING( pev->message )[0] )
 	{
 		pev->solid = SOLID_NOT;
@@ -607,7 +607,7 @@ void CAmbientGeneric ::ToggleUse( CBaseEntity *pActivator, CBaseEntity *pCaller,
 
 void CAmbientGeneric::RoundRespawn( void )
 {
-	if ( FBitSet( pev->spawnflags, SF_AMBIENT_OFF ) && m_fActive )	// 0x10
+	if ( FBitSet( pev->spawnflags, SF_AMBIENT_OFF ) && m_fActive )
 	{
 		UTIL_EmitAmbientSound( ENT( pev ), pev->origin, STRING( pev->message ), 0.0, 0.0, SND_STOP, 0 );
 		m_fActive = FALSE;
@@ -798,7 +798,7 @@ void CAmbientGeneric ::KeyValue( KeyValueData *pkvd )
 
 class CEnvSound : public CPointEntity
 {
-  public:
+public:
 	void KeyValue( KeyValueData *pkvd );
 	void Spawn( void );
 
@@ -1623,7 +1623,7 @@ char TEXTURETYPE_Find( char *name )
 // returns volume of strike instrument (crowbar) to play
 float TEXTURETYPE_PlaySound( TraceResult *ptr, Vector vecSrc, Vector vecEnd, int iBulletType )
 {
-	if ( !g_pGameRules->PlayTextureSounds() )  // vtbl+0x39 == 0 -> silent; binary 0x1357d0 vtbl+0x39 DoD returns 0
+	if ( !g_pGameRules->PlayTextureSounds() )
 		return 0;
 	const char *pTextureName = NULL;
 	char chTextureType = 'C';
@@ -1762,7 +1762,7 @@ float TEXTURETYPE_PlaySound( TraceResult *ptr, Vector vecSrc, Vector vecEnd, int
 
 class CSpeaker : public CBaseEntity
 {
-  public:
+public:
 	void KeyValue( KeyValueData *pkvd );
 	void Spawn( void );
 	void Precache( void );

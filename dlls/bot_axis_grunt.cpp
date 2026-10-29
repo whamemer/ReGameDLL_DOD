@@ -1,10 +1,3 @@
-// DoD bot_axis_grunt.cpp restore - GoldSrc 32-bit dod.so - Ghidra base +0x10000
-// Class CAxisGrunt : CSquadMonster : CTalkMonster-like squad AI, ported from SDK dlls/hgrunt.cpp
-// pev->weapons bits: 2 = KAR light clip 5 + DistTooFar 3000, 4 = MP40 medium clip 32, 8 = MP44 heavy clip 30
-// DoDWeaponId: KAR=10 MP40=12 MP44=8 LUGER=4. Death drop: kar/mp40/mp44, fallback luger.
-// Strings: models/axis_grunt.mdl, weapons/kar_shoot.wav, weapons/luger_shoot.wav,
-//   weapons/mp40_shoot.wav, weapons/mp44_shoot.wav, hgrunt/gr_die1-3.wav, hgrunt/gr_pain1-5.wav,
-//   hgrunt/gr_reload1.wav, zombie/claw_miss2.wav, sentences AXISG_* (see below)
 #include	"extdll.h"
 #include	"plane.h"
 #include	"util.h"
@@ -20,9 +13,6 @@
 #include	"customentity.h"
 
 
-// Sentence table at 0x1d2bc0: index = AXISGRUNT_SENT_*
-// 0 AXISG_GREN, 1 AXISG_ALERT, 2 AXISG_MONSTER, 3 AXISG_COVER,
-// 4 AXISG_THROW, 5 AXISG_CHARGE, 6 AXISG_TAUNT
 extern char *pAxisGruntSentences[];
 
 extern DLL_GLOBAL int		g_iSkillLevel;
@@ -30,7 +20,6 @@ extern DLL_GLOBAL int		g_iSkillLevel;
 // Idle uses AXISG_ANSWER, AXISG_CHECK, AXISG_CLEAR, AXISG_IDLE, AXISG_QUEST
 // GetSchedule sets m_iSentence: 3 = COVER, 5 = CHARGE, plus AXISG_ALERT/GREN/MONST/TAUNT/THROW
 
-// Schedules: externs from .data, same layout as SDK hgrunt sl* / tl*
 // slGruntTakeCover, slGruntGrenadeCover, slGruntTossGrenadeCover,
 // slGruntTakeCoverFromBestSound, slGruntRangeAttack1A/B, slGruntRangeAttack2,
 // slGruntCombatFail/Fail, slGruntSuppress/SignalSuppress, slGruntEstablishLineOfFire,

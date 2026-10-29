@@ -39,7 +39,7 @@ typedef enum
 
 class CBreakable : public CBaseDelay
 {
-  public:
+public:
 	// basic functions
 	void Spawn( void );
 	void Precache( void );

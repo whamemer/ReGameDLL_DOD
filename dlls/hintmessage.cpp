@@ -1,13 +1,3 @@
-// hintmessage.cpp - DoD HUD hint queue, DoD-new, absent in SDK
-// Restored from dod.so. Ghidra addr = link + 0x10000.
-// DoD predates the later engine-era heap-based hint queue: it uses a STATIC ring (char* m_aszMessage[8],
-// int count/cur/last + float end, +6.0s HudText, strcmp-dedup on last slot),
-// verified 3 funcs (Reset hintmessage.cpp:14, Update :27, AddMessage :61).
-// Later engine-era code instead uses a heap queue of message objects
-// (CloneString args, duration, isHint, Send via UTIL_ShowMessageArgs).
-// Do NOT backport CUtlVector here: binary layout is 0x30 bytes @+0x79c.
-// NOTE: CHintMessageQueue::AddMessage has no callers in dod.so (x-ref empty);
-// live HintMessage path (player.cpp:6308-6331) sends HudText directly.
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"

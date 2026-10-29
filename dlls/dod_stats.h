@@ -23,7 +23,7 @@ struct DoDPlayerStats_t
 };
 class CDoDStatMgr : public CBaseEntity
 {
-  public:
+public:
 	CDoDStatMgr( void );
 	void InitPlayer( int index );
 	DoDPlayerStats_t *GetPlayer( int index );

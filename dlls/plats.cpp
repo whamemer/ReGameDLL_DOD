@@ -32,7 +32,7 @@ static void PlatSpawnInsideTrigger( entvars_t *pevPlatform );
 
 class CBasePlatTrain : public CBaseToggle
 {
-  public:
+public:
 	virtual int ObjectCaps( void ) { return CBaseEntity ::ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
 	void KeyValue( KeyValueData *pkvd );
 	void Precache( void );
@@ -220,7 +220,7 @@ void CBasePlatTrain::Precache( void )
 
 class CFuncPlat : public CBasePlatTrain
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void Setup( void );
@@ -243,7 +243,7 @@ LINK_ENTITY_TO_CLASS( func_plat, CFuncPlat );
 // UNDONE: Need to save this!!! It needs class & linkage
 class CPlatTrigger : public CBaseEntity
 {
-  public:
+public:
 	virtual int ObjectCaps( void ) { return ( CBaseEntity ::ObjectCaps() & ~FCAP_ACROSS_TRANSITION ) | FCAP_DONT_SAVE; }
 	void SpawnInsideTrigger( CFuncPlat *pPlatform );
 	void Touch( CBaseEntity *pOther );
@@ -509,7 +509,7 @@ void CFuncPlat ::Blocked( CBaseEntity *pOther )
 
 class CFuncPlatRot : public CFuncPlat
 {
-  public:
+public:
 	void Spawn( void );
 	void SetupRotation( void );
 
@@ -617,7 +617,7 @@ void CFuncPlatRot ::RotMove( Vector &destAngle, float time )
 
 class CFuncTrain : public CBasePlatTrain
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void Activate( void );
@@ -1613,7 +1613,7 @@ void CFuncTrackTrain ::Precache( void )
 // This class defines the volume of space that the player must stand in to control the train
 class CFuncTrainControls : public CBaseEntity
 {
-  public:
+public:
 	virtual int ObjectCaps( void ) { return CBaseEntity ::ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
 	void Spawn( void );
 	void EXPORT Find( void );
@@ -1691,7 +1691,7 @@ typedef enum
 
 class CFuncTrackChange : public CFuncPlatRot
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 
@@ -2098,7 +2098,7 @@ void CFuncTrackChange ::HitTop( void )
 
 class CFuncTrackAuto : public CFuncTrackChange
 {
-  public:
+public:
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	virtual void UpdateAutoTargets( int toggleState );
 };
@@ -2188,7 +2188,7 @@ void CFuncTrackAuto ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 
 class CGunTarget : public CBaseMonster
 {
-  public:
+public:
 	void Spawn( void );
 	void Activate( void );
 	void EXPORT Next( void );
@@ -2208,7 +2208,7 @@ class CGunTarget : public CBaseMonster
 
 	static TYPEDESCRIPTION m_SaveData[];
 
-  private:
+private:
 	BOOL m_on;
 };
 

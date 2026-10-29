@@ -636,7 +636,7 @@ void CBreakable::area_SetIndex( int index )
 }
 
 // DoD respawn-breakable handler: re-applies facing, then either kills itself with
-// the activator (vtable[20] = Killed) or breaks via Die().
+// the activator or breaks via Die().
 void CBreakable::BreakUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if ( ( useType != USE_ON || m_iRespawnTime == 0 ) && m_Material != matUnbreakableGlass )
@@ -1201,7 +1201,7 @@ int CBreakable ::DamageDecal( int bitsDamageType )
 
 class CPushable : public CBreakable
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void Touch( CBaseEntity *pOther );

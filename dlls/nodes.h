@@ -33,7 +33,7 @@
 //=========================================================
 class CNode
 {
-  public:
+public:
 	Vector m_vecOrigin;		 // location of this node in space
 	Vector m_vecOriginPeek;	 // location of this node (LAND nodes are NODE_HEIGHT higher).
 	BYTE m_Region[3];		 // Which of 256 regions do each of the coordinate belong?
@@ -75,7 +75,7 @@ class CNode
 
 class CLink
 {
-  public:
+public:
 	int m_iSrcNode;	  // the node that 'owns' this link ( keeps us from having to make reverse lookups )
 	int m_iDestNode;  // the node on the other end of the link.
 
@@ -108,7 +108,7 @@ typedef struct
 	(int) 16  // !!!increment this whever graph/node/link classes change, to obsolesce older disk files.
 class CGraph
 {
-  public:
+public:
 	// the graph has two flags, and should not be accessed unless both flags are TRUE!
 	BOOL m_fGraphPresent;	   // is the graph in memory?
 	BOOL m_fGraphPointersSet;  // are the entity pointers for the graph all set?
@@ -266,7 +266,7 @@ class CNodeEnt : public CBaseEntity
 //=========================================================
 class CStack
 {
-  public:
+public:
 	CStack( void );
 	void Push( int value );
 	int Pop( void );
@@ -275,7 +275,7 @@ class CStack
 	int Size( void ) { return m_level; }
 	void CopyToArray( int *piArray );
 
-  private:
+private:
 	int m_stack[MAX_STACK_NODES];
 	int m_level;
 };
@@ -285,7 +285,7 @@ class CStack
 //=========================================================
 class CQueue
 {
-  public:
+public:
 	CQueue( void );	 // constructor
 	inline int Full( void ) { return ( m_cSize == MAX_STACK_NODES ); }
 	inline int Empty( void ) { return ( m_cSize == 0 ); }
@@ -294,7 +294,7 @@ class CQueue
 	void Insert( int, float );
 	int Remove( float & );
 
-  private:
+private:
 	int m_cSize;
 	struct tag_QUEUE_NODE
 	{
@@ -311,7 +311,7 @@ class CQueue
 //=========================================================
 class CQueuePriority
 {
-  public:
+public:
 	CQueuePriority( void );	 // constructor
 	inline int Full( void ) { return ( m_cSize == MAX_STACK_NODES ); }
 	inline int Empty( void ) { return ( m_cSize == 0 ); }
@@ -320,7 +320,7 @@ class CQueuePriority
 	void Insert( int, float );
 	int Remove( float & );
 
-  private:
+private:
 	int m_cSize;
 	struct tag_HEAP_NODE
 	{

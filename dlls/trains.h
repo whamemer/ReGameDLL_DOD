@@ -36,7 +36,7 @@
 //#define PATH_SPARKLE_DEBUG		1	// This makes a particle effect around path_track entities for debugging
 class CPathTrack : public CPointEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Activate( void );
 	void RoundRespawn( void );
@@ -74,7 +74,7 @@ class CPathTrack : public CPointEntity
 
 class CFuncTrackTrain : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 
@@ -129,13 +129,13 @@ class CFuncTrackTrain : public CBaseEntity
 	CBaseEntity *pTurret;
 	virtual void RoundRespawn( void );
 
-  private:
+private:
 	unsigned short m_usAdjustPitch;
 };
 
 class CPathCorner : public CPointEntity
 {
-  public:
+public:
 	void Spawn();
 	void KeyValue( KeyValueData *pkvd );
 	float GetDelay( void ) { return m_flWait; }
@@ -151,7 +151,7 @@ class CPathCorner : public CPointEntity
 	int m_iSubtitle;
 	int m_iCamFade;
 
-  private:
+private:
 	float m_flWait;
 	virtual void RoundRespawn( void ) {}
 };

@@ -1,6 +1,3 @@
-// object_goals.cpp -- dod_object (CObject) + dod_object_goal (CObjectCapture)
-// CObject: objectives.cpp. CObjectCapture: triggers.cpp.
-// Restored from dod.so; Ghidra = link/file + 0x10000.
 #include "extdll.h"
 #include "util.h"
 #include "objective.h"
@@ -315,7 +312,7 @@ void CObject::SendPickupMsg( CBasePlayer *pPlayer )
 
 class CScoreEvent : public CBaseEntity
 {
-  public:
+public:
 	int m_iMain;
 	int m_iResetItemsTime;	 // score_resetitemtime
 	int m_iResetPlayersTime; // score_resetplayerstime
@@ -326,7 +323,7 @@ class CScoreEvent : public CBaseEntity
 	BOOL bChangeLevel;		 // pending changelevel
 	float ChangeLevelTime;	 // changelevel time
 	int m_iChangeLevelDelay; // score_nextmapdelay
-  public:
+public:
 	void Spawn( void );
 	void KeyValue( KeyValueData *pkvd );
 	void EXPORT ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -545,10 +542,6 @@ void CParticleShooter::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 			m_iState = 0;
 	}
 }
-
-// CObjectCapture KeyValue: capobj_group | capobj_donetarget |
-// capobj_hud_sprite, rest => CBaseTrigger. .text:0015d5d0 (triggers.cpp:3609)
-// (triggers.cpp:3849/3827): ClientAreas(index, -1, icon) when index <= 0x80.
 
 
 void CParticleShooter::Spawn( void )

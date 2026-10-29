@@ -30,7 +30,7 @@
 
 class CLegacyCineMonster : public CBaseMonster
 {
-  public:
+public:
  	void CineSpawn( const char *szModel );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void EXPORT CineThink( void );
@@ -40,47 +40,47 @@ class CLegacyCineMonster : public CBaseMonster
 
 class CCineScientist : public CLegacyCineMonster
 {
-  public:
+public:
 	void Spawn( void ) { CineSpawn( "models/cine-scientist.mdl" ); }
 };
 class CCine2Scientist : public CLegacyCineMonster
 {
-  public:
+public:
 	void Spawn( void ) { CineSpawn( "models/cine2-scientist.mdl" ); }
 };
 class CCinePanther : public CLegacyCineMonster
 {
-  public:
+public:
 	void Spawn( void ) { CineSpawn( "models/cine-panther.mdl" ); }
 };
 
 class CCineBarney : public CLegacyCineMonster
 {
-  public:
+public:
 	void Spawn( void ) { CineSpawn( "models/cine-barney.mdl" ); }
 };
 
 class CCine2HeavyWeapons : public CLegacyCineMonster
 {
-  public:
+public:
 	void Spawn( void ) { CineSpawn( "models/cine2_hvyweapons.mdl" ); }
 };
 
 class CCine2Slave : public CLegacyCineMonster
 {
-  public:
+public:
 	void Spawn( void ) { CineSpawn( "models/cine2_slave.mdl" ); }
 };
 
 class CCine3Scientist : public CLegacyCineMonster
 {
-  public:
+public:
 	void Spawn( void ) { CineSpawn( "models/cine3-scientist.mdl" ); }
 };
 
 class CCine3Barney : public CLegacyCineMonster
 {
-  public:
+public:
 	void Spawn( void ) { CineSpawn( "models/cine3-barney.mdl" ); }
 };
 
@@ -182,7 +182,7 @@ void CLegacyCineMonster ::CineThink( void )
 // e3/prealpha only.
 class CCineBlood : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void EXPORT BloodStart( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void EXPORT BloodGush( void );

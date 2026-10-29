@@ -32,7 +32,7 @@
 
 class CWorldItem : public CBaseEntity
 {
-  public:
+public:
 	void KeyValue( KeyValueData *pkvd );
 	void Spawn( void );
 	int m_iType;
@@ -160,26 +160,10 @@ void CItem::Materialize( void )
 	if ( pev->effects & EF_NODRAW )
 	{
 		// changing from invisible state to visible.
-		// DoD binary plays no sound here (unlike HLSDK).
+		// DoD plays no sound here (unlike HLSDK).
 		pev->effects &= ~EF_NODRAW;
 		pev->effects |= EF_MUZZLEFLASH;
 	}
 
 	SetTouch( &CItem::ItemTouch );
 }
-
-// ---- dod/dlls/items.cpp: SDK-IDENTICAL, bodies NOT ported ----
-// CWorldItem::KeyValue (items.cpp:49, Ghidra 0010b250): "type" -> m_iType,
-//   else CBaseEntity::KeyValue. Identical to SDK.
-// CWorldItem::Spawn (items.cpp:62-68, Ghidra 0010af30): switch on m_iType:
-//   42 -> item_antidote | 43 -> item_security | 44 -> item_battery |
-//   45 -> item_suit (CBaseEntity::Create + target/targetname/spawnflags
-//   copy), else "unable to create world_item %d". Identical to SDK.
-// CItem::Spawn (SDK shape): MOVETYPE_TOSS/SOLID_TRIGGER, origin/size,
-//   touch = ItemTouch, DROP_TO_FLOOR or remove with "Item %s fell out" error.
-// CItem::ItemTouch (items.cpp:128-134, Ghidra 0010b080+) and
-// CItem::Respawn (items.cpp:151) : SDK shape.
-// CItem::Materialize (Ghidra 0010ae00, size 0x3c): SDK shape but the DoD
-//   binary has NO suit charge sound (EMIT_SOUND_DYN removed to match).
-// The item_suit/item_battery/item_antidote/item_security classes exist only
-// as CWorldItem::Spawn targets; their LINKs/DebugInfo match SDK layout.

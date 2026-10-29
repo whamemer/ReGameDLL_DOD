@@ -32,27 +32,8 @@
 #include "dod_gamerules.h"
 #include "talkmonster.h"
 
-// DOD CSandBag plus CDoDCamera - source restore/triggers/dod_triggers.cpp - original file dod/dlls/triggers.cpp
-// dod_triggers.cpp -- DoD-specific triggers from dod/dlls/triggers.cpp
-// Restored from dod.so. Ghidra addr = link addr + 0x10000.
-// file:line below is addr2line on the LINK address (use Ghidra addr - 0x10000).
 //
-// SCOPE (per work split):
-//   PORTED here: dod_trigger_sandbag (CSandBag), dod_camera (CDoDCamera).
-//   SDK-IDENTICAL (not ported, listed for completeness): every other
-//     trigger_* / func_* / info_teleport_destination / multi_manager /
-//     trigger_camera (SDK) / trigger_endsection / trigger_cdaudio etc.
-//   NOT HERE (other agents): dod_capture_area / dod_control_point /
-//     dod_control_point_master / dod_object / dod_object_goal /
-//     dod_point_relay / dod_round_timer / dod_location / dod_mapmarker /
-//     info_doddetect -> objectives agent (~/rev/restore/objectives/);
-//     dod_preround -> gamerules agent; dod_stats -> stats (not ported).
 //
-// DoD entity -> class map (LINK_ENTITY_TO_CLASS, verified via string xrefs):
-//   dod_trigger_sandbag -> CSandBag (this file)
-//   dod_camera          -> CDoDCamera (this file)
-//   ammo_generic_american / german / british -> GenericAmmo* (items.cpp)
-//   dod_ammo -> CDodAmmoBox (weapons agent, see NOTES)
 //
 // KeyValue fields -- CSandBag (rest unhandled):
 //   sandbag_range (int) -> m_nRange | master (string) -> m_sMaster
@@ -114,7 +95,7 @@ extern int gmsgCancelProgressBar;
 
 class CFrictionModifier : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void KeyValue( KeyValueData *pkvd );
 	void EXPORT ChangeFriction( CBaseEntity *pOther );
@@ -173,7 +154,7 @@ void CFrictionModifier ::KeyValue( KeyValueData *pkvd )
 
 class CAutoTrigger : public CBaseDelay
 {
-  public:
+public:
 	void KeyValue( KeyValueData *pkvd );
 	void Spawn( void );
 	void Precache( void );
@@ -185,7 +166,7 @@ class CAutoTrigger : public CBaseDelay
 
 	static TYPEDESCRIPTION m_SaveData[];
 
-  private:
+private:
 	int m_iEnabled;
 	int m_globalstate;
 	USE_TYPE triggerType;
@@ -273,7 +254,7 @@ void CAutoTrigger::RoundRespawn( void )
 
 class CTriggerRelay : public CBaseDelay
 {
-  public:
+public:
 	void KeyValue( KeyValueData *pkvd );
 	void Spawn( void );
 	void RoundRespawn( void );
@@ -285,7 +266,7 @@ class CTriggerRelay : public CBaseDelay
 
 	static TYPEDESCRIPTION m_SaveData[];
 
-  private:
+private:
 	int m_iEnabled;
 	USE_TYPE m_triggerType;
 	string_t m_sMaster;
@@ -418,7 +399,7 @@ void CTriggerRelay::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 
 class CMultiManager : public CBaseEntity
 {
-  public:
+public:
 	void KeyValue( KeyValueData *pkvd );
 	void Spawn( void );
 	void EXPORT ManagerThink( void );
@@ -457,7 +438,7 @@ class CMultiManager : public CBaseEntity
 	EHANDLE m_hActivator;
 	USE_TYPE m_triggerType;
 
-  private:
+private:
 	inline BOOL IsClone( void ) { return ( pev->spawnflags & SF_MULTIMAN_CLONE ) ? TRUE : FALSE; }
 	inline BOOL ShouldClone( void )
 	{
@@ -472,7 +453,6 @@ class CMultiManager : public CBaseEntity
 	void RoundRespawn( void );
 };
 
-// GetState (triggers.cpp:451/940)
 STATE CMultiManager::GetState() { return m_iState; }
 
 LINK_ENTITY_TO_CLASS( multi_manager, CMultiManager );
@@ -857,7 +837,6 @@ void CMultiManager ::ManagerUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 	pManager->pev->nextthink = pManager->m_startTime;
 }
 
-// ---- CStateWatcher (ptype: SaveData[3], 0x248 alloc, multi_watcher/watcher) ----
 class CStateWatcher : public CBaseToggle
 {
 public:
@@ -1087,7 +1066,7 @@ BOOL CStateWatcher::EvalLogic()
 
 class CRenderFxManager : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 };
@@ -1125,7 +1104,6 @@ void CRenderFxManager ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_
 	}
 }
 
-// ---- CEnvCustomize (ptype SaveData[9], 0x17c alloc) ----
 class CEnvCustomize : public CBaseEntity
 {
 public:
@@ -1153,7 +1131,6 @@ int CEnvCustomize::ObjectCaps( void )
 	return 0;
 }
 
-// Factory: GetClassPtr sets the vtable + pev (size 0x17c).
 LINK_ENTITY_TO_CLASS( env_customize, CEnvCustomize );
 
 void CEnvCustomize::KeyValue( KeyValueData *pkvd )
@@ -1370,7 +1347,7 @@ void CEnvCustomize::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 
 class CBaseTrigger : public CBaseToggle
 {
-  public:
+public:
 	void EXPORT TeleportTouch( CBaseEntity *pOther );
 	virtual void KeyValue( KeyValueData *pkvd );
 	void EXPORT MultiTouch( CBaseEntity *pOther );
@@ -1442,7 +1419,7 @@ void CBaseTrigger ::KeyValue( KeyValueData *pkvd )
 
 class CTriggerHurt : public CBaseTrigger
 {
-  public:
+public:
 	void Spawn( void );
 	void EXPORT RadiationThink( void );
 	virtual void RoundRespawn( void );
@@ -1455,7 +1432,7 @@ LINK_ENTITY_TO_CLASS( trigger_hurt, CTriggerHurt );
 //
 class CTriggerMonsterJump : public CBaseTrigger
 {
-  public:
+public:
 	void Spawn( void );
 	void Touch( CBaseEntity *pOther );
 	void Think( void );
@@ -1516,7 +1493,7 @@ void CTriggerMonsterJump ::Touch( CBaseEntity *pOther )
 //
 class CTriggerCDAudio : public CBaseTrigger
 {
-  public:
+public:
 	void Spawn( void );
 
 	virtual void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -1592,7 +1569,7 @@ void CTriggerCDAudio ::PlayTrack( void )
 // This plays a CD track when fired or when the player enters it's radius
 class CTargetCDAudio : public CPointEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void KeyValue( KeyValueData *pkvd );
 
@@ -1715,10 +1692,8 @@ void CTriggerHurt ::RoundRespawn( void )
 
 void CTriggerHurt ::RadiationThink( void )
 {
-	// DoD's CTriggerHurt::RadiationThink has no geiger/range code in the
-	// binary (link 0x13e9e0): it only centers the trigger, does a PVS
-	// client lookup (result unused), restores origin/view_ofs and
-	// re-thinks in 0.25 s.
+	// DoD's CTriggerHurt::RadiationThink has no geiger/range code: it only centers the trigger,
+	// does a PVS client lookup (result unused), restores origin/view_ofs and re-thinks in 0.25 s.
 	Vector origin;
 	Vector view_ofs;
 
@@ -1892,7 +1867,7 @@ if a trigger has a NETNAME, that NETNAME will become the TARGET of the triggered
 */
 class CTriggerMultiple : public CBaseTrigger
 {
-  public:
+public:
 	void Spawn( void );
 	virtual void RoundRespawn( void );
 };
@@ -1937,7 +1912,7 @@ sounds
 */
 class CTriggerOnce : public CTriggerMultiple
 {
-  public:
+public:
 	void Spawn( void );
 	virtual void RoundRespawn( void );
 };
@@ -2128,7 +2103,7 @@ times (default 2), it will fire all of it's targets and remove itself.
 */
 class CTriggerCounter : public CBaseTrigger
 {
-  public:
+public:
 	void Spawn( void );
 };
 LINK_ENTITY_TO_CLASS( trigger_counter, CTriggerCounter );
@@ -2148,7 +2123,7 @@ void CTriggerCounter ::Spawn( void )
 
 class CTriggerVolume : public CPointEntity	// Derive from point entity so this doesn't move across levels
 {
-  public:
+public:
 	void Spawn( void );
 };
 
@@ -2167,7 +2142,7 @@ void CTriggerVolume ::Spawn( void )
 // Fires a target after level transition and then dies
 class CFireAndDie : public CBaseDelay
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void Think( void );
@@ -2196,7 +2171,7 @@ void CFireAndDie::Think( void )
 #define SF_CHANGELEVEL_USEONLY 0x0002
 class CChangeLevel : public CBaseTrigger
 {
-  public:
+public:
 	void Spawn( void );
 	void KeyValue( KeyValueData *pkvd );
 	void EXPORT UseChangeLevel( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -2605,7 +2580,7 @@ void NextLevel( void )
 
 class CLadder : public CBaseTrigger
 {
-  public:
+public:
 	void KeyValue( KeyValueData *pkvd );
 	void Spawn( void );
 	void Precache( void );
@@ -2649,7 +2624,7 @@ void CLadder ::Spawn( void )
 
 class CTriggerPush : public CBaseTrigger
 {
-  public:
+public:
 	void Spawn( void );
 	void KeyValue( KeyValueData *pkvd );
 	void Touch( CBaseEntity *pOther );
@@ -2808,7 +2783,7 @@ void CBaseTrigger ::TeleportTouch( CBaseEntity *pOther )
 
 class CTriggerTeleport : public CBaseTrigger
 {
-  public:
+public:
 	void Spawn( void );
 	virtual void RoundRespawn( void );
 };
@@ -2833,7 +2808,7 @@ LINK_ENTITY_TO_CLASS( info_teleport_destination, CPointEntity );
 
 class CTriggerSave : public CBaseTrigger
 {
-  public:
+public:
 	void Spawn( void );
 	void EXPORT SaveTouch( CBaseEntity *pOther );
 };
@@ -2869,7 +2844,7 @@ void CTriggerSave::SaveTouch( CBaseEntity *pOther )
 
 class CTriggerEndSection : public CBaseTrigger
 {
-  public:
+public:
 	void Spawn( void );
 	void EXPORT EndSectionTouch( CBaseEntity *pOther );
 	void KeyValue( KeyValueData *pkvd );
@@ -2938,7 +2913,7 @@ void CTriggerEndSection ::KeyValue( KeyValueData *pkvd )
 
 class CTriggerGravity : public CBaseTrigger
 {
-  public:
+public:
 	void Spawn( void );
 	void EXPORT GravityTouch( CBaseEntity *pOther );
 };
@@ -2959,7 +2934,6 @@ void CTriggerGravity::GravityTouch( CBaseEntity *pOther )
 	pOther->pev->gravity = pev->gravity;
 }
 
-// ---- CTriggerSetPatrol (ptype SaveData[1], 0x164 alloc) ----
 class CTriggerSetPatrol : public CBaseDelay
 {
 public:
@@ -2978,7 +2952,6 @@ int CTriggerSetPatrol::ObjectCaps( void )
 	return 0;
 }
 
-// Factory: GetClassPtr sets the vtable + pev (size 0x164).
 LINK_ENTITY_TO_CLASS( trigger_startpatrol, CTriggerSetPatrol );
 
 void CTriggerSetPatrol::KeyValue( KeyValueData *pkvd )
@@ -3011,7 +2984,7 @@ void CTriggerSetPatrol::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_
 // this is a really bad idea.
 class CTriggerChangeTarget : public CBaseDelay
 {
-  public:
+public:
 	void KeyValue( KeyValueData *pkvd );
 	void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -3022,7 +2995,7 @@ class CTriggerChangeTarget : public CBaseDelay
 
 	static TYPEDESCRIPTION m_SaveData[];
 
-  private:
+private:
 	int m_iszNewTarget;
 };
 LINK_ENTITY_TO_CLASS( trigger_changetarget, CTriggerChangeTarget );
@@ -3067,7 +3040,7 @@ void CTriggerChangeTarget::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, U
 
 class CTriggerCamera : public CBaseDelay
 {
-  public:
+public:
 	void Spawn( void );
 	void KeyValue( KeyValueData *pkvd );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -3346,7 +3319,7 @@ void CTriggerCamera::Move()
 
 class CObjectCapture : public CBaseTrigger
 {
-  public:
+public:
 	bool m_bCapped;	// set when spawnflags & 2 (one-shot)
 	char sz_Group[256];		 // capobj_group, must match carried object
 	char sz_DoneTarget[256];	 // capobj_donetarget
@@ -3354,7 +3327,7 @@ class CObjectCapture : public CBaseTrigger
 	int m_iAreaIndex;
 	char sz_HudIcon[256];	 // capobj_hud_sprite
 
-  public:
+public:
 	virtual void Precache( void );
 	virtual void Spawn( void );
 	virtual void Touch( CBaseEntity *pOther );
@@ -3402,7 +3375,6 @@ void CObjectCapture::RoundRespawn()
 	m_bCapped = false;
 }
 
-// link 0x141310 size 0x56a Ghidra 0x151310
 void CObjectCapture::Touch( CBaseEntity *pOther )
 {
 	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
@@ -3515,7 +3487,6 @@ void CObjectCapture::area_SendStatus( CBasePlayer *p )
 	MESSAGE_END();
 }
 
-// CObjectCapture area (triggers.cpp:3849/3827)
 void CObjectCapture::area_SetIndex( int index )
 {
 	m_iAreaIndex = index;
@@ -3577,7 +3548,6 @@ BOOL IsThisIndexUnique( CControlPoint *pThis )
 
 LINK_ENTITY_TO_CLASS( dod_control_point, CControlPoint );
 
-// ---- CDoDCamera SaveData (binary SaveData[13], mirrors CTriggerCamera 13 fields) ----
 TYPEDESCRIPTION CDoDCamera::m_SaveData[] = {
 	DEFINE_FIELD( CDoDCamera, m_hPlayer, FIELD_EHANDLE ),
 	DEFINE_FIELD( CDoDCamera, m_hTarget, FIELD_EHANDLE ),
@@ -3595,17 +3565,7 @@ TYPEDESCRIPTION CDoDCamera::m_SaveData[] = {
 };
 IMPLEMENT_SAVERESTORE( CDoDCamera, CBaseDelay );
 
-// ODR: CControlPoint canonical in objective.h (DWARF layout)
-// ODR: CControlPointMaster canonical in objective.h
 
-// ODR: CAreaCapture canonical in objective.h
-
-// ODR: CObjectCapture canonical in objective.h
-
-// ODR: CDodRoundTimer canonical in objective.h
-
-
-// CControlPoint (binary ctor + getters)
 CControlPoint::CControlPoint()
 {
 	m_iPointIndex = -1;
@@ -3706,8 +3666,6 @@ void CControlPoint::SendCapString( int team, CBasePlayer *pPlayer )
 	MESSAGE_END();
 }
 
-// Active: SetOwner(m_iDefaultOwner, FALSE, NULL) (verified by disasm:
-// EDX=[this+0x184], ECX=EAX=0, JMP SetOwner). Inactive: reset model.
 void CControlPoint::Reset()
 {
 	if ( m_bActive )
@@ -3722,7 +3680,7 @@ void CControlPoint::Reset()
 void CControlPoint::SetIndex( int i_index )
 {
 	if ( g_pGameRules && m_iAlliesIcon == 1 && ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
-		m_iAlliesIcon = 0x1b;  // 27, brit HUD icon
+		m_iAlliesIcon = 0x1b;  // brit HUD icon
 	m_iIndex = i_index;
 }
 
@@ -4005,7 +3963,7 @@ void CControlPoint::SetActive( bool active )
 {
 	m_bActive = active;
 	if ( !active )
-		pev->effects |= EF_NODRAW;	// 0x80
+		pev->effects |= EF_NODRAW;
 	else
 		pev->effects &= ~EF_NODRAW;
 }
@@ -4021,15 +3979,15 @@ void CControlPointMaster::Spawn()
 {
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NONE;
-	pev->effects = EF_NODRAW;  // 0x80
+	pev->effects = EF_NODRAW;
 	UTIL_SetOrigin( pev, pev->origin );
 	UTIL_SetSize( pev, g_vecZero, g_vecZero );
 	SetTouch( NULL );
 	SetThink( &CControlPointMaster::CPMThink );
 	FoundPoints = 0;
 	m_bActive = 0;
-	pev->nextthink = gpGlobals->time + 2.0;				   // _DAT_00192a44
-	m_flNextSpectatorUpdateTime = gpGlobals->time + 10.0;  // _DAT_0018fde8
+	pev->nextthink = gpGlobals->time + 2.0;
+	m_flNextSpectatorUpdateTime = gpGlobals->time + 10.0;
 	RoundStore();
 }
 
@@ -4264,7 +4222,7 @@ void CControlPointMaster::CPMThink()
 	int iRoundState = g_pGameRules->RoundState();
 	if ( iRoundState == 5 || !m_bActive || iRoundState == 4 || iRoundState == 3 )
 	{
-		pev->nextthink = gpGlobals->time + 0.5;	 // _DAT_0018eca4
+		pev->nextthink = gpGlobals->time + 0.5;
 		return;
 	}
 
@@ -4339,7 +4297,7 @@ void CControlPointMaster::CPMThink()
 
 		if ( bClanMatch && bClanScoring )
 		{
-			float d = 30.0;	 // _DAT_0018fdec
+			float d = 30.0;
 			if ( pcvar_mp_clan_scoring_delay )
 				d = pcvar_mp_clan_scoring_delay->value;
 			m_fGivePointsTime = gpGlobals->time + d;
@@ -4399,9 +4357,9 @@ void CControlPointMaster::CPMThink()
 		MESSAGE_BEGIN( MSG_SPEC, gmsgTimeLeft );
 		WRITE_SHORT( get_maptime_left() );
 		MESSAGE_END();
-		m_flNextSpectatorUpdateTime = gpGlobals->time + 20.0;  // _DAT_00190294
+		m_flNextSpectatorUpdateTime = gpGlobals->time + 20.0;
 	}
-	pev->nextthink = gpGlobals->time + 0.5;	 // _DAT_0018eca4
+	pev->nextthink = gpGlobals->time + 0.5;
 }
 
 // Activates every discovered point (m_bActive, clear EF_NODRAW) and broadcasts
@@ -4486,7 +4444,7 @@ int CControlPointMaster::TeamOwnsAllPoints()
 
 class CSandBag : public CBaseTrigger
 {
-  public:
+public:
 	CSandBag();
 	void Spawn();
 	void RoundRespawn();
@@ -4494,18 +4452,16 @@ class CSandBag : public CBaseTrigger
 	void EXPORT SandBagTouch( CBaseEntity *pOther );
 	BOOL IsMasteredOn();
 
-	int m_nYaw;		// +0x200, from pev->angles.y at Spawn
-	int m_nRange;	// +0x204, default 5 (ctor + LINK alloc init)
-	int m_sMaster;	// +0x208, string_t
+	int m_nYaw;		// from pev->angles.y at Spawn
+	int m_nRange;	// default 5
+	int m_sMaster;	// string_t
 };
 
-// .text: CSandBag::IsMasteredOn inlined (no symbol; 305B = SandBagTouch 0x141070 size 0x131=305): return !m_sMaster || IsMasterTriggered exact
 BOOL CSandBag::IsMasteredOn()
 {
 	return !m_sMaster || UTIL_IsMasterTriggered( m_sMaster, this );
 }
 
-// Factory: GetClassPtr sets the vtable + pev (ctor inits m_nRange=5, m_sMaster=0).
 LINK_ENTITY_TO_CLASS( dod_trigger_sandbag, CSandBag );
 
 CSandBag::CSandBag()
@@ -4557,10 +4513,6 @@ void CSandBag::RoundRespawn()
 	SetTouch( &CSandBag::SandBagTouch );
 }
 
-// Deploy/bipod zone: sets bit0 @player+0x76c always, and bit 0x400 @player+0x7cc
-// with hint on first touch. Facing window = m_nRange degrees (default 5).
-// Active-item gate: m_pActiveItem->Classify() == 0x100 (LMG: MG34/MG42/BREN,
-// weapons agents own exact table) OR player already deployed.
 void CSandBag::SandBagTouch( CBaseEntity *pOther )
 {
 	if ( !pOther->IsPlayer() || !pOther->IsAlive() )
@@ -4586,7 +4538,7 @@ void CSandBag::SandBagTouch( CBaseEntity *pOther )
 		}
 		else
 		{
-			CBasePlayerItem *pActive = ( (CBasePlayer *) pOther )->m_pActiveItem;  // +0x46c
+			CBasePlayerItem *pActive = ( (CBasePlayer *) pOther )->m_pActiveItem;
 			if ( !pActive || pActive->Classify() != 0x100 )						   // 0x100 = LMG class
 			{
 				if ( !CBasePlayer::IsSandbagDeployed( (CBasePlayer *) pOther ) )
@@ -4594,7 +4546,6 @@ void CSandBag::SandBagTouch( CBaseEntity *pOther )
 			}
 		}
 	}
-	// player fields owned by player agent: dword @+0x76c bit 0, dword @+0x7cc bit 0x400
 	CBasePlayer *pPlayer = (CBasePlayer *) pOther;
 	*(int *) ( (char *) pPlayer + 0x76c ) |= 1;
 	int *pFlags = (int *) ( (char *) pPlayer + 0x7cc );
@@ -4607,7 +4558,7 @@ void CSandBag::SandBagTouch( CBaseEntity *pOther )
 
 class CAreaCapture : public CBaseTrigger
 {
-  public:
+public:
 	int m_iCapMode;	 // 0 timed, 1 catchup (para rules)
 	int m_bCapturing;
 	int m_nCapturingTeam;  // -1 idle
@@ -4635,7 +4586,7 @@ class CAreaCapture : public CBaseTrigger
 	char sz_RequiredObjectGroup[256];  // area_object_group
 	bool m_bRequiresObject;
 
-  public:
+public:
 	virtual void Precache( void );
 	virtual void RoundRespawn( void );
 	virtual void area_SetIndex( int index );
@@ -4682,7 +4633,6 @@ void CAreaCapture::Precache()
 		PRECACHE_MODEL( sz_HudIcon );
 }
 
-// CAreaCapture helpers (decompile + DWARF field names)
 void CAreaCapture::area_SetIndex( int index )
 {
 	m_iAreaIndex = index;
@@ -4800,7 +4750,6 @@ void CAreaCapture::GetNumRequiredPlayers( int *reqAllies, int *reqAxis )
 	if ( *reqAxis < 1 )
 		*reqAxis = 1;
 }
-// ODR: CDoDTeamPlay canonical in dod_gamerules.h
 bool CAreaCapture::CanUseCatchup()
 {
 	bool bCatchup = false;
@@ -4830,7 +4779,7 @@ void CAreaCapture::Think()
 {
 	if ( g_fGameOver )
 		return;
-	pev->nextthink = gpGlobals->time + 0.1;	 // _DAT_0018ee74
+	pev->nextthink = gpGlobals->time + 0.1;
 
 	int numAllies = 0;
 	int numAxis = 0;
@@ -5327,10 +5276,10 @@ void CAreaCapture::KeyValue( KeyValueData *pkvd )
 
 class CDodPointRelay : public CBaseEntity
 {
-  public:
+public:
 	int m_nTeam;  // dod_relay_team, default -1
 
-  public:
+public:
 	virtual void Spawn( void );
 	virtual void KeyValue( KeyValueData *pkvd );
 	void EXPORT DodRelayUse( CBaseEntity *pA, CBaseEntity *pC, USE_TYPE u, float v );
@@ -5409,12 +5358,12 @@ void CDodRoundTimer::Spawn()
 	m_bTimer = false;
 	pev->solid = SOLID_NOT;
 	m_fLastThinkTime = 0.0;
-	pev->nextthink = gpGlobals->time + 0.1;	 // _DAT_0018ee74
+	pev->nextthink = gpGlobals->time + 0.1;
 }
 
 void CDodRoundTimer::Think()
 {
-	pev->nextthink = gpGlobals->time + 0.1;	 // _DAT_0018ee74
+	pev->nextthink = gpGlobals->time + 0.1;
 	if ( !m_bTimer )
 		return;
 	m_fRoundTime -= 0.1f;
@@ -5445,7 +5394,6 @@ void CDodRoundTimer::Think()
 	}
 }
 
-// CDodRoundTimer (triggers.cpp:6412/6422/6440/6470/6489)
 void CDodRoundTimer::StartTimer()
 {
 	m_bTimer = 1;
@@ -5571,7 +5519,6 @@ void CDodRoundTimer::KeyValue( KeyValueData *pkvd )
 //   1 axis spawn | 2 allie spawn | 3 axis win | 4 allie win |
 //   5 axis loose | 6 allie loose | 7 axis draw | 8 allie draw
 
-// Factory: GetClassPtr sets the vtable + pev (size 0x2c8).
 LINK_ENTITY_TO_CLASS( dod_camera, CDoDCamera );
 
 void CDoDCamera::Spawn( void )
@@ -5665,20 +5612,10 @@ void CDoDCamera::Precache( void )
 	PRECACHE_MODEL( "models/mapmodels/null.mdl" );
 }
 
-// Binds players 1..32 (skips non-team, wrong-team unless teamBound==3,
-// invisible/dead-check via iuser2 scene slot state), then on toggle-on:
-// sets speed/target from moveto path, snaps to stored origin/angles,
-// SetView + EnableControl(0) + CameraView msg + scene-seen flag per iuser2,
-// fires triggerstart, think = FollowTarget.
-// NaN gate: binary 0x14ced0 Use has no float compare in bind loop, decompiler NaN equality never true, port omits it verified.
 void CDoDCamera::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if ( !ShouldToggle( useType, m_state ) )
 		return;
-	// scene-seen flags live on CBasePlayer (player agent owns offsets):
-	// 1 i_seenAxisSpawnScene | 2 i_seenAllieSpawnScene | 3 i_seenAxisWinScene |
-	// 4 i_seenAllieWinScene | 5 i_seenAxisLooseScene | 6 i_seenAllieLooseScene |
-	// 7 i_seenAxisDrawScene | 8 i_seenAllieDrawScene
 	BOOL bFound = FALSE;
 	for ( int i = 1; i <= 32; i++ )
 	{
@@ -5722,7 +5659,7 @@ void CDoDCamera::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 		{
 			if ( m_pentPath->pev->speed != 0 )
 				m_targetSpeed = m_pentPath->pev->speed;
-			m_flStopTime = gpGlobals->time + m_pentPath->GetDelay();  // vtable[0x1f]
+			m_flStopTime = gpGlobals->time + m_pentPath->GetDelay();
 		}
 	}
 	pev->velocity = g_vecZero;
@@ -5743,7 +5680,6 @@ void CDoDCamera::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 		MarkSceneSeen( pPlayer, pev->iuser2 );	// sets the i_seen* flag above
 	}
 	FireTargets( STRING( m_sTrigrStart ), this, this, USE_TOGGLE, 0 );
-	// dword @g_pGameRules+8 inc (active-camera counter; gamerules agent owns it)
 	( *(int *) ( (char *) g_pGameRules + 8 ) )++;
 	SetThink( &CDoDCamera::FollowTarget );
 	pev->nextthink = gpGlobals->time;
@@ -5790,7 +5726,6 @@ void CDoDCamera::FollowTarget()
 		Move();
 		return;
 	}
-	// dword @g_pGameRules+8 dec (active-camera counter; gamerules agent owns it)
 	( *(int *) ( (char *) g_pGameRules + 8 ) )--;
 	for ( int i = 1; i <= 32; i++ )
 	{
@@ -5813,8 +5748,6 @@ void CDoDCamera::FollowTarget()
 	pev->origin = m_origin;
 }
 
-// file-local reconstruction of the inline iuser2 scene-slot gate in Use:
-// slot -> CBasePlayer::i_seen* flag binary-verified 0x14ced0 Use scene gates 1..8, member names from DWARF.
 static int SeenFlag( CBasePlayer *pPlayer, int slot )
 {
 	switch ( slot )
@@ -5930,7 +5863,6 @@ void CDoDCamera::Move()
 				pev->movedir = Vector( 0, 0, 1 );
 			else
 				pev->movedir = delta * ( 1.0 / len );
-			// path_corner delay wait (vtable[0x1f] = GetDelay)
 			m_flStopTime = gpGlobals->time + pPath->GetDelay();
 		}
 	}

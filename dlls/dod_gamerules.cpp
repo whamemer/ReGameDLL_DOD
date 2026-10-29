@@ -1,5 +1,3 @@
-// DoD GAMERULES restore - dod/dlls/dod_gamerules.cpp
-// GhidraAddr = link + 0x10000. Compared against SDK ~/rev/halflife
 #include <ctype.h>
 #include "extdll.h"
 #include "util.h"
@@ -75,7 +73,6 @@ void RespawnAllies( void );
 void RespawnAxis( void );
 void ResetEnts( void );
 
-// wrapper link 0xddf20 size 0x65 Ghidra 0xedf20: VoiceGameMgr gate before main 0xdc630
 extern char *s_VoiceCommands[29][4];
 
 extern char weaponnames[][64];
@@ -86,7 +83,6 @@ float g_flIntermissionStartTime;
 int m_SaveRoundState;
 CVoiceGameMgr g_VoiceGameMgr;
 
-// NOTE: CDoDDetect ctor lives in objective.h zone (not our files) - see binary 000ee020 sz=132
 class CMultiplayGameMgrHelper : public IVoiceGameMgrHelper
 {
 public:
@@ -563,7 +559,6 @@ Vector CDoDTeamPlay::VecWeaponRespawnSpot( CBasePlayerItem *pWeapon )
 }
 
 // ============================================================
-// Missing CDoDTeamPlay / free bodies restored from dod.so (Ghidra addr = link + 0x10000)
 // ============================================================
 
 int CDoDTeamPlay::DeadPlayerWeapons( CBasePlayer *pPlayer )
@@ -2483,7 +2478,6 @@ char *WeaponIDToChar( int id )
 	return NULL;
 }
 
-// link 0xd73e0 size 0x6a Ghidra 0xe73e0 + part 0xd51a0 size 0xad Ghidra 0xe51a0
 BOOL CDoDTeamPlay::CanPlayerJoinClass( int playerclass )
 {
 	if ( playerclass == 27 )
@@ -3914,16 +3908,6 @@ void CDoDTeamPlay::ResetForDoDCamera( void )
 	}
 }
 
-// .data:0x187460 size 0x200 (4 * 128) - team names, index = team number
-
-// SDK-IDENTICAL: dlls/multiplay_gamerules.cpp IsMultiplayer TRUE
-// SDK-IDENTICAL: dlls/teamplay_gamerules.cpp IsTeamplay TRUE
-// SDK-IDENTICAL: dlls/teamplay_gamerules.cpp FPlayerCanTakeDamage teammate check
-// SDK-IDENTICAL: dlls/gamerules.cpp CGameRules CanHaveAmmo
-// SDK-IDENTICAL: dlls/gamerules.cpp CGameRules CanHavePlayerItem base
-// SDK-IDENTICAL: dlls/stats.cpp UpdateStatsFile
-// SDK-IDENTICAL: dlls/stats.cpp InitStats
-// SDK-IDENTICAL: dlls/singleplay_gamerules.cpp Think empty stub
 void CDoDTeamPlay::RefreshSkillData( void )
 {
 	CGameRules::RefreshSkillData();

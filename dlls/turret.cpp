@@ -19,7 +19,7 @@
 */
 
 //
-// NOTE-binary-verified:
+// NOTE:
 //		Take advantage of new monster fields like m_hEnemy and get rid of that OFFSET() stuff
 //		Revisit enemy validation stuff, maybe it's not necessary with the newest monster code
 //
@@ -53,7 +53,7 @@ typedef enum
 
 class CBaseTurret : public CBaseMonster
 {
-  public:
+public:
 	void Spawn( void );
 	virtual void Precache( void );
 	void KeyValue( KeyValueData *pkvd );
@@ -174,7 +174,7 @@ IMPLEMENT_SAVERESTORE( CBaseTurret, CBaseMonster );
 
 class CTurret : public CBaseTurret
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	// Think functions
@@ -189,7 +189,7 @@ class CTurret : public CBaseTurret
 	// other functions
 	void Shoot( Vector &vecSrc, Vector &vecDirToEnemy );
 
-  private:
+private:
 	int m_iStartSpin;
 };
 TYPEDESCRIPTION CTurret::m_SaveData[] = {
@@ -200,7 +200,7 @@ IMPLEMENT_SAVERESTORE( CTurret, CBaseTurret );
 
 class CMiniTurret : public CBaseTurret
 {
-  public:
+public:
 	void Spawn();
 	void Precache( void );
 	// other functions
@@ -1126,7 +1126,7 @@ int CBaseTurret::Classify( void )
 //=========================================================
 class CSentry : public CBaseTurret
 {
-  public:
+public:
 	void Spawn();
 	void Precache( void );
 	// other functions

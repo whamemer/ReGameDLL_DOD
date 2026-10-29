@@ -52,13 +52,13 @@ const char *GetStdLightStyle( int iStyle );
 const char *GetStdLightStyle( int iStyle )
 {
 	if ( (unsigned) ( iStyle - 1 ) < 19 )
-		return s_stdLightStyles[iStyle - 1];  // CSWTCH_75
+		return s_stdLightStyles[iStyle - 1];
 	return "m";
 }
 
 class CLight : public CPointEntity
 {
-  public:
+public:
 	virtual void KeyValue( KeyValueData *pkvd );
 	virtual void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -68,7 +68,7 @@ class CLight : public CPointEntity
 
 	static TYPEDESCRIPTION m_SaveData[];
 
-  public:
+public:
 	int m_iStyle;
 	BOOL m_bDefaultOn;
 	STATE m_iState;
@@ -159,7 +159,6 @@ void CLight::KeyValue( KeyValueData *pkvd )
 	}
 	else
 		pkvd->fHandled = FALSE;
-	// binary 0x10bc10: unknown fHandled=0, no base
 }
 
 void CLight::SetCorrectStyle( void )
@@ -317,7 +316,7 @@ LINK_ENTITY_TO_CLASS( light_spot, CLight );
 
 class CEnvLight : public CLight
 {
-  public:
+public:
 	void KeyValue( KeyValueData *pkvd );
 	void Spawn( void );
 };
@@ -385,7 +384,7 @@ void CEnvLight ::Spawn( void )
 
 class CTriggerLightstyle : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void Think( void );

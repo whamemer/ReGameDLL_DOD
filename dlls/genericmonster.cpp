@@ -30,19 +30,18 @@
 
 class CGenericMonster : public CBaseMonster
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void SetYawSpeed( void );
 	int Classify( void );
 	void HandleAnimEvent( MonsterEvent_t *pEvent );
 	int ISoundMask( void );
-	void KeyValue( KeyValueData *pkvd );  // .text:000f53b0 CGenericMonster::KeyValue
+	void KeyValue( KeyValueData *pkvd );
 };
 LINK_ENTITY_TO_CLASS( monster_generic, CGenericMonster );
 
 //=========================================================
-// KeyValue - binary 0x000f53b0: handles "m_bloodColor"
 //=========================================================
 void CGenericMonster ::KeyValue( KeyValueData *pkvd )
 {

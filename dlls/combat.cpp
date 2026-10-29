@@ -210,9 +210,9 @@ void CBaseMonster::GibMonster( void )
 Activity CBaseMonster::GetDeathActivity( void )
 {
 	Activity deathActivity = DOD_BUTTSTOCK;
-	Vector vecSrc = Center();	// binary: virtual Center() (vtable+0x38) called before UTIL_MakeVectors @000d8a70
+	Vector vecSrc = Center();
 	UTIL_MakeVectors( pev->angles );
-	BOOL bDucking = FALSE;	// binary: bDucking only set for players; stays FALSE for monsters
+	BOOL bDucking = FALSE;
 	if ( IsPlayer() )
 	{
 		if ( ( (CBasePlayer *) this )->IsProne() )
@@ -221,17 +221,17 @@ Activity CBaseMonster::GetDeathActivity( void )
 	}
 	(void) vecSrc;
 	if ( ( m_bitsDamageType & ( DMG_NERVEGAS | DMG_DOD_GIB6 ) ) ==
-		 0 )  // binary: TEST [ESI+0x364],0x2010000 @000d8aea (ghidra 000d8aea, link 0xc8aea)
+		 0 )
 	{
 		float flDot = DotProduct( gpGlobals->v_forward, g_vecAttackDir * -1 );
 		BOOL fromFront =
 			flDot >
-			-0.3;  // binary: _DAT_00195220 double -0.3 (link 0x185220, ghidra 0x195220, FLD [0x195220] @000d8b1d)
+			-0.3;
 		if ( fromFront || !bDucking )
 		{
 			if (
 				flDot <= 0.3 ||
-				!bDucking )  // binary: _DAT_00195228 double +0.3 (link 0x185228, ghidra 0x195228, FLD [0x195228] @000d8b33)
+				!bDucking )
 			{
 				switch ( m_LastHitGroup )
 				{
@@ -242,7 +242,7 @@ Activity CBaseMonster::GetDeathActivity( void )
 					deathActivity =
 						fromFront
 							? ACT_DIEFORWARD
-							: ACT_DIE_GUTSHOT;	// binary: front 38 FORWARD / back 68 GUTSHOT (SBB+AND 0xFFFFFFE2+ADD 0x44 @000d8bd0, decompile ~-(fromFront)+38 / (-(fromFront)&-30)+68)
+							: ACT_DIE_GUTSHOT;
 					break;
 				default:
 					deathActivity = DOD_SIMPLE;
@@ -267,16 +267,16 @@ Activity CBaseMonster::GetDeathActivity( void )
 Activity CBaseMonster::GetSmallFlinchActivity( void )
 {
 	static Activity flinchMap[7] = {
-		ACT_FLINCH_HEAD,	  // 70: head (same as SDK)
-		ACT_SMALL_FLINCH,	  // 26: chest (SDK: ACT_FLINCH_CHEST) <-- DoD DIFF
-		ACT_FLINCH_STOMACH,	  // 72
-		ACT_FLINCH_LEFTARM,	  // 73
-		ACT_FLINCH_RIGHTARM,  // 74
-		ACT_FLINCH_LEFTLEG,	  // 75
-		ACT_FLINCH_RIGHTLEG,  // 76
+		ACT_FLINCH_HEAD,
+		ACT_SMALL_FLINCH,
+		ACT_FLINCH_STOMACH,
+		ACT_FLINCH_LEFTARM,
+		ACT_FLINCH_RIGHTARM,
+		ACT_FLINCH_LEFTLEG,
+		ACT_FLINCH_RIGHTLEG,
 	};
 	Activity flinchActivity = ACT_SMALL_FLINCH;
-	UTIL_MakeVectors( pev->angles );	// binary: UTIL_MakeVectors @000c8be0
+	UTIL_MakeVectors( pev->angles );
 	if ( (unsigned) ( m_LastHitGroup - 1 ) < 7 )
 		flinchActivity = flinchMap[m_LastHitGroup - 1];
 	if ( LookupActivity( flinchActivity ) == -1 )
@@ -354,7 +354,7 @@ void CBaseMonster::Killed( entvars_t *pevAttacker, int iGib )
 {
 	if ( HasMemory( bits_MEMORY_KILLED ) )
 		return;
-	Remember( bits_MEMORY_KILLED );	 // binary: OR m_afMemory,0x80 @000d8dd0 (SET, not Forget)
+	Remember( bits_MEMORY_KILLED );
 	EMIT_SOUND_DYN( ENT( pev ), CHAN_WEAPON, "common/null.wav", 1.0, ATTN_NORM, 0, 100 );
 	m_IdealMonsterState = MONSTERSTATE_DEAD;
 	SetConditions( bits_COND_LIGHT_DAMAGE );
@@ -363,11 +363,11 @@ void CBaseMonster::Killed( entvars_t *pevAttacker, int iGib )
 	if ( pev->owner )
 		pOwner = CBaseEntity::Instance( pev->owner );
 	if ( pOwner )
-		pOwner->DeathNotice( pev );	 // owner gets death notice (vtbl +0x38)
+		pOwner->DeathNotice( pev );
 	if ( pev->flags & FL_MONSTER )
 	{
 		SetTouch( NULL );
-		Touch( NULL );	// vtbl +0x48 hook, then
+		Touch( NULL );
 	}
 	if ( pev->health < -99 )
 		pev->health = 0;
@@ -528,9 +528,9 @@ void CGib ::Spawn( const char *szGibModel )
 	pev->renderfx = kRenderFxNone;
 	pev->solid = SOLID_SLIDEBOX;  /// hopefully this will fix the VELOCITY TOO LOW crap
 	if ( pev->classname )
-		RemoveEntityHashValue( pev, STRING( pev->classname ), CLASSNAME );	// binary: RemoveEntityHashValue @CGib::Spawn 000d8f59
+		RemoveEntityHashValue( pev, STRING( pev->classname ), CLASSNAME );
 	pev->classname = MAKE_STRING( "gib" );
-	AddEntityHashValue( pev, STRING( pev->classname ), CLASSNAME );	 // binary: AddEntityHashValue @CGib::Spawn 000d8f93
+	AddEntityHashValue( pev, STRING( pev->classname ), CLASSNAME );
 
 	SET_MODEL( ENT( pev ), szGibModel );
 	UTIL_SetSize( pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ) );
@@ -551,7 +551,7 @@ int CBaseMonster::TakeHealth( float flHealth, int bitsDamageType )
 		return 0;
 	m_bitsDamageType &= ~(
 		bitsDamageType &
-		DMG_DOD_TAKEHEALTH_MASK );	// binary: AND 0x3fbf @000d9a00 (link 0xc9a00), =0x3fff & ~DMG_BLAST (drops BLAST 0x40 vs SDK 0x3fff)
+		DMG_DOD_TAKEHEALTH_MASK );
 	return CBaseEntity::TakeHealth( flHealth, bitsDamageType );
 }
 
@@ -621,8 +621,6 @@ int CBaseMonster::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, f
 	if ( pev->health <= 0 )
 	{
 		g_pevLastInflictor = pevInflictor;
-		// binary: DoD gib-style map @000d9ca0 (link 0xc9ca0): ALWAYSGIB->2; if NEVERGIB clear then
-		// PARALYZE->3, POISON->5, NERVEGAS->4, GIB6->6 else 1; NEVERGIB set forces style 1.
 		if ( bitsDamageType & DMG_ALWAYSGIB )
 			Killed( pevAttacker, 2 );
 		else if ( bitsDamageType & DMG_NEVERGIB )
@@ -679,7 +677,6 @@ int CBaseMonster::DeadTakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacke
 		}
 	}
 
-	// binary: TEST bits & 0xE1 @000d9a50 (link 0xc9a50). DoD drops SONIC vs SDK DMG_GIB_CORPSE 0x2E1.
 	if ( bitsDamageType & DMG_DOD_GIB_CORPSE )
 	{
 		if ( pev->health <= flDamage )
@@ -723,7 +720,7 @@ void RadiusDamage( Vector vecSrc, entvars_t *pevInflictor, entvars_t *pevAttacke
 	if ( !pevAttacker )
 		pevAttacker = pevInflictor;
 	CBaseEntity *pAttackerRef = CBaseEntity::Instance(
-		pevAttacker );	// binary: edict+0x7C = pvPrivateData (gdb ptype /o edict_t: pvPrivateData @124=0x7C; CBaseEntity+0x7C would be m_rrHealth float, not ptr). Disasm MOV EAX,[EDX+0x208](pContainingEntity) + MOV EAX,[EAX+0x7C](GET_PRIVATE) @000da368/000da376 (link 0xca368/0xca376, addr2line enginecallback.h:103 GET_PRIVATE). So attackerRef = Instance(pevAttacker).
+		pevAttacker );
 
 	if ( pAttackerRef )
 		pAttackerRef->IsPlayer();
@@ -737,7 +734,7 @@ void RadiusDamage( Vector vecSrc, entvars_t *pevInflictor, entvars_t *pevAttacke
 		vecSpot = pEntity->BodyTarget( vecSrc );
 		UTIL_TraceLine( vecSrc, vecSpot, dont_ignore_monsters, ENT( pevInflictor ), &tr );
 		if ( tr.flFraction == 1.0 || tr.pHit == pEntity->edict() ||
-			 ( vecSrc - pEntity->pev->origin ).Length() < 10.0 )	// binary: extra DoD check _DAT_0018fde8=10.0 (link 0x17fde8) @000ca49e
+			 ( vecSrc - pEntity->pev->origin ).Length() < 10.0 )
 		{
 			if ( tr.fStartSolid )
 			{
@@ -754,7 +751,7 @@ void RadiusDamage( Vector vecSrc, entvars_t *pevInflictor, entvars_t *pevAttacke
 				int bits = bitsDamageType;
 				if ( pEntity == pAttackerRef )
 					bits |=
-						DMG_DOD_SELFSPLASH;	 // binary: OR 0x10000000 when victim==attackerRef @000da300 (decompile (uint)bits|0x10000000)
+						DMG_DOD_SELFSPLASH;
 				pEntity->TraceAttack( pevInflictor, flAdjustedDamage, ( tr.vecEndPos - vecSrc ).Normalize(), &tr,
 									  bits );
 				ApplyMultiDamage( pevInflictor, pevAttacker );
@@ -768,7 +765,7 @@ void RadiusDamage( Vector vecSrc, entvars_t *pevInflictor, entvars_t *pevAttacke
 void CBaseMonster ::RadiusDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int iClassIgnore,
 								  int bitsDamageType )
 {
-	float mod = ( bitsDamageType & DMG_SONIC ) ? 1.5f : 2.5f;  // binary: FCMOVE picks 1.5 (link 0x17fde4) when DMG_SONIC(0x200) set else 2.5 @000ca7b0
+	float mod = ( bitsDamageType & DMG_SONIC ) ? 1.5f : 2.5f;
 	::RadiusDamage( pev->origin, pevInflictor, pevAttacker, flDamage, flDamage * mod, iClassIgnore, bitsDamageType );
 }
 
@@ -941,9 +938,9 @@ void CBaseEntity::TraceAttack( entvars_t *pevAttacker, float flDamage, Vector ve
 		if (
 			blood != DONT_BLEED &&
 			!( bitsDamageType &
-			   DMG_DOD_NOBLOOD ) )	// binary: TEST bits & 0x8000000 @000d7460 (link 0xc7460, decompile (bits&0x8000000)==0)
+			   DMG_DOD_NOBLOOD ) )
 		{
-			Vector vecOrigin = ptr->vecEndPos - vecDir * 4;	 // binary: _DAT_001951b8 float 4.0 (link 0x1851b8)
+			Vector vecOrigin = ptr->vecEndPos - vecDir * 4;
 			SpawnBlood( vecOrigin, blood, flDamage );	// a little surface blood.
 			TraceBleed( flDamage, vecDir, ptr, bitsDamageType );
 		}
@@ -1018,12 +1015,11 @@ void CBaseMonster ::TraceAttack( entvars_t *pevAttacker, float flDamage, Vector 
 
 float MapWallMaterialModFromTexture( char texture )
 {
-	// binary: FireTWalls wall table CSWTCH.266 @ghidra 0x194fa0 (link 0x184fa0, gdb x/26fw 0x184fa0: 12,5.5,7.3,5.5,2,2,12,12,5.5,5.5,12,5.5,12,2,5.5,5.5,5.5,7.3,5.5,2,5.5,5.5,2,5.5,2,2), default 5.5 (FLD [0x1951d8] @000daec1). No 0.9 factor.
 	static float wallmods[26] = {
 		12.0, 5.5, 7.3, 5.5, 2.0, 2.0, 12.0, 12.0, 5.5, 5.5, 12.0, 5.5, 12.0,
 		2.0,  5.5, 5.5, 5.5, 7.3, 5.5, 2.0,	 5.5,  5.5, 2.0, 5.5,  2.0, 2.0,
 	};
-	float mod = 5.5;  // binary: _DAT_001951d8
+	float mod = 5.5;
 	if ( (unsigned char) ( texture - 'A' ) < 26 )
 		mod = wallmods[(unsigned char) ( texture - 'A' )];
 	return mod;
@@ -1033,7 +1029,7 @@ void CBaseEntity::FireTWalls( float flDamage, int iBulletType, entvars_t *pevAtt
 							  Vector vecRight, Vector vecUp, Vector vecDest )
 {
 	if ( g_pGameRules->RoundState() !=
-		 1 )  // binary: vtbl+0x3d RoundState gate @000dacd0 (if !=1 return, decompile if (RoundState==1) {...})
+		 1 )
 		return;
 	TraceResult tr, beam_tr;
 	edict_t *pentIgnore = NULL;
@@ -1061,9 +1057,9 @@ void CBaseEntity::FireTWalls( float flDamage, int iBulletType, entvars_t *pevAtt
 		{
 			ALERT( at_aiconsole, "Texture: %s\n", pTextureName );
 			if ( *pTextureName == '+' || *pTextureName == '-' )
-				pTextureName += 2;	// binary: skip +/- prefix (uses __src[2]) @000dacd0
+				pTextureName += 2;
 			if ( *pTextureName == '!' || *pTextureName == '{' || *pTextureName == '~' || *pTextureName == ' ' )
-				pTextureName++;	 // binary: skip !{~ space prefix
+				pTextureName++;
 			char szbuffer[64];
 			strcpy( szbuffer, pTextureName );
 			szbuffer[CBTEXTURENAMEMAX - 1] = 0;
@@ -1083,7 +1079,7 @@ void CBaseEntity::FireTWalls( float flDamage, int iBulletType, entvars_t *pevAtt
 	UTIL_TraceLine( beam_tr.vecEndPos, tr.vecEndPos, dont_ignore_monsters, pWorld, &beam_tr );
 	float thickness = ( beam_tr.vecEndPos - tr.vecEndPos ).Length();
 	float flMaterialMod = MapWallMaterialModFromTexture(
-		chTextureType );  // binary: _DAT_001951d8 float 5.5 default (link 0x1851d8, FLD [0x1951d8] @000daec1) + table CSWTCH.266 @0x194fa0 (link 0x184fa0, FLD [EAX*4+0x194fa0] @000db045), no 0.9 factor unlike FireBulletsNC
+		chTextureType );
 	ALERT( at_aiconsole, "Entering surface of materialmod %f, thickness %f, with damage %f\n", flMaterialMod, thickness,
 		   flDamage );
 	flDamage -= flMaterialMod * thickness;
@@ -1127,13 +1123,13 @@ void CBaseEntity::FireBullets( ULONG cShots, Vector vecSrc, Vector vecDirShootin
 
 	if (
 		g_pGameRules->RoundState() !=
-		1 )	 // binary: vtbl+0x3d RoundState()==ROUNDSTATE_RUNNING (CALL [EDX+0xF4] + DEC/JZ @000db22a, decompile CDoDTeamPlay::RoundState returns m_RoundState @000e36e0)
+		1 )
 		return;
 	if ( pevAttacker == NULL )
 		pevAttacker = pev;
 
 	ClearMultiDamage();
-	gMultiDamage.type = DMG_BULLET | DMG_NEVERGIB;	// 0x1002
+	gMultiDamage.type = DMG_BULLET | DMG_NEVERGIB;
 
 	for ( ULONG iShot = 1; iShot <= cShots; iShot++ )
 	{
@@ -1153,7 +1149,7 @@ void CBaseEntity::FireBullets( ULONG cShots, Vector vecSrc, Vector vecDirShootin
 		{
 			Vector vecTracerSrc;
 			if ( IsPlayer() )
-				vecTracerSrc = vecSrc + Vector( 0, 0, -4 ) + gpGlobals->v_right * 2 + gpGlobals->v_forward * 16;  // binary: +Vector(0,0,-4)+v_right*2+v_forward*16 @FireBullets (fadds/FMUL 0x185204=-4,0x17fdf4=16)
+				vecTracerSrc = vecSrc + Vector( 0, 0, -4 ) + gpGlobals->v_right * 2 + gpGlobals->v_forward * 16;
 			else
 				vecTracerSrc = vecSrc;
 			PLAYBACK_EVENT_FULL( 0, NULL, g_pGameRules->BulletTracers(), 0, (float *)&vecTracerSrc, (float *)&tr.vecEndPos, 0, 0, 0, 0, 0, 0 );
@@ -1396,7 +1392,7 @@ float MapBulletToDmg( int bullet )
 	switch ( bullet )
 	{
 	case 0:
-		return 50.0;  // binary: _DAT_00190f40 float 50.0 (link 0x180f40, ghidra 0x190f40, gdb x/fw 0x180f40=50)
+		return 50.0;
 	case 6:
 		return gSkillData.plrDmgCOLT;
 	case 7:
@@ -1452,13 +1448,13 @@ float MapMaterialModFromTexture( char texture )
 		2.0, 5.5, 5.5, 5.5, 7.3, 5.5, 2.0,	5.5,  5.5, 2.0, 5.5, 2.0, 2.0,
 	};
 	float mod =
-		4.95;  // binary: _DAT_00195208 float 4.95 (link 0x185208, ghidra 0x195208, gdb x/fw=4.95; FLD [0x195208] @000de769 for out-of-range default)
+		4.95;
 	if ( (unsigned char) ( texture - 'A' ) < 26 )
 		mod =
 			0.9 *
 			mods[(
 				unsigned char) ( texture -
-								 'A' )];  // binary: _DAT_00195230 double 0.9 (link 0x185230, ghidra 0x195230, FLD [0x195230] @000de5f4 + FMUL table[26] @0x195020, gdb x/gf=0.9; table CSWTCH.333 x/26fw 0x185020 matches mods[])
+								 'A' )];
 	return mod;
 }
 

@@ -117,8 +117,6 @@ enum PLAYER_ANIM_STATES
 };
 
 // ============================================================================
-// DoD-only CBasePlayer methods ported from dod.so (player.cpp). LINK addrs are
-// in the .text comments; Ghidra addr = link + 0x10000.
 // ============================================================================
 
 const char *g_PlayerAnimationNames[34] = {
@@ -156,7 +154,6 @@ const char *g_PlayerAnimationList[88] = {
 #define FLASH_DRAIN_TIME 1.2   //100 units/3 minutes
 #define FLASH_CHARGE_TIME 0.2  // 100 units/20 seconds  (seconds per unit)
 
-// Global Savedata for player (EXACT: dod.so CBasePlayer::m_playerSaveData @0x1e0c00, 22 entries)
 TYPEDESCRIPTION CBasePlayer::m_playerSaveData[] = {
 	DEFINE_FIELD( CBasePlayer, m_afButtonLast, FIELD_INTEGER ),
 	DEFINE_FIELD( CBasePlayer, m_afButtonPressed, FIELD_INTEGER ),
@@ -210,7 +207,7 @@ int gmsgSetFOV = 0;
 int gmsgShowMenu = 0;
 int gmsgBloodPuff = 0;
 int gmsgHLTV = 0;
-int gmsgVGUIMenu = 0; // DoD VGUIMenu (dod.so BSS 0x2161c4)
+int gmsgVGUIMenu = 0;
 int gmsgSpectator = 0;
 int gmsgWaveTime = 0;
 int gmsgWaveStatus = 0;
@@ -467,7 +464,6 @@ int TrainSpeed( int iSpeed, int iMax )
 	return iRet;
 }
 
-// DoD DeathSound - PORTED from restore (dod.so). See restore/ NOTES.
 void CBasePlayer ::DeathSound( void )
 {
 	int i = RANDOM_LONG( 1, 4 );
@@ -502,7 +498,6 @@ Vector CBasePlayer ::GetGunPosition()
 	return origin;
 }
 
-// static helpers (inlined in binary; declared in player.h)
 BOOL CBasePlayer::IsProne( CBasePlayer *pPlayer )
 {
 	return pPlayer && pPlayer->IsProne();
@@ -558,7 +553,6 @@ void UTIL_DodBloodPuff( Vector &origin )
 //=========================================================
 // TraceAttack
 //=========================================================
-// DoD TraceAttack - PORTED from restore (dod.so). See restore/ NOTES.
 void CBasePlayer ::TraceAttack( entvars_t *pevAttacker, float flDamage, Vector vecDir, TraceResult *ptr,
 								int bitsDamageType )
 {
@@ -691,8 +685,6 @@ void CBasePlayer ::TraceAttack( entvars_t *pevAttacker, float flDamage, Vector v
 
 #define ARMOR_RATIO 0.2	 // Armor Takes 80% of the damage
 #define ARMOR_BONUS 0.5	 // Each Point of Armor is work 1/x points of health
-
-// DoD TakeDamage - PORTED from restore (dod.so). See restore/ NOTES.
 
 int CBasePlayer ::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType )
 {
@@ -928,8 +920,6 @@ void CBasePlayer::RemoveAllItems( BOOL removeSuit )
  */
 entvars_t *g_pevLastInflictor;	// Set in combat.cpp.  Used to pass the damage inflictor for death messages.
 								// Better solution:  Add as parameter to all Killed() functions.
-
-// DoD Killed - PORTED from restore (dod.so). See restore/ NOTES.
 
 void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 {
@@ -1809,8 +1799,6 @@ void CBasePlayer::StartDeathCam( void )
 	}
 }
 
-// CBasePlayer::StartObserver moved to observer.cpp (binary link 0x121ee0
-// observer.cpp:424) — HL leftover duplicate removed to fix multiple definition.
 //
 // PlayerUse - handles USE keypress
 //
@@ -2085,8 +2073,6 @@ void CBasePlayer::AddPointsToTeam( int score, BOOL bAllowNegativeScore )
 #define CLIMB_SPEED_DEC 15		  // climbing deceleration rate
 #define CLIMB_PUNCH_X -7		  // how far to 'punch' client X axis when climbing
 #define CLIMB_PUNCH_Z 7			  // how far to 'punch' client Z axis when climbing
-
-// DoD PreThink - PORTED from restore (dod.so). See restore/ NOTES.
 
 void CBasePlayer::PreThink( void )
 {
@@ -2473,8 +2459,6 @@ void CBasePlayer ::UpdatePlayerSound( void )
 }
 
 
-// DoD PostThink - PORTED from restore (dod.so). See restore/ NOTES.
-
 void CBasePlayer::PostThink()
 {
 	if ( g_fGameOver )
@@ -2818,8 +2802,6 @@ void CBasePlayer::SpawnThink( void )
 	}
 	pev->nextthink = gpGlobals->time + 1.0;
 }
-
-// DoD Spawn - PORTED from restore (dod.so). See restore/ NOTES.
 
 void CBasePlayer::Spawn( void )
 {
@@ -3210,7 +3192,7 @@ void CBasePlayer::SelectPrevItem( int iItem ) {}
 //==============================================
 class CSprayCan : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( entvars_t *pevOwner );
 	void Think( void );
 
@@ -3268,7 +3250,7 @@ void CSprayCan::Think( void )
 
 class CBloodSplat : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( entvars_t *pevOwner );
 	void Spray( void );
 };
@@ -3979,7 +3961,7 @@ int CBasePlayer ::GetCustomDecalFrames( void )
 //=========================================================
 
 
-// DoD: 2-arg overload declared in player.h but never defined (link gap in dodsrc too).
+// DoD: 2-arg overload declared in player.h but never defined.
 // bRemove is reserved; behavior matches the single-arg drop.
 
 void CBasePlayer::DropPlayerItem( char *pszItemName, bool bForceDrop )
@@ -4184,7 +4166,7 @@ BOOL CBasePlayer ::SwitchWeapon( CBasePlayerItem *pWeapon, BOOL bJustSpawned )
 //=========================================================
 class CDeadHEV : public CBaseMonster
 {
-  public:
+public:
 	void Spawn( void );
 	int Classify( void ) { return CLASS_HUMAN_MILITARY; }
 
@@ -4240,10 +4222,10 @@ void CDeadHEV ::Spawn( void )
 
 class CStripWeapons : public CPointEntity
 {
-  public:
+public:
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 
-  private:
+private:
 };
 
 LINK_ENTITY_TO_CLASS( player_weaponstrip, CStripWeapons );
@@ -4267,7 +4249,7 @@ void CStripWeapons ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 
 class CRevertSaved : public CPointEntity
 {
-  public:
+public:
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void EXPORT MessageThink( void );
 	void EXPORT LoadThink( void );
@@ -4287,7 +4269,7 @@ class CRevertSaved : public CPointEntity
 	inline void SetMessageTime( float time ) { m_messageTime = time; }
 	inline void SetLoadTime( float time ) { m_loadTime = time; }
 
-  private:
+private:
 	float m_messageTime;
 	float m_loadTime;
 };
@@ -4461,7 +4443,6 @@ void CBasePlayer::DropObject()
 	}
 }
 
-// DoD-only (player.cpp:5171 Stamina, 6513 CheckPlayerSpeed, 6587 SetSpeed) - PORTED
 void CBasePlayer::Stamina( void )
 {
 	if ( !IsAlive() )
@@ -5289,7 +5270,6 @@ void CBasePlayer::SetClientAreaIcon( int areaIndex, bool state )
 	MESSAGE_END();
 }
 
-// DoD hint system - RESTORED from dod.so player.cpp 6308-6331.
 bool CBasePlayer::HintMessage( const char *pMessage, BOOL bOverride )
 {
 	char tmp[512];

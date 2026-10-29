@@ -103,7 +103,7 @@ BODY QUE
 
 class CDecal : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void KeyValue( KeyValueData *pkvd );
 	void EXPORT StaticDecal( void );
@@ -416,7 +416,7 @@ void CWorld::Precache( void )
 	PRECACHE_SOUND( "items/weaponpickup.wav" );
 	g_Language = (int) CVAR_GET_FLOAT( "sv_language" );
 	for ( int i = 0; i <= 13; i++ )
-		LIGHT_STYLE( i, GetStdLightStyle( i ) );  // DoD refactor (SDK: literals)
+		LIGHT_STYLE( i, GetStdLightStyle( i ) );
 	LIGHT_STYLE( 63, "a" );
 	for ( int i = 0; i < 42; i++ )
 		gDecals[i].index = DECAL_INDEX( gDecals[i].name );
@@ -460,8 +460,6 @@ void CWorld::Precache( void )
 		CVAR_SET_FLOAT( "mp_defaultteam", 0.0 );
 	else
 		CVAR_SET_FLOAT( "mp_defaultteam", 1.0 );
-	// binary 0x16e620: spawnflags&4?1.0:0.0  // DoD
-	// ... +1.0 variant per binary tail (binary done: exact condition)
 }
 
 //

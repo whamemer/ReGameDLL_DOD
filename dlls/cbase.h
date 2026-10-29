@@ -102,8 +102,6 @@ typedef enum
 	USE_UPDATE = 9
 } USE_TYPE;
 
-// Canonical DoD entity state. Binary enum STATE:
-//   { STATE_OFF=0, STATE_TURN_ON=1, STATE_ON=2, STATE_TURN_OFF=3, STATE_IN_USE=4 }
 typedef enum
 {
 	STATE_OFF = 0,
@@ -154,11 +152,11 @@ class CSquadMonster;
 //
 class EHANDLE
 {
-  private:
+private:
 	edict_t *m_pent;
 	int m_serialnumber;
 
-  public:
+public:
 	edict_t *Get( void );
 	edict_t *Set( edict_t *pent );
 
@@ -189,7 +187,7 @@ void InitHashTable();
 //
 class CBaseEntity
 {
-  public:
+public:
 	// Constructor.  Set engine to use C/C++ callback functions
 	// pointers to engine data
 	entvars_t *pev;	 // Don't need to save/restore this pointer, the engine resets it
@@ -198,7 +196,6 @@ class CBaseEntity
 	CBaseEntity *m_pGoalEnt;  // path corner we are heading towards
 	CBaseEntity *m_pLink;	  // used for temporary link-list operations.
 
-	// DoD round snapshot block. dod.so DWARF CBaseEntity offsets 16..156.
 	// Written by CBaseEntity::RoundStore(), read back by RoundRespawnEnt().
 	Vector m_rrOrigin;
 	Vector m_rrMins;
@@ -226,7 +223,6 @@ class CBaseEntity
 	float m_rrGravity;
 
 	// initialization functions
-	// Virtual order below mirrors the dod.so DWARF vtable.
 	virtual void RoundRespawn( void ) {}
 
 	// clear pending think/touch/use/blocked callbacks, then restore the vars captured by RoundStore()
@@ -321,9 +317,8 @@ class CBaseEntity
 	virtual void DeathNotice( entvars_t *pevChild ) {
 	}  // monster maker children use this to tell the monster maker that they have died.
 
-	// DoD entity on/off state. Binary: cbase.h:358 (GetState), slot after DeathNotice.
 	virtual STATE GetState( void ) { return STATE_OFF; }
-	// dod.so DWARF: virtual STATE GetState(CBaseEntity*). Return type kept int to match
+	// The return type stays int to match
 	// CBaseDMStart::GetState (subs.cpp) which overrides this slot.
 	virtual int GetState( CBaseEntity *pEnt ) { return GetState(); }
 
@@ -372,10 +367,10 @@ class CBaseEntity
 	void ( CBaseEntity ::*m_pfnUse )( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void ( CBaseEntity ::*m_pfnBlocked )( CBaseEntity *pOther );
 
-	// DoD: set by ClientDisconnect (CBaseEntity in the shipped binary)
+	// DoD: set by ClientDisconnect
 	BOOL has_disconnected;
 
-	//We use this variables to store each ammo count. (dod.so DWARF 196..264)
+	//We use this variables to store each ammo count.
 	int ammo_9mm;
 	int ammo_357;
 	int ammo_bolts;
@@ -552,12 +547,10 @@ class CBaseEntity
 	virtual BOOL FVisible( CBaseEntity *pEntity );
 	virtual BOOL FVisible( const Vector &vecOrigin );
 
-	// dod.so DWARF keeps UpdateOnRemove non-virtual (declared after Blocked).
 	void UpdateOnRemove( void );
 };
 
-// dod.so DWARF CBaseEntity layout proof (size 344).
-#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of dod.so, the MSVC ABI differs
+#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of the original, the MSVC ABI differs
 static_assert( sizeof( CBaseEntity ) == 344, "CBaseEntity size must be 344 (dod.so DWARF)" );
 static_assert( offsetof( CBaseEntity, pev ) == 4, "CBaseEntity::pev @4" );
 static_assert( offsetof( CBaseEntity, m_pGoalEnt ) == 8, "CBaseEntity::m_pGoalEnt @8" );
@@ -632,12 +625,12 @@ static_assert( offsetof( CBaseEntity, m_trDecalTrace ) == 288, "CBaseEntity::m_t
 
 class CPointEntity : public CBaseEntity
 {
-  public:
+public:
 	virtual void Precache( void );
 	void Spawn( void );
 	virtual int ObjectCaps( void ) { return CBaseEntity ::ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
 
-  private:
+private:
 };
 
 typedef struct locksounds  // sounds that doors and buttons make when locked/unlocked
@@ -669,7 +662,7 @@ void PlayLockSounds( entvars_t *pev, locksound_t *pls, int flocked, int fbutton 
 
 class CMultiSource : public CPointEntity
 {
-  public:
+public:
 	void Spawn();
 	void KeyValue( KeyValueData *pkvd );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -694,7 +687,7 @@ class CMultiSource : public CPointEntity
 //
 class CBaseDelay : public CBaseEntity
 {
-  public:
+public:
 	float m_flDelay;
 	int m_iszKillTarget;
 
@@ -708,8 +701,7 @@ class CBaseDelay : public CBaseEntity
 	void EXPORT DelayThink( void );
 };
 
-// dod.so DWARF CBaseDelay layout proof (size 352).
-#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of dod.so, the MSVC ABI differs
+#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of the original, the MSVC ABI differs
 static_assert( sizeof( CBaseDelay ) == 352, "CBaseDelay size must be 352 (dod.so DWARF)" );
 static_assert( offsetof( CBaseDelay, m_flDelay ) == 344, "CBaseDelay::m_flDelay @344" );
 static_assert( offsetof( CBaseDelay, m_iszKillTarget ) == 348, "CBaseDelay::m_iszKillTarget @348" );
@@ -717,7 +709,7 @@ static_assert( offsetof( CBaseDelay, m_iszKillTarget ) == 348, "CBaseDelay::m_is
 
 class CBaseAnimating : public CBaseDelay
 {
-  public:
+public:
 	virtual int Save( CSave &save );
 	virtual int Restore( CRestore &restore );
 
@@ -755,8 +747,7 @@ class CBaseAnimating : public CBaseDelay
 	BOOL m_fSequenceLoops;	   // true if the sequence loops
 };
 
-// dod.so DWARF CBaseAnimating layout proof (size 372).
-#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of dod.so, the MSVC ABI differs
+#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of the original, the MSVC ABI differs
 static_assert( sizeof( CBaseAnimating ) == 372, "CBaseAnimating size must be 372 (dod.so DWARF)" );
 static_assert( offsetof( CBaseAnimating, m_flFrameRate ) == 352, "CBaseAnimating::m_flFrameRate @352" );
 static_assert( offsetof( CBaseAnimating, m_flGroundSpeed ) == 356, "CBaseAnimating::m_flGroundSpeed @356" );
@@ -772,7 +763,7 @@ static_assert( offsetof( CBaseAnimating, m_fSequenceLoops ) == 368, "CBaseAnimat
 
 class CBaseToggle : public CBaseAnimating
 {
-  public:
+public:
 	void KeyValue( KeyValueData *pkvd );
 
 	TOGGLE_STATE m_toggle_state;
@@ -826,8 +817,7 @@ class CBaseToggle : public CBaseAnimating
 						 // deactivated.
 };
 
-// dod.so DWARF CBaseToggle layout proof (size 512).
-#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of dod.so, the MSVC ABI differs
+#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of the original, the MSVC ABI differs
 static_assert( sizeof( CBaseToggle ) == 512, "CBaseToggle size must be 512 (dod.so DWARF)" );
 static_assert( offsetof( CBaseToggle, m_toggle_state ) == 372, "CBaseToggle::m_toggle_state @372" );
 static_assert( offsetof( CBaseToggle, m_flActivateFinished ) == 376, "CBaseToggle::m_flActivateFinished @376" );
@@ -920,38 +910,28 @@ static_assert( offsetof( CBaseToggle, m_sMaster ) == 508, "CBaseToggle::m_sMaste
 	( DMG_POISON | DMG_ACID | DMG_FREEZE | DMG_SLOWFREEZE | DMG_DROWN | DMG_BURN | DMG_SLOWBURN | DMG_NERVEGAS |       \
 	  DMG_RADIATION | DMG_SHOCK )
 
-// DoD damage bits verified vs binary ~/rev/dod.so (link addr = ghidra - 0x10000).
-// SDK occupied bits (halflife/dlls/cbase.h, dod/dlls/cbase.h): 0..10,12..14,15..23.
-//   0x2000=DMG_ALWAYSGIB 0x8000=DMG_PARALYZE 0x10000=DMG_NERVEGAS 0x20000=DMG_POISON
-//   0x800=bit11 free but unused by DoD. Bits 24..28 partially free, used by DoD.
-// Free DoD bits get DMG_DOD_* names (no Valve strings in binary: strings dod.so has no DMG_).
-// Addrs: TraceAttack 000d7460 (0x8000000 gate), FireBullets 000db1d0 (0x4000002),
-//   TakeDamage 000d9ca0 (gib map), RadiusDamage 000da300 (0x10000000), RifleMelee 000dcf70.
 #define DMG_DOD_NOBLOOD                                                                                                \
 	( 1                                                                                                                \
-	  << 27 )  // 0x8000000, no-blood gate in CBaseEntity::TraceAttack, binary: TEST bits & 0x8000000 @000d7460 (link 0xc7460)
+	  << 27 )
 #define DMG_DOD_PENETRATE                                                                                              \
-	( 1 << 26 )	 // 0x4000000, rifle penetration mark in FireBullets, binary: OR 0x4000000 when iBulletType>=8 @000db1d0
+	( 1 << 26 )
 #define DMG_DOD_GIB6                                                                                                   \
 	( 1                                                                                                                \
-	  << 25 )  // 0x2000000, free bit reused as gib style 6 in TakeDamage, binary: TEST 0x2000000 -> Killed(,6) @000d9ca0
+	  << 25 )
 #define DMG_DOD_SELFSPLASH                                                                                             \
 	( 1                                                                                                                \
-	  << 28 )  // 0x10000000, self-splash marker in RadiusDamage, binary: OR 0x10000000 when victim==attackerRef @000da300 (link 0xc9300)
-// Gib-style map reuses SDK bits + one free bit (TakeDamage @000d9ca0 -> Killed styles 2..6, default 1):
-//   style2: DMG_ALWAYSGIB (0x2000, SDK), style3: DMG_PARALYZE (0x8000), style4: DMG_NERVEGAS (0x10000),
-//   style5: DMG_POISON (0x20000), style6: DMG_DOD_GIB6 (0x2000000, free).
+	  << 28 )
 #define DMG_DOD_GIBMASK_GETDEATH                                                                                       \
-	( DMG_NERVEGAS | DMG_DOD_GIB6 )	 // 0x2010000 mask in GetDeathActivity @000d8a70 (TEST [ESI+0x364],0x2010000)
+	( DMG_NERVEGAS | DMG_DOD_GIB6 )
 // Melee combos are CLUB + gib-style bit (RifleMeleeAttack @000dcf70):
 #define DMG_DOD_MELEE_BAYONET ( DMG_CLUB | DMG_PARALYZE )  // 0x8080, weapon_id 10, plrDmgBayonet
-#define DMG_DOD_MELEE_GARAND ( DMG_CLUB | DMG_NERVEGAS )   // 0x10080, weapon_id 5, plrDmgGarandButt
-#define DMG_DOD_MELEE_K43 ( DMG_CLUB | DMG_DOD_GIB6 )	   // 0x2000080, weapon_id 0x18, plrDmgK43Butt
-#define DMG_DOD_MELEE_ENFIELD ( DMG_CLUB | DMG_POISON )	   // 0x20080, weapon_id 0x19, plrDmgEnfieldButt
-// Corpse-gib mask in DeadTakeDamage @000d9a50: 0xE1 = CRUSH|FALL|BLAST|CLUB (SDK DMG_GIB_CORPSE 0x2E1 drops SONIC 0x200).
-#define DMG_DOD_GIB_CORPSE ( DMG_CRUSH | DMG_FALL | DMG_BLAST | DMG_CLUB )	// 0xE1, binary: TEST bits & 0xE1
-// TakeHealth mask @000d9a00: 0x3fbf = 0x3fff & ~DMG_BLAST (SDK 0x3fff drops BLAST 0x40).
-#define DMG_DOD_TAKEHEALTH_MASK ( 0x3fff & ~DMG_BLAST )	 // 0x3fbf
+#define DMG_DOD_MELEE_GARAND ( DMG_CLUB | DMG_NERVEGAS )
+#define DMG_DOD_MELEE_K43 ( DMG_CLUB | DMG_DOD_GIB6 )
+#define DMG_DOD_MELEE_ENFIELD ( DMG_CLUB | DMG_POISON )
+// Corpse-gib mask in DeadTakeDamage: CRUSH|FALL|BLAST|CLUB (the SDK DMG_GIB_CORPSE also has SONIC).
+#define DMG_DOD_GIB_CORPSE ( DMG_CRUSH | DMG_FALL | DMG_BLAST | DMG_CLUB )
+// TakeHealth mask: all the damage bits except BLAST (the SDK uses 0x3fff).
+#define DMG_DOD_TAKEHEALTH_MASK ( 0x3fff & ~DMG_BLAST )
 
 // NOTE: tweak these values based on gameplay feedback:
 
@@ -1005,7 +985,7 @@ const char *ButtonSound( int sound );	 // get string of button sound number
 //
 class CBaseButton : public CBaseToggle
 {
-  public:
+public:
 	void Spawn( void );
 	virtual void Precache( void );
 	void RotSpawn( void );
@@ -1131,7 +1111,7 @@ typedef struct _SelAmmo
 //=======================
 class CWorld : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void KeyValue( KeyValueData *pkvd );
@@ -1140,7 +1120,7 @@ class CWorld : public CBaseEntity
 
 class CInfoGroup : public CBaseEntity
 {
-  public:
+public:
 	virtual int ObjectCaps( void ) { return 0; }
 	void KeyValue( KeyValueData *pkvd );
 	void EXPORT Think();
@@ -1156,7 +1136,7 @@ class CInfoGroup : public CBaseEntity
 
 class CMultiAlias : public CBaseEntity
 {
-  public:
+public:
 	virtual int ObjectCaps( void ) { return 0; }
 	void KeyValue( KeyValueData *pkvd );
 	int Save( CSave &save );
@@ -1168,12 +1148,12 @@ class CMultiAlias : public CBaseEntity
 
 class CBaseDMStart : public CPointEntity
 {
-  public:
+public:
 	void KeyValue( KeyValueData *pkvd );
 	int GetState( CBaseEntity *pEntity );
 	int IsMasteredOn( void ) { return UTIL_IsMasterTriggered( m_sMaster, this ); }
 
-  private:
+private:
 	string_t m_sMaster;
 	string_t m_sCPMaster;
 	int m_bNeutral;

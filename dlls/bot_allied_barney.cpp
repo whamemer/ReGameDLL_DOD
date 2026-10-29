@@ -1,9 +1,3 @@
-// DoD bot_allied_barney.cpp restore - GoldSrc 32-bit dod.so - Ghidra base +0x10000
-// Class CAlliedBarney : CTalkMonster, SDK barney.cpp port. Support rifleman, not squad.
-// Model models/allied_barney.mdl, health 25, FOV -0.7, capability 0x7c0, gun drawn.
-// Weapon: BarneyFirePistol fires garand_shoot.wav via FireBullets dist 1024 (SDK uses 9mm, here rifle sound).
-// Sounds: weapons/colt_shoot.wav precached but fire uses garand; barney/ba_pain1-3, ba_die1-3.
-// Talk groups BA_* (see TalkInit), pitch by body 90/95/99.
 #include	"extdll.h"
 #include	"util.h"
 #include	"cbase.h"
@@ -396,8 +390,6 @@ void CAlliedBarney :: TalkInit( void )
 	CTalkMonster::TalkInit();
 	if ( m_iszSpeakAs == 0 )
 	{
-		// NOTE: talkmonster.h's TALKGROUPNAMES is missing TLK_DECLINE (index 6);
-		// use the binary-verified numeric indices (matches CTalkMonster::TalkInit).
 		m_szGrp[0] = "BA_ANSWER";
 		m_szGrp[1] = "BA_QUESTION";
 		m_szGrp[2] = "BA_IDLE";

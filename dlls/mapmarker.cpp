@@ -1,5 +1,3 @@
-// mapmarker.cpp -- DoD CMapMarker - original file dod/dlls/mapmarker.cpp
-// Restored from dod.so - source notes in restore/objectives/timers_relays.cpp
 #include "extdll.h"
 #include "util.h"
 #include "objective.h"
@@ -30,8 +28,6 @@ CMapMarker *CMapMarker::CreateMapMarker( Vector vecOrigin, Vector vecAngles, CBa
 
 	return pMarker;
 }
-
-// Full bodies in restore/objectives/timers_relays.cpp comments - player side in player agent
 
 void CMapMarker::Spawn( void )
 {

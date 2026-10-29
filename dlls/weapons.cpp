@@ -61,7 +61,6 @@ MULTIDAMAGE gMultiDamage;
 // you the maximum amount of that type of ammunition that a
 // player can carry.
 //=========================================================
-// DoD MaxAmmoCarry64 - PORTED (restore/weapons/).
 int MaxAmmoCarry( int iszName )
 {
 	for ( int i = 0; i < 64; i++ )
@@ -294,7 +293,6 @@ void UTIL_PrecacheOtherWeapon( const char *szClassname )
 }
 
 // called by worldspawn
-// DoD W_Precache31 - PORTED (restore/weapons/).
 void W_Precache( void )
 {
 	memset( CBasePlayerItem::ItemInfoArray, 0, sizeof( CBasePlayerItem::ItemInfoArray ) );
@@ -1085,7 +1083,6 @@ BOOL CBasePlayerWeapon::TimedDeploy( char *szViewModel, char *szWeaponModel, int
 }
 
 Vector CBasePlayerWeapon::Aim( float accuracyFactor, CBasePlayer *pOther, int shared_rand )
-// link 0x15a950 size 0x81 Ghidra 0x16a950: 3x UTIL_SharedRandomFloat xyz, returns Vector
 {
 	float targetx = UTIL_SharedRandomFloat( shared_rand, accuracyFactor, 0.0f );
 	float targety = UTIL_SharedRandomFloat( shared_rand, accuracyFactor, 0.0f );
@@ -1093,7 +1090,6 @@ Vector CBasePlayerWeapon::Aim( float accuracyFactor, CBasePlayer *pOther, int sh
 	return Vector( targetx, targety, targetz );
 }
 float CBasePlayerWeapon::flAim( float accuracyFactor, CBasePlayer *pOther )
-// EXACT link 0x15a230 size 5 identity return a exact
 {
 	return accuracyFactor;
 }
@@ -1147,10 +1143,6 @@ int CBasePlayerWeapon::ZoomOut( void )
 
 	return 0;
 }
-
-// NOTE: the HL single-player weapons (CRpg/CRpgRocket/CShotgun/CGauss/CEgon/CSatchel)
-// do not exist in Day of Defeat; their savestore tables (and the vtables/typeinfo they
-// emitted) were removed so the DLL exports/imports match the shipped dod.so exactly.
 
 // DoD zoom/stamina/mortar/water-sniping impls
 void CBasePlayerWeapon::UpdateZoomSpeed( void )
@@ -1441,12 +1433,10 @@ void CBasePlayerWeapon::RetireWeapon( void )
 }
 
 void CBasePlayerWeapon::PostMortarValue( float v )
-// EXACT link 0x15db40 Ghidra 0x16db40 weapons.cpp:1624 server stub empty mortar owned by gamerules
 {
 	return;
 }
 void CBasePlayerWeapon::SendMortarFireCommand( char *c )
-// EXACT link 0x15db50 Ghidra 0x16db50 weapons.cpp:1629 server stub empty dispatch via gamerules string table
 {
 	return;
 }
@@ -1901,8 +1891,6 @@ void CDodAmmoBox::Touch( CBaseEntity *pOther )
 	UTIL_Remove( this );
 }
 
-// Factory only allocates the entity (GetClassPtr); Spawn is invoked by the
-// engine via DispatchSpawn. DoD binary factory does NOT call Spawn.
 LINK_ENTITY_TO_CLASS( ammo_generic_american, GenericAmmoAmerican );
 LINK_ENTITY_TO_CLASS( ammo_generic_german, GenericAmmoGerman );
 LINK_ENTITY_TO_CLASS( ammo_generic_british, GenericAmmoBritish );

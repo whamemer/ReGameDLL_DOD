@@ -16,12 +16,12 @@
 
 class CBaseSpectator : public CBaseEntity
 {
-  public:
+public:
 	void Spawn();
 	void SpectatorConnect( void );
 	void SpectatorDisconnect( void );
 	void SpectatorThink( void );
 
-  private:
+private:
 	void SpectatorImpulseCommand( void );
 };

@@ -643,11 +643,11 @@ extern int g_groupop;
 
 class UTIL_GroupTrace
 {
-  public:
+public:
 	UTIL_GroupTrace( int groupmask, int op );
 	~UTIL_GroupTrace( void );
 
-  private:
+private:
 	int m_oldgroupmask, m_oldgroupop;
 };
 

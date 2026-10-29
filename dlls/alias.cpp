@@ -1,9 +1,3 @@
-// alias.cpp - DoD alias entities, restored from dod.so
-// Ghidra addr = link + 0x10000. file:line via addr2line -e dod.so -f -C (link = Ghidra - 0x10000).
-// Scope: CInfoAlias, CInfoGroup, CMultiAlias, CTriggerChangeAlias plus factories.
-// Duplicates: CBaseEntity::Illumination already inline in cbase.h, skipped.
-// CDoDDetect and info_doddetect already ported in maprules.cpp and objective.h, not here.
-// Helpers UTIL_Follow* originally util.cpp:822, provided here for link since util.cpp lacks them.
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
@@ -20,7 +14,7 @@ CBaseEntity *UTIL_FollowReference( CBaseEntity *pStartEntity, const char *szName
 
 class CInfoAlias : public CBaseEntity
 {
-  public:
+public:
 	void Spawn();
 	void RoundRespawn();
 	void Think();
@@ -177,7 +171,7 @@ void CMultiAlias::KeyValue( KeyValueData *pkvd )
 
 class CTriggerChangeAlias : public CBaseEntity
 {
-  public:
+public:
 	void Spawn();
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	int ObjectCaps();
@@ -224,5 +218,3 @@ void CTriggerChangeAlias::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, US
 		ALERT( at_console, "DEBUG: trigger_changealias %s activated: changed contents of alias \"%s\" to \"%s\"\n",
 			   STRING( pev->targetname ), STRING( pAlias->pev->targetname ), STRING( iNewValue ) );
 }
-
-// NOTE: CBaseEntity::Illumination (alias.cpp:270) skipped, already inline in cbase.h

@@ -49,7 +49,7 @@ extern const char *GetStringForUseType( USE_TYPE useType );
 
 class CEnvGlobal : public CPointEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void KeyValue( KeyValueData *pkvd );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -172,7 +172,7 @@ void CEnvGlobal::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 
 class CEnvState : public CPointEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	virtual void Think( void );
@@ -210,7 +210,6 @@ void CEnvState::RoundRespawn( void )
 }
 
 TYPEDESCRIPTION CEnvState::m_SaveData[] = {
-	// Binary stores the float times as FIELD_INTEGER (4-byte bit-preserving).
 	DEFINE_FIELD( CEnvState, m_fTurnOnTime, FIELD_INTEGER ),
 	DEFINE_FIELD( CEnvState, m_fTurnOffTime, FIELD_INTEGER ),
 	DEFINE_FIELD( CEnvState, m_iOnMode, FIELD_INTEGER ),
@@ -1267,7 +1266,7 @@ void CBaseButton::ButtonBackHome( void )
 //
 class CRotButton : public CBaseButton
 {
-  public:
+public:
 	void Spawn( void );
 	void RoundRespawn( void );
 	void Activate( void );
@@ -1380,7 +1379,7 @@ void CRotButton::Activate( void )
 
 class CMomentaryRotButton : public CBaseToggle
 {
-  public:
+public:
 	void Spawn( void );
 	void KeyValue( KeyValueData *pkvd );
 	virtual int ObjectCaps( void )
@@ -1654,7 +1653,7 @@ void CMomentaryRotButton::UpdateSelfReturn( float value )
 
 class CEnvSpark : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void EXPORT SparkThink( void );
@@ -1838,7 +1837,7 @@ void EXPORT CEnvSpark::SparkStop( CBaseEntity *pActivator, CBaseEntity *pCaller,
 
 class CButtonTarget : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	int TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType );

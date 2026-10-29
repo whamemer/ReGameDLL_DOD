@@ -589,8 +589,6 @@ CBaseEntity *UTIL_FindEntityByClassname( CBaseEntity *pStartEntity, const char *
 	return UTIL_FindEntityByString( pStartEntity, "classname", szName );
 }
 
-// DoD blood owners - UTIL_DodBloodPuff in player.cpp line 815 - SpawnBlood in weapons.cpp line 161 - not duplicated here - binary 0012d9f0 0016c5b0
-
 CBaseEntity *UTIL_FollowAliasReference( CBaseEntity *pStartEntity, const char *szValue )
 {
 	CBaseEntity *pBest = 0;
@@ -1328,16 +1326,16 @@ void UTIL_BloodDrips( const Vector &origin, const Vector &direction, int color, 
 		return;
 	if ( color == BLOOD_COLOR_RED && g_Language == LANGUAGE_GERMAN )
 		color = 0;
-	if ( g_pGameRules->IsMultiplayer() )  // vtbl+7 != 0; binary 0xe3460 vtbl+7 IsMultiplayer returns 1
+	if ( g_pGameRules->IsMultiplayer() )
 		amount *= 2;
-	float fScale = 16.0;  // _DAT_0018fdf4
+	float fScale = 16.0;
 	if ( amount < 256 && amount < 160 && amount > 29 )
 		fScale = (float) ( amount / 10 );
 	else if ( !( amount < 256 && amount < 160 ) )
 		fScale = 16.0;
 	else
-		fScale = 3.0;											// _DAT_00195cdc
-	PLAYBACK_EVENT_FULL( 0, NULL, g_pGameRules->BloodSprite(),	// vtbl+0x58; binary vtbl+0x58/0x5b GetBlood/SparksEvent
+		fScale = 3.0;
+	PLAYBACK_EVENT_FULL( 0, NULL, g_pGameRules->BloodSprite(),
 						 0.0, (float *) &origin, (float *) &g_vecZero, (float) g_sModelIndexBloodDrop, fScale,
 						 (float) g_sModelIndexBloodSpray, (float) color, 0, 0 );
 }
@@ -1485,7 +1483,7 @@ void UTIL_GunshotDecalTrace( TraceResult *pTrace, int decalNumber )
 
 void UTIL_Sparks( const Vector &position )
 {
-	PLAYBACK_EVENT_FULL( 0, NULL, g_pGameRules->SparkShower(),	// vtbl+0x5b; binary vtbl+0x58/0x5b GetBlood/SparksEvent
+	PLAYBACK_EVENT_FULL( 0, NULL, g_pGameRules->SparkShower(),
 						 0.0, (float *) &position, (float *) &g_vecZero, 0.0, 0.0, 0, 0, 0, 0 );
 }
 
@@ -1564,7 +1562,7 @@ void UTIL_StringToIntArray( int *pVector, int count, const char *pString )
 	}
 	for ( int j = 0; j < count; j++ )
 	{
-	}  // zero-fill tail per binary
+	}
 }
 
 Vector UTIL_ClampVectorToBox( const Vector &input, const Vector &clampSize )

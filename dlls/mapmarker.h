@@ -19,7 +19,7 @@
 // dod_mapmarker
 class CMapMarker : public CBaseEntity
 {
-  public:
+public:
 	// pev->body = icon, pev->fuser1 = create time, angles fixed (0,90,0)
 	static CMapMarker *CreateMapMarker( Vector o, Vector a, CBaseEntity *w, int icon );
 	void Spawn( void );

@@ -17,7 +17,7 @@
 
 class CItem : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	CBaseEntity *Respawn( void );
 	void EXPORT ItemTouch( CBaseEntity *pOther );

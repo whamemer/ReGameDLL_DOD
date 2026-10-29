@@ -653,7 +653,6 @@ void CTalkMonster ::TalkInit( void )
 	CTalkMonster::g_talkWaitTime = 0;
 
 	m_voicePitch = 100;
-	// binary-verified 0014c420 TalkInit: base resets g_talkWaitTime and pitch 100; follower table keyed on spawnflags 0x100
 	if ( m_iszSpeakAs != 0 )
 	{
 		char szBuf[64];
@@ -1308,7 +1307,6 @@ void CTalkMonster::StartFollowing( CBaseEntity *pLeader )
 
 BOOL CTalkMonster::CanFollow( void )
 {
-	// binary 0x0014e080: script/CanInterrupt gate, then IsAlive() only.
 	if ( m_MonsterState == MONSTERSTATE_SCRIPT )
 	{
 		if ( !m_pCine->CanInterrupt() )
@@ -1326,7 +1324,6 @@ void CTalkMonster ::FollowerUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 
 	if ( pCaller != NULL && pCaller->IsPlayer() )
 	{
-		// binary 0x0014e0d0: CanFollow() checks inlined here (script gate + alive).
 		if ( m_MonsterState == MONSTERSTATE_SCRIPT && !m_pCine->CanInterrupt() )
 			return;
 		if ( !IsAlive() )

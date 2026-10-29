@@ -1,4 +1,3 @@
-// DoD stats restore - dod/dlls/dod_stats.cpp
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"

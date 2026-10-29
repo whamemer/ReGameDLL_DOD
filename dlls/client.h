@@ -43,7 +43,6 @@ extern void Sys_Error( const char *error_string );
 
 extern void SetupVisibility( edict_t *pViewEntity, edict_t *pClient, unsigned char **pvs, unsigned char **pas );
 
-// DoD per-player PVS tracking (client.cpp:1510-1585)
 extern void ResetPlayerPVS( edict_t *client, int clientnum );
 extern bool CheckPlayerPVSLeafChanged( edict_t *client, int clientnum );
 extern void MarkEntityInPVS( int clientnum, int entitynum, float time, bool inpvs );
@@ -65,7 +64,6 @@ extern int ConnectionlessPacket( const struct netadr_s *net_from, const char *ar
 
 extern int GetHullBounds( int hullnumber, float *mins, float *maxs );
 
-// DoD round reset - PORTED from dod.so (client.cpp:2491-2540)
 class CBasePlayer;
 extern void ShowVGUI( CBasePlayer *pPlayer, int iMenu, int iParam );
 extern void ResetPlayers( void );

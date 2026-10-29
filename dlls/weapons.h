@@ -353,7 +353,7 @@ class CDodAmmoBox : public CBaseEntity
 {
 	EHANDLE m_hOwner;
 
-  public:
+public:
 	virtual void Precache();
 	virtual void Spawn();
 	virtual void Touch( CBaseEntity *pOther );
@@ -371,7 +371,7 @@ class CWeaponBox : public CBaseEntity
 	int GiveAmmo( int iCount, const char *szName, int iMax, int *pIndex = NULL );
 	void SetObjectCollisionBox( void );
 
-  public:
+public:
 	void EXPORT ActivateThink( void );
 	void EXPORT Kill( void );
 	int Save( CSave &save );
@@ -1350,7 +1350,7 @@ public:
 
 class CBazookaShell : public CGrenade
 {
-  public:
+public:
 	virtual void Spawn();
 	virtual void Precache();
 	void EXPORT RocketTouch( CBaseEntity *pOther );
@@ -1359,7 +1359,7 @@ class CBazookaShell : public CGrenade
 
 class CPschreckShell : public CGrenade
 {
-  public:
+public:
 	virtual void Spawn();
 	virtual void Precache();
 	void EXPORT RocketTouch( CBaseEntity *pOther );
@@ -1368,7 +1368,7 @@ class CPschreckShell : public CGrenade
 
 class CPIATShell : public CGrenade
 {
-  public:
+public:
 	virtual void Spawn();
 	virtual void Precache();
 	void EXPORT RocketTouch( CBaseEntity *pOther );
@@ -1377,11 +1377,11 @@ class CPIATShell : public CGrenade
 
 // Generic team ammo box. German extends American; British extends American.
 // AddAmmo/Precache are inherited from GenericAmmoAmerican by German/British
-// (no overrides in the binary: only GenericAmmoAmerican::AddAmmo and GenericAmmoAmerican::Precache exist).
+// (only GenericAmmoAmerican defines AddAmmo and Precache).
 
 class GenericAmmoAmerican : public CBasePlayerAmmo
 {
-  public:
+public:
 	void Spawn()
 	{
 		Precache();
@@ -1414,7 +1414,7 @@ class GenericAmmoAmerican : public CBasePlayerAmmo
 
 class GenericAmmoGerman : public GenericAmmoAmerican
 {
-  public:
+public:
 	void Spawn()
 	{
 		Precache();
@@ -1431,7 +1431,7 @@ class GenericAmmoGerman : public GenericAmmoAmerican
 // the British box uses the Allied model and the Allied team, like the American one
 class GenericAmmoBritish : public GenericAmmoAmerican
 {
-  public:
+public:
 	void Spawn()
 	{
 		Precache();

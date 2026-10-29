@@ -55,7 +55,7 @@ This is just a solid wall if not inhibited
 */
 class CFuncWall : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 
@@ -96,7 +96,7 @@ void CFuncWall ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 
 class CFuncWallToggle : public CFuncWall
 {
-  public:
+public:
 	void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void TurnOff( void );
@@ -177,7 +177,7 @@ void CFuncWallToggle ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 
 class CFuncConveyor : public CFuncWall
 {
-  public:
+public:
 	void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void UpdateSpeed( float speed );
@@ -249,7 +249,7 @@ A simple entity that looks solid but lets you walk through it.
 */
 class CFuncIllusionary : public CBaseToggle
 {
-  public:
+public:
 	void Spawn( void );
 	void EXPORT SloshTouch( CBaseEntity *pOther );
 	void KeyValue( KeyValueData *pkvd );
@@ -292,7 +292,7 @@ void CFuncIllusionary ::Spawn( void )
 // -------------------------------------------------------------------------------
 class CFuncMonsterClip : public CFuncWall
 {
-  public:
+public:
 	void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value ) {
 	}  // Clear out func_wall's use function
@@ -313,7 +313,7 @@ void CFuncMonsterClip::Spawn( void )
 // =================== FUNC_ROTATING ==============================================
 class CFuncRotating : public CBaseEntity
 {
-  public:
+public:
 	// basic functions
 	void Spawn( void );
 	void Precache( void );
@@ -807,7 +807,7 @@ void CFuncRotating ::Blocked( CBaseEntity *pOther )
 
 class CPendulum : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void KeyValue( KeyValueData *pkvd );
 	void EXPORT Swing( void );

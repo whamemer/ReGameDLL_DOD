@@ -25,10 +25,6 @@
 #include "decals.h"
 #include "explode.h"
 #include "gamerules.h"
-// DoD: SDK-IDENTICAL per restore/weapons/ (explode 13 funcs / mortar 12 funcs).
-// DoD sprites (zerogxplode/steam1/bubble/bloodspray/blood-narrow/explode1 + whizz + grenade_hit1-3)
-// precached in weapons.cpp W_Precache DOD branch; mortar gameplay via
-// CBasePlayerWeapon::PostMortarValue/SendMortarFireCommand (weapons.cpp DOD). No gameplay diff here.
 
 // Spark Shower
 class CShower : public CBaseEntity
@@ -87,7 +83,7 @@ void CShower::Touch( CBaseEntity *pOther )
 
 class CEnvExplosion : public CBaseMonster
 {
-  public:
+public:
 	void Spawn();
 	void EXPORT Smoke( void );
 	void KeyValue( KeyValueData *pkvd );

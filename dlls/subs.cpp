@@ -56,7 +56,7 @@ void CPointEntity::Precache( void )
 
 class CNullEntity : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 };
 
@@ -117,7 +117,6 @@ void CBaseDMStart::KeyValue( KeyValueData *pkvd )
 
 int CBaseDMStart::GetState( CBaseEntity *pEntity )
 {
-	// binary-verified 0x139530 subs.cpp:138 GetState returns 0 OFF else 2 ON; USE 0 OFF 1 ON 2 SET 3 TOGGLE 4 KILL 6 no-op; ShouldToggle 0xc1180 SDK gate, 0xc11c0 via GetState; GetState table 0x139240 [2,0,1,3]
 	if ( !UTIL_IsMasterTriggered( pev->netname, pEntity ) )
 		return 0;
 	if ( FStringNull( m_sCPMaster ) )
@@ -245,7 +244,7 @@ void FireTargets( const char *targetName, CBaseEntity *pActivator, CBaseEntity *
 	if ( !targetName )
 		return;
 	if ( useType == USE_NOT )
-		return;	 // binary-verified 0x13a400 no-op
+		return;
 
 	ALERT( at_aiconsole, "Firing: (%s)\n", targetName );
 
@@ -293,7 +292,6 @@ char szCutsceneNames[9][32] = {
 void FireDODCameraTargets( const char *targetName, CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType,
 						   float value )
 {
-	// binary-verified 0x14a450 subs.cpp:338: sets iuser2 from targetname vs szCutsceneNames, honors KILL + 6 no-op
 	if ( !targetName )
 		return;
 	if ( useType == USE_NOT )
@@ -563,7 +561,6 @@ BOOL CBaseToggle ::IsLockedByMaster( void )
 		return FALSE;
 }
 
-// Maps TOGGLE_STATE to the DoD STATE enum: table 0x19a628 = {2,0,1,3}.
 STATE CBaseToggle::GetState( void )
 {
 	switch ( m_toggle_state )

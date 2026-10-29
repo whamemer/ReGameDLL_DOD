@@ -694,7 +694,6 @@ void ScriptEntityCancel( edict_t *pentCine )
 
 void CCineMonster::DoDReset( void )
 {
-	// binary-verified 0x12f860 scripted.cpp:757: re-arm scripted targets for round reset
 	edict_t *pent = FIND_ENTITY_BY_TARGETNAME( NULL, STRING( m_iszEntity ) );
 	while ( !FNullEnt( pent ) )
 	{
@@ -927,7 +926,7 @@ BOOL CBaseMonster ::CineCleanup()
 class CScriptedSentence : public CBaseToggle
 {
 	void EXPORT DurationThink( void );
-  public:
+public:
 	void Spawn( void );
 	void KeyValue( KeyValueData *pkvd );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -945,7 +944,7 @@ class CScriptedSentence : public CBaseToggle
 	BOOL AcceptableSpeaker( CBaseMonster *pMonster );
 	BOOL StartSentence( CBaseMonster *pTarget );
 
-  private:
+private:
 	int m_iszSentence;	 // string index for idle animation
 	int m_iszEntity;	 // entity that is wanted for this sentence
 	float m_flRadius;	 // range to search
@@ -1217,7 +1216,7 @@ BOOL CScriptedSentence ::StartSentence( CBaseMonster *pTarget )
 //=========================================================
 class CFurniture : public CBaseMonster
 {
-  public:
+public:
 	void Spawn( void );
 	void Die( void );
 	int Classify( void );

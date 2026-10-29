@@ -30,9 +30,6 @@
 #include "cbase.h"
 #include "player.h"
 
-// DOD capture_area - original file triggers.cpp - source restore/objectives/capture_area.cpp
-// capture_area.cpp -- dod_capture_area (CAreaCapture)
-// Restored from dod.so. Ghidra addr = link addr + 0x10000.
 #include "objective.h"
 
 // KeyValue fields (rest => CBaseTrigger::KeyValue):
@@ -43,10 +40,6 @@
 // area_time_to_cap => m_nCapTime | area_cap_point => sz_CapPointName
 // area_object_group => sz_RequiredObjectGroup, sets m_bRequiresObject.
 
-// AreaTouch, think 0.1 s, m_iAreaIndex = m_nOwningTeam = -1,
-// m_nCapturingTeam = -1, m_bCapturing = 0, m_fTimeRemaining = 0.
-// when index <= 0x80. .text:0015af00 area_SendStatus: same, unicast.
-
 
 // m_nAlliesNumCap / m_nAxisNumCap clamped to min 1.
 // (AlliesInfinite && not AxisInfinite) && spawnflags & 1.
@@ -56,11 +49,6 @@
 // #game_capture_broken_allie / _axis, cancels progress bar HUD, director 12.
 
 
-// (point index, capturing team, player count, required) to all / one player.
-// resend with required/players scaled captime.
-// DOD control_point - original file triggers.cpp - source restore/objectives/control_point.cpp
-// control_point.cpp -- dod_control_point + dod_control_point_master
-// Restored from dod.so. Ghidra addr = link addr + 0x10000.
 #include "objective.h"
 
 // KeyValue fields, dod_control_point (all handled, rest => CBaseEntity):
@@ -82,16 +70,8 @@
 // See table in header comment above. point_index stored 0-based.
 
 
-// trivial field readers (triggers.cpp:4295/4300/4310).
-
-// DOD control_master - original file triggers.cpp - source restore/objectives/control_master.cpp
-// control_master.cpp -- dod_control_point_master
-// Restored from dod.so. Ghidra addr = link addr + 0x10000.
 #include "objective.h"
 
-// DOD timers_relays triggers parts - original files triggers.cpp plus mapmarker plus dod_gamerules notes - source restore/objectives/timers_relays.cpp
-// timers_relays.cpp -- dod_round_timer, dod_point_relay, dod_location,
-// dod_mapmarker, info_doddetect, para timer. Restored from dod.so.
 #include "objective.h"
 
 extern DLL_GLOBAL BOOL g_fGameOver;
@@ -135,7 +115,7 @@ extern int get_maptime_left( void );
 
 class CRuleEntity : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void KeyValue( KeyValueData *pkvd );
 	virtual int Save( CSave &save );
@@ -144,10 +124,10 @@ class CRuleEntity : public CBaseEntity
 
 	void SetMaster( int iszMaster ) { m_iszMaster = iszMaster; }
 
-  protected:
+protected:
 	BOOL CanFireForActivator( CBaseEntity *pActivator );
 
-  private:
+private:
 	string_t m_iszMaster;
 };
 
@@ -193,7 +173,7 @@ BOOL CRuleEntity::CanFireForActivator( CBaseEntity *pActivator )
 //
 class CRulePointEntity : public CRuleEntity
 {
-  public:
+public:
 	void Spawn( void );
 };
 
@@ -210,10 +190,10 @@ void CRulePointEntity::Spawn( void )
 //
 class CRuleBrushEntity : public CRuleEntity
 {
-  public:
+public:
 	void Spawn( void );
 
-  private:
+private:
 };
 
 void CRuleBrushEntity::Spawn( void )
@@ -232,7 +212,7 @@ void CRuleBrushEntity::Spawn( void )
 
 class CGameScore : public CRulePointEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void KeyValue( KeyValueData *pkvd );
@@ -243,7 +223,7 @@ class CGameScore : public CRulePointEntity
 
 	inline void SetPoints( int points ) { pev->frags = points; }
 
-  private:
+private:
 };
 
 LINK_ENTITY_TO_CLASS( game_score, CGameScore );
@@ -291,10 +271,10 @@ void CGameScore::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 
 class CGameEnd : public CRulePointEntity
 {
-  public:
+public:
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 
-  private:
+private:
 };
 
 LINK_ENTITY_TO_CLASS( game_end, CGameEnd );
@@ -321,7 +301,7 @@ void CGameEnd::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useT
 
 class CGameText : public CRulePointEntity
 {
-  public:
+public:
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void KeyValue( KeyValueData *pkvd );
 
@@ -335,7 +315,7 @@ class CGameText : public CRulePointEntity
 	inline void MessageSet( const char *pMessage ) { pev->message = ALLOC_STRING( pMessage ); }
 	inline const char *MessageGet( void ) { return STRING( pev->message ); }
 
-  private:
+private:
 	int m_iEnabled;
 	hudtextparms_t m_textParms;
 	void Spawn( void );
@@ -349,55 +329,6 @@ void CGameText::RoundRespawn( void )
 
 LINK_ENTITY_TO_CLASS( game_text, CGameText );
 
-// ---- dod_round_timer (CDodRoundTimer, triggers.cpp) ----
-// KeyValue: round_timer_length (int seconds) => m_fTimerLength,
-// master => m_sMaster. Rest unhandled.
-// think 0.1 s.
-// Think cadence 0.1 s (.text:001559f0, file:triggers.cpp:6380): counts down
-// m_fRoundTime; HUD TimerStatus(on, remaining) at most every 30.0 s and only
-// when spawnflags & 1 + master allows. At zero: timer off, zero status,
-// FireTargets(pev target). Only while m_bTimer.
-// gated status send (remaining on start, 0.0 on stop).
-// m_fRoundTime = m_fTimerLength + status.
-// broadcast / unicast TimerStatus, same gates.
-
-
-// ---- dod_location (CLocation, triggers.cpp) ----
-// KeyValue: location_name => pev->netname, master => m_sMaster.
-// zero size, no touch. .text:0014f4a0 RoundRespawn (file:triggers.cpp:3888):
-// zero size, no touch. Pure position + name marker.
-
-// ---- dod_mapmarker (CMapMarker, mapmarker.cpp, 4 funcs) ----
-// classname dod_mapmarker, icon => pev->body, owner/team from creator,
-// angles (0,90,0), fuser1 = now, static counter++.
-// sprite, zero size, rehash classname, Think = Die at now + stay time
-// (max(mp_markerstaytime, 2.0)). .text:0016fda0 Die (file:mapmarker.cpp:70):
-// UpdateOnRemove + FL_KILLME + clear targetname.
-// 4th func: LINK factory thunk. Player side (Fire/Next/Prev/SetMapMarker,
-// player.cpp:6390-6484) belongs to the player agent; HUD icon flows through
-// pev->body.
-
-// ---- info_doddetect (CDoDDetect, dod_gamerules.cpp) ----
-// Ctor defaults (.text:000ee020, file:dod_gamerules.cpp:6387): infinite
-// lives both true, paras false, brit false, timer off, elim points 5/5,
-// timer-expire points 0, respawn factors 1.0, timer team 0.
-// KeyValue (.text:000e5420, file:dod_gamerules.cpp:6403) table:
-// detect_axis_infinite / allies_infinite_lifes / axis_infinite_lifes (==1) /
-// detect_allies_infinite (==1) => infinite flags; detect_axis_paras /
-// detect_allies_paras (>0); detect_allies_country (==1 => brit);
-// detect_points_allieseliminated / axiseliminated (int);
-// detect_target_allieseliminated / axiseliminated (string);
-// detect_use_timer (>0); detect_target_timerexpired (string);
-// detect_timer_team (int); detect_points_timerexpired (int);
-// detect_allies_respawnfactor / detect_axis_respawnfactor (float);
-// master => m_sMaster. Rest unhandled.
-
-// ---- para round timer (CDodParaRoundTimer, dod_gamerules.cpp) ----
-// Code-created (no map LINK). .text:000e3b90 Spawn: Think = TimerThink,
-// 0.1 s, timers cleared, update 30.0. .text:000eaa80 TimerThink: frame-delta
-// countdown; round not active => stop + status + Think NULL; 30 s status
-// refresh; expiry => CDoDTeamPlay::TimerExpired + stop + status.
-// (240.0 s, on, update 30.0) / .text:000ee310 / .text:000ee380 SendStatus.
 
 // ---- gamerules hook ----
 // RoundState to player, first mastered dod_control_point_master =>
@@ -406,11 +337,8 @@ LINK_ENTITY_TO_CLASS( game_text, CGameText );
 // particle_shooter updates.
 
 // ============================================================================
-// Additional capture member bodies ported from dod.so (Ghidra = link + 0x10000)
 // ============================================================================
 
-
-// Capture entity factory registrations (string -> class, verified via binary xrefs)
 
 
 void CGameText::Spawn( void )
@@ -563,7 +491,7 @@ void CGameText::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 
 class CGameTeamMaster : public CRulePointEntity
 {
-  public:
+public:
 	void KeyValue( KeyValueData *pkvd );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	int ObjectCaps( void ) { return CRulePointEntity::ObjectCaps() | FCAP_MASTER; }
@@ -573,7 +501,7 @@ class CGameTeamMaster : public CRulePointEntity
 	inline BOOL RemoveOnFire( void ) { return ( pev->spawnflags & SF_TEAMMASTER_FIREONCE ) ? TRUE : FALSE; }
 	inline BOOL AnyTeam( void ) { return ( pev->spawnflags & SF_TEAMMASTER_ANYTEAM ) ? TRUE : FALSE; }
 
-  private:
+private:
 	BOOL TeamMatch( CBaseEntity *pActivator );
 
 	int m_iEnabled;
@@ -693,12 +621,12 @@ BOOL CGameTeamMaster::TeamMatch( CBaseEntity *pActivator )
 
 class CGameTeamSet : public CRulePointEntity
 {
-  public:
+public:
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	inline BOOL RemoveOnFire( void ) { return ( pev->spawnflags & SF_TEAMSET_FIREONCE ) ? TRUE : FALSE; }
 	inline BOOL ShouldClearTeam( void ) { return ( pev->spawnflags & SF_TEAMSET_CLEARTEAM ) ? TRUE : FALSE; }
 
-  private:
+private:
 	int m_iEnabled;
 	void Spawn( void );
 	void RoundRespawn( void );
@@ -749,7 +677,7 @@ void CGameTeamSet::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 // Needs master?
 class CGamePlayerZone : public CRuleBrushEntity
 {
-  public:
+public:
 	void KeyValue( KeyValueData *pkvd );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 
@@ -757,7 +685,7 @@ class CGamePlayerZone : public CRuleBrushEntity
 	virtual int Restore( CRestore &restore );
 	static TYPEDESCRIPTION m_SaveData[];
 
-  private:
+private:
 	string_t m_iszInTarget;
 	string_t m_iszOutTarget;
 	string_t m_iszInCount;
@@ -863,11 +791,11 @@ void CGamePlayerZone::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 #define SF_PKILL_FIREONCE 0x0001
 class CGamePlayerHurt : public CRulePointEntity
 {
-  public:
+public:
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	inline BOOL RemoveOnFire( void ) { return ( pev->spawnflags & SF_PKILL_FIREONCE ) ? TRUE : FALSE; }
 
-  private:
+private:
 	int m_iEnabled;
 	void Spawn( void );
 	void RoundRespawn( void );
@@ -922,7 +850,7 @@ void CGamePlayerHurt::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 
 class CGameCounter : public CRulePointEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	inline BOOL RemoveOnFire( void ) { return ( pev->spawnflags & SF_GAMECOUNT_FIREONCE ) ? TRUE : FALSE; }
@@ -936,7 +864,7 @@ class CGameCounter : public CRulePointEntity
 
 	inline BOOL HitLimit( void ) { return CountValue() == LimitValue(); }
 
-  private:
+private:
 	inline void SetCountValue( int value ) { pev->frags = value; }
 	inline void SetInitialValue( int value ) { pev->dmg = value; }
 	void RoundRespawn( void );
@@ -996,11 +924,11 @@ void CGameCounter::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 
 class CGameCounterSet : public CRulePointEntity
 {
-  public:
+public:
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	inline BOOL RemoveOnFire( void ) { return ( pev->spawnflags & SF_GAMECOUNTSET_FIREONCE ) ? TRUE : FALSE; }
 
-  private:
+private:
 	int m_iEnabled;
 	void Spawn( void );
 	void RoundRespawn( void );
@@ -1047,14 +975,14 @@ void CGameCounterSet::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 
 class CGamePlayerEquip : public CRulePointEntity
 {
-  public:
+public:
 	void KeyValue( KeyValueData *pkvd );
 	void Touch( CBaseEntity *pOther );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 
 	inline BOOL UseOnly( void ) { return ( pev->spawnflags & SF_PLAYEREQUIP_USEONLY ) ? TRUE : FALSE; }
 
-  private:
+private:
 	void EquipPlayer( CBaseEntity *pPlayer );
 
 	string_t m_weaponNames[MAX_EQUIP];
@@ -1138,10 +1066,10 @@ void CGamePlayerEquip::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 
 class CGamePlayerTeam : public CRulePointEntity
 {
-  public:
+public:
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 
-  private:
+private:
 	inline BOOL RemoveOnFire( void ) { return ( pev->spawnflags & SF_PTEAM_FIREONCE ) ? TRUE : FALSE; }
 	inline BOOL ShouldKillPlayer( void ) { return ( pev->spawnflags & SF_PTEAM_KILL ) ? TRUE : FALSE; }
 	inline BOOL ShouldGibPlayer( void ) { return ( pev->spawnflags & SF_PTEAM_GIB ) ? TRUE : FALSE; }

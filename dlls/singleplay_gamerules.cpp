@@ -1,6 +1,3 @@
-// DoD singleplay restore - dod/dlls/singleplay_gamerules.cpp
-// CSPDoDRules: singleplay unused in DoD, mostly empty stubs.
-// SDK reference: ~/rev/halflife/dlls/singleplay_gamerules.cpp (CHalfLifeRules)
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
@@ -18,7 +15,6 @@ CSPDoDRules::CSPDoDRules( void )
 
 void CSPDoDRules::Init( void ) {}
 
-// SDK-IDENTICAL: dlls/singleplay_gamerules.cpp CHalfLifeRules Think empty
 void CSPDoDRules::Think( void )
 {
 	return;
@@ -306,6 +302,5 @@ void CSPDoDRules::PlayerDeathThink( CBasePlayer *pPlayer )
 	return;
 }
 
-// DoD event-id accessors on the single-player rules object (dod.so CSPDoDRules::*).
 // Single-player is vestigial in DoD; overrides return neutral values.
 unsigned short CSPDoDRules::Camera( void ) { return 0; }

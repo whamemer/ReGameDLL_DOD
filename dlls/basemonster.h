@@ -21,10 +21,10 @@
 //
 class CBaseMonster : public CBaseToggle
 {
-  private:
+private:
 	int m_afConditions;
 
-  public:
+public:
 	typedef enum
 	{
 		SCRIPT_PLAYING = 0,	 // Playing the sequence
@@ -108,7 +108,7 @@ class CBaseMonster : public CBaseToggle
 
 	float m_flLastYawTime;	// Last time yaw change was computed
 
-	int m_iClass;  // DoD: DWARF CBaseMonster offset 936 (0x3a8)
+	int m_iClass;
 
 	virtual int Save( CSave &save );
 	virtual int Restore( CRestore &restore );
@@ -151,7 +151,7 @@ class CBaseMonster : public CBaseToggle
 
 	void EXPORT MonsterInitThink( void );
 	virtual void StartMonster( void );
-	void StartPatrol( CBaseEntity *path );  // .text:00113a70 CBaseMonster::StartPatrol (monsters.cpp)
+	void StartPatrol( CBaseEntity *path );
 	virtual CBaseEntity *BestVisibleEnemy( void );	   // finds best visible enemy for attack
 	virtual BOOL FInViewCone( CBaseEntity *pEntity );  // see if pEntity is in monster's view cone
 	virtual BOOL FInViewCone( Vector *pOrigin );	   // see if given location is in monster's view cone
@@ -369,8 +369,7 @@ class CBaseMonster : public CBaseToggle
 	CBaseEntity *DropItem( const char *pszItemName, const Vector &vecPos, const Vector &vecAng );	 // drop an item.
 };
 
-// dod.so DWARF CBaseMonster layout proof (size 940).
-#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of dod.so, the MSVC ABI differs
+#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of the original, the MSVC ABI differs
 static_assert( sizeof( CBaseMonster ) == 940, "CBaseMonster size must be 940 (dod.so DWARF)" );
 static_assert( offsetof( CBaseMonster, m_hEnemy ) == 516, "CBaseMonster::m_hEnemy @516" );
 static_assert( offsetof( CBaseMonster, m_hTargetEnt ) == 524, "CBaseMonster::m_hTargetEnt @524" );

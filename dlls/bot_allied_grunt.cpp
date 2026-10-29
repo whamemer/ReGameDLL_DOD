@@ -1,10 +1,3 @@
-// DoD bot_allied_grunt.cpp restore - GoldSrc 32-bit dod.so - Ghidra base +0x10000
-// Class CAlliedGrunt : CSquadMonster : CTalkMonster-like squad AI, ported from SDK dlls/hgrunt.cpp
-// pev->weapons bits: 2 = GARAND light clip 8, 4 = THOMPSON medium, 8 = BAR heavy clip 20
-// DoDWeaponId cross-check weapons.h: GARAND=5 THOMPSON=7 BAR=11 COLT=3 (pistol fallback on death drop)
-// Strings: models/allied_grunt.mdl, weapons/garand_shoot.wav, weapons/bar_shoot.wav,
-//   weapons/thompson_shoot.wav, weapons/colt_shoot.wav, hgrunt/gr_die1-3.wav, hgrunt/gr_pain1-5.wav,
-//   hgrunt/gr_reload1.wav, zombie/claw_miss2.wav, sentences ALLIEDG_* (see below)
 #include	"extdll.h"
 #include	"plane.h"
 #include	"util.h"
@@ -20,9 +13,6 @@
 #include	"customentity.h"
 
 
-// Sentence table at 0x1d2bc0: index = ALLIEDGRUNT_SENT_*
-// 0 ALLIEDG_GREN, 1 ALLIEDG_ALERT, 2 ALLIEDG_MONSTER, 3 ALLIEDG_COVER,
-// 4 ALLIEDG_THROW, 5 ALLIEDG_CHARGE, 6 ALLIEDG_TAUNT
 extern char *pAlliedGruntSentences[];
 
 extern DLL_GLOBAL int		g_iSkillLevel;
@@ -30,7 +20,6 @@ extern DLL_GLOBAL int		g_iSkillLevel;
 // Idle uses ALLIEDG_ANSWER, ALLIEDG_CHECK, ALLIEDG_CLEAR, ALLIEDG_IDLE, ALLIEDG_QUEST
 // GetSchedule sets m_iSentence: 3 = COVER, 5 = CHARGE, plus ALLIEDG_ALERT/GREN/MONST/TAUNT/THROW
 
-// Schedules: externs from .data, same layout as SDK hgrunt sl* / tl*
 // slAlliedGruntTakeCover, slAlliedGruntGrenadeCover, slAlliedGruntTossGrenadeCover,
 // slAlliedGruntTakeCoverFromBestSound, slAlliedGruntRangeAttack1A/B, slAlliedGruntRangeAttack2,
 // slAlliedGruntCombatFail/Fail, slAlliedGruntSuppress/SignalSuppress, slAlliedGruntEstablishLineOfFire,

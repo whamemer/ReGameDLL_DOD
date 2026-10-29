@@ -48,7 +48,7 @@ enum TANKBULLET
 
 class CFuncTankControls : public CBaseEntity
 {
-  public:
+public:
 	virtual int ObjectCaps( void );
 	void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -66,16 +66,16 @@ class CFuncTankControls : public CBaseEntity
 
 class CFuncTank : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void KeyValue( KeyValueData *pkvd );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 
-  protected:
+protected:
 	void EXPORT TrackThink( void );  // the Windows dll exports it as protected
 
-  public:
+public:
 	void TrackTarget( void );
 
 	virtual CBaseEntity *BestVisibleEnemy( void );
@@ -128,7 +128,7 @@ class CFuncTank : public CBaseEntity
 	void StopControl( CFuncTankControls *pControls );
 	void UpdateSpot( void );
 
-  protected:
+protected:
 	CFuncTankControls *m_pControls;
 	float m_flNextAttack;
 
@@ -810,7 +810,7 @@ void CFuncTank::StopRotSound( void )
 
 class CFuncTankGun : public CFuncTank
 {
-  public:
+public:
 	void Fire( const Vector &barrelEnd, const Vector &forward, entvars_t *pevAttacker );
 };
 LINK_ENTITY_TO_CLASS( func_tank, CFuncTankGun );
@@ -860,7 +860,7 @@ void CFuncTankGun::Fire( const Vector &barrelEnd, const Vector &forward, entvars
 
 class CFuncTankLaser : public CFuncTank
 {
-  public:
+public:
 	void Activate( void );
 	void KeyValue( KeyValueData *pkvd );
 	void Fire( const Vector &barrelEnd, const Vector &forward, entvars_t *pevAttacker );
@@ -871,7 +871,7 @@ class CFuncTankLaser : public CFuncTank
 	virtual int Restore( CRestore &restore );
 	static TYPEDESCRIPTION m_SaveData[];
 
-  private:
+private:
 	CLaser *m_pLaser;
 	float m_laserTime;
 };
@@ -974,7 +974,7 @@ void CFuncTankLaser::Fire( const Vector &barrelEnd, const Vector &forward, entva
 
 class CFuncTankRocket : public CFuncTank
 {
-  public:
+public:
 	void Precache( void );
 	void Fire( const Vector &barrelEnd, const Vector &forward, entvars_t *pevAttacker );
 };
@@ -1008,7 +1008,7 @@ void CFuncTankRocket::Fire( const Vector &barrelEnd, const Vector &forward, entv
 
 class CFuncTankMortar : public CFuncTank
 {
-  public:
+public:
 	void KeyValue( KeyValueData *pkvd );
 	void Fire( const Vector &barrelEnd, const Vector &forward, entvars_t *pevAttacker );
 };

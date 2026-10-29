@@ -47,7 +47,7 @@ typedef enum
 	TLK_STARE,
 	TLK_USE,
 	TLK_UNUSE,
-	TLK_DECLINE,  // DoD: inserted at index 6 (DWARF TALKGROUPNAMES; default suffix "NOTOK")
+	TLK_DECLINE,
 	TLK_STOP,
 	TLK_NOSHOOT,
 	TLK_HELLO,
@@ -97,7 +97,7 @@ enum
 
 class CTalkMonster : public CBaseMonster
 {
-  public:
+public:
 	void TalkInit( void );
 	CBaseEntity *FindNearestFriend( BOOL fPlayer );
 	float TargetDistance( void );
@@ -164,8 +164,8 @@ class CTalkMonster : public CBaseMonster
 	float m_useTime;				   // Don't allow +USE until this time
 	int m_iszUse;					   // Custom +USE sentence group (follow)
 	int m_iszUnUse;
-	int m_iszDecline;  // binary-verified DWARF ptype CTalkMonster 0014c420
-	int m_iszSpeakAs;  // binary-verified DWARF ptype CTalkMonster 0014c420					   // Custom +USE sentence group (stop following)
+	int m_iszDecline;
+	int m_iszSpeakAs;  // Custom +USE sentence group (stop following)
 
 	float m_flLastSaidSmelled;	// last time we talked about something that stinks
 	float m_flStopTalkTime;		// when in the future that I'll be done saying this sentence.

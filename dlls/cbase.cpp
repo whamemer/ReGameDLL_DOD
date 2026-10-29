@@ -123,7 +123,7 @@ CBaseEntity *CBaseEntity::Create( const char *szName, const Vector &vecOrigin, c
 		return NULL;
 	}
 	pEntity = Instance( pent );
-	AddEntityHashValue( &pent->v, szName, CLASSNAME );	// binary: AddEntityHashValue after CreateNamedEntity @000c1230
+	AddEntityHashValue( &pent->v, szName, CLASSNAME );
 	pEntity->pev->owner = pentOwner;
 	pEntity->pev->origin = vecOrigin;
 	pEntity->pev->angles = vecAngles;
@@ -132,8 +132,6 @@ CBaseEntity *CBaseEntity::Create( const char *szName, const Vector &vecOrigin, c
 }
 
 CUtlVector<hash_item_t> stringsHashTable;
-// dod.so: hashItemMemPool CMemoryPool(blockSize=16, numElements=256) -- ctor args from
-// _GLOBAL__sub_I_stringsHashTable @0x0a9603 (mov $0x10 blockSize, mov $0x100 numElements).
 CMemoryPool hashItemMemPool( sizeof( hash_item_t ), 256 );
 
 char *pszDodEntityNames[243] = {
@@ -990,7 +988,7 @@ CBaseEntity *CBaseEntity::GetNextTarget( void )
 	if ( FStringNull( pev->target ) )
 		return NULL;
 
-	return UTIL_FindEntityByTargetname( NULL, STRING( pev->target ) );	// binary: UTIL_FindEntityByTargetname @000bedd0
+	return UTIL_FindEntityByTargetname( NULL, STRING( pev->target ) );
 }
 
 // Global Savedata for Delay
@@ -1181,9 +1179,9 @@ void OnFreeEntPrivateData( edict_t *pEnt )
 	if ( pEnt && pEnt->pvPrivateData )
 	{
 		CBaseEntity *pEntity = (CBaseEntity *) pEnt->pvPrivateData;
-		pEntity->UpdateOnRemove();	// binary: CBaseEntity::UpdateOnRemove @000bf642
+		pEntity->UpdateOnRemove();
 		RemoveEntityHashValue( pEntity->pev, STRING( pEntity->pev->classname ),
-							   CLASSNAME );	 // binary: inline hash removal @000bf642+
+							   CLASSNAME );
 		pEntity->~CBaseEntity();
 	}
 }

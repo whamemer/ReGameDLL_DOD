@@ -89,7 +89,6 @@ typedef enum
 #define MAX_ID_RANGE 2048
 #define SBAR_STRING_SIZE 128
 
-// DoD DWARF: enum JoinState { JUSTJOINED, READYTOGO, JOINED }
 enum JoinState
 {
 	JUSTJOINED = 0,
@@ -147,136 +146,135 @@ class CObject;
 class CBasePlayerWeapon;
 class CBasePlayer : public CBaseMonster
 {
-  public:
-	// DoD DWARF CBasePlayer offset 940 (0x3ac). Member order/sizes are exact.
-	int m_iPlayerSpeed;	 // 940
-	int random_seed;	 // 944
-	int m_iPlayerSound;	 // 948
-	int m_iTargetVolume;	 // 952
-	int m_iWeaponVolume;	 // 956
-	int m_iExtraSoundTypes;	 // 960
-	float m_flStopExtraSoundTime;  // 964
-	int m_afButtonLast;	 // 968
-	int m_afButtonPressed;	 // 972
-	int m_afButtonReleased;	 // 976
-	edict_t *m_pentSndLast;	 // 980
-	float m_flSndRoomtype;	 // 984
-	float m_flSndRange;	 // 988
-	float m_flFallVelocity;	 // 992
-	int m_fKnownItem;	 // 996
-	int m_fNewAmmo;		 // 1000
-	unsigned int m_afPhysicsFlags;	// 1004
-	float m_fNextSuicideTime;	// 1008
-	float m_flTimeWeaponIdle;	// 1012
-	char m_szTextureName[CBTEXTURENAMEMAX];	 // 1016
-	char m_chTextureType;			 // 1029
-	int m_idrowndmg;	 // 1032
-	int m_idrownrestored;	 // 1036
-	int m_bitsHUDDamage;	 // 1040
-	BOOL m_fInitHUD;	 // 1044
-	BOOL m_fGameHUDInitialized;  // 1048
-	int m_iTrain;		 // 1052
-	BOOL m_fWeapon;		 // 1056
-	enum JoinState m_iJoiningState;	 // 1060
-	EHANDLE m_pTank;	 // 1064
-	float m_fDeadTime;	 // 1072
-	int m_iUpdateTime;	 // 1076
-	int m_iHideHUD;		 // 1080
-	float m_iRespawnFrames;	 // 1084
-	int m_iClientHealth;	 // 1088
-	int m_iClientHideHUD;	 // 1092
-	int m_iClientFOV;	 // 1096
-	int m_nCustomSprayFrames;  // 1100
-	float m_flNextDecalTime;   // 1104
-	CBasePlayerItem *m_rgpPlayerItems[6];	 // 1108
-	CBasePlayerItem *m_pActiveItem;		 // 1132
-	CBasePlayerItem *m_pClientActiveItem;	 // 1136
-	CBasePlayerItem *m_pLastItem;		 // 1140
-	int m_rgAmmo[32];			 // 1144
-	int m_rgAmmoLast[32];			 // 1272
-	int m_rgItems[5];			 // 1400
-	char m_szTeamName[TEAM_NAME_LENGTH];	 // 1420
+public:
+	int m_iPlayerSpeed;
+	int random_seed;
+	int m_iPlayerSound;
+	int m_iTargetVolume;
+	int m_iWeaponVolume;
+	int m_iExtraSoundTypes;
+	float m_flStopExtraSoundTime;
+	int m_afButtonLast;
+	int m_afButtonPressed;
+	int m_afButtonReleased;
+	edict_t *m_pentSndLast;
+	float m_flSndRoomtype;
+	float m_flSndRange;
+	float m_flFallVelocity;
+	int m_fKnownItem;
+	int m_fNewAmmo;
+	unsigned int m_afPhysicsFlags;
+	float m_fNextSuicideTime;
+	float m_flTimeWeaponIdle;
+	char m_szTextureName[CBTEXTURENAMEMAX];
+	char m_chTextureType;
+	int m_idrowndmg;
+	int m_idrownrestored;
+	int m_bitsHUDDamage;
+	BOOL m_fInitHUD;
+	BOOL m_fGameHUDInitialized;
+	int m_iTrain;
+	BOOL m_fWeapon;
+	enum JoinState m_iJoiningState;
+	EHANDLE m_pTank;
+	float m_fDeadTime;
+	int m_iUpdateTime;
+	int m_iHideHUD;
+	float m_iRespawnFrames;
+	int m_iClientHealth;
+	int m_iClientHideHUD;
+	int m_iClientFOV;
+	int m_nCustomSprayFrames;
+	float m_flNextDecalTime;
+	CBasePlayerItem *m_rgpPlayerItems[6];
+	CBasePlayerItem *m_pActiveItem;
+	CBasePlayerItem *m_pClientActiveItem;
+	CBasePlayerItem *m_pLastItem;
+	int m_rgAmmo[32];
+	int m_rgAmmoLast[32];
+	int m_rgItems[5];
+	char m_szTeamName[TEAM_NAME_LENGTH];
 	static TYPEDESCRIPTION m_playerSaveData[22];
-	int m_irdytospawn;	 // 1436
-	int m_imissedwave;	 // 1440
-	int m_ilastteam;	 // 1444
-	int m_ijustjoined;	 // 1448
-	int m_chatMsg;		 // 1452
-	int m_deathMsg;		 // 1456
-	int m_handSignal;	 // 1460
-	float m_nextRunThink;	 // 1464
-	float m_flIdleTimer;	 // 1468
-	float m_inextprone;	 // 1472
-	int m_voteid;		 // 1476
-	int m_iFOV;		 // 1480
-	float m_fGunDropTime;	 // 1484
-	int m_iNextClass;	 // 1488
-	bool m_bIsRandomClass;	 // 1492
-	EHANDLE m_hObserverTarget;	  // 1496
-	float m_flNextObserverInput;	  // 1504
-	int m_iObserverWeapon;		  // 1508
-	int m_iObserverLastMode;	  // 1512
-	int m_bIsObserver;		  // 1516
-	BOOL HasObject;			  // 1520
-	CObject *m_pObject;		  // 1524
-	char *m_sPlayerModel;		  // 1528
-	float m_fNextStamina;		  // 1532
-	int m_nMGAmmoCount;		  // 1536
-	int m_nGenericAmmoCount;	  // 1540
-	int m_iClassSpeed;		  // 1544
-	float m_fSpeedFactor;		  // 1548
-	bool m_bSlowedByHit;		  // 1552
-	float m_flUnslowTime;		  // 1556
-	float m_flNextVoice;		  // 1560
-	float m_flNextHand;		  // 1564
-	int lastMenuSelected;		  // 1568
-	int m_izSBarState[SBAR_END];	  // 1572
-	float m_flNextSBarUpdateTime;	  // 1588
-	float m_flStatusBarDisappearDelay;  // 1592
-	char m_SbarString0[SBAR_STRING_SIZE];  // 1596
-	char m_SbarString1[SBAR_STRING_SIZE];  // 1724
-	EHANDLE m_hLastIDTarget;	  // 1852
-	float m_flLastTalkTime;		  // 1860
-	int i_cutScenes;		  // 1864
-	int i_seenAllieSpawnScene;	  // 1868
-	int i_seenAxisSpawnScene;	  // 1872
-	int i_seenAllieWinScene;	  // 1876
-	int i_seenAxisWinScene;		  // 1880
-	int i_seenAllieLooseScene;	  // 1884
-	int i_seenAxisLooseScene;	  // 1888
-	int i_seenAllieDrawScene;	  // 1892
-	int i_seenAxisDrawScene;	  // 1896
-	CUnifiedSignals m_signals;	  // 1900
-	int m_iCapAreaIndex;		  // 1908
-	int m_iCapAreaIconIndex;	  // 1912
-	int m_iObjectAreaIndex;		  // 1916
-	float m_fHandleSignalsTime;	  // 1920
-	int m_iObjScore;		  // 1924
-	int m_iDeaths;			  // 1928
-	int m_iNumTKs;			  // 1932
-	BOOL m_bBazookaDeployed;	  // 1936
-	int m_iMinimap;			  // 1940
-	bool m_bShowHints;		  // 1944
-	bool m_bAutoReload;		  // 1945
-	CHintMessageQueue m_hintMessageQueue;  // 1948
-	long m_flDisplayHistory;	  // 1996
-	char m_szAnimExtention[32];	  // 2000
-	char m_szAnimReloadExt[32];	  // 2032
-	int m_iGaitsequence;		  // 2064
-	float m_flGaitframe;		  // 2068
-	float m_flGaityaw;		  // 2072
-	Vector m_prevgaitorigin;	  // 2076
-	float m_flPitch;		  // 2088
-	float m_flYaw;			  // 2092
-	float m_flGaitMovement;		  // 2096
-	float m_flYawModifier;		  // 2100
-	int m_iCurrentAnimationState;	  // 2104
-	int m_iCurrentAnimationSequence;  // 2108
-	int m_pszSavedWeaponModel;	  // 2112
-	int m_ianimupdate;		  // 2116
-	float m_flNextMapMarkerTime;	  // 2120
-	int m_iMapMarker;		  // 2124
-	int m_iWeapons2;		  // 2128
+	int m_irdytospawn;
+	int m_imissedwave;
+	int m_ilastteam;
+	int m_ijustjoined;
+	int m_chatMsg;
+	int m_deathMsg;
+	int m_handSignal;
+	float m_nextRunThink;
+	float m_flIdleTimer;
+	float m_inextprone;
+	int m_voteid;
+	int m_iFOV;
+	float m_fGunDropTime;
+	int m_iNextClass;
+	bool m_bIsRandomClass;
+	EHANDLE m_hObserverTarget;
+	float m_flNextObserverInput;
+	int m_iObserverWeapon;
+	int m_iObserverLastMode;
+	int m_bIsObserver;
+	BOOL HasObject;
+	CObject *m_pObject;
+	char *m_sPlayerModel;
+	float m_fNextStamina;
+	int m_nMGAmmoCount;
+	int m_nGenericAmmoCount;
+	int m_iClassSpeed;
+	float m_fSpeedFactor;
+	bool m_bSlowedByHit;
+	float m_flUnslowTime;
+	float m_flNextVoice;
+	float m_flNextHand;
+	int lastMenuSelected;
+	int m_izSBarState[SBAR_END];
+	float m_flNextSBarUpdateTime;
+	float m_flStatusBarDisappearDelay;
+	char m_SbarString0[SBAR_STRING_SIZE];
+	char m_SbarString1[SBAR_STRING_SIZE];
+	EHANDLE m_hLastIDTarget;
+	float m_flLastTalkTime;
+	int i_cutScenes;
+	int i_seenAllieSpawnScene;
+	int i_seenAxisSpawnScene;
+	int i_seenAllieWinScene;
+	int i_seenAxisWinScene;
+	int i_seenAllieLooseScene;
+	int i_seenAxisLooseScene;
+	int i_seenAllieDrawScene;
+	int i_seenAxisDrawScene;
+	CUnifiedSignals m_signals;
+	int m_iCapAreaIndex;
+	int m_iCapAreaIconIndex;
+	int m_iObjectAreaIndex;
+	float m_fHandleSignalsTime;
+	int m_iObjScore;
+	int m_iDeaths;
+	int m_iNumTKs;
+	BOOL m_bBazookaDeployed;
+	int m_iMinimap;
+	bool m_bShowHints;
+	bool m_bAutoReload;
+	CHintMessageQueue m_hintMessageQueue;
+	long m_flDisplayHistory;
+	char m_szAnimExtention[32];
+	char m_szAnimReloadExt[32];
+	int m_iGaitsequence;
+	float m_flGaitframe;
+	float m_flGaityaw;
+	Vector m_prevgaitorigin;
+	float m_flPitch;
+	float m_flYaw;
+	float m_flGaitMovement;
+	float m_flYawModifier;
+	int m_iCurrentAnimationState;
+	int m_iCurrentAnimationSequence;
+	int m_pszSavedWeaponModel;
+	int m_ianimupdate;
+	float m_flNextMapMarkerTime;
+	int m_iMapMarker;
+	int m_iWeapons2;
 
 	// Spectator camera
 	void Observer_FindNextPlayer( bool bReverse );
@@ -404,7 +402,7 @@ class CBasePlayer : public CBaseMonster
 	virtual void AddPoints( int score, BOOL bAllowNegativeScore );
 	virtual void AddPointsToTeam( int score, BOOL bAllowNegativeScore );
 	bool HintMessage( const char *pMessage, BOOL bOverride );
-	// No symbol in dod.so (suit system removed); kept because items.cpp still calls it.
+	// Not in the original (suit system removed); kept because items.cpp still calls it.
 	void SetPrefsFromUserinfo( char *infobuffer );
 	void StudioEstimateGait( void );
 	void StudioPlayerBlend( int *pBlend, float *pflBlend );
@@ -446,7 +444,7 @@ class CBasePlayer : public CBaseMonster
 	static BOOL IsSandbagDeployed( CBasePlayer *pPlayer );
 };
 
-#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of dod.so, the MSVC ABI differs
+#if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of the original, the MSVC ABI differs
 static_assert( sizeof( CBasePlayer ) == 2132, "CBasePlayer size must be 2132 (dod.so DWARF)" );
 #endif
 
@@ -459,7 +457,6 @@ extern int iVoiceToHandSignal[];
 extern int gmsgHudText;
 extern BOOL gInitHUD;
 
-// DoD user messages owned by player.cpp (DWARF: gmsg* decl_file player.cpp).
 extern int gmsgScope;
 extern int gmsgFrags;
 extern int gmsgObjScore;
@@ -477,7 +474,6 @@ extern int gmsgSendCorpse;
 extern int gmsgWeather;
 extern int gmsgCapMsg;
 
-// DoD spawn helper (2-arg per binary; player.cpp owns it).
 edict_t *EntSelectSpawnPoint( CBaseEntity *pPlayer, BOOL bJustChecking );
 
 #endif	// PLAYER_H

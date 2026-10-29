@@ -30,8 +30,6 @@
 #include "player.h"
 #include "func_break.h"
 
-// DoD grenade touches (restore/weapons/ggrenade.cpp: MortarShell/Rocket/ShootPickup PORTED)
-// SDK base (Bounce/Slide/Explode/Smoke/Tumble/Danger) untouched above.
 #include "func_break.h"
 #include "enginecallback.h"
 
@@ -151,9 +149,6 @@ void CGrenade::DetonateUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 	SetThink( &CGrenade::Detonate );
 	pev->nextthink = gpGlobals->time;
 }
-
-// NOTE(DOD): DetonateUse/PreDetonate/UseSatchelCharges/ShootTimed/ShootContact keep SDK bodies
-// above (SDK-IDENTICAL per restore, DoD speed-damage tweaks owned by barrel balance pass).
 
 void CGrenade::PickupUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {

@@ -125,7 +125,7 @@ void ClientDisconnect( edict_t *pEntity )
 	if ( g_fGameOver )
 		return;
 
-	// DoD: binary prints the localized disconnect notice (was a saytext in HL SDK)
+	// DoD: prints the localized disconnect notice (was a saytext in HL SDK)
 	UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_disconnected", STRING( pEntity->v.netname ) );
 
 	CSound *pSound;
@@ -1222,7 +1222,6 @@ void SetupVisibility( edict_t *pViewEntity, edict_t *pClient, unsigned char **pv
 }
 
 ////////////////////////////////////////////////////////
-// DoD per-player PVS tracking (client.cpp:1510-1585)
 //
 // The server keeps a small cache of which entities were last known to be
 // visible to each player, so that entities which leave the PVS can still be
@@ -1243,7 +1242,7 @@ struct PLAYERPVSSTATUS
 };
 
 static PLAYERPVSSTATUS g_PVSStatus[32];
-static const float g_flPVSUpdateTime = 1.0f;  // .rodata 0x0018f3b4
+static const float g_flPVSUpdateTime = 1.0f;
 
 void ResetPlayerPVS( edict_t *client, int clientnum )
 {
@@ -2114,7 +2113,7 @@ One of the ENGINE_FORCE_UNMODIFIED files failed the consistency check for the sp
 */
 int InconsistentFile( const edict_t *player, const char *filename, char *disconnect_message )
 {
-	// DoD: binary unconditionally enforces consistency (no mp_consistency check)
+	// DoD: unconditionally enforces consistency (no mp_consistency check)
 	sprintf( disconnect_message, "Server is enforcing file consistency for %s\n", filename );
 
 	// Kick now with specified disconnect message.

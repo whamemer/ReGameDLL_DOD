@@ -1,10 +1,3 @@
-// DoD sarge.cpp restore - GoldSrc 32-bit dod.so - Ghidra base +0x10000
-// Class CSarge : CTalkMonster, allied instructor. SDK barney.cpp port with team logic.
-// Model models/barney.mdl, health 1000, FOV -0.7, team 1, capability 0x7c0, gun holstered, no Use.
-// Fire: BarneyFirePistol with barney/ba_attack2.wav, dist 1024. Precache ba_attack1/2 + pain/die.
-// Talk groups fixed BA_* pitch 99 (no body variants). BestVisibleEnemy filters pev->team.
-// RunAI custom squad-leader-ish loop, Touch + GiveAdvice for training, GetEnemy wrapper.
-// No gamerules wave spawn: single monster_sarge_allies entity, RoundRespawn alloc 0x454.
 #include	"extdll.h"
 #include	"util.h"
 #include	"cbase.h"
@@ -339,7 +332,7 @@ void CSarge :: BarneyFirePistol( void )
 	Vector angDir = UTIL_VecToAngles( vecShootDir );
 	SetBlending( 0, angDir.x );
 	pev->effects = EF_MUZZLEFLASH;
-	FireBullets( 1, vecShootOrigin, vecShootDir, VECTOR_CONE_2DEGREES, 1024, (Bullet)27 ); // 27 = BULLET_MONSTER_9MM in the original DoD Bullet enum (binary-verified)
+	FireBullets( 1, vecShootOrigin, vecShootDir, VECTOR_CONE_2DEGREES, 1024, (Bullet)27 ); // 27 = BULLET_MONSTER_9MM in the original DoD Bullet enum
 	int i = RANDOM_LONG( 0, 20 );
 	int pitch = 100;
 	if ( i < 11 )
@@ -421,8 +414,6 @@ void CSarge :: Precache( void )
 void CSarge :: TalkInit( void )
 {
 	CTalkMonster::TalkInit();
-	// NOTE: talkmonster.h's TALKGROUPNAMES is missing TLK_DECLINE (index 6);
-	// use the binary-verified numeric indices.
 	m_szGrp[0] = "BA_ANSWER";
 	m_szGrp[1] = "BA_QUESTION";
 	m_szGrp[2] = "BA_IDLE";

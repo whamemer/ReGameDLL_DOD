@@ -27,14 +27,10 @@
 #include "weapons.h"
 #include "decals.h"
 #include "soundent.h"
-// DoD: SDK-IDENTICAL per restore/weapons/ (explode 13 funcs / mortar 12 funcs).
-// DoD sprites (zerogxplode/steam1/bubble/bloodspray/blood-narrow/explode1 + whizz + grenade_hit1-3)
-// precached in weapons.cpp W_Precache DOD branch; mortar gameplay via
-// CBasePlayerWeapon::PostMortarValue/SendMortarFireCommand (weapons.cpp DOD). No gameplay diff here.
 
 class CFuncMortarField : public CBaseToggle
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void KeyValue( KeyValueData *pkvd );
@@ -55,7 +51,7 @@ class CFuncMortarField : public CBaseToggle
 	float m_flDelay;
 	int m_iCount;
 	int m_fControl;
-	int m_iDamage;  // DoD: DWARF offset 536 (KeyValue "m_iDamage", default 200)
+	int m_iDamage;
 };
 
 LINK_ENTITY_TO_CLASS( func_mortar_field, CFuncMortarField );
@@ -199,7 +195,7 @@ void CFuncMortarField ::FieldUse( CBaseEntity *pActivator, CBaseEntity *pCaller,
 
 class CMortar : public CGrenade
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 

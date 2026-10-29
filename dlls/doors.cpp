@@ -32,7 +32,7 @@ extern Vector VecBModelOrigin( entvars_t *pevBModel );
 
 class CBaseDoor : public CBaseToggle
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	virtual void KeyValue( KeyValueData *pkvd );
@@ -853,7 +853,7 @@ button or trigger field activates the door.
 */
 class CRotDoor : public CBaseDoor
 {
-  public:
+public:
 	void Spawn( void );
 	virtual void SetToggleState( TOGGLE_STATE state );
 	void RoundRespawn( void );
@@ -950,7 +950,7 @@ class CMomentaryDoor : public CBaseToggle
 {
 	void EXPORT MomentaryMove( void );
 	void EXPORT MomentaryMoveDone( void );
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 

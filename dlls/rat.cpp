@@ -37,7 +37,7 @@
 
 class CRat : public CBaseMonster
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void SetYawSpeed( void );

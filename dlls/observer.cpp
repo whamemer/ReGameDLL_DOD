@@ -8,11 +8,6 @@
 // Purpose: Functionality for the observer chase camera (DoD version)
 //
 //=============================================================================
-// DoD restoration: verified against dod.so (link addresses; Ghidra = link+0x10000).
-// HL SDK version only cycled players with IsObserver/EF_NODRAW checks.
-// DoD adds team/infinite-lives/forcecamera logic, deadflag/iuser1/effects
-// filtering, weapon-anim sync (SendObserverTargetWeaponAnim), and
-// Start/Stop/SpectatePlayer paths. See decodes in ~/rev/work/dec/00121xxx.
 //=============================================================================
 #include "extdll.h"
 #include "util.h"

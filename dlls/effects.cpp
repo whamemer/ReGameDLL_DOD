@@ -32,7 +32,7 @@ LINK_ENTITY_TO_CLASS( info_target, CPointEntity );
 
 class CBubbling : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void KeyValue( KeyValueData *pkvd );
@@ -382,7 +382,7 @@ void CBeam::DoSparks( const Vector &start, const Vector &end )
 
 class CLightning : public CBeam
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void KeyValue( KeyValueData *pkvd );
@@ -1114,7 +1114,7 @@ void CLaser::StrikeThink( void )
 
 class CGlow : public CPointEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Think( void );
 	void Animate( float frames );
@@ -1358,7 +1358,7 @@ void CSprite::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useTy
 
 class CGibShooter : public CBaseDelay
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void KeyValue( KeyValueData *pkvd );
@@ -1615,7 +1615,7 @@ CGib *CEnvShooter ::CreateGib( void )
 
 class CTestEffect : public CBaseDelay
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	// void	KeyValue( KeyValueData *pkvd );
@@ -1717,7 +1717,7 @@ void CTestEffect::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE u
 // Blood effects
 class CBlood : public CPointEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void KeyValue( KeyValueData *pkvd );
@@ -1731,7 +1731,7 @@ class CBlood : public CPointEntity
 	Vector Direction( void );
 	Vector BloodPosition( CBaseEntity *pActivator );
 
-  private:
+private:
 };
 
 LINK_ENTITY_TO_CLASS( env_blood, CBlood );
@@ -1827,7 +1827,7 @@ void CBlood::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useTyp
 // Screen shake
 class CShake : public CPointEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void KeyValue( KeyValueData *pkvd );
@@ -1847,7 +1847,7 @@ class CShake : public CPointEntity
 
 	STATE m_iState;
 
-  private:
+private:
 };
 
 STATE CShake::GetState( void )
@@ -1923,7 +1923,7 @@ void CShake::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useTyp
 
 class CFade : public CPointEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void KeyValue( KeyValueData *pkvd );
@@ -1939,7 +1939,7 @@ class CFade : public CPointEntity
 
 	STATE m_iState;
 
-  private:
+private:
 };
 
 STATE CFade::GetState( void )
@@ -2029,7 +2029,7 @@ void CFade::Think( void )
 
 class CMessage : public CPointEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -2043,7 +2043,7 @@ class CMessage : public CPointEntity
 	void RoundRespawn( void );
 	BOOL CanFireForActivator( CBaseEntity *pActivator );
 
-  private:
+private:
 };
 
 // NEW in DoD: re-arm once-only messages each round.
@@ -2193,7 +2193,7 @@ void CMessage::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useT
 
 class CEnvFunnel : public CBaseDelay
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -2249,7 +2249,7 @@ void CEnvFunnel::Spawn( void )
 
 class CEnvRain : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	virtual void Think( void );
@@ -2442,7 +2442,7 @@ void CEnvRain::Think( void )
 // ---- CEnvWarpBall (env_warpball) ----
 class CEnvWarpBall : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	virtual void Think( void );
@@ -2541,7 +2541,7 @@ void CEnvWarpBall::Think( void )
 //=========================================================
 class CEnvBeverage : public CBaseDelay
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -2606,7 +2606,7 @@ void CEnvBeverage::Spawn( void )
 //=========================================================
 class CItemSoda : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void EXPORT CanThink( void );
@@ -2671,7 +2671,7 @@ void CItemSoda::CanTouch( CBaseEntity *pOther )
 
 class CEnvModel : public CBaseAnimating
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	virtual void EXPORT Think( void );
@@ -2878,7 +2878,7 @@ void CEnvModel::SetSequence( void )
 // ---- CRocketShooter (env_rocketshooter) ----
 class CRocketShooter : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void KeyValue( KeyValueData *pkvd );

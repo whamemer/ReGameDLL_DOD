@@ -594,7 +594,7 @@ int GetBodygroup( void *pmodel, entvars_t *pev, int iGroup )
 typedef struct model_s model_t;
 #endif
 
-// Server-side studio/bone block, reconstructed from the shipped binary
+// Server-side studio/bone block
 // (the engine headers in-tree do not ship it; blending at runtime is provided
 //  by the engine itself, so this code is inert there and required on plain GoldSrc).
 // This section is free software: you can redistribute and/or modify it under

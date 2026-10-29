@@ -88,8 +88,6 @@ cvar_t cvar_axisclasses = { "mp_axisclasses", "-1", 0 };
 
 // END Cvars for Skill Level settings
 
-// DoD 69 cvars - PORTED from dod.so GameDLLInit link 0x0f3800 Ghidra 0x103800 size 0x1070 (dod/dlls/game.cpp:516)
-// Order below is binary registration order; defs in .data order. Defaults/flags via objdump/nm.
 cvar_t cvar_spawnbazookas = { "mp_spawnbazookas", "0", 0 };
 
 // Engine Cvars
@@ -479,7 +477,6 @@ void GameDLLInit( void )
 	g_psv_aim = CVAR_GET_POINTER( "sv_aim" );
 	g_footsteps = CVAR_GET_POINTER( "mp_footsteps" );
 
-	// DoD 69 cvars (binary order, link 0x0f3800 Ghidra 0x103800)
 CVAR_REGISTER( &cvar_displaysoundlist );
 	CVAR_REGISTER( &cvar_teamplay );
 	CVAR_REGISTER( &cvar_timelimit );
@@ -550,7 +547,6 @@ CVAR_REGISTER( &cvar_displaysoundlist );
 	CVAR_REGISTER( &cvar_axisclasses );
 	CVAR_REGISTER( &cvar_spawnbazookas );
 
-	// Skill cvars (HL/DOD shared, kept from binary)
 	CVAR_REGISTER( &sk_agrunt_health1 );  // {"sk_agrunt_health1","0"};
 	CVAR_REGISTER( &sk_agrunt_health2 );  // {"sk_agrunt_health2","0"};
 	CVAR_REGISTER( &sk_agrunt_health3 );  // {"sk_agrunt_health3","0"};

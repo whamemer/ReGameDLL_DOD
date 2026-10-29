@@ -34,7 +34,7 @@
 
 class CCycler : public CBaseMonster
 {
-  public:
+public:
  	void GenericCyclerSpawn( const char *szModel, Vector vecMin, Vector vecMax );
 	virtual int ObjectCaps( void ) { return ( CBaseEntity ::ObjectCaps() | FCAP_IMPULSE_USE ); }
 	int TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType );
@@ -64,7 +64,7 @@ IMPLEMENT_SAVERESTORE( CCycler, CBaseMonster );
 //
 class CGenericCycler : public CCycler
 {
-  public:
+public:
 	void Spawn( void )
 	{
 		GenericCyclerSpawn( (char *) STRING( pev->model ), Vector( -16, -16, 0 ), Vector( 16, 16, 72 ) );
@@ -78,7 +78,7 @@ LINK_ENTITY_TO_CLASS( cycler, CGenericCycler );
 //
 class CCyclerProbe : public CCycler
 {
-  public:
+public:
 	void Spawn( void );
 };
 LINK_ENTITY_TO_CLASS( cycler_prdroid, CCyclerProbe );
@@ -209,7 +209,7 @@ int CCycler ::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float
 
 class CCyclerSprite : public CBaseEntity
 {
-  public:
+public:
 	void Spawn( void );
 	void Think( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
@@ -288,7 +288,7 @@ void CCyclerSprite::Animate( float frames )
 
 class CWeaponCycler : public CBasePlayerWeapon
 {
-  public:
+public:
 	void Spawn( void );
 	int iItemSlot( void ) { return 1; }
 	int GetItemInfo( ItemInfo *p ) { return 0; }

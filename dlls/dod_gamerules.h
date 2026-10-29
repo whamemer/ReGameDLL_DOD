@@ -4,11 +4,11 @@ class CBasePlayer;
 class CBasePlayerItem;
 class CDodParaRoundTimer : public CBaseEntity
 {
-  public:
-	float m_fUpdateTimer;  // 344, 30.0 s
-	float m_fRoundTimer;   // 348, default 240.0 on reset
-	float m_fLastThinkTime;// 352
-	bool m_bTimer;		   // 356
+public:
+	float m_fUpdateTimer;  // 30.0 s
+	float m_fRoundTimer;   // default 240.0 on reset
+	float m_fLastThinkTime;
+	bool m_bTimer;
 	void Spawn( void );
 	void StartTimer( void );
 	void StopTimer( void );
@@ -36,11 +36,9 @@ typedef struct
 	float m_fAlliesRespawnFactor;
 	float m_fAxisRespawnFactor;
 } gameplay_rules_t;
-// info_doddetect (dod_gamerules.cpp) - DWARF-canonical (gdb ptype /o CDoDDetect)
-// legacy trailing ints kept for exact layout parity (unused by the binary body)
 class CDoDTeamPlay : public CGameRules
 {
-  public:
+public:
 	virtual void RefreshSkillData( void );
 	virtual BOOL CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pItem );
 	virtual edict_t *GetPlayerSpawnSpot( CBasePlayer *pPlayer );
@@ -68,8 +66,6 @@ class CDoDTeamPlay : public CGameRules
 	virtual BOOL ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress,
 								  char *szRejectReason );
 	virtual BOOL ClientCommand( CBasePlayer *pPlayer, const char *pcmd );
-	// verified vtable slots (binary CGameRules order): RoundState vtbl+0xfc, BloodSprite vtbl+0x168,
-	// BulletTracers vtbl+0x170, SparkShower vtbl+0x174, Explosion vtbl+0x188, etc.
 	virtual int RoundState( void );
 	virtual bool IsClanMatch( void );
 	virtual bool IsClanMatchActive( void );
@@ -273,7 +269,6 @@ class CDoDTeamPlay : public CGameRules
 	void SendWaveStatus( CBasePlayer *pPlayer, int wave );
 	void SendMOTDToClient( edict_t *pClient );
 	void CopyGamePlayLogic( const gameplay_rules_t &rules );
-	// ---- new virtuals introduced by CDoDTeamPlay (binary vtable idx 122..124) ----
 	virtual void ChangePlayerTeam( CBasePlayer *pPlayer, int iTeam, int bKill, int bGib );
 	virtual void GoToIntermission( void );
 	virtual void ChangeLevel( void );
@@ -288,15 +283,16 @@ static const char g_szTeamNames[4][128] = { "", "Allies", "Axis", "Spectators" }
 
 class CDoDDetect : public CBaseEntity
 {
-  public:
-	gameplay_rules_t m_GamePlayRules;   // 344 (48)
-	int m_iAlliesInfiniteLives;			// 392
-	int m_iAxisInfiniteLives;			// 396
-	int m_iAlliesPara;					// 400
-	int m_iAxisPara;					// 404
-	int m_iAlliesElimPoints;			// 408
-	int m_iAxisElimPoints;				// 412
-	string_t m_sMaster;					// 416
+public:
+	gameplay_rules_t m_GamePlayRules;
+	// legacy trailing ints kept for the layout of the original (unused)
+	int m_iAlliesInfiniteLives;
+	int m_iAxisInfiniteLives;
+	int m_iAlliesPara;
+	int m_iAxisPara;
+	int m_iAlliesElimPoints;
+	int m_iAxisElimPoints;
+	string_t m_sMaster;
 	bool IsMasteredOn( void );
 	CDoDDetect( void );
 	void Spawn( void );
@@ -305,7 +301,7 @@ class CDoDDetect : public CBaseEntity
 
 class CDoDPreRound : public CPointEntity
 {
-  public:
+public:
 	void Launch( int state );
 	void KeyValue( KeyValueData *pkvd );
 	int m_roundstate;

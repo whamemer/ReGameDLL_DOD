@@ -2042,7 +2042,6 @@ void CBaseMonster ::MonsterInitThink( void )
 }
 
 //=========================================================
-// StartPatrol - DoD refactor extracted from StartMonster
 //=========================================================
 void CBaseMonster ::StartPatrol( CBaseEntity *path )
 {
@@ -2105,7 +2104,6 @@ void CBaseMonster ::StartMonster( void )
 		// Try to move the monster to make sure it's not stuck in a brush.
 		if ( !WALK_MOVE( ENT( pev ), 0, 0, WALKMOVE_NORMAL ) )
 		{
-			// binary 0x113c3c: only report/mark when spawnflag 0x80 is clear
 			if ( !( pev->spawnflags & 0x80 ) )
 			{
 				if ( FStringNull( pev->targetname ) )
@@ -2122,7 +2120,6 @@ void CBaseMonster ::StartMonster( void )
 		pev->flags &= ~FL_ONGROUND;
 	}
 
-	// binary 0xb3b50: find the initial target and hand off to StartPatrol (MakeIdealYaw was removed).
 	if ( !FStringNull( pev->target ) )	// this monster has a target
 	{
 		CBaseEntity *pPath = CBaseEntity::Instance( FIND_ENTITY_BY_TARGETNAME( NULL, STRING( pev->target ) ) );
@@ -2202,7 +2199,6 @@ int CBaseMonster::IRelationship( CBaseEntity *pTarget )
 
 	int iTargClass = pTarget->Classify();
 
-	// binary 0x000ffb50: friendly-until-provoked (spawnflag 0x800).
 	if ( iTargClass == CLASS_PLAYER && ( pev->spawnflags & 0x800 ) )
 	{
 		int iMyClass = Classify();

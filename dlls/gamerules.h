@@ -57,9 +57,6 @@ enum
 	GR_NEUTRAL,
 };
 
-// Virtual declaration order below is the EXACT binary vtable order of the original
-// DoD CGameRules (verified via `gdb ptype CGameRules` + `_ZTV10CGameRules`/`_ZTV12CDoDTeamPlay`
-// relocations). Slots with `= 0` are __cxa_pure_virtual in the reference binary.
 // the state of the round, CGameRules::RoundState
 #define ROUNDSTATE_PREROUND 0	// the players wait for the start of the round
 #define ROUNDSTATE_RUNNING 1
@@ -69,131 +66,131 @@ enum
 
 class CGameRules
 {
-  public:
-	virtual void Init( void ) = 0;								// vtbl+0x08
-	virtual void RefreshSkillData( void );						// vtbl+0x0c
-	virtual void Think( void ) = 0;								// vtbl+0x10
-	virtual BOOL IsAllowedToSpawn( CBaseEntity *pEntity ) = 0;	// vtbl+0x14
-	virtual BOOL FAllowFlashlight( void ) = 0;					// vtbl+0x18
-	virtual BOOL FShouldSwitchWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon ) = 0;	// vtbl+0x1c
-	virtual BOOL GetNextBestWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pCurrentWeapon ) = 0;	// vtbl+0x20
-	virtual BOOL IsMultiplayer( void ) = 0;						// vtbl+0x24
-	virtual BOOL IsDeathmatch( void ) = 0;						// vtbl+0x28
-	virtual BOOL IsTeamplay( void ) { return FALSE; };			// vtbl+0x2c
-	virtual BOOL IsCoOp( void ) = 0;							// vtbl+0x30
-	virtual const char *GetGameDescription( void ) { return "Day of Defeat"; }	// vtbl+0x34
+public:
+	virtual void Init( void ) = 0;
+	virtual void RefreshSkillData( void );
+	virtual void Think( void ) = 0;
+	virtual BOOL IsAllowedToSpawn( CBaseEntity *pEntity ) = 0;
+	virtual BOOL FAllowFlashlight( void ) = 0;
+	virtual BOOL FShouldSwitchWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon ) = 0;
+	virtual BOOL GetNextBestWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pCurrentWeapon ) = 0;
+	virtual BOOL IsMultiplayer( void ) = 0;
+	virtual BOOL IsDeathmatch( void ) = 0;
+	virtual BOOL IsTeamplay( void ) { return FALSE; };
+	virtual BOOL IsCoOp( void ) = 0;
+	virtual const char *GetGameDescription( void ) { return "Day of Defeat"; }
 	virtual BOOL ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress,
-								  char *szRejectReason ) = 0;	// vtbl+0x38
-	virtual void InitHUD( CBasePlayer *pl ) = 0;				// vtbl+0x3c
-	virtual void ClientDisconnected( edict_t *pClient ) = 0;		// vtbl+0x40
-	virtual float FlPlayerFallDamage( CBasePlayer *pPlayer ) = 0;	// vtbl+0x44
-	virtual BOOL FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAttacker ) { return TRUE; }	// vtbl+0x48
-	virtual BOOL ShouldAutoAim( CBasePlayer *pPlayer, edict_t *target ) { return TRUE; }	// vtbl+0x4c
-	virtual void PlayerSpawn( CBasePlayer *pPlayer ) = 0;		// vtbl+0x50
-	virtual void PlayerThink( CBasePlayer *pPlayer ) = 0;		// vtbl+0x54
-	virtual BOOL FPlayerCanRespawn( CBasePlayer *pPlayer ) = 0;	// vtbl+0x58
-	virtual float FlPlayerSpawnTime( CBasePlayer *pPlayer ) = 0;	// vtbl+0x5c
-	virtual edict_t *GetPlayerSpawnSpot( CBasePlayer *pPlayer );	// vtbl+0x60
+								  char *szRejectReason ) = 0;
+	virtual void InitHUD( CBasePlayer *pl ) = 0;
+	virtual void ClientDisconnected( edict_t *pClient ) = 0;
+	virtual float FlPlayerFallDamage( CBasePlayer *pPlayer ) = 0;
+	virtual BOOL FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAttacker ) { return TRUE; }
+	virtual BOOL ShouldAutoAim( CBasePlayer *pPlayer, edict_t *target ) { return TRUE; }
+	virtual void PlayerSpawn( CBasePlayer *pPlayer ) = 0;
+	virtual void PlayerThink( CBasePlayer *pPlayer ) = 0;
+	virtual BOOL FPlayerCanRespawn( CBasePlayer *pPlayer ) = 0;
+	virtual float FlPlayerSpawnTime( CBasePlayer *pPlayer ) = 0;
+	virtual edict_t *GetPlayerSpawnSpot( CBasePlayer *pPlayer );
 	void GetInitialSpawnSpot( CBasePlayer *pPlayer );			// non-virtual
-	virtual BOOL AllowAutoTargetCrosshair( void ) { return TRUE; };	// vtbl+0x64
-	virtual BOOL ClientCommand( CBasePlayer *pPlayer, const char *pcmd ) { return FALSE; };	// vtbl+0x68
-	virtual void ClientUserInfoChanged( CBasePlayer *pPlayer, char *infobuffer ) {}	// vtbl+0x6c
-	virtual void PlayerDeathThink( CBasePlayer *pPlayer ) = 0;	// vtbl+0x70
-	virtual int IPointsForKill( CBasePlayer *pAttacker, CBasePlayer *pKilled ) = 0;	// vtbl+0x74
-	virtual void PlayerKilled( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags = 0 ) = 0;	// vtbl+0x78
-	virtual void DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags = 0 ) = 0;	// vtbl+0x7c
-	virtual BOOL CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon );	// vtbl+0x80
-	virtual void PlayerGotWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon ) = 0;	// vtbl+0x84
-	virtual int WeaponShouldRespawn( CBasePlayerItem *pWeapon ) = 0;	// vtbl+0x88
-	virtual float FlWeaponRespawnTime( CBasePlayerItem *pWeapon ) = 0;	// vtbl+0x8c
-	virtual float FlWeaponTryRespawn( CBasePlayerItem *pWeapon ) = 0;	// vtbl+0x90
-	virtual Vector VecWeaponRespawnSpot( CBasePlayerItem *pWeapon ) = 0;	// vtbl+0x94
-	virtual BOOL CanHaveItem( CBasePlayer *pPlayer, CItem *pItem ) = 0;	// vtbl+0x98
-	virtual void PlayerGotItem( CBasePlayer *pPlayer, CItem *pItem ) = 0;	// vtbl+0x9c
-	virtual int ItemShouldRespawn( CItem *pItem ) = 0;			// vtbl+0xa0
-	virtual float FlItemRespawnTime( CItem *pItem ) = 0;		// vtbl+0xa4
-	virtual Vector VecItemRespawnSpot( CItem *pItem ) = 0;		// vtbl+0xa8
-	virtual BOOL CanHaveAmmo( CBasePlayer *pPlayer, const char *pszAmmoName, int iMaxCarry );	// vtbl+0xac
-	virtual void PlayerGotAmmo( CBasePlayer *pPlayer, char *szName, int iCount ) = 0;	// vtbl+0xb0
-	virtual int AmmoShouldRespawn( CBasePlayerAmmo *pAmmo ) = 0;	// vtbl+0xb4
-	virtual float FlAmmoRespawnTime( CBasePlayerAmmo *pAmmo ) = 0;	// vtbl+0xb8
-	virtual Vector VecAmmoRespawnSpot( CBasePlayerAmmo *pAmmo ) = 0;	// vtbl+0xbc
-	virtual float FlHealthChargerRechargeTime( void ) = 0;		// vtbl+0xc0
-	virtual float FlHEVChargerRechargeTime( void ) { return 0; }	// vtbl+0xc4
-	virtual int DeadPlayerWeapons( CBasePlayer *pPlayer ) = 0;	// vtbl+0xc8
-	virtual int DeadPlayerAmmo( CBasePlayer *pPlayer ) = 0;		// vtbl+0xcc
-	virtual const char *GetTeamID( CBaseEntity *pEntity ) = 0;	// vtbl+0xd0
-	virtual int PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget ) = 0;	// vtbl+0xd4
-	virtual int GetTeamIndex( const char *pTeamName ) { return -1; }	// vtbl+0xd8
-	virtual const char *GetIndexedTeamName( int teamIndex ) { return ""; }	// vtbl+0xdc
-	virtual BOOL IsValidTeam( const char *pTeamName ) { return TRUE; }	// vtbl+0xe0
-	virtual void ChangePlayerTeam( CBasePlayer *pPlayer, const char *pTeamName, BOOL bKill, BOOL bGib ) {}	// vtbl+0xe4
-	virtual const char *SetDefaultPlayerTeam( CBasePlayer *pPlayer ) { return ""; }	// vtbl+0xe8
-	virtual BOOL PlayTextureSounds( void ) { return TRUE; }		// vtbl+0xec
-	virtual BOOL PlayFootstepSounds( CBasePlayer *pl, float fvol ) { return TRUE; }	// vtbl+0xf0
-	virtual BOOL FAllowMonsters( void ) = 0;					// vtbl+0xf4
-	virtual void EndMultiplayerGame( void ) {}					// vtbl+0xf8
-	virtual int RoundState( void ) = 0;							// vtbl+0xfc
-	virtual void VoteKick( CBasePlayer *pPlayer, int vote, bool bAdmin ) {}	// vtbl+0x100
-	virtual void SetRoundState( int state ) {}					// vtbl+0x104
-	virtual int SetRoundState( void ) { return 0; }				// vtbl+0x108
-	virtual void SetRestartTime( float f_Time ) {}				// vtbl+0x10c
-	virtual void SendTeamScores( int iTeam ) {}					// vtbl+0x110
-	virtual float GetMaxWaveTime( int nTeam ) = 0;				// vtbl+0x114
-	virtual float getWaveTime( int iTeam ) = 0;					// vtbl+0x118
-	virtual void setWaveTime( int iTeam, float fTime ) {}		// vtbl+0x11c
-	virtual int TeamScores( int team ) = 0;						// vtbl+0x120
-	virtual void SetTeamScores( int iTeam, int iScore ) {}		// vtbl+0x124
-	virtual void AddToTeamScores( int team, int points ) {}		// vtbl+0x128
-	virtual void setMapTime( void ) {}							// vtbl+0x12c
-	virtual void RestartRound( void ) {}						// vtbl+0x130
-	virtual float getMapTime( void ) = 0;						// vtbl+0x134
-	virtual bool IsRoundFrozen( void ) { return false; }		// vtbl+0x138
-	virtual void SetClanMatch( bool b ) {}						// vtbl+0x13c
-	virtual bool IsClanMatch( void ) { return false; }			// vtbl+0x140
-	virtual bool IsClanMatchActive( void ) { return false; }	// vtbl+0x144
-	virtual unsigned short Camera( void ) = 0;					// vtbl+0x148
-	virtual unsigned short usVoice( void ) = 0;					// vtbl+0x14c
-	virtual unsigned short bodyDamage( void ) = 0;				// vtbl+0x150
-	virtual unsigned short roundRestartSound( void ) = 0;		// vtbl+0x154
-	virtual unsigned short gerVoice( void ) = 0;				// vtbl+0x158
-	virtual unsigned short Pain( void ) = 0;					// vtbl+0x15c
-	virtual unsigned short Smoke( void ) = 0;					// vtbl+0x160
-	virtual unsigned short Prone( void ) = 0;					// vtbl+0x164
-	virtual unsigned short BloodSprite( void ) = 0;				// vtbl+0x168
-	virtual unsigned short BloodStream( void ) = 0;				// vtbl+0x16c
-	virtual unsigned short BulletTracers( void ) = 0;			// vtbl+0x170
-	virtual unsigned short SparkShower( void ) = 0;				// vtbl+0x174
-	virtual unsigned short ScreenFades( void ) = 0;				// vtbl+0x178
-	virtual unsigned short BubbleTrails( void ) = 0;			// vtbl+0x17c
-	virtual unsigned short Bubbles( void ) = 0;					// vtbl+0x180
-	virtual unsigned short Shards( void ) = 0;					// vtbl+0x184
-	virtual unsigned short Explosion( void ) = 0;				// vtbl+0x188
-	virtual unsigned short PopHelmet( void ) = 0;				// vtbl+0x18c
-	virtual unsigned short RoundReset( void ) = 0;				// vtbl+0x190
-	virtual unsigned short StartTrail( void ) = 0;				// vtbl+0x194
-	virtual void SetCamera( short s ) {}						// vtbl+0x198
-	virtual void SetusVoice( short s ) {}						// vtbl+0x19c
-	virtual void SetbodyDamage( short s ) {}					// vtbl+0x1a0
-	virtual void SetroundRestartSound( short s ) {}				// vtbl+0x1a4
-	virtual void SetgerVoice( short s ) {}						// vtbl+0x1a8
-	virtual void SetPain( short s ) {}							// vtbl+0x1ac
-	virtual void SetSmoke( short s ) {}							// vtbl+0x1b0
-	virtual void SetProne( short s ) {}							// vtbl+0x1b4
-	virtual void SetBloodSprite( short s ) {}					// vtbl+0x1b8
-	virtual void SetBloodStream( short s ) {}					// vtbl+0x1bc
-	virtual void SetBulletTracers( short s ) {}					// vtbl+0x1c0
-	virtual void SetSparkShower( short s ) {}					// vtbl+0x1c4
-	virtual void SetScreenFades( short s ) {}					// vtbl+0x1c8
-	virtual void SetBubbleTrails( short s ) {}					// vtbl+0x1cc
-	virtual void SetBubbles( short s ) {}						// vtbl+0x1d0
-	virtual void SetShards( short s ) {}						// vtbl+0x1d4
-	virtual void SetExplosion( short s ) {}						// vtbl+0x1d8
-	virtual void SetPopHelmet( short s ) {}						// vtbl+0x1dc
-	virtual void SetRoundReset( short s ) {}					// vtbl+0x1e0
-	virtual void SetRocketTrail( short s ) {}					// vtbl+0x1e4
-	virtual int ReturnGameRules( void ) = 0;					// vtbl+0x1e8
-	virtual void SetMapChangeFromTime( int iTime ) {}			// vtbl+0x1ec
+	virtual BOOL AllowAutoTargetCrosshair( void ) { return TRUE; };
+	virtual BOOL ClientCommand( CBasePlayer *pPlayer, const char *pcmd ) { return FALSE; };
+	virtual void ClientUserInfoChanged( CBasePlayer *pPlayer, char *infobuffer ) {}
+	virtual void PlayerDeathThink( CBasePlayer *pPlayer ) = 0;
+	virtual int IPointsForKill( CBasePlayer *pAttacker, CBasePlayer *pKilled ) = 0;
+	virtual void PlayerKilled( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags = 0 ) = 0;
+	virtual void DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags = 0 ) = 0;
+	virtual BOOL CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon );
+	virtual void PlayerGotWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon ) = 0;
+	virtual int WeaponShouldRespawn( CBasePlayerItem *pWeapon ) = 0;
+	virtual float FlWeaponRespawnTime( CBasePlayerItem *pWeapon ) = 0;
+	virtual float FlWeaponTryRespawn( CBasePlayerItem *pWeapon ) = 0;
+	virtual Vector VecWeaponRespawnSpot( CBasePlayerItem *pWeapon ) = 0;
+	virtual BOOL CanHaveItem( CBasePlayer *pPlayer, CItem *pItem ) = 0;
+	virtual void PlayerGotItem( CBasePlayer *pPlayer, CItem *pItem ) = 0;
+	virtual int ItemShouldRespawn( CItem *pItem ) = 0;
+	virtual float FlItemRespawnTime( CItem *pItem ) = 0;
+	virtual Vector VecItemRespawnSpot( CItem *pItem ) = 0;
+	virtual BOOL CanHaveAmmo( CBasePlayer *pPlayer, const char *pszAmmoName, int iMaxCarry );
+	virtual void PlayerGotAmmo( CBasePlayer *pPlayer, char *szName, int iCount ) = 0;
+	virtual int AmmoShouldRespawn( CBasePlayerAmmo *pAmmo ) = 0;
+	virtual float FlAmmoRespawnTime( CBasePlayerAmmo *pAmmo ) = 0;
+	virtual Vector VecAmmoRespawnSpot( CBasePlayerAmmo *pAmmo ) = 0;
+	virtual float FlHealthChargerRechargeTime( void ) = 0;
+	virtual float FlHEVChargerRechargeTime( void ) { return 0; }
+	virtual int DeadPlayerWeapons( CBasePlayer *pPlayer ) = 0;
+	virtual int DeadPlayerAmmo( CBasePlayer *pPlayer ) = 0;
+	virtual const char *GetTeamID( CBaseEntity *pEntity ) = 0;
+	virtual int PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget ) = 0;
+	virtual int GetTeamIndex( const char *pTeamName ) { return -1; }
+	virtual const char *GetIndexedTeamName( int teamIndex ) { return ""; }
+	virtual BOOL IsValidTeam( const char *pTeamName ) { return TRUE; }
+	virtual void ChangePlayerTeam( CBasePlayer *pPlayer, const char *pTeamName, BOOL bKill, BOOL bGib ) {}
+	virtual const char *SetDefaultPlayerTeam( CBasePlayer *pPlayer ) { return ""; }
+	virtual BOOL PlayTextureSounds( void ) { return TRUE; }
+	virtual BOOL PlayFootstepSounds( CBasePlayer *pl, float fvol ) { return TRUE; }
+	virtual BOOL FAllowMonsters( void ) = 0;
+	virtual void EndMultiplayerGame( void ) {}
+	virtual int RoundState( void ) = 0;
+	virtual void VoteKick( CBasePlayer *pPlayer, int vote, bool bAdmin ) {}
+	virtual void SetRoundState( int state ) {}
+	virtual int SetRoundState( void ) { return 0; }
+	virtual void SetRestartTime( float f_Time ) {}
+	virtual void SendTeamScores( int iTeam ) {}
+	virtual float GetMaxWaveTime( int nTeam ) = 0;
+	virtual float getWaveTime( int iTeam ) = 0;
+	virtual void setWaveTime( int iTeam, float fTime ) {}
+	virtual int TeamScores( int team ) = 0;
+	virtual void SetTeamScores( int iTeam, int iScore ) {}
+	virtual void AddToTeamScores( int team, int points ) {}
+	virtual void setMapTime( void ) {}
+	virtual void RestartRound( void ) {}
+	virtual float getMapTime( void ) = 0;
+	virtual bool IsRoundFrozen( void ) { return false; }
+	virtual void SetClanMatch( bool b ) {}
+	virtual bool IsClanMatch( void ) { return false; }
+	virtual bool IsClanMatchActive( void ) { return false; }
+	virtual unsigned short Camera( void ) = 0;
+	virtual unsigned short usVoice( void ) = 0;
+	virtual unsigned short bodyDamage( void ) = 0;
+	virtual unsigned short roundRestartSound( void ) = 0;
+	virtual unsigned short gerVoice( void ) = 0;
+	virtual unsigned short Pain( void ) = 0;
+	virtual unsigned short Smoke( void ) = 0;
+	virtual unsigned short Prone( void ) = 0;
+	virtual unsigned short BloodSprite( void ) = 0;
+	virtual unsigned short BloodStream( void ) = 0;
+	virtual unsigned short BulletTracers( void ) = 0;
+	virtual unsigned short SparkShower( void ) = 0;
+	virtual unsigned short ScreenFades( void ) = 0;
+	virtual unsigned short BubbleTrails( void ) = 0;
+	virtual unsigned short Bubbles( void ) = 0;
+	virtual unsigned short Shards( void ) = 0;
+	virtual unsigned short Explosion( void ) = 0;
+	virtual unsigned short PopHelmet( void ) = 0;
+	virtual unsigned short RoundReset( void ) = 0;
+	virtual unsigned short StartTrail( void ) = 0;
+	virtual void SetCamera( short s ) {}
+	virtual void SetusVoice( short s ) {}
+	virtual void SetbodyDamage( short s ) {}
+	virtual void SetroundRestartSound( short s ) {}
+	virtual void SetgerVoice( short s ) {}
+	virtual void SetPain( short s ) {}
+	virtual void SetSmoke( short s ) {}
+	virtual void SetProne( short s ) {}
+	virtual void SetBloodSprite( short s ) {}
+	virtual void SetBloodStream( short s ) {}
+	virtual void SetBulletTracers( short s ) {}
+	virtual void SetSparkShower( short s ) {}
+	virtual void SetScreenFades( short s ) {}
+	virtual void SetBubbleTrails( short s ) {}
+	virtual void SetBubbles( short s ) {}
+	virtual void SetShards( short s ) {}
+	virtual void SetExplosion( short s ) {}
+	virtual void SetPopHelmet( short s ) {}
+	virtual void SetRoundReset( short s ) {}
+	virtual void SetRocketTrail( short s ) {}
+	virtual int ReturnGameRules( void ) = 0;
+	virtual void SetMapChangeFromTime( int iTime ) {}
 };
 
 extern CGameRules *InstallGameRules( void );
@@ -205,7 +202,7 @@ class CDoDStatMgr;
 
 class CSPDoDRules : public CGameRules
 {
-  public:
+public:
 	CSPDoDRules( void );
 	virtual void Think( void );
 	void PlayerKilled( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags );
@@ -311,7 +308,7 @@ class CSPDoDRules : public CGameRules
 	void Init( void );
 	void VoteKick( CBasePlayer *pPlayer, int id, bool b );
 
-  protected:
+protected:
 	unsigned short m_Camera;
 	unsigned short m_usVoice;
 	unsigned short m_bodyDamage;

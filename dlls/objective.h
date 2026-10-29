@@ -1,10 +1,3 @@
-// objective.h -- DoD objective / capture entities, restored from dod.so
-// Real sources per addr2line: dod/dlls/triggers.cpp (capture area, control
-// point, master, object goal, round timer, point relay, location),
-// dod/dlls/objectives.cpp (CObject), dod/dlls/mapmarker.cpp (CMapMarker),
-// dod/dlls/dod_gamerules.cpp (CDoDDetect, CDodParaRoundTimer).
-// Ghidra addresses below are absolute (image base 0x10000).
-// Link/file address = Ghidra address - 0x10000.
 #pragma once
 
 #include "cbase.h"
@@ -14,7 +7,6 @@ class CItem;
 class CBasePlayerAmmo;
 #include "dod_gamerules.h"
 
-// capture numbers: area_time_to_cap -> m_nCapTime, numcap min 1 clamp, point_reset_time CapDelay default 1.0 verified 0x3f800000 at 0x149f47 CControlPoint::Spawn:3968, object_resettime default 600 max 600, give_delay m_iGivePointsDelay plus clan 30.0, para-timer default 240.0, round timer 30.0 status and 0.1 think, CPMThink 0.5, AreaThink 0.1 - header defaults match restore NOTES and binary spot-checks
 #define MAX_CONTROL_POINTS 20
 #define MAX_AREA_INDEX 0x80
 
@@ -28,21 +20,18 @@ class CBasePlayerAmmo;
 #define SF_OBJECTGOAL_ONCE 0x0002		// dod_object_goal: works only once
 #define SF_PARTICLESHOOTER_STARTON 0x0020	// particle_shooter: shoots from the start of the round
 
-// dod_capture_area - DWARF-canonical (gdb ptype CAreaCapture)
-// dod_object (carried) - DWARF-canonical (gdb ptype /o CObject @ dod.so)
-// field order/sizes match DWARF 1:1; base CBaseEntity ends at 343
 class CObject : public CBaseEntity
 {
-  public:
-	Vector m_vStartOrigin;		// 344
+public:
+	Vector m_vStartOrigin;
 	int m_iTeam;				// 356 object_owner
 	int m_iMain;				// 360 object_main
 	int m_iResetOnTouch;		// 364 object_resetontouch
 	int m_iResetTime;			// 368 object_resettime, default 600, max 600
 	int m_iOtherPoints;			// 372 object_otherpoints (team award)
 	int m_iCapPoints;			// 376 object_cappoints (carrier award)
-	int ObjectIndex;			// 380
-	int m_iObjectHIcon;			// 384
+	int ObjectIndex;
+	int m_iObjectHIcon;
 	float m_fCarrySpeed;		// 388 object_carryspeed
 	float m_flNextTouchTime;	// 392 +1.0 s touch throttle after reset
 	float m_flReset;			// 396 drop expiry time
@@ -53,10 +42,10 @@ class CObject : public CBaseEntity
 	char m_szObjectHIcon[256];	// 1424 object_hud_sprite
 	string_t m_sMaster;			// 1680 master
 	EHANDLE m_hOwner;			// 1684 carrier
-	BOOL m_bDropped;			// 1692
-	BOOL m_bCarried;			// 1696
+	BOOL m_bDropped;
+	BOOL m_bCarried;
 
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void KeyValue( KeyValueData *pkvd );
@@ -76,19 +65,17 @@ class CObject : public CBaseEntity
 // dod_location
 class CLocation : public CBaseEntity
 {
-  public:
+public:
 	string_t m_sMaster;	 // master (netname = location_name)
-  public:
+public:
 	virtual void Spawn( void );
 	virtual void RoundRespawn( void );
 	virtual void KeyValue( KeyValueData *pkvd );
 };
 
-// dod_control_point - DWARF-canonical (gdb ptype CControlPoint @ dod.so)
-// field order/sizes match DWARF 1:1; all public for TU access (DWARF privates kept public)
 class CControlPoint : public CBaseAnimating
 {
-  public:
+public:
 	string_t m_sMaster;
 	int m_iTeam;			  // 0 neutral, 1 allies, 2 axis
 	int m_iResetTime;		  // point_reset_time
@@ -121,7 +108,7 @@ class CControlPoint : public CBaseAnimating
 	int m_iPointIndex;		  // point_index (1-based in map, stored 0-based)
 	char m_szGroup[256];	 // point_group
 	bool m_bActive;
-  public:
+public:
 	CControlPoint();
 	void SetOwner( int owner, BOOL bMakeSound, CBasePlayer *pPlayer );
 	int GetOwner( void );
@@ -148,10 +135,9 @@ class CControlPoint : public CBaseAnimating
 	virtual void Precache( void );
 };
 
-// dod_control_point_master - DWARF-canonical (gdb ptype CControlPointMaster)
 class CControlPointMaster : public CBaseEntity
 {
-  public:
+public:
 	CControlPoint *ControlPointArray[MAX_CONTROL_POINTS];
 	int m_iNumPoints;
 	BOOL FoundPoints;  // discovery done
@@ -183,11 +169,9 @@ class CControlPointMaster : public CBaseEntity
 	int TeamOwnsAllPoints();
 };
 
-// dod_object_goal - DWARF-canonical (gdb ptype CObjectCapture)
-// dod_round_timer - DWARF-canonical (gdb ptype CDodRoundTimer)
 class CDodRoundTimer : public CBaseEntity
 {
-  public:
+public:
 	float m_fTimerLength;  // round_timer_length
 	float m_fRoundTime;	   // remaining
 	bool m_bTimer;
@@ -206,11 +190,9 @@ class CDodRoundTimer : public CBaseEntity
 	virtual void EXPORT Think( void );
 };
 
-// para timer (code-created, dod_gamerules.cpp) - DWARF-canonical
-// particle_shooter (CParticleShooter, objectives.cpp:661-775)
 class CDoDCamera : public CBaseDelay
 {
-  public:
+public:
 	virtual int Save( CSave &save );
 	virtual int Restore( CRestore &restore );
 	void Precache( void );
@@ -224,42 +206,42 @@ class CDoDCamera : public CBaseDelay
 	float ReturnTimeLeft( void );
 	int ObjectCaps( void ) { return 0; }
 
-	EHANDLE m_hPlayer[33];	 // +0x160, indices 1..32 used (MAX clients)
-	EHANDLE m_hTarget;		 // +0x268
-	string_t m_sPath;		 // +0x26c, moveto target (first path_corner)
-	int m_teamBound;		 // +0x270, 3 = both teams
-	string_t m_sTrigrStart;	 // +0x274
-	string_t m_sTrigrEnd;	 // +0x278
-	int m_iOverlay;			 // +0x27c
-	int m_iFOV;				 // +0x280, zoomlevel clamped 0..90
-	int m_iSubtitle;		 // +0x284
-	int m_iCamFade;			 // +0x288
-	float m_flWait;			 // +0x28c
-	float m_flReturnTime;	 // +0x290
-	float m_flStopTime;		 // +0x294
-	float m_moveDistance;	 // +0x298
-	float m_targetSpeed;	 // +0x29c
-	float m_initialSpeed;	 // +0x2a0
-	float m_acceleration;	 // +0x2a4
-	float m_deceleration;	 // +0x2a8
-	int m_state;			 // +0x2ac
+	EHANDLE m_hPlayer[33];	 // indices 1..32 used (MAX clients)
+	EHANDLE m_hTarget;
+	string_t m_sPath;		 // moveto target (first path_corner)
+	int m_teamBound;		 // 3 = both teams
+	string_t m_sTrigrStart;
+	string_t m_sTrigrEnd;
+	int m_iOverlay;
+	int m_iFOV;				 // zoomlevel clamped 0..90
+	int m_iSubtitle;
+	int m_iCamFade;
+	float m_flWait;
+	float m_flReturnTime;
+	float m_flStopTime;
+	float m_moveDistance;
+	float m_targetSpeed;
+	float m_initialSpeed;
+	float m_acceleration;
+	float m_deceleration;
+	int m_state;
 	CBaseEntity
-		*m_pentPath;  // +0x2b0 binary-verified 0x14c3d0 alloc 0x2c8, offsets 0x26c..0x2ac KeyValue block verified
-	Vector m_angles;  // +0x2b4 binary-verified Move origin-angles block 0x14c580
+		*m_pentPath;
+	Vector m_angles;
 	Vector
-		m_origin;  // +0x2c0 binary-verified Move origin-angles block 0x14c580; alloc 0x2c8 leaves 4 bytes tail verified
+		m_origin;
 };
 
 class CParticleShooter : public CBaseDelay
 {
-  public:
+public:
 	BYTE m_iGroupId;	 // group_id
 	int m_iSpriteIndex;	 // precached model index
 	Vector m_vShootDir;	 // computed direction * speed
 	int m_iNumParticles; // num_particles, -1 continuous?
 	int m_iState;		 // on/off
 	float m_flSpeed;	 // particle_speed / m_flVelocity
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void KeyValue( KeyValueData *pkvd );
@@ -270,13 +252,12 @@ class CParticleShooter : public CBaseDelay
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 };
 
-// env_weather (CWeatherSystem, objectives.cpp:813-855)
 class CWeatherSystem : public CBaseEntity
 {
-  public:
+public:
 	int m_iType;		// type bitmask (|4 lightning)
 	float m_flDensity;	// density
-  public:
+public:
 	void Spawn( void );
 	void Precache( void );
 	void KeyValue( KeyValueData *pkvd );
@@ -284,5 +265,3 @@ class CWeatherSystem : public CBaseEntity
 	void SendForecast( CBasePlayer *pPlayer );
 	void SendData( void );
 };
-
-// dod_score_ent (CScoreEvent, objectives.cpp:445-539)
