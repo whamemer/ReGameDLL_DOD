@@ -99,7 +99,7 @@ void CCycler ::GenericCyclerSpawn( const char *szModel, Vector vecMin, Vector ve
 		return;
 	}
 
-	pev->classname = MAKE_STRING( "cycler" );
+	MAKE_STRING_CLASS( "cycler", pev );
 	PRECACHE_MODEL( szModel );
 	SET_MODEL( ENT( pev ), szModel );
 
