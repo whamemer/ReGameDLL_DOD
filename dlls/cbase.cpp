@@ -26,14 +26,21 @@
 void EntvarsKeyvalue( entvars_t *pev, KeyValueData *pkvd );
 
 #include "pm_shared.h"
-// the engine headers declare pfnPM_FindTextureType as char(*)(const char*);
-// pm_shared impl takes char* (read-only in practice) — adapt locally,
-// shared pm_shared/ files stay untouched.
-static char PM_FindTextureType_Const( const char *name ) { return PM_FindTextureType( const_cast<char *>( name ) ); }
 
 extern Vector VecBModelOrigin( entvars_t *pevBModel );
 extern DLL_GLOBAL Vector g_vecAttackDir;
 extern DLL_GLOBAL int g_iSkillLevel;
+
+static void SetObjectCollisionBox( entvars_t *pev );
+
+void OnFreeEntPrivateData( edict_t *pEnt );
+void GameShutdown( void );
+int ShouldCollide( edict_t *pentTouched, edict_t *pentOther );
+
+// the engine headers declare pfnPM_FindTextureType as char(*)(const char*);
+// pm_shared impl takes char* (read-only in practice) — adapt locally,
+// shared pm_shared/ files stay untouched.
+static char PM_FindTextureType_Const( const char *name ) { return PM_FindTextureType( const_cast<char *>( name ) ); }
 
 static DLL_FUNCTIONS gFunctionTable = {
 	GameDLLInit,				//pfnGameInit
@@ -98,36 +105,430 @@ static DLL_FUNCTIONS gFunctionTable = {
 	AllowLagCompensation,	   //pfnAllowLagCompensation
 };
 
-static void SetObjectCollisionBox( entvars_t *pev );
-
-void OnFreeEntPrivateData( edict_t *pEnt );
-void GameShutdown( void );
-int ShouldCollide( edict_t *pentTouched, edict_t *pentOther );
-
-void OnFreeEntPrivateData( edict_t *pEnt )
-{
-	if ( pEnt && pEnt->pvPrivateData )
-	{
-		CBaseEntity *pEntity = (CBaseEntity *) pEnt->pvPrivateData;
-		pEntity->UpdateOnRemove();	// binary: CBaseEntity::UpdateOnRemove @000bf642
-		RemoveEntityHashValue( pEntity->pev, STRING( pEntity->pev->classname ),
-							   CLASSNAME );	 // binary: inline hash removal @000bf642+
-		pEntity->~CBaseEntity();
-	}
-}
-
-void GameShutdown( void ) {}
-
-int ShouldCollide( edict_t *pentTouched, edict_t *pentOther )
-{
-	(void) pentTouched;
-	(void) pentOther;
-	return 1;
-}
-
 static NEW_DLL_FUNCTIONS gNewFunctionTable = {
 	OnFreeEntPrivateData, GameShutdown, ShouldCollide, NULL, NULL,
 };
+
+// NOTE: szName must be a pointer to constant memory, e.g. "monster_class" because the entity
+// will keep a pointer to it after this call.
+CBaseEntity *CBaseEntity::Create( const char *szName, const Vector &vecOrigin, const Vector &vecAngles, edict_t *pentOwner )
+{
+	edict_t *pent;
+	CBaseEntity *pEntity;
+
+	pent = CREATE_NAMED_ENTITY( MAKE_STRING( szName ) );
+	if ( FNullEnt( pent ) )
+	{
+		ALERT( at_console, "NULL Ent in Create!\n" );
+		return NULL;
+	}
+	pEntity = Instance( pent );
+	AddEntityHashValue( &pent->v, szName, CLASSNAME );	// binary: AddEntityHashValue after CreateNamedEntity @000c1230
+	pEntity->pev->owner = pentOwner;
+	pEntity->pev->origin = vecOrigin;
+	pEntity->pev->angles = vecAngles;
+	DispatchSpawn( pEntity->edict() );
+	return pEntity;
+}
+
+CUtlVector<hash_item_t> stringsHashTable;
+// dod.so: hashItemMemPool CMemoryPool(blockSize=16, numElements=256) -- ctor args from
+// _GLOBAL__sub_I_stringsHashTable @0x0a9603 (mov $0x10 blockSize, mov $0x100 numElements).
+CMemoryPool hashItemMemPool( sizeof( hash_item_t ), 256 );
+
+char *pszDodEntityNames[243] = {
+	"info_alias", "info_group", "multi_alias", "trigger_changealias",
+	"func_wall", "func_wall_toggle", "func_conveyor", "func_illusionary",
+	"func_monsterclip", "func_rotating", "func_wall", "func_wall_toggle",
+	"func_conveyor", "func_illusionary", "func_monsterclip", "func_rotating",
+	"func_pendulum", "env_global", "env_state", "multisource",
+	"func_button", "func_rot_button", "momentary_rot_button", "env_spark",
+	"env_debris", "button_target", "info_doddetect", "para_roundtimer",
+	"dod_preround", "dod_stats", "func_door", "func_water",
+	"func_door_rotating", "momentary_door", "info_target", "env_bubbles",
+	"beam", "env_laser", "env_glow", "env_sprite",
+	"gibshooter", "env_shooter", "test_effect", "env_blood",
+	"env_shake", "env_fade", "env_message", "env_funnel",
+	"env_rain", "env_warpball", "env_beverage", "item_sodacan",
+	"env_model", "env_rocketshooter", "spark_shower", "env_explosion",
+	"func_breakable", "func_pushable", "func_tank", "func_tanklaser",
+	"func_tankrocket", "func_tankmortar", "func_tankcontrols", "monster_generic",
+	"grenade", "cine_blood", "cycler", "cycler_prdroid",
+	"cycler_sprite", "cycler_weapon", "cycler_wreckage", "light",
+	"light_spot", "light_environment", "trigger_lightstyle", "dod_mapmarker",
+	"game_score", "game_end", "game_text", "game_team_master",
+	"game_team_set", "game_zone_player", "game_player_hurt", "game_counter",
+	"game_counter_set", "game_player_equip", "game_player_team", "func_mortar_field",
+	"monster_mortar", "info_node", "info_node_air", "testhull",
+	"node_viewer", "node_viewer_human", "node_viewer_fly", "node_viewer_large",
+	"dod_object", "dod_score_ent", "particle_shooter", "path_corner",
+	"path_track", "func_plat", "func_platrot", "func_train",
+	"func_tracktrain", "func_traincontrols", "func_trackchange", "func_trackautochange",
+	"func_guntarget", "player", "monster_hevsuit_dead", "player_weaponstrip",
+	"player_loadsaved", "info_intermission", "scripted_sequence", "scripted_action",
+	"aiscripted_sequence", "scripted_sentence", "monster_furniture", "ambient_generic",
+	"env_sound", "speaker", "soundent", "info_null",
+	"info_player_deathmatch", "info_player_axis", "info_player_allies", "info_player_observer",
+	"info_initial_player_axis", "info_initial_player_allies", "info_player_start", "info_landmark",
+	"DelayedUse", "weapon_stickgrenade", "func_friction", "trigger_auto",
+	"trigger_relay", "multi_manager", "multi_watcher", "watcher",
+	"env_render", "env_customize", "trigger", "trigger_hurt",
+	"trigger_monsterjump", "trigger_cdaudio", "target_cdaudio", "trigger_multiple",
+	"trigger_once", "trigger_counter", "trigger_transition", "fireanddie",
+	"trigger_changelevel", "func_ladder", "trigger_push", "trigger_teleport",
+	"info_teleport_destination", "trigger_autosave", "trigger_endsection", "trigger_gravity",
+	"trigger_startpatrol", "trigger_changetarget", "trigger_camera", "dod_object_goal",
+	"dod_location", "dod_control_point", "dod_control_point_master", "dod_trigger_sandbag",
+	"dod_capture_area", "dod_point_relay", "dod_round_timer", "dod_camera",
+	"monster_turret", "monster_miniturret", "monster_sentry", "weaponbox",
+	"dod_ammo", "ammo_generic_american", "ammo_generic_german", "ammo_generic_british",
+	"infodecal", "worldspawn", "weapon_30cal", "ammo_30cal",
+	"weapon_amerknife", "weapon_bar", "ammo_bar", "weapon_bazooka",
+	"shell_bazooka", "ammo_bazooka", "weapon_bren", "ammo_bren",
+	"weapon_colt", "ammo_colt", "weapon_enfield", "weapon_scopedenfield",
+	"ammo_enfield", "weapon_fg42", "weapon_scopedfg42", "ammo_fg42",
+	"weapon_garand", "ammo_garand", "weapon_gerknife", "weapon_greasegun",
+	"ammo_greasegun", "weapon_handgrenade", "weapon_handgrenade_ex", "weapon_k43",
+	"ammo_k43", "weapon_kar", "ammo_kar", "weapon_luger",
+	"ammo_luger", "weapon_m1carbine", "ammo_m1carbine", "weapon_mg34",
+	"ammo_mg34", "weapon_mg42", "ammo_mg42", "weapon_mp40",
+	"ammo_mp40", "weapon_mp44", "ammo_mp44", "weapon_piat",
+	"shell_piat", "ammo_piat", "weapon_pschreck", "shell_pschreck",
+	"ammo_pschreck", "weapon_scopedkar", "ammo_scopedkar", "weapon_spade",
+	"weapon_spring", "ammo_spring", "weapon_sten", "ammo_sten",
+	"weapon_stickgrenade", "weapon_stickgrenade_ex", "weapon_thompson", "ammo_thompson",
+	"weapon_webley", "ammo_webley",
+	NULL
+};
+
+void TestForEntityHashCollisions( void )
+{
+	EmptyEntityHashTable();
+
+	for ( int i = 0; pszDodEntityNames[i]; i++ )
+	{
+		char *pEntityName = pszDodEntityNames[i];
+
+		edict_t *edict = CREATE_NAMED_ENTITY( MAKE_STRING( pEntityName ) );
+
+		if ( edict )
+		{
+			CBaseEntity *pEntity = CBaseEntity::Instance( edict );
+
+			UTIL_Remove( pEntity );
+		}
+	}
+
+	EmptyEntityHashTable();
+}
+
+int CaseInsensitiveHash( const char *s, int size )
+{
+	unsigned int hash = 0;
+	char c = *s;
+	if ( c )
+	{
+		hash = 0;
+		do
+		{
+			int h = hash * 0x21;
+			if ( (unsigned char) ( c + 0xBF ) < 0x1A )
+				h = hash * 0x21 + 0x20;
+			hash = c + h;
+			s++;
+			c = *s;
+		} while ( c );
+		hash = hash % ( size + 1 );
+	}
+	return hash;
+}
+
+// The hash of a classname is in 0..Count() (CaseInsensitiveHash takes the remainder of size + 1), the original has no element
+// for the last value and writes behind the end of the table
+static int GetEntityHashSlots( void )
+{
+#if defined( FIX_ENTITY_HASH_OVERFLOW )
+	return stringsHashTable.Count() + 1;
+#else
+	return stringsHashTable.Count();
+#endif
+}
+
+void InitHashTable( void )
+{
+	stringsHashTable.AddMultipleToTail( 0x1050 );
+
+#if defined( FIX_ENTITY_HASH_OVERFLOW )
+	stringsHashTable.EnsureCapacity( GetEntityHashSlots() );
+#endif
+
+	// the new elements are not constructed, the chains must be empty before they are emptied
+	for ( int i = 0; i < GetEntityHashSlots(); i++ )
+		stringsHashTable.Base()[i].next = NULL;
+
+	EmptyEntityHashTable();
+}
+
+void EmptyEntityHashTable( void )
+{
+	hash_item_t *table = stringsHashTable.Base();
+
+	for ( int i = 0; i < GetEntityHashSlots(); i++ )
+	{
+		hash_item_t *next = table[i].next;
+
+		table[i].pev = NULL;
+		table[i].pevIndex = 0;
+		table[i].lastHash = NULL;
+		table[i].next = NULL;
+
+		while ( next )
+		{
+			hash_item_t *temp = next->next;
+
+			hashItemMemPool.Free( next );
+			next = temp;
+		}
+	}
+}
+
+void AddEntityHashValue( entvars_t *pev, const char *value, hash_types_e fieldType )
+{
+	if ( stringsHashTable.Count() < 1 )
+		InitHashTable();
+
+	int size = stringsHashTable.Count();
+	if ( fieldType != CLASSNAME )
+		return;
+	if ( pev->classname == 0 )
+		return;
+
+	int hash = CaseInsensitiveHash( value, size );
+	int pevIndex = ENTINDEX( pev->pContainingEntity );
+	hash_item_t *base = stringsHashTable.Base();
+	hash_item_t *item = base + hash;
+	while ( item->pev )
+	{
+		if ( !strcmp( STRING( item->pev->classname ), STRING( pev->classname ) ) )
+		{
+			// same-classname bucket: keep the collision chain sorted by entity index
+			hash_item_t *last = item;
+			entvars_t *candPev = item->pev;
+			int candIndex = item->pevIndex;
+			while ( last->next && candPev != pev && pevIndex > candIndex )
+			{
+				last = last->next;
+				candPev = last->pev;
+				candIndex = last->pevIndex;
+			}
+			if ( pevIndex < candIndex )
+			{
+				// new entity sorts before the candidate: swap it into the head node
+				last->pev = pev;
+				last->lastHash = NULL;
+				last->pevIndex = pevIndex;
+				pevIndex = ENTINDEX( candPev->pContainingEntity );
+				pev = candPev;
+			}
+			if ( pev == last->pev )
+				return;	 // duplicate
+			hash_item_t *next = last->next;
+			hash_item_t *node = (hash_item_t *)hashItemMemPool.Alloc( sizeof( hash_item_t ) );
+			last->next = node;
+			if ( !node )
+			{
+				ALERT( at_warning, "ERROR - AddEntityHashValue exhausted memory in hashItemMemPool\n" );
+				return;
+			}
+			node->pev = pev;
+			node->lastHash = NULL;
+			node->next = next;
+			node->pevIndex = pevIndex;
+			return;
+		}
+		hash = ( hash + 1 ) % size;
+		item = base + hash;
+	}
+	item->pev = pev;
+	item->lastHash = NULL;
+	item->pevIndex = ENTINDEX( pev->pContainingEntity );
+}
+
+void RemoveEntityHashValue( entvars_t *pev, const char *value, hash_types_e fieldType )
+{
+	int size = stringsHashTable.Count();
+	if ( fieldType != CLASSNAME )
+		return;
+	if ( size < 1 || stringsHashTable.Base() == NULL )
+		return;
+
+	int hash = CaseInsensitiveHash( value, size );
+	hash_item_t *base = stringsHashTable.Base();
+	hash_item_t *item = base + hash;
+	entvars_t *ev = item->pev;
+	if ( !ev )
+		return;
+	while ( strcmp( STRING( ev->classname ), STRING( pev->classname ) ) != 0 )
+	{
+		hash = ( hash + 1 ) % size;
+		item = base + hash;
+		ev = item->pev;
+		if ( !ev )
+			return;
+	}
+
+	hash_item_t *prev = item;
+	hash_item_t *cur = item;
+	hash_item_t *next = item->next;
+	while ( true )
+	{
+		if ( cur->pev == pev )
+		{
+			if ( cur != prev )
+			{
+				if ( base[hash].lastHash == cur )
+				{
+					base[hash].lastHash = NULL;
+					next = cur->next;
+				}
+				prev->next = next;
+				hashItemMemPool.Free( cur );
+				return;
+			}
+			// removing the bucket head
+			if ( next )
+			{
+				cur->pev = next->pev;
+				cur->pevIndex = next->pevIndex;
+				cur->lastHash = NULL;
+				cur->next = next->next;
+				hashItemMemPool.Free( next );
+			}
+			else
+			{
+				cur->pev = NULL;
+				cur->lastHash = NULL;
+				cur->pevIndex = 0;
+			}
+			return;
+		}
+		if ( !next )
+			return;
+		prev = cur;
+		cur = next;
+		next = next->next;
+	}
+}
+
+edict_t *CREATE_NAMED_ENTITY( string_t iClass )
+{
+	edict_t *named = ( *g_engfuncs.pfnCreateNamedEntity )( iClass );
+
+	if ( named != NULL && ( *g_engfuncs.pfnEntOffsetOfPEntity )( named ) != 0 )
+		AddEntityHashValue( &named->v, STRING( iClass ), CLASSNAME );
+
+	return named;
+}
+
+void REMOVE_ENTITY( edict_t *e )
+{
+	( *g_engfuncs.pfnRemoveEntity )( e );
+}
+
+void CONSOLE_ECHO( char *pszMsg, ... )
+{
+	static char szStr[1024];
+	va_list argptr;
+
+	va_start( argptr, pszMsg );
+	vsprintf( szStr, pszMsg, argptr );
+	va_end( argptr );
+
+	( *g_engfuncs.pfnServerPrint )( szStr );
+}
+
+void printEntities( void )
+{
+	int ents = 0;
+
+	for ( int i = 0; i < stringsHashTable.Count(); i++ )
+	{
+		hash_item_t *item = &stringsHashTable[i];
+
+		if ( item->pev )
+		{
+			CONSOLE_ECHO( "%i - %i: Head: %s %i %p\n", i, ents++, STRING( item->pev->classname ), ENTINDEX( item->pev->pContainingEntity ), item->pev );
+			item = &stringsHashTable[i];
+		}
+
+		for ( hash_item_t *child = item->next; child; child = child->next )
+			CONSOLE_ECHO( "%i - %i: Child: %s %i %p\n", i, ents++, STRING( child->pev->classname ), ENTINDEX( child->pev->pContainingEntity ), child->pev );
+	}
+}
+
+void loopPerformance( void )
+{
+	CPerformanceCounter loopCounter;
+	int i;
+
+	double start = loopCounter.GetCurTime();
+
+	for ( i = 0; i < 100; i++ )
+	{
+		CBaseEntity *pSpot = NULL;
+
+		while ( ( pSpot = UTIL_FindEntityByString_Old( pSpot, "classname", "info_player_allies" ) ) != NULL )
+			;
+
+		pSpot = NULL;
+
+		while ( ( pSpot = UTIL_FindEntityByString_Old( pSpot, "classname", "info_player_axis" ) ) != NULL )
+			;
+
+		pSpot = NULL;
+
+		while ( ( pSpot = UTIL_FindEntityByString_Old( pSpot, "classname", "player" ) ) != NULL )
+			;
+
+		pSpot = NULL;
+
+		while ( ( pSpot = UTIL_FindEntityByString_Old( pSpot, "classname", "dod_control_point" ) ) != NULL )
+			;
+	}
+
+	double end = loopCounter.GetCurTime();
+
+	CONSOLE_ECHO( " Time in old search loop %.4f\n", ( end - start ) * 1000.0 );
+
+	start = loopCounter.GetCurTime();
+
+	for ( i = 0; i < 100; i++ )
+	{
+		CBaseEntity *pSpot = NULL;
+
+		while ( ( pSpot = UTIL_FindEntityByString( pSpot, "classname", "info_player_allies" ) ) != NULL )
+			;
+
+		pSpot = NULL;
+
+		while ( ( pSpot = UTIL_FindEntityByString( pSpot, "classname", "info_player_axis" ) ) != NULL )
+			;
+
+		pSpot = NULL;
+
+		while ( ( pSpot = UTIL_FindEntityByString( pSpot, "classname", "player" ) ) != NULL )
+			;
+
+		pSpot = NULL;
+
+		while ( ( pSpot = UTIL_FindEntityByString( pSpot, "classname", "dod_control_point" ) ) != NULL )
+			;
+	}
+
+	end = loopCounter.GetCurTime();
+
+	CONSOLE_ECHO( " Time in new search loop %.4f\n", ( end - start ) * 1000.0 );
+}
 
 extern "C"
 {
@@ -775,423 +1176,23 @@ int CBaseEntity ::DamageDecal( int bitsDamageType )
 	return DECAL_GUNSHOT1 + RANDOM_LONG( 0, 4 );
 }
 
-// NOTE: szName must be a pointer to constant memory, e.g. "monster_class" because the entity
-// will keep a pointer to it after this call.
-CBaseEntity *CBaseEntity::Create( const char *szName, const Vector &vecOrigin, const Vector &vecAngles, edict_t *pentOwner )
+void OnFreeEntPrivateData( edict_t *pEnt )
 {
-	edict_t *pent;
-	CBaseEntity *pEntity;
-
-	pent = CREATE_NAMED_ENTITY( MAKE_STRING( szName ) );
-	if ( FNullEnt( pent ) )
+	if ( pEnt && pEnt->pvPrivateData )
 	{
-		ALERT( at_console, "NULL Ent in Create!\n" );
-		return NULL;
-	}
-	pEntity = Instance( pent );
-	AddEntityHashValue( &pent->v, szName, CLASSNAME );	// binary: AddEntityHashValue after CreateNamedEntity @000c1230
-	pEntity->pev->owner = pentOwner;
-	pEntity->pev->origin = vecOrigin;
-	pEntity->pev->angles = vecAngles;
-	DispatchSpawn( pEntity->edict() );
-	return pEntity;
-}
-
-CUtlVector<hash_item_t> stringsHashTable;
-// dod.so: hashItemMemPool CMemoryPool(blockSize=16, numElements=256) -- ctor args from
-// _GLOBAL__sub_I_stringsHashTable @0x0a9603 (mov $0x10 blockSize, mov $0x100 numElements).
-CMemoryPool hashItemMemPool( sizeof( hash_item_t ), 256 );
-
-char *pszDodEntityNames[243] = {
-	"info_alias", "info_group", "multi_alias", "trigger_changealias",
-	"func_wall", "func_wall_toggle", "func_conveyor", "func_illusionary",
-	"func_monsterclip", "func_rotating", "func_wall", "func_wall_toggle",
-	"func_conveyor", "func_illusionary", "func_monsterclip", "func_rotating",
-	"func_pendulum", "env_global", "env_state", "multisource",
-	"func_button", "func_rot_button", "momentary_rot_button", "env_spark",
-	"env_debris", "button_target", "info_doddetect", "para_roundtimer",
-	"dod_preround", "dod_stats", "func_door", "func_water",
-	"func_door_rotating", "momentary_door", "info_target", "env_bubbles",
-	"beam", "env_laser", "env_glow", "env_sprite",
-	"gibshooter", "env_shooter", "test_effect", "env_blood",
-	"env_shake", "env_fade", "env_message", "env_funnel",
-	"env_rain", "env_warpball", "env_beverage", "item_sodacan",
-	"env_model", "env_rocketshooter", "spark_shower", "env_explosion",
-	"func_breakable", "func_pushable", "func_tank", "func_tanklaser",
-	"func_tankrocket", "func_tankmortar", "func_tankcontrols", "monster_generic",
-	"grenade", "cine_blood", "cycler", "cycler_prdroid",
-	"cycler_sprite", "cycler_weapon", "cycler_wreckage", "light",
-	"light_spot", "light_environment", "trigger_lightstyle", "dod_mapmarker",
-	"game_score", "game_end", "game_text", "game_team_master",
-	"game_team_set", "game_zone_player", "game_player_hurt", "game_counter",
-	"game_counter_set", "game_player_equip", "game_player_team", "func_mortar_field",
-	"monster_mortar", "info_node", "info_node_air", "testhull",
-	"node_viewer", "node_viewer_human", "node_viewer_fly", "node_viewer_large",
-	"dod_object", "dod_score_ent", "particle_shooter", "path_corner",
-	"path_track", "func_plat", "func_platrot", "func_train",
-	"func_tracktrain", "func_traincontrols", "func_trackchange", "func_trackautochange",
-	"func_guntarget", "player", "monster_hevsuit_dead", "player_weaponstrip",
-	"player_loadsaved", "info_intermission", "scripted_sequence", "scripted_action",
-	"aiscripted_sequence", "scripted_sentence", "monster_furniture", "ambient_generic",
-	"env_sound", "speaker", "soundent", "info_null",
-	"info_player_deathmatch", "info_player_axis", "info_player_allies", "info_player_observer",
-	"info_initial_player_axis", "info_initial_player_allies", "info_player_start", "info_landmark",
-	"DelayedUse", "weapon_stickgrenade", "func_friction", "trigger_auto",
-	"trigger_relay", "multi_manager", "multi_watcher", "watcher",
-	"env_render", "env_customize", "trigger", "trigger_hurt",
-	"trigger_monsterjump", "trigger_cdaudio", "target_cdaudio", "trigger_multiple",
-	"trigger_once", "trigger_counter", "trigger_transition", "fireanddie",
-	"trigger_changelevel", "func_ladder", "trigger_push", "trigger_teleport",
-	"info_teleport_destination", "trigger_autosave", "trigger_endsection", "trigger_gravity",
-	"trigger_startpatrol", "trigger_changetarget", "trigger_camera", "dod_object_goal",
-	"dod_location", "dod_control_point", "dod_control_point_master", "dod_trigger_sandbag",
-	"dod_capture_area", "dod_point_relay", "dod_round_timer", "dod_camera",
-	"monster_turret", "monster_miniturret", "monster_sentry", "weaponbox",
-	"dod_ammo", "ammo_generic_american", "ammo_generic_german", "ammo_generic_british",
-	"infodecal", "worldspawn", "weapon_30cal", "ammo_30cal",
-	"weapon_amerknife", "weapon_bar", "ammo_bar", "weapon_bazooka",
-	"shell_bazooka", "ammo_bazooka", "weapon_bren", "ammo_bren",
-	"weapon_colt", "ammo_colt", "weapon_enfield", "weapon_scopedenfield",
-	"ammo_enfield", "weapon_fg42", "weapon_scopedfg42", "ammo_fg42",
-	"weapon_garand", "ammo_garand", "weapon_gerknife", "weapon_greasegun",
-	"ammo_greasegun", "weapon_handgrenade", "weapon_handgrenade_ex", "weapon_k43",
-	"ammo_k43", "weapon_kar", "ammo_kar", "weapon_luger",
-	"ammo_luger", "weapon_m1carbine", "ammo_m1carbine", "weapon_mg34",
-	"ammo_mg34", "weapon_mg42", "ammo_mg42", "weapon_mp40",
-	"ammo_mp40", "weapon_mp44", "ammo_mp44", "weapon_piat",
-	"shell_piat", "ammo_piat", "weapon_pschreck", "shell_pschreck",
-	"ammo_pschreck", "weapon_scopedkar", "ammo_scopedkar", "weapon_spade",
-	"weapon_spring", "ammo_spring", "weapon_sten", "ammo_sten",
-	"weapon_stickgrenade", "weapon_stickgrenade_ex", "weapon_thompson", "ammo_thompson",
-	"weapon_webley", "ammo_webley",
-	NULL
-};
-
-int CaseInsensitiveHash( const char *s, int size )
-{
-	unsigned int hash = 0;
-	char c = *s;
-	if ( c )
-	{
-		hash = 0;
-		do
-		{
-			int h = hash * 0x21;
-			if ( (unsigned char) ( c + 0xBF ) < 0x1A )
-				h = hash * 0x21 + 0x20;
-			hash = c + h;
-			s++;
-			c = *s;
-		} while ( c );
-		hash = hash % ( size + 1 );
-	}
-	return hash;
-}
-
-void AddEntityHashValue( entvars_t *pev, const char *value, hash_types_e fieldType )
-{
-	if ( stringsHashTable.Count() < 1 )
-		InitHashTable();
-
-	int size = stringsHashTable.Count();
-	if ( fieldType != CLASSNAME )
-		return;
-	if ( pev->classname == 0 )
-		return;
-
-	int hash = CaseInsensitiveHash( value, size );
-	int pevIndex = ENTINDEX( pev->pContainingEntity );
-	hash_item_t *base = stringsHashTable.Base();
-	hash_item_t *item = base + hash;
-	while ( item->pev )
-	{
-		if ( !strcmp( STRING( item->pev->classname ), STRING( pev->classname ) ) )
-		{
-			// same-classname bucket: keep the collision chain sorted by entity index
-			hash_item_t *last = item;
-			entvars_t *candPev = item->pev;
-			int candIndex = item->pevIndex;
-			while ( last->next && candPev != pev && pevIndex > candIndex )
-			{
-				last = last->next;
-				candPev = last->pev;
-				candIndex = last->pevIndex;
-			}
-			if ( pevIndex < candIndex )
-			{
-				// new entity sorts before the candidate: swap it into the head node
-				last->pev = pev;
-				last->lastHash = NULL;
-				last->pevIndex = pevIndex;
-				pevIndex = ENTINDEX( candPev->pContainingEntity );
-				pev = candPev;
-			}
-			if ( pev == last->pev )
-				return;	 // duplicate
-			hash_item_t *next = last->next;
-			hash_item_t *node = (hash_item_t *)hashItemMemPool.Alloc( sizeof( hash_item_t ) );
-			last->next = node;
-			if ( !node )
-			{
-				ALERT( at_warning, "ERROR - AddEntityHashValue exhausted memory in hashItemMemPool\n" );
-				return;
-			}
-			node->pev = pev;
-			node->lastHash = NULL;
-			node->next = next;
-			node->pevIndex = pevIndex;
-			return;
-		}
-		hash = ( hash + 1 ) % size;
-		item = base + hash;
-	}
-	item->pev = pev;
-	item->lastHash = NULL;
-	item->pevIndex = ENTINDEX( pev->pContainingEntity );
-}
-
-void RemoveEntityHashValue( entvars_t *pev, const char *value, hash_types_e fieldType )
-{
-	int size = stringsHashTable.Count();
-	if ( fieldType != CLASSNAME )
-		return;
-	if ( size < 1 || stringsHashTable.Base() == NULL )
-		return;
-
-	int hash = CaseInsensitiveHash( value, size );
-	hash_item_t *base = stringsHashTable.Base();
-	hash_item_t *item = base + hash;
-	entvars_t *ev = item->pev;
-	if ( !ev )
-		return;
-	while ( strcmp( STRING( ev->classname ), STRING( pev->classname ) ) != 0 )
-	{
-		hash = ( hash + 1 ) % size;
-		item = base + hash;
-		ev = item->pev;
-		if ( !ev )
-			return;
-	}
-
-	hash_item_t *prev = item;
-	hash_item_t *cur = item;
-	hash_item_t *next = item->next;
-	while ( true )
-	{
-		if ( cur->pev == pev )
-		{
-			if ( cur != prev )
-			{
-				if ( base[hash].lastHash == cur )
-				{
-					base[hash].lastHash = NULL;
-					next = cur->next;
-				}
-				prev->next = next;
-				hashItemMemPool.Free( cur );
-				return;
-			}
-			// removing the bucket head
-			if ( next )
-			{
-				cur->pev = next->pev;
-				cur->pevIndex = next->pevIndex;
-				cur->lastHash = NULL;
-				cur->next = next->next;
-				hashItemMemPool.Free( next );
-			}
-			else
-			{
-				cur->pev = NULL;
-				cur->lastHash = NULL;
-				cur->pevIndex = 0;
-			}
-			return;
-		}
-		if ( !next )
-			return;
-		prev = cur;
-		cur = next;
-		next = next->next;
+		CBaseEntity *pEntity = (CBaseEntity *) pEnt->pvPrivateData;
+		pEntity->UpdateOnRemove();	// binary: CBaseEntity::UpdateOnRemove @000bf642
+		RemoveEntityHashValue( pEntity->pev, STRING( pEntity->pev->classname ),
+							   CLASSNAME );	 // binary: inline hash removal @000bf642+
+		pEntity->~CBaseEntity();
 	}
 }
 
-// The hash of a classname is in 0..Count() (CaseInsensitiveHash takes the remainder of size + 1), the original has no element
-// for the last value and writes behind the end of the table
-static int GetEntityHashSlots( void )
+void GameShutdown( void ) {}
+
+int ShouldCollide( edict_t *pentTouched, edict_t *pentOther )
 {
-#if defined( FIX_ENTITY_HASH_OVERFLOW )
-	return stringsHashTable.Count() + 1;
-#else
-	return stringsHashTable.Count();
-#endif
-}
-
-void EmptyEntityHashTable( void )
-{
-	hash_item_t *table = stringsHashTable.Base();
-
-	for ( int i = 0; i < GetEntityHashSlots(); i++ )
-	{
-		hash_item_t *next = table[i].next;
-
-		table[i].pev = NULL;
-		table[i].pevIndex = 0;
-		table[i].lastHash = NULL;
-		table[i].next = NULL;
-
-		while ( next )
-		{
-			hash_item_t *temp = next->next;
-
-			hashItemMemPool.Free( next );
-			next = temp;
-		}
-	}
-}
-
-void InitHashTable( void )
-{
-	stringsHashTable.AddMultipleToTail( 0x1050 );
-
-#if defined( FIX_ENTITY_HASH_OVERFLOW )
-	stringsHashTable.EnsureCapacity( GetEntityHashSlots() );
-#endif
-
-	// the new elements are not constructed, the chains must be empty before they are emptied
-	for ( int i = 0; i < GetEntityHashSlots(); i++ )
-		stringsHashTable.Base()[i].next = NULL;
-
-	EmptyEntityHashTable();
-}
-
-edict_t *CREATE_NAMED_ENTITY( string_t iClass )
-{
-	edict_t *named = ( *g_engfuncs.pfnCreateNamedEntity )( iClass );
-
-	if ( named != NULL && ( *g_engfuncs.pfnEntOffsetOfPEntity )( named ) != 0 )
-		AddEntityHashValue( &named->v, STRING( iClass ), CLASSNAME );
-
-	return named;
-}
-
-void REMOVE_ENTITY( edict_t *e )
-{
-	( *g_engfuncs.pfnRemoveEntity )( e );
-}
-
-void TestForEntityHashCollisions( void )
-{
-	EmptyEntityHashTable();
-
-	for ( int i = 0; pszDodEntityNames[i]; i++ )
-	{
-		char *pEntityName = pszDodEntityNames[i];
-
-		edict_t *edict = CREATE_NAMED_ENTITY( MAKE_STRING( pEntityName ) );
-
-		if ( edict )
-		{
-			CBaseEntity *pEntity = CBaseEntity::Instance( edict );
-
-			UTIL_Remove( pEntity );
-		}
-	}
-
-	EmptyEntityHashTable();
-}
-
-void CONSOLE_ECHO( char *pszMsg, ... )
-{
-	static char szStr[1024];
-	va_list argptr;
-
-	va_start( argptr, pszMsg );
-	vsprintf( szStr, pszMsg, argptr );
-	va_end( argptr );
-
-	( *g_engfuncs.pfnServerPrint )( szStr );
-}
-
-void printEntities( void )
-{
-	int ents = 0;
-
-	for ( int i = 0; i < stringsHashTable.Count(); i++ )
-	{
-		hash_item_t *item = &stringsHashTable[i];
-
-		if ( item->pev )
-		{
-			CONSOLE_ECHO( "%i - %i: Head: %s %i %p\n", i, ents++, STRING( item->pev->classname ), ENTINDEX( item->pev->pContainingEntity ), item->pev );
-			item = &stringsHashTable[i];
-		}
-
-		for ( hash_item_t *child = item->next; child; child = child->next )
-			CONSOLE_ECHO( "%i - %i: Child: %s %i %p\n", i, ents++, STRING( child->pev->classname ), ENTINDEX( child->pev->pContainingEntity ), child->pev );
-	}
-}
-
-void loopPerformance( void )
-{
-	CPerformanceCounter loopCounter;
-	int i;
-
-	double start = loopCounter.GetCurTime();
-
-	for ( i = 0; i < 100; i++ )
-	{
-		CBaseEntity *pSpot = NULL;
-
-		while ( ( pSpot = UTIL_FindEntityByString_Old( pSpot, "classname", "info_player_allies" ) ) != NULL )
-			;
-
-		pSpot = NULL;
-
-		while ( ( pSpot = UTIL_FindEntityByString_Old( pSpot, "classname", "info_player_axis" ) ) != NULL )
-			;
-
-		pSpot = NULL;
-
-		while ( ( pSpot = UTIL_FindEntityByString_Old( pSpot, "classname", "player" ) ) != NULL )
-			;
-
-		pSpot = NULL;
-
-		while ( ( pSpot = UTIL_FindEntityByString_Old( pSpot, "classname", "dod_control_point" ) ) != NULL )
-			;
-	}
-
-	double end = loopCounter.GetCurTime();
-
-	CONSOLE_ECHO( " Time in old search loop %.4f\n", ( end - start ) * 1000.0 );
-
-	start = loopCounter.GetCurTime();
-
-	for ( i = 0; i < 100; i++ )
-	{
-		CBaseEntity *pSpot = NULL;
-
-		while ( ( pSpot = UTIL_FindEntityByString( pSpot, "classname", "info_player_allies" ) ) != NULL )
-			;
-
-		pSpot = NULL;
-
-		while ( ( pSpot = UTIL_FindEntityByString( pSpot, "classname", "info_player_axis" ) ) != NULL )
-			;
-
-		pSpot = NULL;
-
-		while ( ( pSpot = UTIL_FindEntityByString( pSpot, "classname", "player" ) ) != NULL )
-			;
-
-		pSpot = NULL;
-
-		while ( ( pSpot = UTIL_FindEntityByString( pSpot, "classname", "dod_control_point" ) ) != NULL )
-			;
-	}
-
-	end = loopCounter.GetCurTime();
-
-	CONSOLE_ECHO( " Time in new search loop %.4f\n", ( end - start ) * 1000.0 );
+	(void) pentTouched;
+	(void) pentOther;
+	return 1;
 }

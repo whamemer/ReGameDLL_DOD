@@ -27,11 +27,11 @@
 #include <dod_gamerules.h>
 
 extern edict_t *EntSelectSpawnPoint( CBaseEntity *pPlayer, BOOL bJustChecking );
+extern DLL_GLOBAL BOOL g_fGameOver;
+extern int gmsgMOTD;
 
 DLL_GLOBAL CGameRules *g_pGameRules = NULL;
-extern DLL_GLOBAL BOOL g_fGameOver;
 extern int gmsgDeathMsg;  // client dll messages
-extern int gmsgMOTD;
 
 int g_teamplay = 0;
 
@@ -76,6 +76,32 @@ edict_t *CGameRules ::GetPlayerSpawnSpot( CBasePlayer *pPlayer )
 	}
 
 	return pentSpawnSpot;
+}
+
+//=========================================================
+// instantiate the proper game rules object
+//=========================================================
+
+void CGameRules::GetInitialSpawnSpot( CBasePlayer *pPlayer )
+{
+	CBaseEntity *pSpot = UTIL_FindEntityByClassname( NULL, "info_player_observer" );
+	if ( !pSpot )
+	{
+		ALERT( at_console, "GetInitialSpawnSpot: no info_player_observer in level - starting player at 0,0,0\n" );
+		pPlayer->pev->origin = g_vecZero;
+		pPlayer->pev->v_angle = g_vecZero;
+		pPlayer->pev->velocity = g_vecZero;
+		pPlayer->pev->angles = g_vecZero;
+		pPlayer->pev->punchangle = g_vecZero;
+		pPlayer->pev->fixangle = TRUE;
+		return;
+	}
+	pPlayer->pev->origin = pSpot->pev->origin + Vector( 0, 0, 1 );
+	pPlayer->pev->v_angle = g_vecZero;
+	pPlayer->pev->velocity = g_vecZero;
+	pPlayer->pev->angles = pSpot->pev->angles;
+	pPlayer->pev->punchangle = g_vecZero;
+	pPlayer->pev->fixangle = TRUE;
 }
 
 //=========================================================
@@ -149,31 +175,6 @@ void CGameRules::RefreshSkillData( void )
 	gSkillData.plrStomach = GetSkillCvar( "sk_player_stomach" );
 	gSkillData.plrLeg = GetSkillCvar( "sk_player_leg" );
 	gSkillData.plrArm = GetSkillCvar( "sk_player_arm" );
-}
-//=========================================================
-// instantiate the proper game rules object
-//=========================================================
-
-void CGameRules::GetInitialSpawnSpot( CBasePlayer *pPlayer )
-{
-	CBaseEntity *pSpot = UTIL_FindEntityByClassname( NULL, "info_player_observer" );
-	if ( !pSpot )
-	{
-		ALERT( at_console, "GetInitialSpawnSpot: no info_player_observer in level - starting player at 0,0,0\n" );
-		pPlayer->pev->origin = g_vecZero;
-		pPlayer->pev->v_angle = g_vecZero;
-		pPlayer->pev->velocity = g_vecZero;
-		pPlayer->pev->angles = g_vecZero;
-		pPlayer->pev->punchangle = g_vecZero;
-		pPlayer->pev->fixangle = TRUE;
-		return;
-	}
-	pPlayer->pev->origin = pSpot->pev->origin + Vector( 0, 0, 1 );
-	pPlayer->pev->v_angle = g_vecZero;
-	pPlayer->pev->velocity = g_vecZero;
-	pPlayer->pev->angles = pSpot->pev->angles;
-	pPlayer->pev->punchangle = g_vecZero;
-	pPlayer->pev->fixangle = TRUE;
 }
 
 CGameRules *InstallGameRules( void )

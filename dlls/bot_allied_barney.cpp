@@ -15,6 +15,8 @@
 #include	"weapons.h"
 #include	"soundent.h"
 
+LINK_ENTITY_TO_CLASS( monster_allied_barney, CAlliedBarney );
+
 //=========================================================
 // Monster's Anim Events Go Here
 //=========================================================
@@ -738,8 +740,5 @@ void CAlliedBarney :: ResetAfterDoDMovie( void )
 	pev->angles = m_angles;
 	pev->origin = m_origin;
 }
-
-LINK_ENTITY_TO_CLASS( monster_allied_barney, CAlliedBarney );
-
 
 

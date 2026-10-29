@@ -31,6 +31,8 @@
 #include "weapons.h"
 #include "gamerules.h"
 
+extern int gmsgTextMsg, gmsgSayText;
+
 float UTIL_WeaponTimeBase( void )
 {
 #if defined( CLIENT_WEAPONS )
@@ -502,6 +504,19 @@ CBaseEntity *UTIL_FindEntityInSphere( CBaseEntity *pStartEntity, const Vector &v
 	return NULL;
 }
 
+CBaseEntity *UTIL_FindEntityByString_Old( CBaseEntity *pStartEntity, const char *szKeyword, const char *szValue )
+{
+	edict_t *pentEntity = NULL;
+	if ( pStartEntity )
+		pentEntity = ENT( pStartEntity->pev );
+
+	pentEntity = FIND_ENTITY_BY_STRING( pentEntity, szKeyword, szValue );
+
+	if ( !FNullEnt( pentEntity ) )
+		return CBaseEntity::Instance( pentEntity );
+	return NULL;
+}
+
 CBaseEntity *UTIL_FindEntityByString( CBaseEntity *pStartEntity, const char *szKeyword, const char *szValue )
 {
 	edict_t *pentEntity = NULL;
@@ -569,22 +584,136 @@ found:
 	return NULL;
 }
 
-CBaseEntity *UTIL_FindEntityByString_Old( CBaseEntity *pStartEntity, const char *szKeyword, const char *szValue )
-{
-	edict_t *pentEntity = NULL;
-	if ( pStartEntity )
-		pentEntity = ENT( pStartEntity->pev );
-
-	pentEntity = FIND_ENTITY_BY_STRING( pentEntity, szKeyword, szValue );
-
-	if ( !FNullEnt( pentEntity ) )
-		return CBaseEntity::Instance( pentEntity );
-	return NULL;
-}
-
 CBaseEntity *UTIL_FindEntityByClassname( CBaseEntity *pStartEntity, const char *szName )
 {
 	return UTIL_FindEntityByString( pStartEntity, "classname", szName );
+}
+
+// DoD blood owners - UTIL_DodBloodPuff in player.cpp line 815 - SpawnBlood in weapons.cpp line 161 - not duplicated here - binary 0012d9f0 0016c5b0
+
+CBaseEntity *UTIL_FollowAliasReference( CBaseEntity *pStartEntity, const char *szValue )
+{
+	CBaseEntity *pBest = 0;
+	int bestOff = -1;
+	CBaseEntity *pEnt = UTIL_FindEntityByString( 0, "targetname", szValue );
+	while ( pEnt != 0 )
+	{
+		if ( FClassnameIs( pEnt->pev, "info_alias" ) )
+		{
+			CBaseEntity *pT = UTIL_FindEntityByString( pStartEntity, "targetname", STRING( pEnt->pev->target ) );
+			if ( pT != 0 )
+			{
+				int off = ENTINDEX( pT->edict() );
+				if ( bestOff == -1 || off < bestOff )
+				{
+					bestOff = off;
+					pBest = pT;
+				}
+			}
+		}
+		else if ( FClassnameIs( pEnt->pev, "multi_alias" ) )
+		{
+			CMultiAlias *pMult = (CMultiAlias *) pEnt;
+			for ( int i = 0; i < pMult->m_cTargets; i++ )
+			{
+				CBaseEntity *pT =
+					UTIL_FindEntityByString( pStartEntity, "targetname", STRING( pMult->m_iszTargets[i] ) );
+				if ( pT != 0 )
+				{
+					int off = ENTINDEX( pT->edict() );
+					if ( bestOff == -1 || off < bestOff )
+					{
+						bestOff = off;
+						pBest = pT;
+					}
+				}
+			}
+		}
+		pEnt = UTIL_FindEntityByString( pEnt, "targetname", szValue );
+	}
+	return pBest;
+}
+
+CBaseEntity *UTIL_FollowGroupReference( CBaseEntity *pStartEntity, const char *szGroupName, const char *szMemberName )
+{
+	char buf[80];
+	const char *tail = 0;
+	const char *head = szMemberName;
+	if ( *szMemberName != 0 )
+	{
+		if ( *szMemberName == 46 )
+		{
+			head = szMemberName + 1;
+		}
+		else
+		{
+			int n = 0;
+			while ( szMemberName[n] != 0 && szMemberName[n] != 46 )
+				n++;
+			if ( szMemberName[n] == 0 )
+			{
+				head = szMemberName;
+			}
+			else
+			{
+				strncpy( buf, szMemberName, n );
+				buf[n] = 0;
+				head = buf;
+				tail = szMemberName + n + 1;
+			}
+		}
+	}
+	CBaseEntity *pBest = 0;
+	int bestOff = -1;
+	CBaseEntity *pGrp = UTIL_FindEntityByString( 0, "targetname", szGroupName );
+	while ( pGrp != 0 )
+	{
+		if ( FClassnameIs( pGrp->pev, "info_group" ) )
+		{
+			int iszVal = ( (CInfoGroup *) pGrp )->GetMember( head );
+			if ( iszVal != 0 )
+			{
+				CBaseEntity *pT = 0;
+				if ( tail == 0 )
+					pT = UTIL_FindEntityByString( pStartEntity, "targetname", STRING( iszVal ) );
+				else
+					pT = UTIL_FollowGroupReference( pStartEntity, STRING( iszVal ), tail );
+				if ( pT != 0 )
+				{
+					int off = ENTINDEX( pT->edict() );
+					if ( bestOff == -1 || off < bestOff )
+					{
+						bestOff = off;
+						pBest = pT;
+					}
+				}
+			}
+		}
+		pGrp = UTIL_FindEntityByString( pGrp, "targetname", szGroupName );
+	}
+	return pBest;
+}
+
+CBaseEntity *UTIL_FollowReference( CBaseEntity *pStartEntity, const char *szName )
+{
+	if ( szName == 0 || *szName == 0 )
+		return 0;
+	if ( *szName == 42 )
+		return UTIL_FollowAliasReference( pStartEntity, szName + 1 );
+	int n = 0;
+	if ( *szName == 46 )
+		n = 0;
+	else
+	{
+		while ( szName[n] != 0 && szName[n] != 46 )
+			n++;
+		if ( szName[n] == 0 )
+			return 0;
+	}
+	char root[96];
+	strncpy( root, szName, n );
+	root[n] = 0;
+	return UTIL_FollowGroupReference( pStartEntity, root, szName + n + 1 );
 }
 
 CBaseEntity *UTIL_FindEntityByTargetname( CBaseEntity *pStartEntity, const char *szName )
@@ -872,7 +1001,6 @@ void UTIL_HudMessageAll( const hudtextparms_t &textparms, const char *pMessage )
 	}
 }
 
-extern int gmsgTextMsg, gmsgSayText;
 void UTIL_ClientPrintAll( int msg_dest, const char *msg_name, const char *param1, const char *param2,
 						  const char *param3, const char *param4 )
 {
@@ -958,6 +1086,17 @@ char *UTIL_dtos4( int d )
 	return buf;
 }
 
+void UTIL_ShowMessage( const char *pString, CBaseEntity *pEntity, BOOL bHintMsg )
+{
+	if ( pEntity && pEntity->IsNetClient() )
+	{
+		MESSAGE_BEGIN( MSG_ONE, gmsgHudText, NULL, pEntity->edict() );
+		WRITE_STRING( pString );
+		WRITE_BYTE( bHintMsg );
+		MESSAGE_END();
+	}
+}
+
 // Overloaded to add IGNORE_GLASS
 void UTIL_TraceLine( const Vector &vecStart, const Vector &vecEnd, IGNORE_MONSTERS igmon, IGNORE_GLASS ignoreGlass,
 					 edict_t *pentIgnore, TraceResult *ptr )
@@ -1011,11 +1150,6 @@ float UTIL_VecToYaw( const Vector &vec )
 	return VEC_TO_YAW( vec );
 }
 
-void UTIL_SetOrigin( CBaseEntity *pEntity, const Vector &vecOrigin )
-{
-	SET_ORIGIN( ENT( pEntity->pev ), vecOrigin );
-}
-
 void UTIL_SetOrigin( entvars_t *pev, const Vector &vecOrigin )
 {
 	edict_t *ent = ENT( pev );
@@ -1026,6 +1160,11 @@ void UTIL_SetOrigin( entvars_t *pev, const Vector &vecOrigin )
 void UTIL_SetEdictOrigin( edict_t *pEdict, const Vector &vecOrigin )
 {
 	SET_ORIGIN( pEdict, vecOrigin );
+}
+
+void UTIL_SetOrigin( CBaseEntity *pEntity, const Vector &vecOrigin )
+{
+	SET_ORIGIN( ENT( pEntity->pev ), vecOrigin );
 }
 
 void UTIL_ParticleEffect( const Vector &vecOrigin, const Vector &vecDirection, ULONG ulColor, ULONG ulCount )
@@ -1585,6 +1724,26 @@ float UTIL_DotPoints( const Vector &vecSrc, const Vector &vecCheck, const Vector
 	vec2LOS = vec2LOS.Normalize();
 
 	return DotProduct( vec2LOS, ( vecDir.Make2D() ) );
+}
+
+const char *GetStringForUseType( USE_TYPE useType )
+{
+	switch ( useType )
+	{
+	case USE_OFF:
+		return "USE_OFF";
+	case USE_ON:
+		return "USE_ON";
+	case USE_TOGGLE:
+		return "USE_TOGGLE";
+	default:
+		break;
+	}
+	if ( useType == USE_KILL )
+		return "USE_KILL";
+	if ( useType == USE_NOT )
+		return "USE_NOT";
+	return "USE_UNKNOWN!?";
 }
 
 //=========================================================
@@ -2474,70 +2633,6 @@ int CRestore::BufferCheckZString( const char *string )
 	return 0;
 }
 
-void UTIL_ShowMessage( const char *pString, CBaseEntity *pEntity, BOOL bHintMsg )
-{
-	if ( pEntity && pEntity->IsNetClient() )
-	{
-		MESSAGE_BEGIN( MSG_ONE, gmsgHudText, NULL, pEntity->edict() );
-		WRITE_STRING( pString );
-		WRITE_BYTE( bHintMsg );
-		MESSAGE_END();
-	}
-}
-void UTIL_ShowMessageAll( const char *pString, BOOL bHintMsg )
-{
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
-	{
-		edict_t *pPlayerEdict = INDEXENT( i );
-		if ( FNullEnt( pPlayerEdict ) || pPlayerEdict->free )
-			continue;
-		CBaseEntity *pPlayer = GetClassPtr( (CBaseEntity *) VARS( pPlayerEdict ) );
-		if ( !pPlayer || !pPlayer->IsNetClient() )
-			continue;
-		MESSAGE_BEGIN( MSG_ONE, gmsgHudText, NULL, pPlayerEdict );
-		WRITE_STRING( pString );
-		WRITE_BYTE( bHintMsg );
-		MESSAGE_END();
-	}
-}
-
-void UTIL_SendDirectorMessage( CBaseEntity *pEntity, CBaseEntity *pOther, int msg )
-{
-	MESSAGE_BEGIN( MSG_SPEC, SVC_DIRECTOR, NULL, (edict_t *) NULL );
-	WRITE_BYTE( 9 );
-	WRITE_BYTE( 2 );
-	if ( pEntity )
-		WRITE_SHORT( ENTINDEX( pEntity->edict() ) );
-	else
-		WRITE_SHORT( 0 );
-	if ( pOther )
-		WRITE_SHORT( ENTINDEX( pOther->edict() ) );
-	else
-		WRITE_SHORT( 0 );
-	WRITE_LONG( msg );
-	MESSAGE_END();
-}
-
-const char *GetStringForUseType( USE_TYPE useType )
-{
-	switch ( useType )
-	{
-	case USE_OFF:
-		return "USE_OFF";
-	case USE_ON:
-		return "USE_ON";
-	case USE_TOGGLE:
-		return "USE_TOGGLE";
-	default:
-		break;
-	}
-	if ( useType == USE_KILL )
-		return "USE_KILL";
-	if ( useType == USE_NOT )
-		return "USE_NOT";
-	return "USE_UNKNOWN!?";
-}
-
 void UTIL_EffectPrint( CBasePlayer *pPlayer, int color, int effect, int channel, char *text )
 {
 	hudtextparms_t parms;
@@ -2653,129 +2748,37 @@ void UTIL_EffectPrint( CBasePlayer *pPlayer, int color, int effect, int channel,
 			UTIL_HudMessage( pPlayer, parms, text );
 	}
 }
-// DoD blood owners - UTIL_DodBloodPuff in player.cpp line 815 - SpawnBlood in weapons.cpp line 161 - not duplicated here - binary 0012d9f0 0016c5b0
 
-CBaseEntity *UTIL_FollowAliasReference( CBaseEntity *pStartEntity, const char *szValue )
+void UTIL_ShowMessageAll( const char *pString, BOOL bHintMsg )
 {
-	CBaseEntity *pBest = 0;
-	int bestOff = -1;
-	CBaseEntity *pEnt = UTIL_FindEntityByString( 0, "targetname", szValue );
-	while ( pEnt != 0 )
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		if ( FClassnameIs( pEnt->pev, "info_alias" ) )
-		{
-			CBaseEntity *pT = UTIL_FindEntityByString( pStartEntity, "targetname", STRING( pEnt->pev->target ) );
-			if ( pT != 0 )
-			{
-				int off = ENTINDEX( pT->edict() );
-				if ( bestOff == -1 || off < bestOff )
-				{
-					bestOff = off;
-					pBest = pT;
-				}
-			}
-		}
-		else if ( FClassnameIs( pEnt->pev, "multi_alias" ) )
-		{
-			CMultiAlias *pMult = (CMultiAlias *) pEnt;
-			for ( int i = 0; i < pMult->m_cTargets; i++ )
-			{
-				CBaseEntity *pT =
-					UTIL_FindEntityByString( pStartEntity, "targetname", STRING( pMult->m_iszTargets[i] ) );
-				if ( pT != 0 )
-				{
-					int off = ENTINDEX( pT->edict() );
-					if ( bestOff == -1 || off < bestOff )
-					{
-						bestOff = off;
-						pBest = pT;
-					}
-				}
-			}
-		}
-		pEnt = UTIL_FindEntityByString( pEnt, "targetname", szValue );
+		edict_t *pPlayerEdict = INDEXENT( i );
+		if ( FNullEnt( pPlayerEdict ) || pPlayerEdict->free )
+			continue;
+		CBaseEntity *pPlayer = GetClassPtr( (CBaseEntity *) VARS( pPlayerEdict ) );
+		if ( !pPlayer || !pPlayer->IsNetClient() )
+			continue;
+		MESSAGE_BEGIN( MSG_ONE, gmsgHudText, NULL, pPlayerEdict );
+		WRITE_STRING( pString );
+		WRITE_BYTE( bHintMsg );
+		MESSAGE_END();
 	}
-	return pBest;
 }
 
-CBaseEntity *UTIL_FollowGroupReference( CBaseEntity *pStartEntity, const char *szGroupName, const char *szMemberName )
+void UTIL_SendDirectorMessage( CBaseEntity *pEntity, CBaseEntity *pOther, int msg )
 {
-	char buf[80];
-	const char *tail = 0;
-	const char *head = szMemberName;
-	if ( *szMemberName != 0 )
-	{
-		if ( *szMemberName == 46 )
-		{
-			head = szMemberName + 1;
-		}
-		else
-		{
-			int n = 0;
-			while ( szMemberName[n] != 0 && szMemberName[n] != 46 )
-				n++;
-			if ( szMemberName[n] == 0 )
-			{
-				head = szMemberName;
-			}
-			else
-			{
-				strncpy( buf, szMemberName, n );
-				buf[n] = 0;
-				head = buf;
-				tail = szMemberName + n + 1;
-			}
-		}
-	}
-	CBaseEntity *pBest = 0;
-	int bestOff = -1;
-	CBaseEntity *pGrp = UTIL_FindEntityByString( 0, "targetname", szGroupName );
-	while ( pGrp != 0 )
-	{
-		if ( FClassnameIs( pGrp->pev, "info_group" ) )
-		{
-			int iszVal = ( (CInfoGroup *) pGrp )->GetMember( head );
-			if ( iszVal != 0 )
-			{
-				CBaseEntity *pT = 0;
-				if ( tail == 0 )
-					pT = UTIL_FindEntityByString( pStartEntity, "targetname", STRING( iszVal ) );
-				else
-					pT = UTIL_FollowGroupReference( pStartEntity, STRING( iszVal ), tail );
-				if ( pT != 0 )
-				{
-					int off = ENTINDEX( pT->edict() );
-					if ( bestOff == -1 || off < bestOff )
-					{
-						bestOff = off;
-						pBest = pT;
-					}
-				}
-			}
-		}
-		pGrp = UTIL_FindEntityByString( pGrp, "targetname", szGroupName );
-	}
-	return pBest;
-}
-
-CBaseEntity *UTIL_FollowReference( CBaseEntity *pStartEntity, const char *szName )
-{
-	if ( szName == 0 || *szName == 0 )
-		return 0;
-	if ( *szName == 42 )
-		return UTIL_FollowAliasReference( pStartEntity, szName + 1 );
-	int n = 0;
-	if ( *szName == 46 )
-		n = 0;
+	MESSAGE_BEGIN( MSG_SPEC, SVC_DIRECTOR, NULL, (edict_t *) NULL );
+	WRITE_BYTE( 9 );
+	WRITE_BYTE( 2 );
+	if ( pEntity )
+		WRITE_SHORT( ENTINDEX( pEntity->edict() ) );
 	else
-	{
-		while ( szName[n] != 0 && szName[n] != 46 )
-			n++;
-		if ( szName[n] == 0 )
-			return 0;
-	}
-	char root[96];
-	strncpy( root, szName, n );
-	root[n] = 0;
-	return UTIL_FollowGroupReference( pStartEntity, root, szName + n + 1 );
+		WRITE_SHORT( 0 );
+	if ( pOther )
+		WRITE_SHORT( ENTINDEX( pOther->edict() ) );
+	else
+		WRITE_SHORT( 0 );
+	WRITE_LONG( msg );
+	MESSAGE_END();
 }

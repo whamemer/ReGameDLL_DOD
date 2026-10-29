@@ -30,9 +30,32 @@
 #include "player.h"
 #include "func_break.h"
 
+// DoD grenade touches (restore/weapons/ggrenade.cpp: MortarShell/Rocket/ShootPickup PORTED)
+// SDK base (Bounce/Slide/Explode/Smoke/Tumble/Danger) untouched above.
+#include "func_break.h"
+#include "enginecallback.h"
+
 //===================grenade
 
 LINK_ENTITY_TO_CLASS( grenade, CGrenade );
+
+void CGrenade::RemoveMe( void )
+{
+	pev->nextthink = gpGlobals->time;
+	pev->model = iStringNull;
+	pev->solid = SOLID_NOT;
+	pev->takedamage = DAMAGE_NO;
+	pev->effects |= EF_NODRAW;
+	pev->velocity = g_vecZero;
+	UTIL_Remove( this );
+}
+
+//======================end grenade
+
+void CGrenade::Precache( void )
+{
+	m_iBodyGibs = PRECACHE_MODEL( "models/rockgibs.mdl" );
+}
 
 // Grenades flagged with this will be triggered when the owner calls detonateSatchelCharges
 #define SF_DETONATE 0x0001
@@ -129,6 +152,50 @@ void CGrenade::DetonateUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 	pev->nextthink = gpGlobals->time;
 }
 
+// NOTE(DOD): DetonateUse/PreDetonate/UseSatchelCharges/ShootTimed/ShootContact keep SDK bodies
+// above (SDK-IDENTICAL per restore, DoD speed-damage tweaks owned by barrel balance pass).
+
+void CGrenade::PickupUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	if ( !pActivator->IsPlayer() )
+		return;
+	if ( pActivator->pev->iuser3 == 2 )
+		return;
+
+	CBasePlayer *pPlayer = (CBasePlayer *)pActivator;
+	if ( pPlayer->PlayerHasExplodingGrenades() )
+		return;
+
+	if ( (int)g_GrenType >= 0 )
+	{
+		if ( (int)g_GrenType < 2 )
+			pPlayer->GiveNamedItem( "weapon_handgrenade_ex" );
+		else if ( g_GrenType == G_STICKGRENADE )
+			pPlayer->GiveNamedItem( "weapon_stickgrenade_ex" );
+	}
+
+	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
+	{
+		CBasePlayerItem *pWeapon = pPlayer->m_rgpPlayerItems[i];
+		while ( pWeapon != NULL )
+		{
+			if ( FClassnameIs( pWeapon->pev, "weapon_stickgrenade_ex" ) ||
+				 FClassnameIs( pWeapon->pev, "weapon_handgrenade_ex" ) )
+			{
+				pPlayer->SwitchWeapon( pWeapon, 0 );
+
+				// the picked up grenade goes on burning in the hand
+				if ( pPlayer->m_pActiveItem )
+					pPlayer->m_pActiveItem->SetDmgTime( pev->dmgtime );
+
+				UTIL_Remove( this );
+				break;
+			}
+			pWeapon = pWeapon->m_pNext;
+		}
+	}
+}
+
 void CGrenade::PreDetonate( void )
 {
 	CSoundEnt::InsertSound( bits_SOUND_DANGER, pev->origin, 400, 0.3 );
@@ -164,6 +231,112 @@ void CGrenade::ExplodeTouch( CBaseEntity *pOther )
 	UTIL_TraceLine( vecSpot, vecSpot + pev->velocity.Normalize() * 64, ignore_monsters, ENT( pev ), &tr );
 
 	Explode( &tr, DMG_BLAST );
+}
+
+void CGrenade::MortarShellExplodeTouch( CBaseEntity *pOther )
+{
+	if ( FClassnameIs( pOther->pev, "func_breakable" ) )
+	{
+		edict_t *pentBreak = pOther->pev->pContainingEntity;
+		if ( !pentBreak )
+			pentBreak = ( *g_engfuncs.pfnPEntityOfEntOffset )( 0 );
+		CBreakable *pBreak = NULL;
+		if ( pentBreak )
+			pBreak = (CBreakable *)GET_PRIVATE( pentBreak );
+		if ( pBreak && pBreak->m_Material == matGlass )
+		{
+			if ( !pBreak->IsBreakable() )
+				return;
+			TraceResult tr = UTIL_GetGlobalTrace();
+			ClearMultiDamage();
+			entvars_t *pevOwner = pev->owner ? VARS( pev->owner ) : NULL;
+			pOther->TraceAttack( pevOwner, 1.0, gpGlobals->v_forward, &tr, DMG_DOD_NOBLOOD );
+			ApplyMultiDamage( pev, pevOwner );
+			UTIL_MakeVectors( pev->angles );
+			CBaseEntity *pOwnerEnt = pev->owner ? CBaseEntity::Instance( pev->owner ) : NULL;
+			CBaseEntity *pNewRocket = NULL;
+			if ( FClassnameIs( pev, "shell_bazooka" ) )
+				pNewRocket = CBazookaShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
+			else if ( FClassnameIs( pev, "shell_piat" ) )
+				pNewRocket = CPIATShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
+			else if ( FClassnameIs( pev, "shell_pschreck" ) )
+				pNewRocket = CPschreckShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
+			else
+			{
+				UTIL_Remove( this );
+				return;
+			}
+			pNewRocket->pev->velocity = pev->velocity;
+			UTIL_Remove( this );
+			return;
+		}
+	}
+	pev->enemy = pOther->edict();
+	Vector vecSpot = pev->origin - pev->velocity.Normalize() * 32;
+	TraceResult tr;
+	UTIL_TraceLine( vecSpot, vecSpot + pev->velocity.Normalize() * 64, dont_ignore_monsters, ENT( pev ), &tr );
+	const char *pTexture = TRACE_TEXTURE( ENT( 0 ), vecSpot, vecSpot + pev->velocity.Normalize() * 64 );
+	if ( pTexture && !strnicmp( pTexture, "sky", 3 ) )
+	{
+		UTIL_Remove( this );
+		return;
+	}
+	Explode( &tr, DMG_BLAST | DMG_SONIC | DMG_MORTAR );
+}
+void CGrenade::RocketExplodeTouch( CBaseEntity *pOther )
+{
+	if ( FClassnameIs( pOther->pev, "func_breakable" ) )
+	{
+		edict_t *pentBreak = pOther->pev->pContainingEntity;
+		if ( !pentBreak )
+			pentBreak = ( *g_engfuncs.pfnPEntityOfEntOffset )( 0 );
+		CBreakable *pBreak = NULL;
+		if ( pentBreak )
+			pBreak = (CBreakable *)GET_PRIVATE( pentBreak );
+		if ( pBreak && pBreak->m_Material == matGlass )
+		{
+			if ( !pBreak->IsBreakable() )
+				return;
+			TraceResult tr = UTIL_GetGlobalTrace();
+			ClearMultiDamage();
+			entvars_t *pevOwner = pev->owner ? VARS( pev->owner ) : NULL;
+			pOther->TraceAttack( pevOwner, 1.0, gpGlobals->v_forward, &tr, DMG_DOD_NOBLOOD );
+			ApplyMultiDamage( pev, pevOwner );
+			UTIL_MakeVectors( pev->angles );
+			if ( pOther->pev->health > 0.0f )
+			{
+				UTIL_Remove( this );
+				return;
+			}
+			CBaseEntity *pOwnerEnt = pev->owner ? CBaseEntity::Instance( pev->owner ) : NULL;
+			CBaseEntity *pNewRocket = NULL;
+			if ( FClassnameIs( pev, "shell_bazooka" ) )
+				pNewRocket = CBazookaShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
+			else if ( FClassnameIs( pev, "shell_piat" ) )
+				pNewRocket = CPIATShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
+			else if ( FClassnameIs( pev, "shell_pschreck" ) )
+				pNewRocket = CPschreckShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
+			else
+			{
+				UTIL_Remove( this );
+				return;
+			}
+			pNewRocket->pev->velocity = pev->velocity;
+			UTIL_Remove( this );
+			return;
+		}
+	}
+	pev->enemy = pOther->edict();
+	Vector vecSpot = pev->origin - pev->velocity.Normalize() * 32;
+	TraceResult tr;
+	UTIL_TraceLine( vecSpot, vecSpot + pev->velocity.Normalize() * 64, dont_ignore_monsters, ENT( pev ), &tr );
+	const char *pTexture = TRACE_TEXTURE( ENT( 0 ), vecSpot, vecSpot + pev->velocity.Normalize() * 64 );
+	if ( pTexture && !strnicmp( pTexture, "sky", 3 ) )
+	{
+		UTIL_Remove( this );
+		return;
+	}
+	Explode( &tr, DMG_BLAST | DMG_SONIC );
 }
 
 void CGrenade::DangerSoundThink( void )
@@ -429,163 +602,6 @@ CGrenade *CGrenade::ShootTimed( entvars_t *pevOwner, Vector vecStart, Vector vec
 	return pGrenade;
 }
 
-void CGrenade ::UseSatchelCharges( entvars_t *pevOwner, SATCHELCODE code )
-{
-	edict_t *pentFind;
-	edict_t *pentOwner;
-
-	if ( !pevOwner )
-		return;
-
-	CBaseEntity *pOwner = CBaseEntity::Instance( pevOwner );
-
-	pentOwner = pOwner->edict();
-
-	pentFind = FIND_ENTITY_BY_CLASSNAME( NULL, "grenade" );
-	while ( !FNullEnt( pentFind ) )
-	{
-		CBaseEntity *pEnt = Instance( pentFind );
-		if ( pEnt )
-		{
-			if ( FBitSet( pEnt->pev->spawnflags, SF_DETONATE ) && pEnt->pev->owner == pentOwner )
-			{
-				if ( code == SATCHEL_DETONATE )
-					pEnt->Use( pOwner, pOwner, USE_ON, 0 );
-				else  // SATCHEL_RELEASE
-					pEnt->pev->owner = NULL;
-			}
-		}
-		pentFind = FIND_ENTITY_BY_CLASSNAME( pentFind, "grenade" );
-	}
-}
-
-//======================end grenade
-
-void CGrenade::Precache( void )
-{
-	m_iBodyGibs = PRECACHE_MODEL( "models/rockgibs.mdl" );
-}
-
-void CGrenade::RemoveMe( void )
-{
-	pev->nextthink = gpGlobals->time;
-	pev->model = iStringNull;
-	pev->solid = SOLID_NOT;
-	pev->takedamage = DAMAGE_NO;
-	pev->effects |= EF_NODRAW;
-	pev->velocity = g_vecZero;
-	UTIL_Remove( this );
-}
-
-// DoD grenade touches (restore/weapons/ggrenade.cpp: MortarShell/Rocket/ShootPickup PORTED)
-// SDK base (Bounce/Slide/Explode/Smoke/Tumble/Danger) untouched above.
-#include "func_break.h"
-#include "enginecallback.h"
-void CGrenade::MortarShellExplodeTouch( CBaseEntity *pOther )
-{
-	if ( FClassnameIs( pOther->pev, "func_breakable" ) )
-	{
-		edict_t *pentBreak = pOther->pev->pContainingEntity;
-		if ( !pentBreak )
-			pentBreak = ( *g_engfuncs.pfnPEntityOfEntOffset )( 0 );
-		CBreakable *pBreak = NULL;
-		if ( pentBreak )
-			pBreak = (CBreakable *)GET_PRIVATE( pentBreak );
-		if ( pBreak && pBreak->m_Material == matGlass )
-		{
-			if ( !pBreak->IsBreakable() )
-				return;
-			TraceResult tr = UTIL_GetGlobalTrace();
-			ClearMultiDamage();
-			entvars_t *pevOwner = pev->owner ? VARS( pev->owner ) : NULL;
-			pOther->TraceAttack( pevOwner, 1.0, gpGlobals->v_forward, &tr, DMG_DOD_NOBLOOD );
-			ApplyMultiDamage( pev, pevOwner );
-			UTIL_MakeVectors( pev->angles );
-			CBaseEntity *pOwnerEnt = pev->owner ? CBaseEntity::Instance( pev->owner ) : NULL;
-			CBaseEntity *pNewRocket = NULL;
-			if ( FClassnameIs( pev, "shell_bazooka" ) )
-				pNewRocket = CBazookaShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
-			else if ( FClassnameIs( pev, "shell_piat" ) )
-				pNewRocket = CPIATShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
-			else if ( FClassnameIs( pev, "shell_pschreck" ) )
-				pNewRocket = CPschreckShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
-			else
-			{
-				UTIL_Remove( this );
-				return;
-			}
-			pNewRocket->pev->velocity = pev->velocity;
-			UTIL_Remove( this );
-			return;
-		}
-	}
-	pev->enemy = pOther->edict();
-	Vector vecSpot = pev->origin - pev->velocity.Normalize() * 32;
-	TraceResult tr;
-	UTIL_TraceLine( vecSpot, vecSpot + pev->velocity.Normalize() * 64, dont_ignore_monsters, ENT( pev ), &tr );
-	const char *pTexture = TRACE_TEXTURE( ENT( 0 ), vecSpot, vecSpot + pev->velocity.Normalize() * 64 );
-	if ( pTexture && !strnicmp( pTexture, "sky", 3 ) )
-	{
-		UTIL_Remove( this );
-		return;
-	}
-	Explode( &tr, DMG_BLAST | DMG_SONIC | DMG_MORTAR );
-}
-void CGrenade::RocketExplodeTouch( CBaseEntity *pOther )
-{
-	if ( FClassnameIs( pOther->pev, "func_breakable" ) )
-	{
-		edict_t *pentBreak = pOther->pev->pContainingEntity;
-		if ( !pentBreak )
-			pentBreak = ( *g_engfuncs.pfnPEntityOfEntOffset )( 0 );
-		CBreakable *pBreak = NULL;
-		if ( pentBreak )
-			pBreak = (CBreakable *)GET_PRIVATE( pentBreak );
-		if ( pBreak && pBreak->m_Material == matGlass )
-		{
-			if ( !pBreak->IsBreakable() )
-				return;
-			TraceResult tr = UTIL_GetGlobalTrace();
-			ClearMultiDamage();
-			entvars_t *pevOwner = pev->owner ? VARS( pev->owner ) : NULL;
-			pOther->TraceAttack( pevOwner, 1.0, gpGlobals->v_forward, &tr, DMG_DOD_NOBLOOD );
-			ApplyMultiDamage( pev, pevOwner );
-			UTIL_MakeVectors( pev->angles );
-			if ( pOther->pev->health > 0.0f )
-			{
-				UTIL_Remove( this );
-				return;
-			}
-			CBaseEntity *pOwnerEnt = pev->owner ? CBaseEntity::Instance( pev->owner ) : NULL;
-			CBaseEntity *pNewRocket = NULL;
-			if ( FClassnameIs( pev, "shell_bazooka" ) )
-				pNewRocket = CBazookaShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
-			else if ( FClassnameIs( pev, "shell_piat" ) )
-				pNewRocket = CPIATShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
-			else if ( FClassnameIs( pev, "shell_pschreck" ) )
-				pNewRocket = CPschreckShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
-			else
-			{
-				UTIL_Remove( this );
-				return;
-			}
-			pNewRocket->pev->velocity = pev->velocity;
-			UTIL_Remove( this );
-			return;
-		}
-	}
-	pev->enemy = pOther->edict();
-	Vector vecSpot = pev->origin - pev->velocity.Normalize() * 32;
-	TraceResult tr;
-	UTIL_TraceLine( vecSpot, vecSpot + pev->velocity.Normalize() * 64, dont_ignore_monsters, ENT( pev ), &tr );
-	const char *pTexture = TRACE_TEXTURE( ENT( 0 ), vecSpot, vecSpot + pev->velocity.Normalize() * 64 );
-	if ( pTexture && !strnicmp( pTexture, "sky", 3 ) )
-	{
-		UTIL_Remove( this );
-		return;
-	}
-	Explode( &tr, DMG_BLAST | DMG_SONIC );
-}
 CGrenade *CGrenade::ShootPickup( entvars_t *pevOwner, Vector vecStart, Vector vecVelocity, float time, grenType value, float fDelay )
 {
 	CGrenade *pGrenade = GetClassPtr( (CGrenade *)NULL );
@@ -628,46 +644,33 @@ CGrenade *CGrenade::ShootPickup( entvars_t *pevOwner, Vector vecStart, Vector ve
 	}
 	return pGrenade;
 }
-// NOTE(DOD): DetonateUse/PreDetonate/UseSatchelCharges/ShootTimed/ShootContact keep SDK bodies
-// above (SDK-IDENTICAL per restore, DoD speed-damage tweaks owned by barrel balance pass).
 
-void CGrenade::PickupUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+void CGrenade ::UseSatchelCharges( entvars_t *pevOwner, SATCHELCODE code )
 {
-	if ( !pActivator->IsPlayer() )
-		return;
-	if ( pActivator->pev->iuser3 == 2 )
+	edict_t *pentFind;
+	edict_t *pentOwner;
+
+	if ( !pevOwner )
 		return;
 
-	CBasePlayer *pPlayer = (CBasePlayer *)pActivator;
-	if ( pPlayer->PlayerHasExplodingGrenades() )
-		return;
+	CBaseEntity *pOwner = CBaseEntity::Instance( pevOwner );
 
-	if ( (int)g_GrenType >= 0 )
+	pentOwner = pOwner->edict();
+
+	pentFind = FIND_ENTITY_BY_CLASSNAME( NULL, "grenade" );
+	while ( !FNullEnt( pentFind ) )
 	{
-		if ( (int)g_GrenType < 2 )
-			pPlayer->GiveNamedItem( "weapon_handgrenade_ex" );
-		else if ( g_GrenType == G_STICKGRENADE )
-			pPlayer->GiveNamedItem( "weapon_stickgrenade_ex" );
-	}
-
-	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
-	{
-		CBasePlayerItem *pWeapon = pPlayer->m_rgpPlayerItems[i];
-		while ( pWeapon != NULL )
+		CBaseEntity *pEnt = Instance( pentFind );
+		if ( pEnt )
 		{
-			if ( FClassnameIs( pWeapon->pev, "weapon_stickgrenade_ex" ) ||
-				 FClassnameIs( pWeapon->pev, "weapon_handgrenade_ex" ) )
+			if ( FBitSet( pEnt->pev->spawnflags, SF_DETONATE ) && pEnt->pev->owner == pentOwner )
 			{
-				pPlayer->SwitchWeapon( pWeapon, 0 );
-
-				// the picked up grenade goes on burning in the hand
-				if ( pPlayer->m_pActiveItem )
-					pPlayer->m_pActiveItem->SetDmgTime( pev->dmgtime );
-
-				UTIL_Remove( this );
-				break;
+				if ( code == SATCHEL_DETONATE )
+					pEnt->Use( pOwner, pOwner, USE_ON, 0 );
+				else  // SATCHEL_RELEASE
+					pEnt->pev->owner = NULL;
 			}
-			pWeapon = pWeapon->m_pNext;
 		}
+		pentFind = FIND_ENTITY_BY_CLASSNAME( pentFind, "grenade" );
 	}
 }

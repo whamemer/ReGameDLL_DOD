@@ -34,6 +34,8 @@
 extern DLL_GLOBAL Vector g_vecAttackDir;
 extern DLL_GLOBAL BOOL g_fGameOver;
 
+extern int gmsgClientAreas;
+
 // =================== FUNC_Breakable ==============================================
 
 // Just add more items to the bottom of this array and they will automagically be supported
@@ -202,6 +204,28 @@ void CBreakable::Spawn( void )
 		pev->flags |= FL_WORLDBRUSH;
 
 	RoundStore();
+}
+
+STATE CBreakable::GetState( void )
+{
+	if ( m_iRespawnTime != 0 )
+		return ( pev->effects & EF_NODRAW ) ? STATE_OFF : STATE_ON;
+	return STATE_OFF;
+}
+
+void CBreakable::RoundRespawn( void )
+{
+	SetUse( &CBreakable::BreakUse );
+	SetTouch( &CBreakable::BreakTouch );
+	if ( !FBitSet( pev->spawnflags, SF_BREAK_TRIGGER_ONLY ) )
+		pev->takedamage = DAMAGE_YES;
+	else
+	{
+		SetTouch( NULL );
+		pev->takedamage = DAMAGE_NO;
+	}
+	pev->angles.y = 0;
+	SET_MODEL( ENT( pev ), STRING( pev->model ) );
 }
 
 const char *CBreakable::pSoundsWood[] = {
@@ -580,6 +604,110 @@ void CBreakable::BreakTouch( CBaseEntity *pOther )
 	}
 }
 
+void CBreakable::ObjectDie( void )
+{
+	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
+		return;
+	Die();
+}
+
+void CBreakable::area_SendStatus( CBasePlayer *p )
+{
+	if ( sz_HudIcon != NULL && m_iAreaIndex < 0x81 )
+	{
+		MESSAGE_BEGIN( MSG_ONE, gmsgClientAreas, NULL, p->pev );
+		WRITE_BYTE( m_iAreaIndex );
+		WRITE_BYTE( -1 );
+		WRITE_STRING( sz_HudIcon );
+		MESSAGE_END();
+	}
+}
+
+void CBreakable::area_SetIndex( int index )
+{
+	m_iAreaIndex = index;
+	if ( 0x80 < index )
+		return;
+	MESSAGE_BEGIN( MSG_ALL, gmsgClientAreas, NULL, (edict_t *)NULL );
+	WRITE_BYTE( m_iAreaIndex );
+	WRITE_BYTE( -1 );
+	WRITE_STRING( sz_HudIcon );
+	MESSAGE_END();
+}
+
+// DoD respawn-breakable handler: re-applies facing, then either kills itself with
+// the activator (vtable[20] = Killed) or breaks via Die().
+void CBreakable::BreakUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	if ( ( useType != USE_ON || m_iRespawnTime == 0 ) && m_Material != matUnbreakableGlass )
+	{
+		pev->angles.y = m_angle;
+		UTIL_MakeVectors( pev->angles );
+		g_vecAttackDir = gpGlobals->v_forward;
+
+		if ( pActivator )
+			Killed( pActivator->pev, 0 );
+		else
+			Die();
+	}
+}
+
+void CBreakable::RespawnUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	if ( useType != USE_OFF )
+	{
+		ALERT( at_console, "Respawn trigger received\n" );
+		SetThink( &CBreakable::RespawnThink );
+		pev->nextthink = pev->ltime + 0.1;
+	}
+	else if ( m_iRespawnTime > 0 )
+	{
+		SetThink( &CBreakable::RespawnThink );
+		pev->nextthink = pev->ltime + m_iRespawnTime;
+	}
+}
+
+void CBreakable::RespawnThink( void )
+{
+	CBaseEntity *pList[2];
+
+	// wait while a player or a monster stands inside
+	if ( UTIL_EntitiesInBox( pList, 2, pev->mins, pev->maxs, FL_CLIENT | FL_MONSTER ) )
+	{
+		SetThink( &CBreakable::RespawnThink );
+		pev->nextthink = pev->ltime + 2.0;
+	}
+	else
+	{
+		pev->solid = SOLID_BSP;
+		pev->effects &= ~EF_NODRAW;
+		pev->health = m_iInitialHealth;
+
+		SetUse( &CBreakable::BreakUse );
+
+		if ( !FBitSet( pev->spawnflags, SF_BREAK_TRIGGER_ONLY ) )
+			pev->takedamage = DAMAGE_YES;
+
+		FireTargets( STRING( pev->netname ), this, this, USE_TOGGLE, 0 );
+	}
+}
+
+void CBreakable::RespawnFadeThink( void )
+{
+	float flAmt = pev->renderamt + 50;
+
+	if ( flAmt > m_iInitialRenderAmt )
+		flAmt = m_iInitialRenderAmt;
+
+	ALERT( at_console, "FadeThink: %d changed to %d\n", (int) pev->renderamt, (int) flAmt );
+	pev->renderamt = (int) flAmt;
+
+	if ( m_iInitialRenderAmt > pev->renderamt )
+		pev->nextthink = pev->ltime + 0.1;
+	else
+		pev->rendermode = m_iInitialRenderMode;
+}
+
 //
 // Smash the our breakable object
 //
@@ -706,6 +834,149 @@ int CBreakable ::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, fl
 	DamageSound();
 
 	return 1;
+}
+
+void CBreakable::Killed( entvars_t *pevAttacker, int iGib )
+{
+	int pitch;
+	int iRand = RANDOM_LONG( 0, 0x1d );
+	pitch = iRand + 0x5f;
+	if ( (unsigned)( iRand - 3 ) < 5 )
+		pitch = 100;
+
+	float volume = RANDOM_FLOAT( 0.85f, 1.0f ) + (float)abs( (int)pev->health ) / 100.0f;
+	if ( volume > 1.0f )
+		volume = 1.0f;
+
+	int shards = 0;
+	switch ( m_Material )
+	{
+	case matGlass:
+		if ( RANDOM_LONG( 0, 1 ) == 0 )
+			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustglass1.wav", volume, 0.8, 0, pitch );
+		else
+			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustglass2.wav", volume, 0.8, 0, pitch );
+		shards = 1;
+		break;
+	case matWood:
+		if ( RANDOM_LONG( 0, 1 ) == 0 )
+			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustcrate1.wav", volume, 0.8, 0, pitch );
+		else
+			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustcrate2.wav", volume, 0.8, 0, pitch );
+		shards = 8;
+		break;
+	case matMetal:
+	case matComputer:
+		if ( RANDOM_LONG( 0, 1 ) == 0 )
+			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustmetal1.wav", volume, 0.8, 0, pitch );
+		else
+			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustmetal2.wav", volume, 0.8, 0, pitch );
+		shards = 2;
+		break;
+	case matFlesh:
+		if ( RANDOM_LONG( 0, 1 ) == 0 )
+			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustflesh1.wav", volume, 0.8, 0, pitch );
+		else
+			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustflesh2.wav", volume, 0.8, 0, pitch );
+		shards = 4;
+		break;
+	case matCinderBlock:
+	case matRocks:
+		if ( RANDOM_LONG( 0, 1 ) == 0 )
+			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustconcrete1.wav", volume, 0.8, 0, pitch );
+		else
+			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustconcrete2.wav", volume, 0.8, 0, pitch );
+		shards = 0x40;
+		break;
+	case matCeilingTile:
+		EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustceiling.wav", volume, 0.8, 0, pitch );
+		shards = 0;
+		break;
+	default:
+		shards = 0;
+		break;
+	}
+
+	Vector vecSpot = ( pev->mins + pev->maxs ) * 0.5f + pev->origin;
+	Vector vecVelocity = g_vecZero;
+	if ( m_Explosion == expDirected )
+		vecVelocity = g_vecAttackDir * 200.0f;
+
+	if ( CVAR_GET_FLOAT( "violence_hgibs" ) != 0.0f || m_Material != matFlesh )
+	{
+		MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, &vecSpot.x );
+		WRITE_BYTE( TE_BREAKMODEL );
+		WRITE_COORD( vecSpot.x );
+		WRITE_COORD( vecSpot.y );
+		WRITE_COORD( vecSpot.z );
+		WRITE_COORD( pev->size.x );
+		WRITE_COORD( pev->size.y );
+		WRITE_COORD( pev->size.z );
+		WRITE_COORD( vecVelocity.x );
+		WRITE_COORD( vecVelocity.y );
+		WRITE_COORD( vecVelocity.z );
+		WRITE_BYTE( 10 );
+		WRITE_SHORT( m_idShard );
+		WRITE_BYTE( 0 );
+		WRITE_BYTE( 0x19 );
+		WRITE_BYTE( shards );
+		MESSAGE_END();
+	}
+
+	{
+		CBaseEntity *pList[256];
+		Vector mins = pev->absmin;
+		Vector maxs = pev->absmax;
+		mins.z = pev->absmax.z;
+		maxs.z += 8.0f;
+		int count = UTIL_EntitiesInBox( pList, 256, mins, maxs, FL_ONGROUND );
+		for ( int i = 0; i < count; i++ )
+		{
+			pList[i]->pev->flags &= ~FL_ONGROUND;
+			pList[i]->pev->groundentity = NULL;
+		}
+	}
+
+	pev->solid = SOLID_NOT;
+
+	SUB_UseTargets( CBaseEntity::Instance( pevAttacker ), USE_TOGGLE, 0 );
+
+	if ( g_pGameRules->IsMultiplayer() == 0 )
+	{
+		if ( m_iRespawnTime == -1 )
+		{
+			ALERT( at_console, "Waiting for respawn trigger\n" );
+			SetUse( &CBreakable::RespawnUse );
+			pev->effects |= EF_NODRAW;
+			pev->takedamage = DAMAGE_NO;
+		}
+		else if ( m_iRespawnTime == 0 )
+		{
+			ALERT( at_console, "No respawn\n" );
+			SetThink( &CBaseEntity::SUB_Remove );
+			pev->nextthink = pev->ltime + 0.1f;
+		}
+		else
+		{
+			SetThink( &CBreakable::RespawnThink );
+			pev->nextthink = pev->ltime + m_iRespawnTime;
+			pev->effects |= EF_NODRAW;
+			pev->takedamage = DAMAGE_NO;
+		}
+	}
+	else
+	{
+		pev->effects |= EF_NODRAW;
+	}
+
+	if ( m_iszSpawnObject )
+	{
+		Vector vecBModelOrigin = VecBModelOrigin( pev );
+		CBaseEntity::Create( STRING( m_iszSpawnObject ), vecBModelOrigin, pev->angles, ENT( pev ) );
+	}
+
+	if ( (int)pev->impulse > 0 )
+		ExplosionCreate( Center(), pev->angles, ENT( pev ), (int)pev->impulse, TRUE );
 }
 
 void CBreakable::Die( void )
@@ -1000,6 +1271,16 @@ void CPushable ::Spawn( void )
 	RoundStore();
 }
 
+void CPushable::RoundRespawn( void )
+{
+	STOP_SOUND( ENT( pev ), CHAN_STATIC, m_soundNames[m_lastSound] );
+	if ( FBitSet( pev->spawnflags, SF_PUSH_BREAKABLE ) )
+		CBreakable::Spawn();
+	pev->flags |= FL_FLOAT;
+	pev->friction = 0;
+	m_soundTime = 0;
+}
+
 void CPushable ::Precache( void )
 {
 	for ( int i = 0; i < 3; i++ )
@@ -1164,282 +1445,4 @@ int CPushable::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, floa
 	}
 
 	return 1;
-}
-
-void CBreakable::RespawnThink( void )
-{
-	CBaseEntity *pList[2];
-
-	// wait while a player or a monster stands inside
-	if ( UTIL_EntitiesInBox( pList, 2, pev->mins, pev->maxs, FL_CLIENT | FL_MONSTER ) )
-	{
-		SetThink( &CBreakable::RespawnThink );
-		pev->nextthink = pev->ltime + 2.0;
-	}
-	else
-	{
-		pev->solid = SOLID_BSP;
-		pev->effects &= ~EF_NODRAW;
-		pev->health = m_iInitialHealth;
-
-		SetUse( &CBreakable::BreakUse );
-
-		if ( !FBitSet( pev->spawnflags, SF_BREAK_TRIGGER_ONLY ) )
-			pev->takedamage = DAMAGE_YES;
-
-		FireTargets( STRING( pev->netname ), this, this, USE_TOGGLE, 0 );
-	}
-}
-void CBreakable::RespawnUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{
-	if ( useType != USE_OFF )
-	{
-		ALERT( at_console, "Respawn trigger received\n" );
-		SetThink( &CBreakable::RespawnThink );
-		pev->nextthink = pev->ltime + 0.1;
-	}
-	else if ( m_iRespawnTime > 0 )
-	{
-		SetThink( &CBreakable::RespawnThink );
-		pev->nextthink = pev->ltime + m_iRespawnTime;
-	}
-}
-void CBreakable::RespawnFadeThink( void )
-{
-	float flAmt = pev->renderamt + 50;
-
-	if ( flAmt > m_iInitialRenderAmt )
-		flAmt = m_iInitialRenderAmt;
-
-	ALERT( at_console, "FadeThink: %d changed to %d\n", (int) pev->renderamt, (int) flAmt );
-	pev->renderamt = (int) flAmt;
-
-	if ( m_iInitialRenderAmt > pev->renderamt )
-		pev->nextthink = pev->ltime + 0.1;
-	else
-		pev->rendermode = m_iInitialRenderMode;
-}
-void CBreakable::RoundRespawn( void )
-{
-	SetUse( &CBreakable::BreakUse );
-	SetTouch( &CBreakable::BreakTouch );
-	if ( !FBitSet( pev->spawnflags, SF_BREAK_TRIGGER_ONLY ) )
-		pev->takedamage = DAMAGE_YES;
-	else
-	{
-		SetTouch( NULL );
-		pev->takedamage = DAMAGE_NO;
-	}
-	pev->angles.y = 0;
-	SET_MODEL( ENT( pev ), STRING( pev->model ) );
-}
-
-void CPushable::RoundRespawn( void )
-{
-	STOP_SOUND( ENT( pev ), CHAN_STATIC, m_soundNames[m_lastSound] );
-	if ( FBitSet( pev->spawnflags, SF_PUSH_BREAKABLE ) )
-		CBreakable::Spawn();
-	pev->flags |= FL_FLOAT;
-	pev->friction = 0;
-	m_soundTime = 0;
-}
-
-// DoD respawn-breakable handler: re-applies facing, then either kills itself with
-// the activator (vtable[20] = Killed) or breaks via Die().
-void CBreakable::BreakUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{
-	if ( ( useType != USE_ON || m_iRespawnTime == 0 ) && m_Material != matUnbreakableGlass )
-	{
-		pev->angles.y = m_angle;
-		UTIL_MakeVectors( pev->angles );
-		g_vecAttackDir = gpGlobals->v_forward;
-
-		if ( pActivator )
-			Killed( pActivator->pev, 0 );
-		else
-			Die();
-	}
-}
-
-void CBreakable::ObjectDie( void )
-{
-	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
-		return;
-	Die();
-}
-
-STATE CBreakable::GetState( void )
-{
-	if ( m_iRespawnTime != 0 )
-		return ( pev->effects & EF_NODRAW ) ? STATE_OFF : STATE_ON;
-	return STATE_OFF;
-}
-
-extern int gmsgClientAreas;
-
-void CBreakable::area_SetIndex( int index )
-{
-	m_iAreaIndex = index;
-	if ( 0x80 < index )
-		return;
-	MESSAGE_BEGIN( MSG_ALL, gmsgClientAreas, NULL, (edict_t *)NULL );
-	WRITE_BYTE( m_iAreaIndex );
-	WRITE_BYTE( -1 );
-	WRITE_STRING( sz_HudIcon );
-	MESSAGE_END();
-}
-
-void CBreakable::area_SendStatus( CBasePlayer *p )
-{
-	if ( sz_HudIcon != NULL && m_iAreaIndex < 0x81 )
-	{
-		MESSAGE_BEGIN( MSG_ONE, gmsgClientAreas, NULL, p->pev );
-		WRITE_BYTE( m_iAreaIndex );
-		WRITE_BYTE( -1 );
-		WRITE_STRING( sz_HudIcon );
-		MESSAGE_END();
-	}
-}
-
-void CBreakable::Killed( entvars_t *pevAttacker, int iGib )
-{
-	int pitch;
-	int iRand = RANDOM_LONG( 0, 0x1d );
-	pitch = iRand + 0x5f;
-	if ( (unsigned)( iRand - 3 ) < 5 )
-		pitch = 100;
-
-	float volume = RANDOM_FLOAT( 0.85f, 1.0f ) + (float)abs( (int)pev->health ) / 100.0f;
-	if ( volume > 1.0f )
-		volume = 1.0f;
-
-	int shards = 0;
-	switch ( m_Material )
-	{
-	case matGlass:
-		if ( RANDOM_LONG( 0, 1 ) == 0 )
-			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustglass1.wav", volume, 0.8, 0, pitch );
-		else
-			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustglass2.wav", volume, 0.8, 0, pitch );
-		shards = 1;
-		break;
-	case matWood:
-		if ( RANDOM_LONG( 0, 1 ) == 0 )
-			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustcrate1.wav", volume, 0.8, 0, pitch );
-		else
-			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustcrate2.wav", volume, 0.8, 0, pitch );
-		shards = 8;
-		break;
-	case matMetal:
-	case matComputer:
-		if ( RANDOM_LONG( 0, 1 ) == 0 )
-			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustmetal1.wav", volume, 0.8, 0, pitch );
-		else
-			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustmetal2.wav", volume, 0.8, 0, pitch );
-		shards = 2;
-		break;
-	case matFlesh:
-		if ( RANDOM_LONG( 0, 1 ) == 0 )
-			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustflesh1.wav", volume, 0.8, 0, pitch );
-		else
-			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustflesh2.wav", volume, 0.8, 0, pitch );
-		shards = 4;
-		break;
-	case matCinderBlock:
-	case matRocks:
-		if ( RANDOM_LONG( 0, 1 ) == 0 )
-			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustconcrete1.wav", volume, 0.8, 0, pitch );
-		else
-			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustconcrete2.wav", volume, 0.8, 0, pitch );
-		shards = 0x40;
-		break;
-	case matCeilingTile:
-		EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustceiling.wav", volume, 0.8, 0, pitch );
-		shards = 0;
-		break;
-	default:
-		shards = 0;
-		break;
-	}
-
-	Vector vecSpot = ( pev->mins + pev->maxs ) * 0.5f + pev->origin;
-	Vector vecVelocity = g_vecZero;
-	if ( m_Explosion == expDirected )
-		vecVelocity = g_vecAttackDir * 200.0f;
-
-	if ( CVAR_GET_FLOAT( "violence_hgibs" ) != 0.0f || m_Material != matFlesh )
-	{
-		MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, &vecSpot.x );
-		WRITE_BYTE( TE_BREAKMODEL );
-		WRITE_COORD( vecSpot.x );
-		WRITE_COORD( vecSpot.y );
-		WRITE_COORD( vecSpot.z );
-		WRITE_COORD( pev->size.x );
-		WRITE_COORD( pev->size.y );
-		WRITE_COORD( pev->size.z );
-		WRITE_COORD( vecVelocity.x );
-		WRITE_COORD( vecVelocity.y );
-		WRITE_COORD( vecVelocity.z );
-		WRITE_BYTE( 10 );
-		WRITE_SHORT( m_idShard );
-		WRITE_BYTE( 0 );
-		WRITE_BYTE( 0x19 );
-		WRITE_BYTE( shards );
-		MESSAGE_END();
-	}
-
-	{
-		CBaseEntity *pList[256];
-		Vector mins = pev->absmin;
-		Vector maxs = pev->absmax;
-		mins.z = pev->absmax.z;
-		maxs.z += 8.0f;
-		int count = UTIL_EntitiesInBox( pList, 256, mins, maxs, FL_ONGROUND );
-		for ( int i = 0; i < count; i++ )
-		{
-			pList[i]->pev->flags &= ~FL_ONGROUND;
-			pList[i]->pev->groundentity = NULL;
-		}
-	}
-
-	pev->solid = SOLID_NOT;
-
-	SUB_UseTargets( CBaseEntity::Instance( pevAttacker ), USE_TOGGLE, 0 );
-
-	if ( g_pGameRules->IsMultiplayer() == 0 )
-	{
-		if ( m_iRespawnTime == -1 )
-		{
-			ALERT( at_console, "Waiting for respawn trigger\n" );
-			SetUse( &CBreakable::RespawnUse );
-			pev->effects |= EF_NODRAW;
-			pev->takedamage = DAMAGE_NO;
-		}
-		else if ( m_iRespawnTime == 0 )
-		{
-			ALERT( at_console, "No respawn\n" );
-			SetThink( &CBaseEntity::SUB_Remove );
-			pev->nextthink = pev->ltime + 0.1f;
-		}
-		else
-		{
-			SetThink( &CBreakable::RespawnThink );
-			pev->nextthink = pev->ltime + m_iRespawnTime;
-			pev->effects |= EF_NODRAW;
-			pev->takedamage = DAMAGE_NO;
-		}
-	}
-	else
-	{
-		pev->effects |= EF_NODRAW;
-	}
-
-	if ( m_iszSpawnObject )
-	{
-		Vector vecBModelOrigin = VecBModelOrigin( pev );
-		CBaseEntity::Create( STRING( m_iszSpawnObject ), vecBModelOrigin, pev->angles, ENT( pev ) );
-	}
-
-	if ( (int)pev->impulse > 0 )
-		ExplosionCreate( Center(), pev->angles, ENT( pev ), (int)pev->impulse, TRUE );
 }

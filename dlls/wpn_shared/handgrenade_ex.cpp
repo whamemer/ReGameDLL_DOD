@@ -21,14 +21,14 @@
 
 #include "dod_shared.h"
 
+extern p_wpninfo_s P_WpnInfo[];
+
 #if !CLIENT_DLL
 #include "gamerules.h"
 #include "dod_gamerules.h"
 #endif
 
 LINK_ENTITY_TO_CLASS( weapon_handgrenade_ex, CHandGrenadeEx )
-
-extern p_wpninfo_s P_WpnInfo[];
 
 void CHandGrenadeEx::Spawn( void )
 {
@@ -97,16 +97,6 @@ BOOL CHandGrenadeEx::CanHolster( void )
 void CHandGrenadeEx::Holster( int skiplocal )
 {
 	/* Nothing. */
-}
-
-void CHandGrenadeEx::SetDmgTime( float time )
-{
-	m_flTimeToExplode = time;
-}
-
-BOOL CHandGrenadeEx::CanDeploy( void )
-{
-	return m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] != 0;
 }
 
 void CHandGrenadeEx::PrimaryAttack( void )
@@ -198,6 +188,11 @@ void CHandGrenadeEx::DropGren( void )
 	}
 }
 
+void CHandGrenadeEx::SetDmgTime( float time )
+{
+	m_flTimeToExplode = time;
+}
+
 void CHandGrenadeEx::WeaponIdle( void )
 {
 	if( m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] <= 0 )
@@ -243,4 +238,9 @@ void CHandGrenadeEx::WeaponIdle( void )
 			DropGren();
 		}
 	}
+}
+
+BOOL CHandGrenadeEx::CanDeploy( void )
+{
+	return m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] != 0;
 }

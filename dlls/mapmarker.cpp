@@ -4,6 +4,33 @@
 #include "util.h"
 #include "objective.h"
 #include "mapmarker.h"
+
+LINK_ENTITY_TO_CLASS( dod_mapmarker, CMapMarker );
+
+CMapMarker *CMapMarker::CreateMapMarker( Vector vecOrigin, Vector vecAngles, CBaseEntity *pOwner, int markerIcon )
+{
+	static int i = 0;
+
+	edict_t *pent = CREATE_ENTITY();
+	CMapMarker *pMarker = GetClassPtr( (CMapMarker *) VARS( pent ) );
+	UTIL_SetOrigin( pMarker, vecOrigin );
+	pMarker->Spawn();
+
+	if ( pOwner )
+	{
+		pMarker->pev->owner = pOwner->edict();
+		pMarker->pev->team = pOwner->pev->team;
+	}
+
+	pMarker->pev->body = markerIcon;
+	pMarker->pev->angles = Vector( 0, 90, 0 );
+	pMarker->pev->fuser1 = gpGlobals->time;
+	MAKE_STRING_CLASS( "dod_mapmarker", pMarker->pev );
+	i++;
+
+	return pMarker;
+}
+
 // Full bodies in restore/objectives/timers_relays.cpp comments - player side in player agent
 
 void CMapMarker::Spawn( void )
@@ -32,29 +59,3 @@ void CMapMarker::Die( void )
 {
 	UTIL_Remove( this );
 }
-
-CMapMarker *CMapMarker::CreateMapMarker( Vector vecOrigin, Vector vecAngles, CBaseEntity *pOwner, int markerIcon )
-{
-	static int i = 0;
-
-	edict_t *pent = CREATE_ENTITY();
-	CMapMarker *pMarker = GetClassPtr( (CMapMarker *) VARS( pent ) );
-	UTIL_SetOrigin( pMarker, vecOrigin );
-	pMarker->Spawn();
-
-	if ( pOwner )
-	{
-		pMarker->pev->owner = pOwner->edict();
-		pMarker->pev->team = pOwner->pev->team;
-	}
-
-	pMarker->pev->body = markerIcon;
-	pMarker->pev->angles = Vector( 0, 90, 0 );
-	pMarker->pev->fuser1 = gpGlobals->time;
-	MAKE_STRING_CLASS( "dod_mapmarker", pMarker->pev );
-	i++;
-
-	return pMarker;
-}
-
-LINK_ENTITY_TO_CLASS( dod_mapmarker, CMapMarker );

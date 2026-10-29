@@ -42,6 +42,20 @@ class CGenericMonster : public CBaseMonster
 LINK_ENTITY_TO_CLASS( monster_generic, CGenericMonster );
 
 //=========================================================
+// KeyValue - binary 0x000f53b0: handles "m_bloodColor"
+//=========================================================
+void CGenericMonster ::KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "m_bloodColor" ) )
+	{
+		m_bloodColor = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else
+		CBaseMonster::KeyValue( pkvd );
+}
+
+//=========================================================
 // Classify - indicates this monster's place in the
 // relationship table.
 //=========================================================
@@ -89,20 +103,6 @@ void CGenericMonster ::HandleAnimEvent( MonsterEvent_t *pEvent )
 int CGenericMonster ::ISoundMask( void )
 {
 	return NULL;
-}
-
-//=========================================================
-// KeyValue - binary 0x000f53b0: handles "m_bloodColor"
-//=========================================================
-void CGenericMonster ::KeyValue( KeyValueData *pkvd )
-{
-	if ( FStrEq( pkvd->szKeyName, "m_bloodColor" ) )
-	{
-		m_bloodColor = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else
-		CBaseMonster::KeyValue( pkvd );
 }
 
 //=========================================================

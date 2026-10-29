@@ -24,6 +24,9 @@
 // 0 ALLIEDG_GREN, 1 ALLIEDG_ALERT, 2 ALLIEDG_MONSTER, 3 ALLIEDG_COVER,
 // 4 ALLIEDG_THROW, 5 ALLIEDG_CHARGE, 6 ALLIEDG_TAUNT
 extern char *pAlliedGruntSentences[];
+
+extern DLL_GLOBAL int		g_iSkillLevel;
+
 // Idle uses ALLIEDG_ANSWER, ALLIEDG_CHECK, ALLIEDG_CLEAR, ALLIEDG_IDLE, ALLIEDG_QUEST
 // GetSchedule sets m_iSentence: 3 = COVER, 5 = CHARGE, plus ALLIEDG_ALERT/GREN/MONST/TAUNT/THROW
 
@@ -38,8 +41,6 @@ extern char *pAlliedGruntSentences[];
 
 
 int g_fAlliedGruntQuestion;				// true if an idle grunt asked a question. Cleared when someone answers.
-
-extern DLL_GLOBAL int		g_iSkillLevel;
 
 //=========================================================
 // monster-specific DEFINE's
@@ -180,6 +181,7 @@ public:
 	static const char *pAlliedGruntSentences[];
 };
 
+LINK_ENTITY_TO_CLASS( monster_allied_grunt, CAlliedGrunt );
 
 TYPEDESCRIPTION	CAlliedGrunt::m_SaveData[] = 
 {
@@ -2188,6 +2190,7 @@ void CDeadAlliedGrunt::KeyValue( KeyValueData *pkvd )
 		CBaseMonster::KeyValue( pkvd );
 }
 
+LINK_ENTITY_TO_CLASS( monster_alliedgrunt_dead, CDeadAlliedGrunt );
 
 //=========================================================
 // ********** DeadHGrunt SPAWN **********
@@ -2233,12 +2236,5 @@ void CDeadAlliedGrunt :: Spawn( void )
 
 	MonsterInitDead();
 }
-
-
-LINK_ENTITY_TO_CLASS( monster_allied_grunt, CAlliedGrunt );
-
-LINK_ENTITY_TO_CLASS( monster_alliedgrunt_dead, CDeadAlliedGrunt );
-
-
 
 

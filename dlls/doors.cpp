@@ -25,6 +25,8 @@
 
 extern void SetMovedir( entvars_t *ev );
 
+extern Vector VecBModelOrigin( entvars_t *pevBModel );
+
 #define noiseMoving noise1
 #define noiseArrived noise2
 
@@ -329,6 +331,29 @@ void CBaseDoor::Spawn()
 	m_lastBlockedTimestamp = 0;
 }
 
+void CBaseDoor::Activate( void )
+{
+}
+
+void CBaseDoor::RoundRespawn( void )
+{
+	STOP_SOUND( ENT( pev ), CHAN_STATIC, (char *)STRING( pev->noiseMoving ) );
+	m_vecPosition1 = pev->origin;
+	m_vecPosition2 = m_vecPosition1 + pev->movedir * ( fabs( pev->movedir.x * ( pev->size.x - 2 ) ) + fabs( pev->movedir.y * ( pev->size.y - 2 ) ) + fabs( pev->movedir.z * ( pev->size.z - 2 ) ) - m_flLip );
+	if ( FBitSet( pev->spawnflags, SF_DOOR_START_OPEN ) )
+	{
+		UTIL_SetOrigin( pev, m_vecPosition2 );
+		Vector vecTemp = m_vecPosition2;
+		m_vecPosition2 = m_vecPosition1;
+		m_vecPosition1 = vecTemp;
+	}
+	m_toggle_state = TS_AT_BOTTOM;
+	if ( ( pev->spawnflags & ( SF_DOOR_USE_ONLY | SF_DOOR_TOUCH_ONLY_CLIENTS ) ) != SF_DOOR_USE_ONLY )
+		SetTouch( &CBaseDoor::DoorTouch );
+	else
+		SetTouch( NULL );
+}
+
 void CBaseDoor ::SetToggleState( TOGGLE_STATE state )
 {
 	if ( state == TS_AT_TOP )
@@ -547,8 +572,6 @@ int CBaseDoor::DoorActivate()
 
 	return 1;
 }
-
-extern Vector VecBModelOrigin( entvars_t *pevBModel );
 
 //
 // Starts the door going to its "up" position (simply ToggleData->vecPosition2).
@@ -886,6 +909,10 @@ void CRotDoor::Spawn( void )
 	RoundStore();
 }
 
+void CRotDoor::Activate( void )
+{
+}
+
 void CRotDoor ::SetToggleState( TOGGLE_STATE state )
 {
 	if ( state == TS_AT_TOP )
@@ -894,6 +921,29 @@ void CRotDoor ::SetToggleState( TOGGLE_STATE state )
 		pev->angles = m_vecAngle1;
 
 	UTIL_SetOrigin( pev, pev->origin );
+}
+
+void CRotDoor::RoundRespawn( void )
+{
+	m_vecAngle1 = pev->angles;
+	m_vecAngle2 = pev->angles + pev->movedir * m_flMoveDistance;
+	if ( !FBitSet( pev->spawnflags, SF_DOOR_START_OPEN ) )
+	{
+		pev->angles = m_vecAngle1;
+	}
+	else
+	{
+		pev->angles = m_vecAngle2;
+		Vector vecSav = m_vecAngle1;
+		m_vecAngle2 = m_vecAngle1;
+		m_vecAngle1 = vecSav;
+		pev->movedir = pev->movedir * -1;
+	}
+	m_toggle_state = TS_AT_BOTTOM;
+	if ( ( pev->spawnflags & ( SF_DOOR_USE_ONLY | SF_DOOR_TOUCH_ONLY_CLIENTS ) ) != SF_DOOR_USE_ONLY )
+		SetTouch( &CBaseDoor::DoorTouch );
+	else
+		SetTouch( NULL );
 }
 
 class CMomentaryDoor : public CBaseToggle
@@ -960,6 +1010,10 @@ void CMomentaryDoor::Spawn( void )
 	SetTouch( NULL );
 
 	Precache();
+}
+
+void CMomentaryDoor::Activate( void )
+{
 }
 
 void CMomentaryDoor::Precache( void )
@@ -1031,48 +1085,6 @@ void CMomentaryDoor::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 	m_flLinearMoveSpeed = speed;
 }
 
-void CBaseDoor::RoundRespawn( void )
-{
-	STOP_SOUND( ENT( pev ), CHAN_STATIC, (char *)STRING( pev->noiseMoving ) );
-	m_vecPosition1 = pev->origin;
-	m_vecPosition2 = m_vecPosition1 + pev->movedir * ( fabs( pev->movedir.x * ( pev->size.x - 2 ) ) + fabs( pev->movedir.y * ( pev->size.y - 2 ) ) + fabs( pev->movedir.z * ( pev->size.z - 2 ) ) - m_flLip );
-	if ( FBitSet( pev->spawnflags, SF_DOOR_START_OPEN ) )
-	{
-		UTIL_SetOrigin( pev, m_vecPosition2 );
-		Vector vecTemp = m_vecPosition2;
-		m_vecPosition2 = m_vecPosition1;
-		m_vecPosition1 = vecTemp;
-	}
-	m_toggle_state = TS_AT_BOTTOM;
-	if ( ( pev->spawnflags & ( SF_DOOR_USE_ONLY | SF_DOOR_TOUCH_ONLY_CLIENTS ) ) != SF_DOOR_USE_ONLY )
-		SetTouch( &CBaseDoor::DoorTouch );
-	else
-		SetTouch( NULL );
-}
-
-void CRotDoor::RoundRespawn( void )
-{
-	m_vecAngle1 = pev->angles;
-	m_vecAngle2 = pev->angles + pev->movedir * m_flMoveDistance;
-	if ( !FBitSet( pev->spawnflags, SF_DOOR_START_OPEN ) )
-	{
-		pev->angles = m_vecAngle1;
-	}
-	else
-	{
-		pev->angles = m_vecAngle2;
-		Vector vecSav = m_vecAngle1;
-		m_vecAngle2 = m_vecAngle1;
-		m_vecAngle1 = vecSav;
-		pev->movedir = pev->movedir * -1;
-	}
-	m_toggle_state = TS_AT_BOTTOM;
-	if ( ( pev->spawnflags & ( SF_DOOR_USE_ONLY | SF_DOOR_TOUCH_ONLY_CLIENTS ) ) != SF_DOOR_USE_ONLY )
-		SetTouch( &CBaseDoor::DoorTouch );
-	else
-		SetTouch( NULL );
-}
-
 void CMomentaryDoor::MomentaryMove( void )
 {
 	Vector vecDest = m_vecFinalDest;
@@ -1112,16 +1124,4 @@ void CMomentaryDoor::DoorMoveDone( void )
 {
 	STOP_SOUND( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseMoving ) );
 	EMIT_SOUND( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseArrived ), 1, ATTN_NORM );
-}
-
-void CBaseDoor::Activate( void )
-{
-}
-
-void CRotDoor::Activate( void )
-{
-}
-
-void CMomentaryDoor::Activate( void )
-{
 }

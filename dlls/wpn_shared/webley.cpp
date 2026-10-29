@@ -21,9 +21,9 @@
 
 #include "dod_shared.h"
 
-LINK_ENTITY_TO_CLASS( weapon_webley, CWEBLEY )
-
 extern p_wpninfo_s P_WpnInfo[];
+
+LINK_ENTITY_TO_CLASS( weapon_webley, CWEBLEY )
 
 void CWEBLEY::Spawn( void )
 {
@@ -35,6 +35,14 @@ void CWEBLEY::Spawn( void )
 	m_iDefaultAmmo = P_WpnInfo[WEAPON_WEBLEY].ammo_default;
 
 	FallInit();
+}
+
+int CWEBLEY::AddToPlayer( CBasePlayer *pPlayer )
+{
+	if( CBasePlayerWeapon::AddToPlayer( pPlayer ) )
+		return TRUE;
+
+	return FALSE;
 }
 
 void CWEBLEY::Precache( void )
@@ -66,14 +74,6 @@ int CWEBLEY::GetItemInfo( ItemInfo *p )
 	p->iWeight = P_WpnInfo[WEAPON_WEBLEY].misc_weight;
 
 	return 1;
-}
-
-int CWEBLEY::AddToPlayer( CBasePlayer *pPlayer )
-{
-	if( CBasePlayerWeapon::AddToPlayer( pPlayer ) )
-		return TRUE;
-
-	return FALSE;
 }
 
 BOOL CWEBLEY::Deploy( void )

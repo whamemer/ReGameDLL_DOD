@@ -62,53 +62,12 @@ class CRat : public CBaseMonster
 LINK_ENTITY_TO_CLASS( monster_rat, CRat );
 
 //=========================================================
-// ISoundMask - returns a bit mask indicating which types
-// of sounds this monster regards. In the base class implementation,
-// monsters care about all sounds, but no scents.
-//=========================================================
-int CRat ::ISoundMask( void )
-{
-	return bits_SOUND_CARCASS | bits_SOUND_MEAT | bits_SOUND_PLAYER;
-}
-
-//=========================================================
 // Classify - indicates this monster's place in the
 // relationship table.
 //=========================================================
 int CRat ::Classify( void )
 {
 	return CLASS_INSECT;
-}
-
-//=========================================================
-// Touch
-//=========================================================
-void CRat ::Touch( CBaseEntity *pOther )
-{
-	Vector vecSpot;
-	TraceResult tr;
-
-	if ( pOther->pev->velocity == g_vecZero || !pOther->IsPlayer() )
-	{
-		return;
-	}
-
-	vecSpot = pev->origin + Vector( 0, 0, 8 );	//move up a bit, and trace down.
-	UTIL_TraceLine( vecSpot, vecSpot + Vector( 0, 0, -24 ), ignore_monsters, ENT( pev ), &tr );
-
-	UTIL_DecalTrace( &tr, DECAL_YBLOOD1 + RANDOM_LONG( 0, 5 ) );
-
-	EMIT_SOUND_DYN( ENT( pev ), CHAN_BODY, "roach/rat_bite.wav", 0.7, ATTN_NORM, 0, 80 + RANDOM_LONG( 0, 39 ) );
-
-	pOther->TakeDamage( pev, pev, 10, DMG_GENERIC );
-}
-
-//=========================================================
-// TakeDamage - overridden to just chain to the base monster
-//=========================================================
-int CRat ::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType )
-{
-	return CBaseMonster::TakeDamage( pevInflictor, pevAttacker, flDamage, bitsDamageType );
 }
 
 //=========================================================
@@ -162,33 +121,6 @@ void CRat ::Precache()
 	PRECACHE_SOUND( "roach/rch_walk.wav" );
 	PRECACHE_SOUND( "roach/rch_smash.wav" );
 	PRECACHE_SOUND( "rat_bite.wav" );
-}
-
-//=========================================================
-// Killed.
-//=========================================================
-void CRat ::Killed( entvars_t *pevAttacker, int iGib )
-{
-	pev->solid = SOLID_NOT;
-
-	//random sound
-	if ( RANDOM_LONG( 0, 4 ) == 1 )
-	{
-		EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "roach/rch_die.wav", 0.8, ATTN_NORM, 0, 80 + RANDOM_LONG( 0, 39 ) );
-	}
-	else
-	{
-		EMIT_SOUND_DYN( ENT( pev ), CHAN_BODY, "roach/rch_smash.wav", 0.7, ATTN_NORM, 0, 80 + RANDOM_LONG( 0, 39 ) );
-	}
-
-	CSoundEnt::InsertSound( bits_SOUND_WORLD, pev->origin, 128, 1 );
-
-	CBaseEntity *pOwner = CBaseEntity::Instance( pev->owner );
-	if ( pOwner )
-	{
-		pOwner->DeathNotice( pev );
-	}
-	UTIL_Remove( this );
 }
 
 //=========================================================
@@ -300,6 +232,56 @@ void CRat ::MonsterThink( void )
 }
 
 //=========================================================
+// Touch
+//=========================================================
+void CRat ::Touch( CBaseEntity *pOther )
+{
+	Vector vecSpot;
+	TraceResult tr;
+
+	if ( pOther->pev->velocity == g_vecZero || !pOther->IsPlayer() )
+	{
+		return;
+	}
+
+	vecSpot = pev->origin + Vector( 0, 0, 8 );	//move up a bit, and trace down.
+	UTIL_TraceLine( vecSpot, vecSpot + Vector( 0, 0, -24 ), ignore_monsters, ENT( pev ), &tr );
+
+	UTIL_DecalTrace( &tr, DECAL_YBLOOD1 + RANDOM_LONG( 0, 5 ) );
+
+	EMIT_SOUND_DYN( ENT( pev ), CHAN_BODY, "roach/rat_bite.wav", 0.7, ATTN_NORM, 0, 80 + RANDOM_LONG( 0, 39 ) );
+
+	pOther->TakeDamage( pev, pev, 10, DMG_GENERIC );
+}
+
+//=========================================================
+// Killed.
+//=========================================================
+void CRat ::Killed( entvars_t *pevAttacker, int iGib )
+{
+	pev->solid = SOLID_NOT;
+
+	//random sound
+	if ( RANDOM_LONG( 0, 4 ) == 1 )
+	{
+		EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "roach/rch_die.wav", 0.8, ATTN_NORM, 0, 80 + RANDOM_LONG( 0, 39 ) );
+	}
+	else
+	{
+		EMIT_SOUND_DYN( ENT( pev ), CHAN_BODY, "roach/rch_smash.wav", 0.7, ATTN_NORM, 0, 80 + RANDOM_LONG( 0, 39 ) );
+	}
+
+	CSoundEnt::InsertSound( bits_SOUND_WORLD, pev->origin, 128, 1 );
+
+	CBaseEntity *pOwner = CBaseEntity::Instance( pev->owner );
+	if ( pOwner )
+	{
+		pOwner->DeathNotice( pev );
+	}
+	UTIL_Remove( this );
+}
+
+//=========================================================
 // Picks a new spot for rat to run to.
 //=========================================================
 void CRat ::PickNewDest( int iCondition )
@@ -406,6 +388,14 @@ void CRat ::Move( float flInterval )
 }
 
 //=========================================================
+// TakeDamage - overridden to just chain to the base monster
+//=========================================================
+int CRat ::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType )
+{
+	return CBaseMonster::TakeDamage( pevInflictor, pevAttacker, flDamage, bitsDamageType );
+}
+
+//=========================================================
 // Look - overriden for the rat, which can virtually see
 // 360 degrees.
 //=========================================================
@@ -463,4 +453,14 @@ void CRat ::Look( int iDistance )
 		}
 	}
 	SetConditions( iSighted );
+}
+
+//=========================================================
+// ISoundMask - returns a bit mask indicating which types
+// of sounds this monster regards. In the base class implementation,
+// monsters care about all sounds, but no scents.
+//=========================================================
+int CRat ::ISoundMask( void )
+{
+	return bits_SOUND_CARCASS | bits_SOUND_MEAT | bits_SOUND_PLAYER;
 }

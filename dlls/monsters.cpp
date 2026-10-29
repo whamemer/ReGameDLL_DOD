@@ -34,11 +34,11 @@
 #include "soundent.h"
 #include "gamerules.h"
 
-#define MONSTER_CUT_CORNER_DIST 8  // 8 means the monster's bounding box is contained without the box of the node in WC
-
 Vector VecBModelOrigin( entvars_t *pevBModel );
 
 extern DLL_GLOBAL BOOL g_fDrawLines;
+
+#define MONSTER_CUT_CORNER_DIST 8  // 8 means the monster's bounding box is contained without the box of the node in WC
 extern DLL_GLOBAL short g_sModelIndexLaser;		// holds the index for the laser beam
 extern DLL_GLOBAL short g_sModelIndexLaserDot;	// holds the index for the laser beam dot
 
@@ -2042,6 +2042,38 @@ void CBaseMonster ::MonsterInitThink( void )
 }
 
 //=========================================================
+// StartPatrol - DoD refactor extracted from StartMonster
+//=========================================================
+void CBaseMonster ::StartPatrol( CBaseEntity *path )
+{
+	m_pGoalEnt = path;
+
+	if ( path )
+	{
+		// set the monster up to walk a path corner path.
+		// !!!BUGBUG - this is a minor bit of a hack.
+		m_movementGoal = MOVEGOAL_PATHCORNER;
+
+		if ( pev->movetype == MOVETYPE_FLY )
+			m_movementActivity = ACT_FLY;
+		else
+			m_movementActivity = ACT_WALK;
+
+		if ( !FRefreshRoute() )
+		{
+			ALERT( at_aiconsole, "Can't Create Route!\n" );
+		}
+		SetState( MONSTERSTATE_IDLE );
+		ChangeSchedule( GetScheduleOfType( SCHED_IDLE_WALK ) );
+	}
+	else
+	{
+		ALERT( at_error, "ReadyMonster()--%s couldn't find target %s", STRING( pev->classname ),
+			   STRING( pev->target ) );
+	}
+}
+
+//=========================================================
 // StartMonster - final bit of initization before a monster
 // is turned over to the AI.
 //=========================================================
@@ -2111,38 +2143,6 @@ void CBaseMonster ::StartMonster( void )
 		// UNDONE: Some scripted sequence monsters don't have an idle?
 		SetActivity( ACT_IDLE );
 		ChangeSchedule( GetScheduleOfType( SCHED_WAIT_TRIGGER ) );
-	}
-}
-
-//=========================================================
-// StartPatrol - DoD refactor extracted from StartMonster
-//=========================================================
-void CBaseMonster ::StartPatrol( CBaseEntity *path )
-{
-	m_pGoalEnt = path;
-
-	if ( path )
-	{
-		// set the monster up to walk a path corner path.
-		// !!!BUGBUG - this is a minor bit of a hack.
-		m_movementGoal = MOVEGOAL_PATHCORNER;
-
-		if ( pev->movetype == MOVETYPE_FLY )
-			m_movementActivity = ACT_FLY;
-		else
-			m_movementActivity = ACT_WALK;
-
-		if ( !FRefreshRoute() )
-		{
-			ALERT( at_aiconsole, "Can't Create Route!\n" );
-		}
-		SetState( MONSTERSTATE_IDLE );
-		ChangeSchedule( GetScheduleOfType( SCHED_IDLE_WALK ) );
-	}
-	else
-	{
-		ALERT( at_error, "ReadyMonster()--%s couldn't find target %s", STRING( pev->classname ),
-			   STRING( pev->target ) );
 	}
 }
 
@@ -3236,6 +3236,27 @@ BOOL CBaseMonster ::FCanActiveIdle( void )
 	return FALSE;
 }
 
+void CBaseMonster::PlaySentence( const char *pszSentence, float duration, float volume, float attenuation )
+{
+	if ( pszSentence != NULL && IsAlive() )
+	{
+		if ( *pszSentence == '!' )
+			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, pszSentence, volume, attenuation, 0, 100 );
+		else
+			SENTENCEG_PlayRndSz( ENT( pev ), pszSentence, volume, attenuation, 0, 100 );
+	}
+}
+
+void CBaseMonster::PlayScriptedSentence( const char *pszSentence, float duration, float volume, float attenuation, BOOL bConcurrent, CBaseEntity *pListener )
+{
+	PlaySentence( pszSentence, duration, volume, attenuation );
+}
+
+void CBaseMonster::SentenceStop( void )
+{
+	EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "common/null.wav", 1.0, ATTN_IDLE, 0, 100 );
+}
+
 void CBaseMonster::CorpseFallThink( void )
 {
 	if ( pev->flags & FL_ONGROUND )
@@ -3423,25 +3444,4 @@ BOOL CBaseMonster ::ShouldFadeOnDeath( void )
 		return TRUE;
 
 	return FALSE;
-}
-
-void CBaseMonster::PlaySentence( const char *pszSentence, float duration, float volume, float attenuation )
-{
-	if ( pszSentence != NULL && IsAlive() )
-	{
-		if ( *pszSentence == '!' )
-			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, pszSentence, volume, attenuation, 0, 100 );
-		else
-			SENTENCEG_PlayRndSz( ENT( pev ), pszSentence, volume, attenuation, 0, 100 );
-	}
-}
-
-void CBaseMonster::SentenceStop( void )
-{
-	EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "common/null.wav", 1.0, ATTN_IDLE, 0, 100 );
-}
-
-void CBaseMonster::PlayScriptedSentence( const char *pszSentence, float duration, float volume, float attenuation, BOOL bConcurrent, CBaseEntity *pListener )
-{
-	PlaySentence( pszSentence, duration, volume, attenuation );
 }

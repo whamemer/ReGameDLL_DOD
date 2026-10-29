@@ -20,9 +20,9 @@
 
 #include "dod_shared.h"
 
-LINK_ENTITY_TO_CLASS( weapon_mg34, CMG34 )
-
 extern p_wpninfo_s P_WpnInfo[];
+
+LINK_ENTITY_TO_CLASS( weapon_mg34, CMG34 )
 
 void CMG34::Spawn( void )
 {
@@ -78,6 +78,14 @@ int CMG34::GetDrawAnim( void )
 	return GetDownToUpAnim();
 }
 
+int CMG34::GetIdleAnim( void )
+{
+	if( IsDeployed() )
+		return m_iClip <= 0 ? MG34_DOWNIDLEEMPTY : MG34_DOWNIDLE;
+
+	return m_iClip <= 0 ? MG34_UPIDLEEMPTY : MG34_UPIDLE;
+}
+
 int CMG34::GetUpToDownAnim( void )
 {
 	return m_iClip <= 0 ? MG34_UPTODOWNEMPTY : MG34_UPTODOWN;
@@ -86,14 +94,6 @@ int CMG34::GetUpToDownAnim( void )
 int CMG34::GetDownToUpAnim( void )
 {
 	return m_iClip <= 0 ? MG34_DOWNTOUPEMPTY : MG34_DOWNTOUP;
-}
-
-int CMG34::GetIdleAnim( void )
-{
-	if( IsDeployed() )
-		return m_iClip <= 0 ? MG34_DOWNIDLEEMPTY : MG34_DOWNIDLE;
-
-	return m_iClip <= 0 ? MG34_UPIDLEEMPTY : MG34_UPIDLE;
 }
 
 class CMG34AmmoClip : public CBasePlayerAmmo

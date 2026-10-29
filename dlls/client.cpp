@@ -39,9 +39,9 @@
 #include "netadr.h"
 #include "pm_shared.h"
 
-#if !defined( _WIN32 )
-#include <ctype.h>
-#endif
+#include "voice_gamemgr.h"
+
+#include "entity_state.h"
 
 extern DLL_GLOBAL ULONG g_ulModelIndexPlayer;
 extern DLL_GLOBAL BOOL g_fGameOver;
@@ -56,12 +56,24 @@ extern int g_teamplay;
 
 extern cvar_t cvar_timelimit;
 extern cvar_t cvar_teamplay;
-float g_flTimeLimit;
 extern cvar_t *pcvar_mp_clan_match;
 extern cvar_t *pcvar_mp_chatmsg;
 extern void GetCVARPointers( void );
 
 void LinkUserMessages( void );
+extern CVoiceGameMgr g_VoiceGameMgr;
+
+extern char *sPlayerModelFiles[];
+extern char *s_USVoiceFiles[];
+extern char *s_GERVoiceFiles[];
+extern char *s_BRITVoiceFiles[];
+extern char *sHelmetModels[];
+
+#if !defined( _WIN32 )
+#include <ctype.h>
+#endif
+
+float g_flTimeLimit;
 
 // Returns the number of seconds left on the map timer (clamped to >= 0),
 // or 0 when mp_timelimit is disabled.
@@ -233,9 +245,6 @@ void ClientPutInServer( edict_t *pEntity )
 	SET_MODEL( ENT( pPlayer->pev ), "models/player.mdl" );
 	pPlayer->SetThink( NULL );
 }
-
-#include "voice_gamemgr.h"
-extern CVoiceGameMgr g_VoiceGameMgr;
 
 //// HOST_SAY
 // String comes in as
@@ -772,12 +781,6 @@ void StartFrame( void )
 	g_ulFrameCount++;
 }
 
-extern char *sPlayerModelFiles[];
-extern char *s_USVoiceFiles[];
-extern char *s_GERVoiceFiles[];
-extern char *s_BRITVoiceFiles[];
-extern char *sHelmetModels[];
-
 void ClientPrecache( void )
 {
 	// setup precaches always needed
@@ -1050,6 +1053,18 @@ void ClientPrecache( void )
 }
 
 /*
+================
+Sys_Error
+
+Engine is going to shut down, allows setting a breakpoint in game .dll to catch that occasion
+================
+*/
+void Sys_Error( const char *error_string )
+{
+	// Default case, do nothing.  MOD AUTHORS:  Add code ( e.g., _asm { int 3 }; here to cause a breakpoint for debugging your game .dlls
+}
+
+/*
 ===============
 GetGameDescription
 
@@ -1061,18 +1076,6 @@ const char *GetGameDescription( void )
 	if ( g_pGameRules )
 		return g_pGameRules->GetGameDescription();
 	return "Day of Defeat";
-}
-
-/*
-================
-Sys_Error
-
-Engine is going to shut down, allows setting a breakpoint in game .dll to catch that occasion
-================
-*/
-void Sys_Error( const char *error_string )
-{
-	// Default case, do nothing.  MOD AUTHORS:  Add code ( e.g., _asm { int 3 }; here to cause a breakpoint for debugging your game .dlls
 }
 
 /*
@@ -1217,8 +1220,6 @@ void SetupVisibility( edict_t *pViewEntity, edict_t *pClient, unsigned char **pv
 	*pvs = ENGINE_SET_PVS( (float *) &org );
 	*pas = ENGINE_SET_PAS( (float *) &org );
 }
-
-#include "entity_state.h"
 
 ////////////////////////////////////////////////////////
 // DoD per-player PVS tracking (client.cpp:1510-1585)

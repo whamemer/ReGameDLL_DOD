@@ -48,6 +48,12 @@ void CPointEntity ::Spawn( void )
 	}
 }
 
+void CPointEntity::Precache( void )
+{
+	if ( pev->spawnflags & SF_POINT_NULL_SPRITE )
+		PRECACHE_MODEL( "sprites/null.spr" );
+}
+
 class CNullEntity : public CBaseEntity
 {
   public:
@@ -63,9 +69,13 @@ LINK_ENTITY_TO_CLASS( info_null, CNullEntity );
 
 // These are the new entry points to entities.
 LINK_ENTITY_TO_CLASS( info_player_deathmatch, CBaseDMStart );
-LINK_ENTITY_TO_CLASS( info_player_allies, CBaseDMStart );
+
 LINK_ENTITY_TO_CLASS( info_player_axis, CBaseDMStart );
+LINK_ENTITY_TO_CLASS( info_player_allies, CBaseDMStart );
 LINK_ENTITY_TO_CLASS( info_player_observer, CBaseDMStart );
+LINK_ENTITY_TO_CLASS( info_initial_player_axis, CBaseEntity )
+
+LINK_ENTITY_TO_CLASS( info_initial_player_allies, CBaseEntity )
 LINK_ENTITY_TO_CLASS( info_player_start, CPointEntity );
 LINK_ENTITY_TO_CLASS( info_landmark, CPointEntity );
 
@@ -266,6 +276,61 @@ void FireTargets( const char *targetName, CBaseEntity *pActivator, CBaseEntity *
 			}
 		}
 	}
+}
+
+char szCutsceneNames[9][32] = {
+	"",
+	"axis_spawn_cut",
+	"allie_spawn_cut",
+	"axis_win_cut",
+	"allies_win_cut",
+	"axis_loose_cut",
+	"allies_loose_cut",
+	"axis_draw_cut",
+	"allies_draw_cut",
+};
+
+void FireDODCameraTargets( const char *targetName, CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType,
+						   float value )
+{
+	// binary-verified 0x14a450 subs.cpp:338: sets iuser2 from targetname vs szCutsceneNames, honors KILL + 6 no-op
+	if ( !targetName )
+		return;
+	if ( useType == USE_NOT )
+		return;
+	edict_t *pentT = NULL;
+	ALERT( at_aiconsole, "Firing: (%s)\n", targetName );
+	for ( ;; )
+	{
+		pentT = FIND_ENTITY_BY_TARGETNAME( pentT, targetName );
+		if ( FNullEnt( pentT ) )
+			break;
+		CBaseEntity *pT = CBaseEntity::Instance( pentT );
+		if ( !pT || ( pT->pev->flags & FL_KILLME ) )
+			continue;
+		if ( useType == USE_KILL )
+		{
+			ALERT( at_aiconsole, "Use_kill on %s\n", STRING( pT->pev->classname ) );
+			UTIL_Remove( pT );
+			continue;
+		}
+		ALERT( at_aiconsole, "Found: %s, firing (%s)\n", STRING( pT->pev->classname ), targetName );
+		pT->pev->iuser2 = 0;
+		for ( int i = 0; i < 9; i++ )
+		{
+			if ( strcmp( targetName, szCutsceneNames[i] ) == 0 )
+				pT->pev->iuser2 = i;
+		}
+		pT->Use( pActivator, pCaller, useType, value );
+	}
+}
+void FireDODCamera( const char *targetName, CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType,
+					float value )
+{
+	extern cvar_t cvar_clanMatch;
+	extern cvar_t cvar_showCutscenes;
+	if ( cvar_clanMatch.value == 0.0 && cvar_showCutscenes.value > 0.0 )
+		FireDODCameraTargets( (char *) targetName, pActivator, pCaller, useType, value );
 }
 
 LINK_ENTITY_TO_CLASS( DelayedUse, CBaseDelay );
@@ -498,6 +563,23 @@ BOOL CBaseToggle ::IsLockedByMaster( void )
 		return FALSE;
 }
 
+// Maps TOGGLE_STATE to the DoD STATE enum: table 0x19a628 = {2,0,1,3}.
+STATE CBaseToggle::GetState( void )
+{
+	switch ( m_toggle_state )
+	{
+		case TS_AT_TOP:
+			return STATE_ON;
+		case TS_AT_BOTTOM:
+			return STATE_OFF;
+		case TS_GOING_UP:
+			return STATE_TURN_ON;
+		case TS_GOING_DOWN:
+			return STATE_TURN_OFF;
+	}
+	return STATE_OFF;
+}
+
 /*
 =============
 AngularMove
@@ -603,84 +685,3 @@ BOOL FEntIsVisible( entvars_t *pev, entvars_t *pevTarget )
 
 	return FALSE;
 }
-
-char szCutsceneNames[9][32] = {
-	"",
-	"axis_spawn_cut",
-	"allie_spawn_cut",
-	"axis_win_cut",
-	"allies_win_cut",
-	"axis_loose_cut",
-	"allies_loose_cut",
-	"axis_draw_cut",
-	"allies_draw_cut",
-};
-
-void FireDODCameraTargets( const char *targetName, CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType,
-						   float value )
-{
-	// binary-verified 0x14a450 subs.cpp:338: sets iuser2 from targetname vs szCutsceneNames, honors KILL + 6 no-op
-	if ( !targetName )
-		return;
-	if ( useType == USE_NOT )
-		return;
-	edict_t *pentT = NULL;
-	ALERT( at_aiconsole, "Firing: (%s)\n", targetName );
-	for ( ;; )
-	{
-		pentT = FIND_ENTITY_BY_TARGETNAME( pentT, targetName );
-		if ( FNullEnt( pentT ) )
-			break;
-		CBaseEntity *pT = CBaseEntity::Instance( pentT );
-		if ( !pT || ( pT->pev->flags & FL_KILLME ) )
-			continue;
-		if ( useType == USE_KILL )
-		{
-			ALERT( at_aiconsole, "Use_kill on %s\n", STRING( pT->pev->classname ) );
-			UTIL_Remove( pT );
-			continue;
-		}
-		ALERT( at_aiconsole, "Found: %s, firing (%s)\n", STRING( pT->pev->classname ), targetName );
-		pT->pev->iuser2 = 0;
-		for ( int i = 0; i < 9; i++ )
-		{
-			if ( strcmp( targetName, szCutsceneNames[i] ) == 0 )
-				pT->pev->iuser2 = i;
-		}
-		pT->Use( pActivator, pCaller, useType, value );
-	}
-}
-void FireDODCamera( const char *targetName, CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType,
-					float value )
-{
-	extern cvar_t cvar_clanMatch;
-	extern cvar_t cvar_showCutscenes;
-	if ( cvar_clanMatch.value == 0.0 && cvar_showCutscenes.value > 0.0 )
-		FireDODCameraTargets( (char *) targetName, pActivator, pCaller, useType, value );
-}
-
-void CPointEntity::Precache( void )
-{
-	if ( pev->spawnflags & SF_POINT_NULL_SPRITE )
-		PRECACHE_MODEL( "sprites/null.spr" );
-}
-
-// Maps TOGGLE_STATE to the DoD STATE enum: table 0x19a628 = {2,0,1,3}.
-STATE CBaseToggle::GetState( void )
-{
-	switch ( m_toggle_state )
-	{
-		case TS_AT_TOP:
-			return STATE_ON;
-		case TS_AT_BOTTOM:
-			return STATE_OFF;
-		case TS_GOING_UP:
-			return STATE_TURN_ON;
-		case TS_GOING_DOWN:
-			return STATE_TURN_OFF;
-	}
-	return STATE_OFF;
-}
-
-LINK_ENTITY_TO_CLASS( info_initial_player_allies, CBaseEntity )
-LINK_ENTITY_TO_CLASS( info_initial_player_axis, CBaseEntity )

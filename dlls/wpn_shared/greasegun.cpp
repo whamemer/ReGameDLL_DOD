@@ -21,9 +21,9 @@
 
 #include "dod_shared.h"
 
-LINK_ENTITY_TO_CLASS( weapon_greasegun, CGreaseGun )
-
 extern p_wpninfo_s P_WpnInfo[];
+
+LINK_ENTITY_TO_CLASS( weapon_greasegun, CGreaseGun )
 
 void CGreaseGun::Spawn( void )
 {
@@ -73,14 +73,6 @@ int CGreaseGun::AddToPlayer( CBasePlayer *pPlayer )
 	return FALSE;
 }
 
-BOOL CGreaseGun::SpawnDeploy( void )
-{
-	m_pPlayer->m_iFOV = ZoomOut();
-	UpdateZoomSpeed();
-
-	return TimedDeploy( P_WpnInfo[WEAPON_GREASEGUN].vmodel, P_WpnInfo[WEAPON_GREASEGUN].pmodel, GREASEGUN_DRAW, P_WpnInfo[WEAPON_GREASEGUN].szAnimExt, P_WpnInfo[WEAPON_GREASEGUN].szAnimReloadExt, 1.6f, 1.6f, UseDecrement() != 0 );
-}
-
 BOOL CGreaseGun::Deploy( void )
 {
 	m_pPlayer->m_iFOV = ZoomOut();
@@ -89,6 +81,14 @@ BOOL CGreaseGun::Deploy( void )
 	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 1.0f;
 
 	return DefaultDeploy( P_WpnInfo[WEAPON_GREASEGUN].vmodel, P_WpnInfo[WEAPON_GREASEGUN].pmodel, GREASEGUN_FAST_DRAW, P_WpnInfo[WEAPON_GREASEGUN].szAnimExt, P_WpnInfo[WEAPON_GREASEGUN].szAnimReloadExt, 0 );
+}
+
+BOOL CGreaseGun::SpawnDeploy( void )
+{
+	m_pPlayer->m_iFOV = ZoomOut();
+	UpdateZoomSpeed();
+
+	return TimedDeploy( P_WpnInfo[WEAPON_GREASEGUN].vmodel, P_WpnInfo[WEAPON_GREASEGUN].pmodel, GREASEGUN_DRAW, P_WpnInfo[WEAPON_GREASEGUN].szAnimExt, P_WpnInfo[WEAPON_GREASEGUN].szAnimReloadExt, 1.6f, 1.6f, UseDecrement() != 0 );
 }
 
 BOOL CGreaseGun::CanHolster( void )

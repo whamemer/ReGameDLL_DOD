@@ -16,10 +16,81 @@
 #include "eiface.h"
 #include "util.h"
 #include "game.h"
+cvar_t cvar_timelimit = { "mp_timelimit", "0", FCVAR_SERVER };
+cvar_t cvar_friendlyfire = { "mp_friendlyfire", "0", FCVAR_SERVER };
+cvar_t cvar_falldamage = { "mp_falldamage", "0", FCVAR_SERVER };
+cvar_t cvar_flashlight = { "mp_flashlight", "0", FCVAR_SERVER };
 
 cvar_t cvar_fadetoblack = { "mp_fadetoblack", "0", FCVAR_SERVER };
 cvar_t cvar_forcechasecam = { "mp_forcechasecam", "1", FCVAR_SERVER };
 cvar_t cvar_forcecamera = { "mp_forcecamera", "1", FCVAR_SERVER };
+cvar_t cvar_waveTime = { "mp_clan_respawntime", "0", FCVAR_SERVER };
+cvar_t cvar_clanRestartRound = { "mp_clan_restartround", "0", FCVAR_SERVER };
+cvar_t cvar_clanReadyRestart = { "mp_clan_readyrestart", "0", FCVAR_SERVER };
+cvar_t cvar_clanMatchWarmup = { "mp_clan_match_warmup", "0", FCVAR_SERVER };
+cvar_t cvar_clanMatch = { "mp_clan_match", "0", FCVAR_SERVER };
+cvar_t cvar_clanTimer = { "mp_clan_timer", "20", FCVAR_SERVER };
+cvar_t cvar_clanScoring = { "mp_clan_scoring", "0", FCVAR_SERVER };
+cvar_t cvar_clanScoringValuesAllies = { "mp_clan_scoring_values_allies", "111111", FCVAR_SERVER };
+cvar_t cvar_clanScoringValuesAxis = { "mp_clan_scoring_values_axis", "111111", FCVAR_SERVER };
+cvar_t cvar_clanScoringDelay = { "mp_clan_scoring_delay", "60", FCVAR_SERVER };
+cvar_t cvar_clanReadyString = { "mp_clan_ready_signal", "ready", FCVAR_SERVER };
+cvar_t cvar_clanScoringBonusAllies = { "mp_clan_scoring_bonus_allies", "-1", FCVAR_SERVER };
+cvar_t cvar_clanScoringBonusAxis = { "mp_clan_scoring_bonus_axis", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAlliesGarand = { "mp_limitalliesgarand", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAlliesCarbine = { "mp_limitalliescarbine", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAlliesThompson = { "mp_limitalliesthompson", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAlliesGreaseGun = { "mp_limitalliesgreasegun", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAlliesSpring = { "mp_limitalliesspring", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAlliesBAR = { "mp_limitalliesbar", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAllies30cal = { "mp_limitallies30cal", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAlliesBazooka = { "mp_limitalliesbazooka", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAlliesMortar = { "mp_limitalliesmortar", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAxisKar = { "mp_limitaxiskar", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAxisK43 = { "mp_limitaxisk43", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAxisScopedKar = { "mp_limitaxisscopedkar", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAxisMP40 = { "mp_limitaxismp40", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAxisMP44 = { "mp_limitaxismp44", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAxisFG42 = { "mp_limitaxisfg42", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAxisFG42scope = { "mp_limitaxisfg42s", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAxisMG34 = { "mp_limitaxismg34", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAxisMG42 = { "mp_limitaxismg42", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAxisPschreck = { "mp_limitaxispschreck", "-1", FCVAR_SERVER };
+cvar_t cvar_limitAxisMortar = { "mp_limitaxismortar", "-1", FCVAR_SERVER };
+cvar_t cvar_limitBritLight = { "mp_limitbritlight", "-1", FCVAR_SERVER };
+cvar_t cvar_limitBritMedium = { "mp_limitbritassault", "-1", FCVAR_SERVER };
+cvar_t cvar_limitBritSniper = { "mp_limitbritsniper", "-1", FCVAR_SERVER };
+cvar_t cvar_limitBritMger = { "mp_limitbritmg", "-1", FCVAR_SERVER };
+cvar_t cvar_limitBritPiat = { "mp_limitbritpiat", "-1", FCVAR_SERVER };
+cvar_t cvar_limitBritMortar = { "mp_limitbritmortar", "-1", FCVAR_SERVER };
+cvar_t cvar_displaysoundlist = { "displaysoundlist", "0", 0 };
+cvar_t cvar_teamplay = { "mp_teamplay", "0", 0 };
+cvar_t cvar_decalfrequency = { "decalfrequency", "30", 0 };
+cvar_t cvar_teamoverride = { "mp_teamoverride", "1", 0 };
+cvar_t cvar_defaultteam = { "mp_defaultteam", "0", 0 };
+cvar_t cvar_chattime = { "mp_chattime", "10", 0 };
+cvar_t cvar_nummapmarkers = { "mp_nummapmarkers", "1", 0 };
+cvar_t cvar_markerstaytime = { "mp_markerstaytime", "30", 0 };
+cvar_t cvar_dev_serverhitbox = { "dev_serverhitbox", "0", 0 };
+cvar_t cvar_teamSpectators = { "mp_allowspectators", "1", 0 };
+cvar_t cvar_showCutscenes = { "mp_clan_showcutscenes", "1", 0 };
+cvar_t cvar_logScores = { "mp_log_scores", "0", 0 };
+cvar_t cvar_logScoresDelay = { "mp_log_scores_delay", "60", 0 };
+cvar_t cvar_tkPenalty = { "mp_tkpenalty", "6", 0 };
+cvar_t cvar_teamOver = { "mp_teamlimit", "2", 0 };
+cvar_t cvar_deathMsg = { "mp_deathmsg", "1", 0 };
+cvar_t cvar_chatMsg = { "mp_chatmsg", "1", 0 };
+cvar_t cvar_teamlist = { "mp_teamlist", "hgrunt;scientist", 0 };
+cvar_t cvar_weaponstay = { "mp_weaponstay", "0", 0 };
+cvar_t cvar_combinemglimits = { "mp_combinemglimits", "0", 0 };
+cvar_t cvar_alliesclasses = { "mp_alliesclasses", "-1", 0 };
+cvar_t cvar_axisclasses = { "mp_axisclasses", "-1", 0 };
+
+// END Cvars for Skill Level settings
+
+// DoD 69 cvars - PORTED from dod.so GameDLLInit link 0x0f3800 Ghidra 0x103800 size 0x1070 (dod/dlls/game.cpp:516)
+// Order below is binary registration order; defs in .data order. Defaults/flags via objdump/nm.
+cvar_t cvar_spawnbazookas = { "mp_spawnbazookas", "0", 0 };
 
 // Engine Cvars
 cvar_t *g_psv_gravity = NULL;
@@ -399,77 +470,6 @@ cvar_t sk_player_arm3 = { "sk_player_arm3", "1" };
 cvar_t sk_player_leg1 = { "sk_player_leg1", "1" };
 cvar_t sk_player_leg2 = { "sk_player_leg2", "1" };
 cvar_t sk_player_leg3 = { "sk_player_leg3", "1" };
-
-// END Cvars for Skill Level settings
-
-// DoD 69 cvars - PORTED from dod.so GameDLLInit link 0x0f3800 Ghidra 0x103800 size 0x1070 (dod/dlls/game.cpp:516)
-// Order below is binary registration order; defs in .data order. Defaults/flags via objdump/nm.
-cvar_t cvar_spawnbazookas = { "mp_spawnbazookas", "0", 0 };
-cvar_t cvar_axisclasses = { "mp_axisclasses", "-1", 0 };
-cvar_t cvar_alliesclasses = { "mp_alliesclasses", "-1", 0 };
-cvar_t cvar_combinemglimits = { "mp_combinemglimits", "0", 0 };
-cvar_t cvar_weaponstay = { "mp_weaponstay", "0", 0 };
-cvar_t cvar_teamlist = { "mp_teamlist", "hgrunt;scientist", 0 };
-cvar_t cvar_chatMsg = { "mp_chatmsg", "1", 0 };
-cvar_t cvar_deathMsg = { "mp_deathmsg", "1", 0 };
-cvar_t cvar_teamOver = { "mp_teamlimit", "2", 0 };
-cvar_t cvar_tkPenalty = { "mp_tkpenalty", "6", 0 };
-cvar_t cvar_logScoresDelay = { "mp_log_scores_delay", "60", 0 };
-cvar_t cvar_logScores = { "mp_log_scores", "0", 0 };
-cvar_t cvar_showCutscenes = { "mp_clan_showcutscenes", "1", 0 };
-cvar_t cvar_teamSpectators = { "mp_allowspectators", "1", 0 };
-cvar_t cvar_dev_serverhitbox = { "dev_serverhitbox", "0", 0 };
-cvar_t cvar_markerstaytime = { "mp_markerstaytime", "30", 0 };
-cvar_t cvar_nummapmarkers = { "mp_nummapmarkers", "1", 0 };
-cvar_t cvar_chattime = { "mp_chattime", "10", 0 };
-cvar_t cvar_defaultteam = { "mp_defaultteam", "0", 0 };
-cvar_t cvar_teamoverride = { "mp_teamoverride", "1", 0 };
-cvar_t cvar_decalfrequency = { "decalfrequency", "30", 0 };
-cvar_t cvar_teamplay = { "mp_teamplay", "0", 0 };
-cvar_t cvar_displaysoundlist = { "displaysoundlist", "0", 0 };
-cvar_t cvar_limitBritMortar = { "mp_limitbritmortar", "-1", FCVAR_SERVER };
-cvar_t cvar_limitBritPiat = { "mp_limitbritpiat", "-1", FCVAR_SERVER };
-cvar_t cvar_limitBritMger = { "mp_limitbritmg", "-1", FCVAR_SERVER };
-cvar_t cvar_limitBritSniper = { "mp_limitbritsniper", "-1", FCVAR_SERVER };
-cvar_t cvar_limitBritMedium = { "mp_limitbritassault", "-1", FCVAR_SERVER };
-cvar_t cvar_limitBritLight = { "mp_limitbritlight", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAxisMortar = { "mp_limitaxismortar", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAxisPschreck = { "mp_limitaxispschreck", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAxisMG42 = { "mp_limitaxismg42", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAxisMG34 = { "mp_limitaxismg34", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAxisFG42scope = { "mp_limitaxisfg42s", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAxisFG42 = { "mp_limitaxisfg42", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAxisMP44 = { "mp_limitaxismp44", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAxisMP40 = { "mp_limitaxismp40", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAxisScopedKar = { "mp_limitaxisscopedkar", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAxisK43 = { "mp_limitaxisk43", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAxisKar = { "mp_limitaxiskar", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAlliesMortar = { "mp_limitalliesmortar", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAlliesBazooka = { "mp_limitalliesbazooka", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAllies30cal = { "mp_limitallies30cal", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAlliesBAR = { "mp_limitalliesbar", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAlliesSpring = { "mp_limitalliesspring", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAlliesGreaseGun = { "mp_limitalliesgreasegun", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAlliesThompson = { "mp_limitalliesthompson", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAlliesCarbine = { "mp_limitalliescarbine", "-1", FCVAR_SERVER };
-cvar_t cvar_limitAlliesGarand = { "mp_limitalliesgarand", "-1", FCVAR_SERVER };
-cvar_t cvar_clanScoringBonusAxis = { "mp_clan_scoring_bonus_axis", "-1", FCVAR_SERVER };
-cvar_t cvar_clanScoringBonusAllies = { "mp_clan_scoring_bonus_allies", "-1", FCVAR_SERVER };
-cvar_t cvar_clanReadyString = { "mp_clan_ready_signal", "ready", FCVAR_SERVER };
-cvar_t cvar_clanScoringDelay = { "mp_clan_scoring_delay", "60", FCVAR_SERVER };
-cvar_t cvar_clanScoringValuesAxis = { "mp_clan_scoring_values_axis", "111111", FCVAR_SERVER };
-cvar_t cvar_clanScoringValuesAllies = { "mp_clan_scoring_values_allies", "111111", FCVAR_SERVER };
-cvar_t cvar_clanScoring = { "mp_clan_scoring", "0", FCVAR_SERVER };
-cvar_t cvar_clanTimer = { "mp_clan_timer", "20", FCVAR_SERVER };
-cvar_t cvar_clanMatch = { "mp_clan_match", "0", FCVAR_SERVER };
-cvar_t cvar_clanMatchWarmup = { "mp_clan_match_warmup", "0", FCVAR_SERVER };
-cvar_t cvar_clanReadyRestart = { "mp_clan_readyrestart", "0", FCVAR_SERVER };
-cvar_t cvar_clanRestartRound = { "mp_clan_restartround", "0", FCVAR_SERVER };
-cvar_t cvar_waveTime = { "mp_clan_respawntime", "0", FCVAR_SERVER };
-cvar_t cvar_flashlight = { "mp_flashlight", "0", FCVAR_SERVER };
-cvar_t cvar_falldamage = { "mp_falldamage", "0", FCVAR_SERVER };
-cvar_t cvar_friendlyfire = { "mp_friendlyfire", "0", FCVAR_SERVER };
-cvar_t cvar_timelimit = { "mp_timelimit", "0", FCVAR_SERVER };
 
 // Register your console variables here
 // This gets called one time when the game is initialied

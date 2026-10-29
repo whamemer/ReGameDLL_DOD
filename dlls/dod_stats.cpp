@@ -10,6 +10,8 @@ CDoDStatMgr *g_DoDStats;
 
 char StatNames[4][64] = { "Kills", "Deaths", "Hits", "Shots" };
 
+LINK_ENTITY_TO_CLASS( dod_stats, CDoDStatMgr );
+
 CDoDStatMgr::CDoDStatMgr( void )
 {
 	memset( m_PlayerStats, 0, sizeof( m_PlayerStats ) );
@@ -47,5 +49,3 @@ void CDoDStatMgr::PrintPlayerStats( int index )
 		ClientPrint( pEnt->pev, HUD_PRINTCONSOLE, buf, 0, 0, 0, 0 );
 	}
 }
-
-LINK_ENTITY_TO_CLASS( dod_stats, CDoDStatMgr );

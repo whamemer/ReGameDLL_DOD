@@ -141,6 +141,87 @@ void CBasePlayer::SendObserverTargetWeaponAnim()
 	MESSAGE_END();
 }
 
+void CBasePlayer::Observer_HandleButtons()
+{
+	// Slow down mouse clicks
+	if ( m_flNextObserverInput > gpGlobals->time )
+		return;
+
+	// Jump changes from modes: Chase to Roaming
+	if ( m_afButtonPressed & IN_JUMP )
+	{
+		if ( pev->iuser1 == OBS_CHASE_LOCKED )
+			Observer_SetMode( OBS_CHASE_FREE );
+		else if ( pev->iuser1 == OBS_CHASE_FREE )
+			Observer_SetMode( OBS_IN_EYE );
+		else if ( pev->iuser1 == OBS_IN_EYE )
+			Observer_SetMode( OBS_ROAMING );
+		else if ( pev->iuser1 == OBS_ROAMING )
+			Observer_SetMode( OBS_CHASE_FREE );
+		else
+			Observer_SetMode( OBS_CHASE_FREE );
+
+		m_flNextObserverInput = gpGlobals->time + 0.2;
+	}
+
+	// Attack moves to the next player
+	if ( m_afButtonPressed & IN_ATTACK )
+	{
+		Observer_FindNextPlayer( false );
+		m_flNextObserverInput = gpGlobals->time + 0.2;
+	}
+
+	// Attack2 moves to the prev player
+	if ( m_afButtonPressed & IN_ATTACK2 )
+	{
+		Observer_FindNextPlayer( true );
+		m_flNextObserverInput = gpGlobals->time + 0.2;
+	}
+}
+
+void CBasePlayer::Observer_CheckTarget()
+{
+	if ( pev->iuser1 == OBS_ROAMING )
+		return;
+
+	// try to find a target if we have no current one
+	if ( m_hObserverTarget == NULL )
+	{
+		Observer_FindNextPlayer( false );
+
+		if ( m_hObserverTarget == NULL )
+		{
+			// no target found at all
+			int lastMode = pev->iuser1;
+
+			Observer_SetMode( OBS_ROAMING );
+
+			m_iObserverLastMode = lastMode;	 // don't overwrite users lastmode
+
+			return;	 // we still have no target return
+		}
+	}
+
+	CBasePlayer *target = (CBasePlayer *)( UTIL_PlayerByIndex( ENTINDEX( m_hObserverTarget->edict() ) ) );
+
+	if ( !target )
+	{
+		Observer_FindNextPlayer( false );
+		return;
+	}
+
+	// check target
+	if ( target->pev->deadflag == DEAD_DYING )
+	{
+		if ( ( target->m_fDeadTime + 2.0f ) < gpGlobals->time )
+		{
+			// 2 secs after death change target
+			Observer_FindNextPlayer( false );
+			return;
+		}
+	}
+}
+
 void CBasePlayer::Observer_CheckProperties()
 {
 	// try to find a target if we have no current one
@@ -262,87 +343,6 @@ void CBasePlayer::Observer_SetMode( int iMode )
 
 	if ( pev->iuser1 == OBS_IN_EYE && m_hObserverTarget != NULL )
 		SendObserverTargetWeaponAnim();
-}
-
-void CBasePlayer::Observer_CheckTarget()
-{
-	if ( pev->iuser1 == OBS_ROAMING )
-		return;
-
-	// try to find a target if we have no current one
-	if ( m_hObserverTarget == NULL )
-	{
-		Observer_FindNextPlayer( false );
-
-		if ( m_hObserverTarget == NULL )
-		{
-			// no target found at all
-			int lastMode = pev->iuser1;
-
-			Observer_SetMode( OBS_ROAMING );
-
-			m_iObserverLastMode = lastMode;	 // don't overwrite users lastmode
-
-			return;	 // we still have no target return
-		}
-	}
-
-	CBasePlayer *target = (CBasePlayer *)( UTIL_PlayerByIndex( ENTINDEX( m_hObserverTarget->edict() ) ) );
-
-	if ( !target )
-	{
-		Observer_FindNextPlayer( false );
-		return;
-	}
-
-	// check target
-	if ( target->pev->deadflag == DEAD_DYING )
-	{
-		if ( ( target->m_fDeadTime + 2.0f ) < gpGlobals->time )
-		{
-			// 2 secs after death change target
-			Observer_FindNextPlayer( false );
-			return;
-		}
-	}
-}
-
-void CBasePlayer::Observer_HandleButtons()
-{
-	// Slow down mouse clicks
-	if ( m_flNextObserverInput > gpGlobals->time )
-		return;
-
-	// Jump changes from modes: Chase to Roaming
-	if ( m_afButtonPressed & IN_JUMP )
-	{
-		if ( pev->iuser1 == OBS_CHASE_LOCKED )
-			Observer_SetMode( OBS_CHASE_FREE );
-		else if ( pev->iuser1 == OBS_CHASE_FREE )
-			Observer_SetMode( OBS_IN_EYE );
-		else if ( pev->iuser1 == OBS_IN_EYE )
-			Observer_SetMode( OBS_ROAMING );
-		else if ( pev->iuser1 == OBS_ROAMING )
-			Observer_SetMode( OBS_CHASE_FREE );
-		else
-			Observer_SetMode( OBS_CHASE_FREE );
-
-		m_flNextObserverInput = gpGlobals->time + 0.2;
-	}
-
-	// Attack moves to the next player
-	if ( m_afButtonPressed & IN_ATTACK )
-	{
-		Observer_FindNextPlayer( false );
-		m_flNextObserverInput = gpGlobals->time + 0.2;
-	}
-
-	// Attack2 moves to the prev player
-	if ( m_afButtonPressed & IN_ATTACK2 )
-	{
-		Observer_FindNextPlayer( true );
-		m_flNextObserverInput = gpGlobals->time + 0.2;
-	}
 }
 
 void CBasePlayer::StartObserver( Vector vecPosition, Vector vecViewAngle )

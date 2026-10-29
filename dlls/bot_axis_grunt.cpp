@@ -24,6 +24,9 @@
 // 0 AXISG_GREN, 1 AXISG_ALERT, 2 AXISG_MONSTER, 3 AXISG_COVER,
 // 4 AXISG_THROW, 5 AXISG_CHARGE, 6 AXISG_TAUNT
 extern char *pAxisGruntSentences[];
+
+extern DLL_GLOBAL int		g_iSkillLevel;
+
 // Idle uses AXISG_ANSWER, AXISG_CHECK, AXISG_CLEAR, AXISG_IDLE, AXISG_QUEST
 // GetSchedule sets m_iSentence: 3 = COVER, 5 = CHARGE, plus AXISG_ALERT/GREN/MONST/TAUNT/THROW
 
@@ -38,8 +41,6 @@ extern char *pAxisGruntSentences[];
 
 
 int g_fGruntQuestion;				// true if an idle grunt asked a question. Cleared when someone answers.
-
-extern DLL_GLOBAL int		g_iSkillLevel;
 
 //=========================================================
 // monster-specific DEFINE's
@@ -180,6 +181,7 @@ public:
 	static const char *pAxisGruntSentences[];
 };
 
+LINK_ENTITY_TO_CLASS( monster_axis_grunt, CAxisGrunt );
 
 TYPEDESCRIPTION	CAxisGrunt::m_SaveData[] = 
 {
@@ -2304,6 +2306,7 @@ void CDeadAxisGrunt::KeyValue( KeyValueData *pkvd )
 		CBaseMonster::KeyValue( pkvd );
 }
 
+LINK_ENTITY_TO_CLASS( monster_axisgrunt_dead, CDeadAxisGrunt );
 
 //=========================================================
 // ********** DeadHGrunt SPAWN **********
@@ -2349,12 +2352,5 @@ void CDeadAxisGrunt :: Spawn( void )
 
 	MonsterInitDead();
 }
-
-
-LINK_ENTITY_TO_CLASS( monster_axis_grunt, CAxisGrunt );
-
-LINK_ENTITY_TO_CLASS( monster_axisgrunt_dead, CDeadAxisGrunt );
-
-
 
 

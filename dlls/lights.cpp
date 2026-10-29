@@ -24,8 +24,6 @@
 #include "util.h"
 #include "cbase.h"
 
-// DoD light states use the canonical enum STATE from cbase.h.
-const char *GetStdLightStyle( int iStyle );
 static const char *s_stdLightStyles[] = {
 	"mmnmmommommnonmmonqnmmo",
 	"abcdefghijklmnopqrstuvwxyzyxwvutsrqponmlkjihgfedcba",
@@ -47,6 +45,16 @@ static const char *s_stdLightStyles[] = {
 	"lkjihgfedcbaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 	"kigecaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 };
+
+// DoD light states use the canonical enum STATE from cbase.h.
+const char *GetStdLightStyle( int iStyle );
+
+const char *GetStdLightStyle( int iStyle )
+{
+	if ( (unsigned) ( iStyle - 1 ) < 19 )
+		return s_stdLightStyles[iStyle - 1];  // CSWTCH_75
+	return "m";
+}
 
 class CLight : public CPointEntity
 {
@@ -76,6 +84,12 @@ class CLight : public CPointEntity
 	void RoundRespawn( void );
 	void EXPORT Think( void );
 };
+
+STATE CLight::GetState( void )
+{
+	return m_iState;
+}
+
 LINK_ENTITY_TO_CLASS( light, CLight );
 
 TYPEDESCRIPTION CLight::m_SaveData[] = {
@@ -148,6 +162,82 @@ void CLight::KeyValue( KeyValueData *pkvd )
 	// binary 0x10bc10: unknown fHandled=0, no base
 }
 
+void CLight::SetCorrectStyle( void )
+{
+	if ( m_iStyle < 32 )
+		return;
+	int style;
+	if ( m_iState == STATE_TURN_ON )
+	{
+		style = m_iTurnOnStyle;
+		if ( style == 0 )
+		{
+			LIGHT_STYLE( m_iStyle, "a" );
+			return;
+		}
+	}
+	else if ( m_iState > STATE_TURN_ON )
+	{
+		if ( m_iState == STATE_ON )
+		{
+			if ( m_iszPattern )
+			{
+				LIGHT_STYLE( m_iStyle, STRING( m_iszPattern ) );
+				return;
+			}
+			style = m_iOnStyle;
+			if ( style == 0 )
+			{
+				LIGHT_STYLE( m_iStyle, "m" );
+				return;
+			}
+		}
+		else
+		{
+			if ( m_iState != STATE_TURN_OFF )
+				return;
+			style = m_iTurnOffStyle;
+			if ( style == 0 )
+			{
+				LIGHT_STYLE( m_iStyle, "m" );
+				return;
+			}
+		}
+	}
+	else
+	{
+		if ( m_iState != STATE_OFF )
+			return;
+		style = m_iOffStyle;
+		if ( style == 0 )
+		{
+			LIGHT_STYLE( m_iStyle, "a" );
+			return;
+		}
+	}
+	const char *pat = "m";
+	if ( (unsigned) ( style - 1 ) < 0x13 )
+		pat = GetStdLightStyle( style );
+	LIGHT_STYLE( m_iStyle, pat );
+}
+
+void CLight::Think( void )
+{
+	STATE state = GetState();
+	if ( state == STATE_TURN_OFF )
+	{
+		m_iState = STATE_OFF;
+		FireTargets( STRING( pev->target ), this, this, USE_OFF, 0 );
+	}
+	else if ( state == STATE_TURN_ON )
+	{
+		m_iState = STATE_ON;
+		FireTargets( STRING( pev->target ), this, this, USE_ON, 0 );
+	}
+	if ( m_iStyle >= 32 )
+		SetCorrectStyle();
+}
+
 /*QUAKED light (0 1 0) (-8 -8 -8) (8 8 8) LIGHT_START_OFF
 Non-displayed light.
 Default light value is 300
@@ -170,6 +260,22 @@ void CLight::Spawn( void )
 
 	RoundStore();
 }
+
+void CLight::RoundRespawn( void )
+{
+	if ( !m_bDefaultOn )
+	{
+		LIGHT_STYLE( m_iStyle, "a" );
+		return;
+	}
+	if ( !m_iszPattern )
+	{
+		LIGHT_STYLE( m_iStyle, "m" );
+		return;
+	}
+	LIGHT_STYLE( m_iStyle, STRING( m_iszPattern ) );
+}
+
 void CLight::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if ( m_iStyle < 32 )
@@ -277,109 +383,6 @@ void CEnvLight ::Spawn( void )
 	CLight::Spawn();
 }
 
-void CLight::Think( void )
-{
-	STATE state = GetState();
-	if ( state == STATE_TURN_OFF )
-	{
-		m_iState = STATE_OFF;
-		FireTargets( STRING( pev->target ), this, this, USE_OFF, 0 );
-	}
-	else if ( state == STATE_TURN_ON )
-	{
-		m_iState = STATE_ON;
-		FireTargets( STRING( pev->target ), this, this, USE_ON, 0 );
-	}
-	if ( m_iStyle >= 32 )
-		SetCorrectStyle();
-}
-
-STATE CLight::GetState( void )
-{
-	return m_iState;
-}
-
-void CLight::SetCorrectStyle( void )
-{
-	if ( m_iStyle < 32 )
-		return;
-	int style;
-	if ( m_iState == STATE_TURN_ON )
-	{
-		style = m_iTurnOnStyle;
-		if ( style == 0 )
-		{
-			LIGHT_STYLE( m_iStyle, "a" );
-			return;
-		}
-	}
-	else if ( m_iState > STATE_TURN_ON )
-	{
-		if ( m_iState == STATE_ON )
-		{
-			if ( m_iszPattern )
-			{
-				LIGHT_STYLE( m_iStyle, STRING( m_iszPattern ) );
-				return;
-			}
-			style = m_iOnStyle;
-			if ( style == 0 )
-			{
-				LIGHT_STYLE( m_iStyle, "m" );
-				return;
-			}
-		}
-		else
-		{
-			if ( m_iState != STATE_TURN_OFF )
-				return;
-			style = m_iTurnOffStyle;
-			if ( style == 0 )
-			{
-				LIGHT_STYLE( m_iStyle, "m" );
-				return;
-			}
-		}
-	}
-	else
-	{
-		if ( m_iState != STATE_OFF )
-			return;
-		style = m_iOffStyle;
-		if ( style == 0 )
-		{
-			LIGHT_STYLE( m_iStyle, "a" );
-			return;
-		}
-	}
-	const char *pat = "m";
-	if ( (unsigned) ( style - 1 ) < 0x13 )
-		pat = GetStdLightStyle( style );
-	LIGHT_STYLE( m_iStyle, pat );
-}
-
-void CLight::RoundRespawn( void )
-{
-	if ( !m_bDefaultOn )
-	{
-		LIGHT_STYLE( m_iStyle, "a" );
-		return;
-	}
-	if ( !m_iszPattern )
-	{
-		LIGHT_STYLE( m_iStyle, "m" );
-		return;
-	}
-	LIGHT_STYLE( m_iStyle, STRING( m_iszPattern ) );
-}
-
-const char *GetStdLightStyle( int iStyle )
-{
-	if ( (unsigned) ( iStyle - 1 ) < 19 )
-		return s_stdLightStyles[iStyle - 1];  // CSWTCH_75
-	return "m";
-}
-
 class CTriggerLightstyle : public CBaseEntity
 {
   public:
@@ -395,6 +398,40 @@ class CTriggerLightstyle : public CBaseEntity
 	int m_iszPattern;
 	int m_iWait;
 };
+
+int CTriggerLightstyle::ObjectCaps( void )
+{
+	return 0;
+}
+
+TYPEDESCRIPTION CTriggerLightstyle::m_SaveData[] = {
+	DEFINE_FIELD( CTriggerLightstyle, m_iStyle, FIELD_INTEGER ),
+	DEFINE_FIELD( CTriggerLightstyle, m_iszPattern, FIELD_STRING ),
+	DEFINE_FIELD( CTriggerLightstyle, m_iWait, FIELD_INTEGER ),
+};
+IMPLEMENT_SAVERESTORE( CTriggerLightstyle, CBaseEntity );
+LINK_ENTITY_TO_CLASS( trigger_lightstyle, CTriggerLightstyle );
+
+void CTriggerLightstyle::KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "style" ) )
+	{
+		m_iStyle = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "pattern" ) )
+	{
+		m_iszPattern = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "m_iWait" ) )
+	{
+		m_iWait = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else
+		pkvd->fHandled = FALSE;
+}
 
 void CTriggerLightstyle::Spawn( void )
 {
@@ -444,37 +481,3 @@ void CTriggerLightstyle::Think( void )
 			( (CLight *) pTarget )->SetCorrectStyle();
 	}
 }
-
-void CTriggerLightstyle::KeyValue( KeyValueData *pkvd )
-{
-	if ( FStrEq( pkvd->szKeyName, "style" ) )
-	{
-		m_iStyle = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "pattern" ) )
-	{
-		m_iszPattern = ALLOC_STRING( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iWait" ) )
-	{
-		m_iWait = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else
-		pkvd->fHandled = FALSE;
-}
-
-int CTriggerLightstyle::ObjectCaps( void )
-{
-	return 0;
-}
-
-TYPEDESCRIPTION CTriggerLightstyle::m_SaveData[] = {
-	DEFINE_FIELD( CTriggerLightstyle, m_iStyle, FIELD_INTEGER ),
-	DEFINE_FIELD( CTriggerLightstyle, m_iszPattern, FIELD_STRING ),
-	DEFINE_FIELD( CTriggerLightstyle, m_iWait, FIELD_INTEGER ),
-};
-IMPLEMENT_SAVERESTORE( CTriggerLightstyle, CBaseEntity );
-LINK_ENTITY_TO_CLASS( trigger_lightstyle, CTriggerLightstyle );

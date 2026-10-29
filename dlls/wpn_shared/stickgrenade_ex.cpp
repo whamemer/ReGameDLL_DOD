@@ -21,9 +21,9 @@
 
 #include "dod_shared.h"
 
-LINK_ENTITY_TO_CLASS( weapon_stickgrenade_ex, CStickGrenadeEx )
-
 extern p_wpninfo_s P_WpnInfo[];
+
+LINK_ENTITY_TO_CLASS( weapon_stickgrenade_ex, CStickGrenadeEx )
 
 void CStickGrenadeEx::Spawn( void )
 {
@@ -80,16 +80,6 @@ BOOL CStickGrenadeEx::CanHolster( void )
 void CStickGrenadeEx::Holster( int skiplocal )
 {
 	/* Nothing. */
-}
-
-void CStickGrenadeEx::SetDmgTime( float time )
-{
-	m_flTimeToExplode = time;
-}
-
-BOOL CStickGrenadeEx::CanDeploy( void )
-{
-	return m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] != 0;
 }
 
 void CStickGrenadeEx::PrimaryAttack( void )
@@ -178,6 +168,11 @@ void CStickGrenadeEx::DropGren( void )
 	}
 }
 
+void CStickGrenadeEx::SetDmgTime( float time )
+{
+	m_flTimeToExplode = time;
+}
+
 void CStickGrenadeEx::WeaponIdle( void )
 {
 	if( m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] <= 0 )
@@ -223,4 +218,9 @@ void CStickGrenadeEx::WeaponIdle( void )
 			DropGren();
 		}
 	}
+}
+
+BOOL CStickGrenadeEx::CanDeploy( void )
+{
+	return m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType] != 0;
 }

@@ -25,6 +25,8 @@
 #include "squadmonster.h"
 #include "plane.h"
 
+extern Schedule_t slChaseEnemyFailed[];
+
 //=========================================================
 // Save/Restore
 //=========================================================
@@ -505,6 +507,15 @@ BOOL CSquadMonster ::NoFriendlyFire( void )
 	return TRUE;
 }
 
+// DoD overload: with playerAlly==FALSE and no squad leader, always safe to fire;
+// otherwise the same "box in front" test as NoFriendlyFire(void).
+BOOL CSquadMonster::NoFriendlyFire( BOOL playerAlly )
+{
+	if ( !playerAlly && m_hSquadLeader == NULL )
+		return TRUE;
+	return NoFriendlyFire();
+}
+
 //=========================================================
 // GetIdealState - surveys the Conditions information available
 // and finds the best new state for a monster.
@@ -595,8 +606,6 @@ BOOL CSquadMonster ::SquadMemberInRange( const Vector &vecLocation, float flDist
 	return FALSE;
 }
 
-extern Schedule_t slChaseEnemyFailed[];
-
 Schedule_t *CSquadMonster::GetScheduleOfType( int iType )
 {
 	switch ( iType )
@@ -610,13 +619,4 @@ Schedule_t *CSquadMonster::GetScheduleOfType( int iType )
 	default:
 		return CBaseMonster::GetScheduleOfType( iType );
 	}
-}
-
-// DoD overload: with playerAlly==FALSE and no squad leader, always safe to fire;
-// otherwise the same "box in front" test as NoFriendlyFire(void).
-BOOL CSquadMonster::NoFriendlyFire( BOOL playerAlly )
-{
-	if ( !playerAlly && m_hSquadLeader == NULL )
-		return TRUE;
-	return NoFriendlyFire();
 }

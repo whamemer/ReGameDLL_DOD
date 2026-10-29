@@ -38,6 +38,8 @@ extern DLL_GLOBAL int g_iSkillLevel;
 extern Vector VecBModelOrigin( entvars_t *pevBModel );
 extern entvars_t *g_pevLastInflictor;
 
+float MapWallMaterialModFromTexture( char texture );
+
 #define GERMAN_GIB_COUNT 4
 #define HUMAN_GIB_COUNT 6
 #define ALIEN_GIB_COUNT 4
@@ -1014,6 +1016,98 @@ void CBaseMonster ::TraceAttack( entvars_t *pevAttacker, float flDamage, Vector 
 	}
 }
 
+float MapWallMaterialModFromTexture( char texture )
+{
+	// binary: FireTWalls wall table CSWTCH.266 @ghidra 0x194fa0 (link 0x184fa0, gdb x/26fw 0x184fa0: 12,5.5,7.3,5.5,2,2,12,12,5.5,5.5,12,5.5,12,2,5.5,5.5,5.5,7.3,5.5,2,5.5,5.5,2,5.5,2,2), default 5.5 (FLD [0x1951d8] @000daec1). No 0.9 factor.
+	static float wallmods[26] = {
+		12.0, 5.5, 7.3, 5.5, 2.0, 2.0, 12.0, 12.0, 5.5, 5.5, 12.0, 5.5, 12.0,
+		2.0,  5.5, 5.5, 5.5, 7.3, 5.5, 2.0,	 5.5,  5.5, 2.0, 5.5,  2.0, 2.0,
+	};
+	float mod = 5.5;  // binary: _DAT_001951d8
+	if ( (unsigned char) ( texture - 'A' ) < 26 )
+		mod = wallmods[(unsigned char) ( texture - 'A' )];
+	return mod;
+}
+
+void CBaseEntity::FireTWalls( float flDamage, int iBulletType, entvars_t *pevAttacker, Vector vecDir, Vector vecSrc,
+							  Vector vecRight, Vector vecUp, Vector vecDest )
+{
+	if ( g_pGameRules->RoundState() !=
+		 1 )  // binary: vtbl+0x3d RoundState gate @000dacd0 (if !=1 return, decompile if (RoundState==1) {...})
+		return;
+	TraceResult tr, beam_tr;
+	edict_t *pentIgnore = NULL;
+	if ( FNullEnt( pevAttacker ) )
+		pevAttacker = pev;
+
+	UTIL_TraceLine( vecSrc, vecDest, dont_ignore_monsters, ENT( pev ), &tr );
+	pentIgnore = tr.pHit;
+	// trace back from beyond the exit point to find wall thickness
+	Vector vecBack = tr.vecEndPos + ( tr.vecEndPos - vecSrc );
+	UTIL_TraceLine( vecBack, vecDest, dont_ignore_monsters, tr.pHit, &beam_tr );
+
+	CBaseEntity *pEntity = NULL;
+	if ( tr.pHit && !FNullEnt( tr.pHit ) )
+		pEntity = CBaseEntity::Instance( tr.pHit );
+
+	BOOL bPlayerHit = FALSE;
+	char chTextureType = 'C';
+	if ( pEntity && !pEntity->IsPlayer() )
+	{
+		const char *pTextureName = TRACE_TEXTURE( tr.pHit ? tr.pHit : ENT( 0 ), vecSrc, vecDest );
+		if ( !pTextureName )
+			ALERT( at_aiconsole, "Texture: nothing!\n" );
+		else
+		{
+			ALERT( at_aiconsole, "Texture: %s\n", pTextureName );
+			if ( *pTextureName == '+' || *pTextureName == '-' )
+				pTextureName += 2;	// binary: skip +/- prefix (uses __src[2]) @000dacd0
+			if ( *pTextureName == '!' || *pTextureName == '{' || *pTextureName == '~' || *pTextureName == ' ' )
+				pTextureName++;	 // binary: skip !{~ space prefix
+			char szbuffer[64];
+			strcpy( szbuffer, pTextureName );
+			szbuffer[CBTEXTURENAMEMAX - 1] = 0;
+			chTextureType = TEXTURETYPE_Find( szbuffer );
+		}
+	}
+	else
+	{
+		bPlayerHit = TRUE;
+		chTextureType = 'F';
+	}
+
+	if ( beam_tr.fAllSolid )
+		return;
+
+	edict_t *pWorld = bPlayerHit ? pentIgnore : NULL;
+	UTIL_TraceLine( beam_tr.vecEndPos, tr.vecEndPos, dont_ignore_monsters, pWorld, &beam_tr );
+	float thickness = ( beam_tr.vecEndPos - tr.vecEndPos ).Length();
+	float flMaterialMod = MapWallMaterialModFromTexture(
+		chTextureType );  // binary: _DAT_001951d8 float 5.5 default (link 0x1851d8, FLD [0x1951d8] @000daec1) + table CSWTCH.266 @0x194fa0 (link 0x184fa0, FLD [EAX*4+0x194fa0] @000db045), no 0.9 factor unlike FireBulletsNC
+	ALERT( at_aiconsole, "Entering surface of materialmod %f, thickness %f, with damage %f\n", flMaterialMod, thickness,
+		   flDamage );
+	flDamage -= flMaterialMod * thickness;
+	if ( flDamage <= 0 )
+	{
+		ALERT( at_aiconsole, "Bullet was stopped by wall\n" );
+		return;
+	}
+	ALERT( at_aiconsole, "Exiting surface  - damage %f\n", flDamage );
+	DecalGunshot( &beam_tr, iBulletType );
+	UTIL_TraceLine( beam_tr.vecEndPos, vecDest, dont_ignore_monsters, pentIgnore, &beam_tr );
+	DecalGunshot( &beam_tr, iBulletType );
+	if ( beam_tr.pHit && !FNullEnt( beam_tr.pHit ) )
+	{
+		CBaseEntity *pEnt = CBaseEntity::Instance( beam_tr.pHit );
+		if ( pEnt && pEnt->pev->takedamage != DAMAGE_NO )
+		{
+			ClearMultiDamage();
+			pEnt->TraceAttack( pev, flDamage, vecDir, &beam_tr, DMG_BULLET );
+			ApplyMultiDamage( pev, pev );
+		}
+	}
+}
+
 /*
 ================
 FireBullets
@@ -1188,125 +1282,113 @@ void CBaseEntity::FireBullets( ULONG cShots, Vector vecSrc, Vector vecDirShootin
 	ApplyMultiDamage( pev, pevAttacker );
 }
 
-void CBaseEntity ::TraceBleed( float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType )
+void CBaseEntity::RifleMeleeAttack( CBasePlayer *pPlayer, int weapon_id )
 {
-	if ( BloodColor() == DONT_BLEED )
+	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
 		return;
 
-	if ( flDamage == 0 )
+	UTIL_MakeVectors( pPlayer->pev->v_angle );
+
+	Vector vecSrc = pPlayer->GetGunPosition();
+	Vector vecEnd = vecSrc + gpGlobals->v_forward * 64;
+
+	TraceResult tr;
+	UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, ENT( pPlayer->pev ), &tr );
+
+	if ( tr.flFraction >= 1.0 )
+	{
+		UTIL_TraceHull( vecSrc, vecEnd, dont_ignore_monsters, head_hull, ENT( pPlayer->pev ), &tr );
+
+		if ( tr.flFraction < 1.0 )
+		{
+			// The search for the best intersection of the hull is skipped: the original starts it only for
+			// a trace longer than the whole way, which never happens.
+
+			// This is the point on the actual surface (the hull could have hit space)
+			vecEnd = tr.vecEndPos;
+		}
+
+		if ( tr.flFraction >= 1.0 )
+			return;
+	}
+
+	CBaseEntity *pEntity = CBaseEntity::Instance( tr.pHit );
+
+	ClearMultiDamage();
+
+	switch ( weapon_id )
+	{
+	case WEAPON_KAR:
+		pEntity->TraceAttack( pPlayer->pev, gSkillData.plrDmgBayonet, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_BAYONET );
+		break;
+	case WEAPON_GARAND:
+		pEntity->TraceAttack( pPlayer->pev, gSkillData.plrDmgGarandButt, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_GARAND );
+		break;
+	case WEAPON_K43:
+		pEntity->TraceAttack( pPlayer->pev, gSkillData.plrDmgK43Butt, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_K43 );
+		break;
+	case WEAPON_ENFIELD:
+		pEntity->TraceAttack( pPlayer->pev, gSkillData.plrDmgEnfieldButt, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_ENFIELD );
+		break;
+	}
+
+	ApplyMultiDamage( pPlayer->pev, pPlayer->pev );
+
+	if ( !pEntity || pEntity->Classify() == CLASS_NONE || pEntity->Classify() == CLASS_MACHINE )
+	{
+		// hit the world, play the sound of the texture
+		float fvolbar = TEXTURETYPE_PlaySound( &tr, vecSrc, vecSrc + ( vecEnd - vecSrc ) * 2, BULLET_PLAYER_CROWBAR );
+
+		if ( g_pGameRules->IsMultiplayer() )
+			fvolbar = 1.0;
+
+		if ( weapon_id == WEAPON_ENFIELD || weapon_id == WEAPON_KAR )
+		{
+			// delay the decal a bit
+			SetThink( &CBaseEntity::DecalThink );
+			m_trDecalTrace = tr;
+			pev->nextthink = gpGlobals->time + 0.1;
+
+			if ( RANDOM_LONG( 0, 1 ) == 0 )
+				EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_ITEM, "weapons/cbar_hit1.wav", fvolbar, ATTN_NORM, 0, 98 + RANDOM_LONG( 0, 3 ) );
+			else
+				EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_ITEM, "weapons/cbar_hit2.wav", fvolbar, ATTN_NORM, 0, 98 + RANDOM_LONG( 0, 3 ) );
+		}
+
+		pPlayer->m_iWeaponVolume = 512;
 		return;
+	}
 
-	if ( !( bitsDamageType & ( DMG_CRUSH | DMG_BULLET | DMG_SLASH | DMG_BLAST | DMG_CLUB | DMG_MORTAR ) ) )
-		return;
-
-	// make blood decal on the wall!
-	TraceResult Bloodtr;
-	Vector vecTraceDir;
-	float flNoise;
-	int cCount;
-	int i;
-
-	/*
-	if ( !IsAlive() )
+	if ( weapon_id == WEAPON_KAR || weapon_id == WEAPON_ENFIELD )
 	{
-		// dealing with a dead monster. 
-		if ( pev->max_health <= 0 )
+		switch ( RANDOM_LONG( 0, 2 ) )
 		{
-			// no blood decal for a monster that has already decalled its limit.
-			return; 
-		}
-		else
-		{
-			pev->max_health--;
+		case 0:
+			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit1.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+			break;
+		case 1:
+			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit2.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+			break;
+		case 2:
+			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit3.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+			break;
 		}
 	}
-*/
-
-	if ( flDamage < 10 )
+	else if ( weapon_id == WEAPON_GARAND || weapon_id == WEAPON_K43 )
 	{
-		flNoise = 0.1;
-		cCount = 1;
-	}
-	else if ( flDamage < 25 )
-	{
-		flNoise = 0.2;
-		cCount = 2;
-	}
-	else
-	{
-		flNoise = 0.3;
-		cCount = 4;
+		if ( pEntity->IsPlayer() )
+			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_VOICE, "weapons/butt_hit.wav", 1, ATTN_NORM, 0, PITCH_NORM );
 	}
 
-	for ( i = 0; i < cCount; i++ )
-	{
-		vecTraceDir =
-			vecDir * -1;  // trace in the opposite direction the shot came from (the direction the shot is going)
+	pPlayer->m_iWeaponVolume = 128;
 
-		vecTraceDir.x += RANDOM_FLOAT( -flNoise, flNoise );
-		vecTraceDir.y += RANDOM_FLOAT( -flNoise, flNoise );
-		vecTraceDir.z += RANDOM_FLOAT( -flNoise, flNoise );
-
-		UTIL_TraceLine( ptr->vecEndPos, ptr->vecEndPos + vecTraceDir * -172, ignore_monsters, ENT( pev ), &Bloodtr );
-
-		if ( Bloodtr.flFraction != 1.0 )
-		{
-			UTIL_BloodDecalTrace( &Bloodtr, BloodColor() );
-		}
-	}
+	if ( pEntity->IsAlive() )
+		pPlayer->m_iWeaponVolume = 51;
 }
 
-//=========================================================
-//=========================================================
-void CBaseMonster ::MakeDamageBloodDecal( int cCount, float flNoise, TraceResult *ptr, const Vector &vecDir )
+void CBaseEntity::DecalThink( void )
 {
-	// make blood decal on the wall!
-	TraceResult Bloodtr;
-	Vector vecTraceDir;
-	int i;
-
-	if ( !IsAlive() )
-	{
-		// dealing with a dead monster.
-		if ( pev->max_health <= 0 )
-		{
-			// no blood decal for a monster that has already decalled its limit.
-			return;
-		}
-		else
-		{
-			pev->max_health--;
-		}
-	}
-
-	for ( i = 0; i < cCount; i++ )
-	{
-		vecTraceDir = vecDir;
-
-		vecTraceDir.x += RANDOM_FLOAT( -flNoise, flNoise );
-		vecTraceDir.y += RANDOM_FLOAT( -flNoise, flNoise );
-		vecTraceDir.z += RANDOM_FLOAT( -flNoise, flNoise );
-
-		UTIL_TraceLine( ptr->vecEndPos, ptr->vecEndPos + vecTraceDir * 172, ignore_monsters, ENT( pev ), &Bloodtr );
-
-		/*
-		MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
-			WRITE_BYTE( TE_SHOWLINE);
-			WRITE_COORD( ptr->vecEndPos.x );
-			WRITE_COORD( ptr->vecEndPos.y );
-			WRITE_COORD( ptr->vecEndPos.z );
-			
-			WRITE_COORD( Bloodtr.vecEndPos.x );
-			WRITE_COORD( Bloodtr.vecEndPos.y );
-			WRITE_COORD( Bloodtr.vecEndPos.z );
-		MESSAGE_END();
-*/
-
-		if ( Bloodtr.flFraction != 1.0 )
-		{
-			UTIL_BloodDecalTrace( &Bloodtr, BloodColor() );
-		}
-	}
+	DecalGunshot( &m_trDecalTrace, 5 );
 }
 
 float MapBulletToDmg( int bullet )
@@ -1378,99 +1460,6 @@ float MapMaterialModFromTexture( char texture )
 				unsigned char) ( texture -
 								 'A' )];  // binary: _DAT_00195230 double 0.9 (link 0x185230, ghidra 0x195230, FLD [0x195230] @000de5f4 + FMUL table[26] @0x195020, gdb x/gf=0.9; table CSWTCH.333 x/26fw 0x185020 matches mods[])
 	return mod;
-}
-
-float MapWallMaterialModFromTexture( char texture )
-{
-	// binary: FireTWalls wall table CSWTCH.266 @ghidra 0x194fa0 (link 0x184fa0, gdb x/26fw 0x184fa0: 12,5.5,7.3,5.5,2,2,12,12,5.5,5.5,12,5.5,12,2,5.5,5.5,5.5,7.3,5.5,2,5.5,5.5,2,5.5,2,2), default 5.5 (FLD [0x1951d8] @000daec1). No 0.9 factor.
-	static float wallmods[26] = {
-		12.0, 5.5, 7.3, 5.5, 2.0, 2.0, 12.0, 12.0, 5.5, 5.5, 12.0, 5.5, 12.0,
-		2.0,  5.5, 5.5, 5.5, 7.3, 5.5, 2.0,	 5.5,  5.5, 2.0, 5.5,  2.0, 2.0,
-	};
-	float mod = 5.5;  // binary: _DAT_001951d8
-	if ( (unsigned char) ( texture - 'A' ) < 26 )
-		mod = wallmods[(unsigned char) ( texture - 'A' )];
-	return mod;
-}
-
-float MapWallMaterialModFromTexture( char texture );
-void CBaseEntity::FireTWalls( float flDamage, int iBulletType, entvars_t *pevAttacker, Vector vecDir, Vector vecSrc,
-							  Vector vecRight, Vector vecUp, Vector vecDest )
-{
-	if ( g_pGameRules->RoundState() !=
-		 1 )  // binary: vtbl+0x3d RoundState gate @000dacd0 (if !=1 return, decompile if (RoundState==1) {...})
-		return;
-	TraceResult tr, beam_tr;
-	edict_t *pentIgnore = NULL;
-	if ( FNullEnt( pevAttacker ) )
-		pevAttacker = pev;
-
-	UTIL_TraceLine( vecSrc, vecDest, dont_ignore_monsters, ENT( pev ), &tr );
-	pentIgnore = tr.pHit;
-	// trace back from beyond the exit point to find wall thickness
-	Vector vecBack = tr.vecEndPos + ( tr.vecEndPos - vecSrc );
-	UTIL_TraceLine( vecBack, vecDest, dont_ignore_monsters, tr.pHit, &beam_tr );
-
-	CBaseEntity *pEntity = NULL;
-	if ( tr.pHit && !FNullEnt( tr.pHit ) )
-		pEntity = CBaseEntity::Instance( tr.pHit );
-
-	BOOL bPlayerHit = FALSE;
-	char chTextureType = 'C';
-	if ( pEntity && !pEntity->IsPlayer() )
-	{
-		const char *pTextureName = TRACE_TEXTURE( tr.pHit ? tr.pHit : ENT( 0 ), vecSrc, vecDest );
-		if ( !pTextureName )
-			ALERT( at_aiconsole, "Texture: nothing!\n" );
-		else
-		{
-			ALERT( at_aiconsole, "Texture: %s\n", pTextureName );
-			if ( *pTextureName == '+' || *pTextureName == '-' )
-				pTextureName += 2;	// binary: skip +/- prefix (uses __src[2]) @000dacd0
-			if ( *pTextureName == '!' || *pTextureName == '{' || *pTextureName == '~' || *pTextureName == ' ' )
-				pTextureName++;	 // binary: skip !{~ space prefix
-			char szbuffer[64];
-			strcpy( szbuffer, pTextureName );
-			szbuffer[CBTEXTURENAMEMAX - 1] = 0;
-			chTextureType = TEXTURETYPE_Find( szbuffer );
-		}
-	}
-	else
-	{
-		bPlayerHit = TRUE;
-		chTextureType = 'F';
-	}
-
-	if ( beam_tr.fAllSolid )
-		return;
-
-	edict_t *pWorld = bPlayerHit ? pentIgnore : NULL;
-	UTIL_TraceLine( beam_tr.vecEndPos, tr.vecEndPos, dont_ignore_monsters, pWorld, &beam_tr );
-	float thickness = ( beam_tr.vecEndPos - tr.vecEndPos ).Length();
-	float flMaterialMod = MapWallMaterialModFromTexture(
-		chTextureType );  // binary: _DAT_001951d8 float 5.5 default (link 0x1851d8, FLD [0x1951d8] @000daec1) + table CSWTCH.266 @0x194fa0 (link 0x184fa0, FLD [EAX*4+0x194fa0] @000db045), no 0.9 factor unlike FireBulletsNC
-	ALERT( at_aiconsole, "Entering surface of materialmod %f, thickness %f, with damage %f\n", flMaterialMod, thickness,
-		   flDamage );
-	flDamage -= flMaterialMod * thickness;
-	if ( flDamage <= 0 )
-	{
-		ALERT( at_aiconsole, "Bullet was stopped by wall\n" );
-		return;
-	}
-	ALERT( at_aiconsole, "Exiting surface  - damage %f\n", flDamage );
-	DecalGunshot( &beam_tr, iBulletType );
-	UTIL_TraceLine( beam_tr.vecEndPos, vecDest, dont_ignore_monsters, pentIgnore, &beam_tr );
-	DecalGunshot( &beam_tr, iBulletType );
-	if ( beam_tr.pHit && !FNullEnt( beam_tr.pHit ) )
-	{
-		CBaseEntity *pEnt = CBaseEntity::Instance( beam_tr.pHit );
-		if ( pEnt && pEnt->pev->takedamage != DAMAGE_NO )
-		{
-			ClearMultiDamage();
-			pEnt->TraceAttack( pev, flDamage, vecDir, &beam_tr, DMG_BULLET );
-			ApplyMultiDamage( pev, pev );
-		}
-	}
 }
 
 Vector CBaseEntity::FireBulletsNC( Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance,
@@ -1621,111 +1610,123 @@ Vector CBaseEntity::FireBulletsNC( Vector vecSrc, Vector vecDirShooting, float f
 	return Vector( x * flSpread, y * flSpread, 0 );
 }
 
-void CBaseEntity::RifleMeleeAttack( CBasePlayer *pPlayer, int weapon_id )
+void CBaseEntity ::TraceBleed( float flDamage, Vector vecDir, TraceResult *ptr, int bitsDamageType )
 {
-	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
+	if ( BloodColor() == DONT_BLEED )
 		return;
 
-	UTIL_MakeVectors( pPlayer->pev->v_angle );
-
-	Vector vecSrc = pPlayer->GetGunPosition();
-	Vector vecEnd = vecSrc + gpGlobals->v_forward * 64;
-
-	TraceResult tr;
-	UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, ENT( pPlayer->pev ), &tr );
-
-	if ( tr.flFraction >= 1.0 )
-	{
-		UTIL_TraceHull( vecSrc, vecEnd, dont_ignore_monsters, head_hull, ENT( pPlayer->pev ), &tr );
-
-		if ( tr.flFraction < 1.0 )
-		{
-			// The search for the best intersection of the hull is skipped: the original starts it only for
-			// a trace longer than the whole way, which never happens.
-
-			// This is the point on the actual surface (the hull could have hit space)
-			vecEnd = tr.vecEndPos;
-		}
-
-		if ( tr.flFraction >= 1.0 )
-			return;
-	}
-
-	CBaseEntity *pEntity = CBaseEntity::Instance( tr.pHit );
-
-	ClearMultiDamage();
-
-	switch ( weapon_id )
-	{
-	case WEAPON_KAR:
-		pEntity->TraceAttack( pPlayer->pev, gSkillData.plrDmgBayonet, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_BAYONET );
-		break;
-	case WEAPON_GARAND:
-		pEntity->TraceAttack( pPlayer->pev, gSkillData.plrDmgGarandButt, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_GARAND );
-		break;
-	case WEAPON_K43:
-		pEntity->TraceAttack( pPlayer->pev, gSkillData.plrDmgK43Butt, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_K43 );
-		break;
-	case WEAPON_ENFIELD:
-		pEntity->TraceAttack( pPlayer->pev, gSkillData.plrDmgEnfieldButt, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_ENFIELD );
-		break;
-	}
-
-	ApplyMultiDamage( pPlayer->pev, pPlayer->pev );
-
-	if ( !pEntity || pEntity->Classify() == CLASS_NONE || pEntity->Classify() == CLASS_MACHINE )
-	{
-		// hit the world, play the sound of the texture
-		float fvolbar = TEXTURETYPE_PlaySound( &tr, vecSrc, vecSrc + ( vecEnd - vecSrc ) * 2, BULLET_PLAYER_CROWBAR );
-
-		if ( g_pGameRules->IsMultiplayer() )
-			fvolbar = 1.0;
-
-		if ( weapon_id == WEAPON_ENFIELD || weapon_id == WEAPON_KAR )
-		{
-			// delay the decal a bit
-			SetThink( &CBaseEntity::DecalThink );
-			m_trDecalTrace = tr;
-			pev->nextthink = gpGlobals->time + 0.1;
-
-			if ( RANDOM_LONG( 0, 1 ) == 0 )
-				EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_ITEM, "weapons/cbar_hit1.wav", fvolbar, ATTN_NORM, 0, 98 + RANDOM_LONG( 0, 3 ) );
-			else
-				EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_ITEM, "weapons/cbar_hit2.wav", fvolbar, ATTN_NORM, 0, 98 + RANDOM_LONG( 0, 3 ) );
-		}
-
-		pPlayer->m_iWeaponVolume = 512;
+	if ( flDamage == 0 )
 		return;
-	}
 
-	if ( weapon_id == WEAPON_KAR || weapon_id == WEAPON_ENFIELD )
+	if ( !( bitsDamageType & ( DMG_CRUSH | DMG_BULLET | DMG_SLASH | DMG_BLAST | DMG_CLUB | DMG_MORTAR ) ) )
+		return;
+
+	// make blood decal on the wall!
+	TraceResult Bloodtr;
+	Vector vecTraceDir;
+	float flNoise;
+	int cCount;
+	int i;
+
+	/*
+	if ( !IsAlive() )
 	{
-		switch ( RANDOM_LONG( 0, 2 ) )
+		// dealing with a dead monster. 
+		if ( pev->max_health <= 0 )
 		{
-		case 0:
-			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit1.wav", 1, ATTN_NORM, 0, PITCH_NORM );
-			break;
-		case 1:
-			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit2.wav", 1, ATTN_NORM, 0, PITCH_NORM );
-			break;
-		case 2:
-			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit3.wav", 1, ATTN_NORM, 0, PITCH_NORM );
-			break;
+			// no blood decal for a monster that has already decalled its limit.
+			return; 
+		}
+		else
+		{
+			pev->max_health--;
 		}
 	}
-	else if ( weapon_id == WEAPON_GARAND || weapon_id == WEAPON_K43 )
+*/
+
+	if ( flDamage < 10 )
 	{
-		if ( pEntity->IsPlayer() )
-			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_VOICE, "weapons/butt_hit.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+		flNoise = 0.1;
+		cCount = 1;
+	}
+	else if ( flDamage < 25 )
+	{
+		flNoise = 0.2;
+		cCount = 2;
+	}
+	else
+	{
+		flNoise = 0.3;
+		cCount = 4;
 	}
 
-	pPlayer->m_iWeaponVolume = 128;
+	for ( i = 0; i < cCount; i++ )
+	{
+		vecTraceDir =
+			vecDir * -1;  // trace in the opposite direction the shot came from (the direction the shot is going)
 
-	if ( pEntity->IsAlive() )
-		pPlayer->m_iWeaponVolume = 51;
+		vecTraceDir.x += RANDOM_FLOAT( -flNoise, flNoise );
+		vecTraceDir.y += RANDOM_FLOAT( -flNoise, flNoise );
+		vecTraceDir.z += RANDOM_FLOAT( -flNoise, flNoise );
+
+		UTIL_TraceLine( ptr->vecEndPos, ptr->vecEndPos + vecTraceDir * -172, ignore_monsters, ENT( pev ), &Bloodtr );
+
+		if ( Bloodtr.flFraction != 1.0 )
+		{
+			UTIL_BloodDecalTrace( &Bloodtr, BloodColor() );
+		}
+	}
 }
 
-void CBaseEntity::DecalThink( void )
+//=========================================================
+//=========================================================
+void CBaseMonster ::MakeDamageBloodDecal( int cCount, float flNoise, TraceResult *ptr, const Vector &vecDir )
 {
-	DecalGunshot( &m_trDecalTrace, 5 );
+	// make blood decal on the wall!
+	TraceResult Bloodtr;
+	Vector vecTraceDir;
+	int i;
+
+	if ( !IsAlive() )
+	{
+		// dealing with a dead monster.
+		if ( pev->max_health <= 0 )
+		{
+			// no blood decal for a monster that has already decalled its limit.
+			return;
+		}
+		else
+		{
+			pev->max_health--;
+		}
+	}
+
+	for ( i = 0; i < cCount; i++ )
+	{
+		vecTraceDir = vecDir;
+
+		vecTraceDir.x += RANDOM_FLOAT( -flNoise, flNoise );
+		vecTraceDir.y += RANDOM_FLOAT( -flNoise, flNoise );
+		vecTraceDir.z += RANDOM_FLOAT( -flNoise, flNoise );
+
+		UTIL_TraceLine( ptr->vecEndPos, ptr->vecEndPos + vecTraceDir * 172, ignore_monsters, ENT( pev ), &Bloodtr );
+
+		/*
+		MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+			WRITE_BYTE( TE_SHOWLINE);
+			WRITE_COORD( ptr->vecEndPos.x );
+			WRITE_COORD( ptr->vecEndPos.y );
+			WRITE_COORD( ptr->vecEndPos.z );
+			
+			WRITE_COORD( Bloodtr.vecEndPos.x );
+			WRITE_COORD( Bloodtr.vecEndPos.y );
+			WRITE_COORD( Bloodtr.vecEndPos.z );
+		MESSAGE_END();
+*/
+
+		if ( Bloodtr.flFraction != 1.0 )
+		{
+			UTIL_BloodDecalTrace( &Bloodtr, BloodColor() );
+		}
+	}
 }

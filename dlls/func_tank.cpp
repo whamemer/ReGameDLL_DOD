@@ -21,6 +21,13 @@
 
 #include "player.h"
 
+//			Custom damage
+//			env_laser (duration is 0.5 rate of fire)
+//			rockets
+//			explosion?
+
+class CFuncTankControls;
+
 #define SF_TANK_ACTIVE 0x0001
 #define SF_TANK_PLAYER 0x0002
 #define SF_TANK_HUMANS 0x0004
@@ -39,12 +46,23 @@ enum TANKBULLET
 	TANK_BULLET_12MM = 3,
 };
 
-//			Custom damage
-//			env_laser (duration is 0.5 rate of fire)
-//			rockets
-//			explosion?
+class CFuncTankControls : public CBaseEntity
+{
+  public:
+	virtual int ObjectCaps( void );
+	void Spawn( void );
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 
-class CFuncTankControls;
+	virtual int Save( CSave &save );
+	virtual int Restore( CRestore &restore );
+	static TYPEDESCRIPTION m_SaveData[];
+
+	virtual BOOL OnControls( entvars_t *pevTest );
+
+	BOOL m_active;
+	Vector m_vecControllerUsePos;  // where the controller stood when he took the controls
+	CBasePlayer *m_pController;
+};
 
 class CFuncTank : public CBaseEntity
 {
@@ -143,24 +161,6 @@ class CFuncTank : public CBaseEntity
 	int m_spread;		   // firing spread
 	int m_iszMaster;  // Master entity (game_team_master or multisource)
 	int m_iTankClass;
-};
-
-class CFuncTankControls : public CBaseEntity
-{
-  public:
-	virtual int ObjectCaps( void );
-	void Spawn( void );
-	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-
-	virtual int Save( CSave &save );
-	virtual int Restore( CRestore &restore );
-	static TYPEDESCRIPTION m_SaveData[];
-
-	virtual BOOL OnControls( entvars_t *pevTest );
-
-	BOOL m_active;
-	Vector m_vecControllerUsePos;  // where the controller stood when he took the controls
-	CBasePlayer *m_pController;
 };
 
 TYPEDESCRIPTION CFuncTank::m_SaveData[] = {
@@ -385,6 +385,20 @@ void CFuncTank ::StopControl( CFuncTankControls *pControls )
 		pev->nextthink = pev->ltime + 1.0;
 }
 
+void CFuncTank::UpdateSpot( void )
+{
+	if ( pev->spawnflags & SF_TANK_UPDATESPOT )
+	{
+		TraceResult tr;
+		Vector vecAiming;
+		UTIL_MakeVectorsPrivate( pev->angles, vecAiming, NULL, NULL );
+
+		Vector vecSrc = BarrelPosition();
+		Vector vecEnd = vecSrc + vecAiming * 8192;
+		UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, ENT( pev ), &tr );
+	}
+}
+
 void CFuncTank ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if ( pev->spawnflags & SF_TANK_CANCONTROL )
@@ -410,6 +424,91 @@ edict_t *CFuncTank ::FindTarget( edict_t *pPlayer )
 	return pPlayer;
 }
 
+CBaseEntity *CFuncTank::BestVisibleEnemy( void )
+{
+	int iLookDist = ( m_maxRange > 512.0f ) ? (int)m_maxRange : 512;
+	Vector vecMins = pev->origin - Vector( (float)iLookDist, (float)iLookDist, (float)iLookDist );
+	Vector vecMaxs = pev->origin + Vector( (float)iLookDist, (float)iLookDist, (float)iLookDist );
+
+	CBaseEntity *pList[100];
+	int count = UTIL_EntitiesInBox( pList, 100, vecMins, vecMaxs, 0x28 );
+	if ( count < 1 )
+		return NULL;
+
+	CBaseEntity *pReturn = NULL;
+	int iBestRel = 0;
+	int iNearest = 0x2000;
+
+	for ( int i = 0; i < count; i++ )
+	{
+		CBaseEntity *pEnt = pList[i];
+		if ( !pEnt->IsAlive() )
+			continue;
+
+		int rel = IRelationship( pEnt );
+		int dist = (int)( pEnt->pev->origin - pev->origin ).Length();
+
+		if ( rel > iBestRel || ( rel == iBestRel && dist < iNearest ) )
+		{
+			iBestRel = rel;
+			pReturn = pEnt;
+			iNearest = dist;
+		}
+	}
+	return pReturn;
+}
+
+int CFuncTank::IRelationship( CBaseEntity *pTarget )
+{
+	int iOtherClass = pTarget->Classify();
+	if ( iOtherClass == 0 )
+		return 0;
+
+	int c = m_iTankClass;
+	if ( c == 0 )
+		return ( iOtherClass == CLASS_PLAYER ) ? 2 : 0;
+	if ( c == 0xe )
+	{
+		if ( iOtherClass == CLASS_PLAYER )
+			return ( pTarget->pev->team != TEAM_ALLIES ) ? 2 : -2;
+		return 2;
+	}
+	if ( c == 0xf )
+	{
+		if ( iOtherClass == CLASS_PLAYER )
+			return ( pTarget->pev->team != TEAM_AXIS ) ? 2 : -2;
+		return 2;
+	}
+	if ( c == 0xb )
+	{
+		if ( iOtherClass > 9 )
+			return 0;
+		return ( ( 1 << iOtherClass ) & 0x3b2 ) ? 2 : 0;
+	}
+	if ( c == 4 )
+	{
+		if ( iOtherClass > 0xb )
+			return 0;
+		int bit = 1 << iOtherClass;
+		if ( bit & 0xba4 )
+			return 2;
+		if ( bit & 8 )
+			return 1;
+		return 0;
+	}
+	if ( c == 5 )
+	{
+		// the relationship to the classes 2 to 11: CLASS_PLAYER, CLASS_HUMAN_PASSIVE, CLASS_HUMAN_MILITARY, ..., CLASS_PLAYER_ALLY
+		static const int rgiRelationship[10] = { 2, 1, 2, 0, 0, 0, 0, 0, 0, 2 };
+
+		if ( (unsigned)( iOtherClass - 2 ) < 10 )
+			return rgiRelationship[iOtherClass - 2];
+
+		return 0;
+	}
+	return 0;
+}
+
 BOOL CFuncTank ::InRange( float range )
 {
 	if ( range < m_minRange )
@@ -418,6 +517,26 @@ BOOL CFuncTank ::InRange( float range )
 		return FALSE;
 
 	return TRUE;
+}
+
+void CFuncTank::TrackThink( void )
+{
+	pev->avelocity = g_vecZero;
+	TrackTarget();
+
+	if ( fabs( pev->avelocity.x ) <= 1.0 && fabs( pev->avelocity.y ) <= 1.0 )
+	{
+		if ( pev->spawnflags & SF_TANK_SOUNDON )
+			EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, (char *)STRING( pev->noise ), 0.0, 0.0, 0x20, 100 );
+		pev->spawnflags &= ~0x8000;
+		return;
+	}
+
+	if ( pev->noise != 0 && !( pev->spawnflags & SF_TANK_SOUNDON ) )
+	{
+		pev->spawnflags |= SF_TANK_SOUNDON;
+		EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, (char *)STRING( pev->noise ), 0.85, 0.8, 0, 100 );
+	}
 }
 
 void CFuncTank::TrackTarget( void )
@@ -948,6 +1067,13 @@ int CFuncTankControls ::ObjectCaps( void )
 	return FCAP_IMPULSE_USE;
 }
 
+BOOL CFuncTankControls::OnControls( entvars_t *pevTest )
+{
+	if ( pev->spawnflags & SF_TANK_CANCONTROL )
+		return ( m_vecControllerUsePos - pevTest->origin ).Length() < 30.0f;
+	return FALSE;
+}
+
 void CFuncTankControls ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	CBaseEntity *pTank = NULL;
@@ -1015,130 +1141,4 @@ void CFuncTankControls::Spawn( void )
 
 	UTIL_SetSize( pev, pev->mins, pev->maxs );
 	UTIL_SetOrigin( this, pev->origin );
-}
-
-CBaseEntity *CFuncTank::BestVisibleEnemy( void )
-{
-	int iLookDist = ( m_maxRange > 512.0f ) ? (int)m_maxRange : 512;
-	Vector vecMins = pev->origin - Vector( (float)iLookDist, (float)iLookDist, (float)iLookDist );
-	Vector vecMaxs = pev->origin + Vector( (float)iLookDist, (float)iLookDist, (float)iLookDist );
-
-	CBaseEntity *pList[100];
-	int count = UTIL_EntitiesInBox( pList, 100, vecMins, vecMaxs, 0x28 );
-	if ( count < 1 )
-		return NULL;
-
-	CBaseEntity *pReturn = NULL;
-	int iBestRel = 0;
-	int iNearest = 0x2000;
-
-	for ( int i = 0; i < count; i++ )
-	{
-		CBaseEntity *pEnt = pList[i];
-		if ( !pEnt->IsAlive() )
-			continue;
-
-		int rel = IRelationship( pEnt );
-		int dist = (int)( pEnt->pev->origin - pev->origin ).Length();
-
-		if ( rel > iBestRel || ( rel == iBestRel && dist < iNearest ) )
-		{
-			iBestRel = rel;
-			pReturn = pEnt;
-			iNearest = dist;
-		}
-	}
-	return pReturn;
-}
-
-int CFuncTank::IRelationship( CBaseEntity *pTarget )
-{
-	int iOtherClass = pTarget->Classify();
-	if ( iOtherClass == 0 )
-		return 0;
-
-	int c = m_iTankClass;
-	if ( c == 0 )
-		return ( iOtherClass == CLASS_PLAYER ) ? 2 : 0;
-	if ( c == 0xe )
-	{
-		if ( iOtherClass == CLASS_PLAYER )
-			return ( pTarget->pev->team != TEAM_ALLIES ) ? 2 : -2;
-		return 2;
-	}
-	if ( c == 0xf )
-	{
-		if ( iOtherClass == CLASS_PLAYER )
-			return ( pTarget->pev->team != TEAM_AXIS ) ? 2 : -2;
-		return 2;
-	}
-	if ( c == 0xb )
-	{
-		if ( iOtherClass > 9 )
-			return 0;
-		return ( ( 1 << iOtherClass ) & 0x3b2 ) ? 2 : 0;
-	}
-	if ( c == 4 )
-	{
-		if ( iOtherClass > 0xb )
-			return 0;
-		int bit = 1 << iOtherClass;
-		if ( bit & 0xba4 )
-			return 2;
-		if ( bit & 8 )
-			return 1;
-		return 0;
-	}
-	if ( c == 5 )
-	{
-		// the relationship to the classes 2 to 11: CLASS_PLAYER, CLASS_HUMAN_PASSIVE, CLASS_HUMAN_MILITARY, ..., CLASS_PLAYER_ALLY
-		static const int rgiRelationship[10] = { 2, 1, 2, 0, 0, 0, 0, 0, 0, 2 };
-
-		if ( (unsigned)( iOtherClass - 2 ) < 10 )
-			return rgiRelationship[iOtherClass - 2];
-
-		return 0;
-	}
-	return 0;
-}
-
-void CFuncTank::UpdateSpot( void )
-{
-	if ( pev->spawnflags & SF_TANK_UPDATESPOT )
-	{
-		TraceResult tr;
-		Vector vecAiming;
-		UTIL_MakeVectorsPrivate( pev->angles, vecAiming, NULL, NULL );
-
-		Vector vecSrc = BarrelPosition();
-		Vector vecEnd = vecSrc + vecAiming * 8192;
-		UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, ENT( pev ), &tr );
-	}
-}
-
-void CFuncTank::TrackThink( void )
-{
-	pev->avelocity = g_vecZero;
-	TrackTarget();
-
-	if ( fabs( pev->avelocity.x ) <= 1.0 && fabs( pev->avelocity.y ) <= 1.0 )
-	{
-		if ( pev->spawnflags & SF_TANK_SOUNDON )
-			EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, (char *)STRING( pev->noise ), 0.0, 0.0, 0x20, 100 );
-		pev->spawnflags &= ~0x8000;
-		return;
-	}
-
-	if ( pev->noise != 0 && !( pev->spawnflags & SF_TANK_SOUNDON ) )
-	{
-		pev->spawnflags |= SF_TANK_SOUNDON;
-		EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, (char *)STRING( pev->noise ), 0.85, 0.8, 0, 100 );
-	}
-}
-
-BOOL CFuncTankControls::OnControls( entvars_t *pevTest )
-{
-	if ( pev->spawnflags & SF_TANK_CANCONTROL )
-		return ( m_vecControllerUsePos - pevTest->origin ).Length() < 30.0f;
-	return FALSE;
 }

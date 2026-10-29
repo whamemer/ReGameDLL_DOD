@@ -32,6 +32,68 @@
 #include "dod_gamerules.h"
 #include "talkmonster.h"
 
+// DOD CSandBag plus CDoDCamera - source restore/triggers/dod_triggers.cpp - original file dod/dlls/triggers.cpp
+// dod_triggers.cpp -- DoD-specific triggers from dod/dlls/triggers.cpp
+// Restored from dod.so. Ghidra addr = link addr + 0x10000.
+// file:line below is addr2line on the LINK address (use Ghidra addr - 0x10000).
+//
+// SCOPE (per work split):
+//   PORTED here: dod_trigger_sandbag (CSandBag), dod_camera (CDoDCamera).
+//   SDK-IDENTICAL (not ported, listed for completeness): every other
+//     trigger_* / func_* / info_teleport_destination / multi_manager /
+//     trigger_camera (SDK) / trigger_endsection / trigger_cdaudio etc.
+//   NOT HERE (other agents): dod_capture_area / dod_control_point /
+//     dod_control_point_master / dod_object / dod_object_goal /
+//     dod_point_relay / dod_round_timer / dod_location / dod_mapmarker /
+//     info_doddetect -> objectives agent (~/rev/restore/objectives/);
+//     dod_preround -> gamerules agent; dod_stats -> stats (not ported).
+//
+// DoD entity -> class map (LINK_ENTITY_TO_CLASS, verified via string xrefs):
+//   dod_trigger_sandbag -> CSandBag (this file)
+//   dod_camera          -> CDoDCamera (this file)
+//   ammo_generic_american / german / british -> GenericAmmo* (items.cpp)
+//   dod_ammo -> CDodAmmoBox (weapons agent, see NOTES)
+//
+// KeyValue fields -- CSandBag (rest unhandled):
+//   sandbag_range (int) -> m_nRange | master (string) -> m_sMaster
+//
+// KeyValue fields -- CDoDCamera (rest -> CBaseDelay::KeyValue):
+//   wait (float) -> m_flWait | moveto (string) -> m_sPath |
+//   acceleration (float) -> m_acceleration | deceleration (float) -> m_deceleration |
+//   teambound (int) -> m_teamBound (3 = both teams) |
+//   zoomlevel (int, clamped 0..90) -> m_iFOV (QUIRK: fHandled NOT set) |
+//   overlay (int) -> m_iOverlay | subtitle (int) -> m_iSubtitle |
+//   triggerstart (string) -> m_sTrigrStart | triggerend (string) -> m_sTrigrEnd |
+//   cam_fade (int) -> m_iCamFade
+
+#include "cbase.h"
+
+extern DLL_GLOBAL BOOL g_fGameOver;
+extern int gmsgCameraView;
+extern int gmsgStartProgressBar;
+extern int gmsgStartProgressBarF;
+extern int gmsgSetObjOwner;
+extern int gmsgInitObjDisplay;
+extern int gmsgTimeLeft;
+extern cvar_t *pcvar_mp_clan_match;
+extern cvar_t *pcvar_mp_clan_scoring;
+extern cvar_t *pcvar_mp_clan_scoring_delay;
+extern int get_maptime_left( void );
+
+extern void SetMovedir( entvars_t *pev );
+extern Vector VecBModelOrigin( entvars_t *pevBModel );
+
+extern const char *GetStringForUseType( USE_TYPE useType );
+
+static BOOL SceneAlreadySeen( CBasePlayer *pPlayer, int slot );
+static void MarkSceneSeen( CBasePlayer *pPlayer, int slot );
+static const char *CutSceneName( int scene );
+extern int gmsgClientAreas;
+extern int gmsgTimerStatus;
+extern int gmsgPlayersInArea;
+extern int gmsgProgBarUpdate;
+extern int gmsgCancelProgressBar;
+
 #define SF_TRIGGER_PUSH_START_OFF 2			//spawnflag that makes trigger_push spawn turned OFF
 #define SF_TRIGGER_HURT_TARGETONCE 1		// Only fire hurt target once
 #define SF_TRIGGER_HURT_START_OFF 2			//spawnflag that makes trigger_push spawn turned OFF
@@ -49,21 +111,6 @@
 #define SF_WATCHER_STATE 0x0200		// set by the watcher itself: the last result of the logic
 #define SF_CUSTOMIZE_DEAD 0x0001	// env_customize changes a dead monster too
 #define SF_CUSTOMIZE_ONCE 0x0002	// env_customize removes itself after it was used
-
-extern DLL_GLOBAL BOOL g_fGameOver;
-extern int gmsgCameraView;
-extern int gmsgStartProgressBar;
-extern int gmsgStartProgressBarF;
-extern int gmsgSetObjOwner;
-extern int gmsgInitObjDisplay;
-extern int gmsgTimeLeft;
-extern cvar_t *pcvar_mp_clan_match;
-extern cvar_t *pcvar_mp_clan_scoring;
-extern cvar_t *pcvar_mp_clan_scoring_delay;
-extern int get_maptime_left( void );
-
-extern void SetMovedir( entvars_t *pev );
-extern Vector VecBModelOrigin( entvars_t *pevBModel );
 
 class CFrictionModifier : public CBaseEntity
 {
@@ -210,11 +257,19 @@ void CAutoTrigger::Think( void )
 	}
 }
 
+void CAutoTrigger::RoundRespawn( void )
+{
+	m_iEnabled = 1;
+	if ( pev->spawnflags & SF_AUTO_ROUNDRESTART )
+	{
+		pev->nextthink = gpGlobals->time + 0.1f;
+		b_isRoundRestart = true;
+	}
+}
+
 #define SF_RELAY_FIREONCE 0x0001
 #define SF_RELAY_DEBUG 0x0002
 #define SF_RELAY_USETYPE 0x80000000
-
-extern const char *GetStringForUseType( USE_TYPE useType );
 
 class CTriggerRelay : public CBaseDelay
 {
@@ -235,6 +290,12 @@ class CTriggerRelay : public CBaseDelay
 	USE_TYPE m_triggerType;
 	string_t m_sMaster;
 };
+
+void CTriggerRelay::RoundRespawn( void )
+{
+	m_iEnabled = 1;
+}
+
 LINK_ENTITY_TO_CLASS( trigger_relay, CTriggerRelay );
 
 TYPEDESCRIPTION CTriggerRelay::m_SaveData[] = {
@@ -283,11 +344,6 @@ void CTriggerRelay::Spawn( void )
 	m_iEnabled = 1;
 
 	RoundStore();
-}
-
-void CTriggerRelay::RoundRespawn( void )
-{
-	m_iEnabled = 1;
 }
 
 void CTriggerRelay::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
@@ -415,6 +471,10 @@ class CMultiManager : public CBaseEntity
 
 	void RoundRespawn( void );
 };
+
+// GetState (triggers.cpp:451/940)
+STATE CMultiManager::GetState() { return m_iState; }
+
 LINK_ENTITY_TO_CLASS( multi_manager, CMultiManager );
 
 // Global Savedata for multi_manager
@@ -552,6 +612,51 @@ void CMultiManager ::Spawn( void )
 	}
 
 	RoundStore();
+}
+
+void CMultiManager::RoundRespawn( void )
+{
+	int i;
+	int count = m_rscTargets;
+
+	m_index = m_rsindex;
+	m_cTargets = count;
+	m_startTime = m_rsstartTime;
+	m_flWait = m_rsflWait;
+	m_flMaxWait = m_rsflMaxWait;
+	m_sMaster = m_rssMaster;
+	m_iMode = m_rsiMode;
+
+	for ( i = 0; i < count; i++ )
+	{
+		m_iTargetName[i] = m_rsiTargetName[i];
+		m_flTargetDelay[i] = m_rsflTargetDelay[i];
+	}
+
+	m_iState = STATE_OFF;
+	SetUse( &CMultiManager::ManagerUse );
+	SetThink( &CMultiManager::ManagerThink );
+	if ( !( pev->spawnflags & SF_MULTIMAN_TRIGGERTYPE ) )
+		m_triggerType = USE_TOGGLE;
+
+	bool swapped;
+	do
+	{
+		swapped = false;
+		for ( i = 1; i < count; i++ )
+		{
+			if ( m_flTargetDelay[i] < m_flTargetDelay[i - 1] )
+			{
+				int name = m_iTargetName[i];
+				m_iTargetName[i] = m_iTargetName[i - 1];
+				m_iTargetName[i - 1] = name;
+				float d = m_flTargetDelay[i];
+				m_flTargetDelay[i] = m_flTargetDelay[i - 1];
+				m_flTargetDelay[i - 1] = d;
+				swapped = true;
+			}
+		}
+	} while ( swapped );
 }
 
 BOOL CMultiManager::HasTarget( string_t targetname )
@@ -752,6 +857,219 @@ void CMultiManager ::ManagerUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 	pManager->pev->nextthink = pManager->m_startTime;
 }
 
+// ---- CStateWatcher (ptype: SaveData[3], 0x248 alloc, multi_watcher/watcher) ----
+class CStateWatcher : public CBaseToggle
+{
+public:
+	void Spawn( void );
+	void Think( void );
+	void KeyValue( KeyValueData *pkvd );
+	virtual STATE GetState();
+	virtual int Save( CSave &save );
+	virtual int Restore( CRestore &restore );
+	BOOL EvalLogic();
+	virtual void RoundRespawn( void );
+	static TYPEDESCRIPTION m_SaveData[];
+	int m_fLogic;
+	int m_cTargets;
+	int m_iTargetName[16];
+};
+
+STATE CStateWatcher::GetState() { return (STATE)( ( pev->spawnflags >> 8 ) & 2 ); }
+LINK_ENTITY_TO_CLASS( multi_watcher, CStateWatcher );
+LINK_ENTITY_TO_CLASS( watcher, CStateWatcher );
+
+void CStateWatcher::KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "m_fLogic" ) )
+	{
+		m_fLogic = (int) atof( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+		return;
+	}
+
+	if ( FStrEq( pkvd->szKeyName, "m_iszWatch" ) )
+	{
+		if ( m_cTargets < MAX_MULTI_TARGETS )
+		{
+			m_iTargetName[m_cTargets] = ALLOC_STRING( pkvd->szValue );
+			m_cTargets++;
+			pkvd->fHandled = TRUE;
+			return;
+		}
+	}
+	else if ( m_cTargets < MAX_MULTI_TARGETS )
+	{
+		char tmp[128];
+
+		UTIL_StripToken( pkvd->szKeyName, tmp, sizeof( tmp ) );
+		m_iTargetName[m_cTargets] = ALLOC_STRING( tmp );
+		m_cTargets++;
+		pkvd->fHandled = TRUE;
+		return;
+	}
+
+	if ( pev->targetname )
+		ALERT( at_console, "%s: Too many targets for %s %s (limit is %d)\n", pkvd->szKeyName, STRING( pev->classname ),
+			   STRING( pev->targetname ), MAX_MULTI_TARGETS );
+	else
+		ALERT( at_console, "%s: Too many targets for unnamed %s (limit is %d)\n", pkvd->szKeyName,
+			   STRING( pev->classname ), MAX_MULTI_TARGETS );
+}
+
+TYPEDESCRIPTION CStateWatcher::m_SaveData[] = {
+	DEFINE_FIELD( CStateWatcher, m_fLogic, FIELD_INTEGER ),
+	DEFINE_FIELD( CStateWatcher, m_cTargets, FIELD_INTEGER ),
+	DEFINE_ARRAY( CStateWatcher, m_iTargetName, FIELD_STRING, 16 ),
+};
+IMPLEMENT_SAVERESTORE( CStateWatcher, CBaseToggle );
+
+void CStateWatcher::Spawn( void )
+{
+	pev->solid = SOLID_NOT;
+	pev->nextthink = gpGlobals->time + 0.5;
+
+	RoundStore();
+}
+
+void CStateWatcher::RoundRespawn( void )
+{
+	pev->nextthink = gpGlobals->time + 0.5;
+}
+
+// Re-evaluates EvalLogic each 0.1s, latches result into spawnflag 0x200 and,
+// on a state change, fires targets (USE_ON/USE_OFF/USE_TOGGLE gated by
+// spawnflags 1=fire, 2=no-on, 4=no-off).
+void CStateWatcher::Think( void )
+{
+	pev->nextthink = gpGlobals->time + 0.1;
+
+	BOOL oldflag = ( pev->spawnflags & SF_WATCHER_STATE );
+	BOOL on = EvalLogic();
+
+	if ( on )
+		pev->spawnflags |= SF_WATCHER_STATE;
+	else
+		pev->spawnflags &= ~SF_WATCHER_STATE;
+
+	if ( ( pev->spawnflags & SF_WATCHER_STATE ) != oldflag )
+	{
+		if ( oldflag == 0 )
+		{
+			if ( pev->spawnflags & SF_WATCHER_NO_ON )
+				return;
+			if ( !( pev->spawnflags & SF_WATCHER_TOGGLE ) )
+			{
+				SUB_UseTargets( this, USE_ON, 0 );
+				return;
+			}
+		}
+		else
+		{
+			if ( pev->spawnflags & SF_WATCHER_NO_OFF )
+				return;
+			if ( !( pev->spawnflags & SF_WATCHER_TOGGLE ) )
+			{
+				SUB_UseTargets( this, USE_OFF, 0 );
+				return;
+			}
+		}
+		SUB_UseTargets( this, USE_TOGGLE, 0 );
+	}
+}
+
+BOOL CStateWatcher::EvalLogic()
+{
+	int got = 0;
+	if ( m_cTargets < 1 )
+	{
+		if ( m_fLogic == 3 || m_fLogic == 0 )
+			return TRUE;
+		if ( m_fLogic == 4 )
+			return got;
+		if ( m_fLogic == 5 )
+			return ( got == 0 );
+		return FALSE;
+	}
+	for ( int i = 0; i < m_cTargets; i++ )
+	{
+		CBaseEntity *pEnt = UTIL_FindEntityByTargetname( NULL, STRING( m_iTargetName[i] ) );
+		if ( !pEnt )
+			continue;
+		int st = ( (int (*)( CBaseEntity * ))( ( (void ***)pEnt )[0][15] ) )( pEnt );
+		int flags = pev->spawnflags;
+		if ( st == 0 )
+		{
+			if ( !( flags & 0x10 ) )
+			{
+				if ( m_fLogic == 0 )
+					return FALSE;
+				if ( m_fLogic == 2 )
+					return TRUE;
+				continue;
+			}
+		}
+		else if ( st == 1 || st == 3 )
+		{
+			if ( !( flags & 0x20 ) )
+			{
+				if ( m_fLogic == 0 )
+					return FALSE;
+				if ( m_fLogic == 2 )
+					return TRUE;
+				continue;
+			}
+		}
+		else if ( st == 2 )
+		{
+			if ( !( flags & 8 ) )
+			{
+				if ( m_fLogic == 0 )
+					return FALSE;
+				if ( m_fLogic == 2 )
+					return TRUE;
+				continue;
+			}
+		}
+		else
+		{
+			if ( !( flags & 0x80 ) )
+			{
+				if ( m_fLogic == 0 )
+					return FALSE;
+				if ( m_fLogic == 2 )
+					return TRUE;
+				continue;
+			}
+		}
+		if ( m_fLogic == 3 )
+			return FALSE;
+		if ( m_fLogic == 1 )
+			return TRUE;
+		if ( m_fLogic == 4 )
+		{
+			if ( got )
+				return FALSE;
+			got = 1;
+			continue;
+		}
+		if ( m_fLogic == 5 )
+		{
+			if ( got )
+				return TRUE;
+			got = 1;
+			continue;
+		}
+	}
+	if ( m_fLogic == 3 || m_fLogic == 0 )
+		return TRUE;
+	if ( m_fLogic == 4 )
+		return got;
+	if ( m_fLogic == 5 )
+		return ( got == 0 );
+	return FALSE;
+}
+
 //***********************************************************
 
 //
@@ -807,6 +1125,249 @@ void CRenderFxManager ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_
 	}
 }
 
+// ---- CEnvCustomize (ptype SaveData[9], 0x17c alloc) ----
+class CEnvCustomize : public CBaseEntity
+{
+public:
+	void Spawn( void );
+	void Think( void );
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	virtual int ObjectCaps( void );
+	void KeyValue( KeyValueData *pkvd );
+	virtual int Save( CSave &save );
+	virtual int Restore( CRestore &restore );
+	static TYPEDESCRIPTION m_SaveData[];
+	float m_flRadius;
+	int m_iszModel;
+	int m_iClass;
+	int m_iPrisoner;
+	int m_iPlayerAlly;
+	int m_iVisible;
+	int m_iSolid;
+	int m_iProvoked;
+	int m_voicePitch;
+};
+
+int CEnvCustomize::ObjectCaps( void )
+{
+	return 0;
+}
+
+// Factory: GetClassPtr sets the vtable + pev (size 0x17c).
+LINK_ENTITY_TO_CLASS( env_customize, CEnvCustomize );
+
+void CEnvCustomize::KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "m_iVisible" ) )
+	{
+		m_iVisible = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "m_iSolid" ) )
+	{
+		m_iSolid = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "m_iszModel" ) )
+	{
+		m_iszModel = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "m_voicePitch" ) )
+	{
+		m_voicePitch = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "m_iPlayerAlly" ) )
+	{
+		m_iPlayerAlly = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "m_iPrisoner" ) )
+	{
+		m_iPrisoner = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "m_iClass" ) )
+	{
+		m_iClass = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "m_flRadius" ) )
+	{
+		m_flRadius = atof( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "m_iProvoked" ) )
+	{
+		m_iProvoked = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else
+		pkvd->fHandled = FALSE;
+}
+
+TYPEDESCRIPTION CEnvCustomize::m_SaveData[] = {
+	DEFINE_FIELD( CEnvCustomize, m_flRadius, FIELD_FLOAT ),
+	DEFINE_FIELD( CEnvCustomize, m_iszModel, FIELD_STRING ),
+	DEFINE_FIELD( CEnvCustomize, m_iClass, FIELD_INTEGER ),
+	DEFINE_FIELD( CEnvCustomize, m_iPrisoner, FIELD_INTEGER ),
+	DEFINE_FIELD( CEnvCustomize, m_iPlayerAlly, FIELD_INTEGER ),
+	DEFINE_FIELD( CEnvCustomize, m_iVisible, FIELD_INTEGER ),
+	DEFINE_FIELD( CEnvCustomize, m_iSolid, FIELD_INTEGER ),
+	DEFINE_FIELD( CEnvCustomize, m_iProvoked, FIELD_INTEGER ),
+	DEFINE_FIELD( CEnvCustomize, m_voicePitch, FIELD_INTEGER ),
+};
+IMPLEMENT_SAVERESTORE( CEnvCustomize, CBaseEntity );
+
+void CEnvCustomize::Spawn( void )
+{
+	pev->solid = SOLID_NOT;
+	if ( m_iszModel )
+		PRECACHE_MODEL( (char *) STRING( m_iszModel ) );
+	if ( pev->targetname == 0 )
+		pev->nextthink = gpGlobals->time + 0.1;
+}
+
+void CEnvCustomize::Think( void )
+{
+	Use( this, this, USE_TOGGLE, 0 );
+}
+
+void CEnvCustomize::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	CBaseEntity *pTarget = UTIL_FindEntityGeneric( STRING( pev->target ), pev->origin, m_flRadius );
+	if ( !pTarget )
+		return;
+
+	CBaseMonster *pMonster = pTarget->MyMonsterPointer();
+
+	if ( !( pev->spawnflags & SF_CUSTOMIZE_DEAD ) && pMonster && pMonster->m_MonsterState == MONSTERSTATE_DEAD )
+		return;
+
+	if ( m_iszModel )
+	{
+		Vector vecMins = pTarget->pev->mins;
+		Vector vecMaxs = pTarget->pev->maxs;
+		( *g_engfuncs.pfnSetModel )( ENT( pTarget->pev ), STRING( m_iszModel ) );
+		UTIL_SetSize( pTarget->pev, vecMins, vecMaxs );
+	}
+
+	if ( pev->body != -1 )
+		pTarget->pev->body = pev->body;
+
+	if ( pev->skin == -2 )
+		pTarget->pev->skin = ( pTarget->pev->skin == 0 );
+	else if ( pev->skin != -1 && pev->skin != -99 )
+		pTarget->pev->skin = pev->skin;
+	else if ( pev->skin == -99 )
+		pTarget->pev->skin = -1;
+
+	if ( m_iVisible != 0 )
+	{
+		unsigned int u = pTarget->pev->effects;
+		if ( !( u & 0x80 ) )
+		{
+			if ( m_iVisible != 2 )
+				pTarget->pev->effects = u | 0x80;
+		}
+		else
+		{
+			if ( m_iVisible - 2 > 1 )
+				pTarget->pev->effects = u | 0x80;
+			else
+				pTarget->pev->effects = u & ~0x80;
+		}
+	}
+
+	if ( m_iSolid != 0 )
+	{
+		if ( pTarget->pev->solid != SOLID_NOT )
+		{
+			if ( m_iSolid != 2 )
+				pTarget->pev->solid = SOLID_NOT;
+		}
+		else
+		{
+			if ( m_iSolid - 2 > 1 )
+				pTarget->pev->solid = SOLID_NOT;
+			else
+				pTarget->pev->solid = pMonster ? 3 : 4;
+		}
+	}
+
+	if ( pMonster )
+	{
+		if ( m_voicePitch > 0 )
+		{
+			const char *pszClass = STRING( pTarget->pev->classname );
+			if ( FStrEq( pszClass, "monster_barney" ) || FStrEq( pszClass, "monster_scientist" ) ||
+				 FStrEq( pszClass, "monster_sitting_scientist" ) )
+				( (CTalkMonster *) pTarget )->m_voicePitch = m_voicePitch;
+		}
+
+		if ( m_iClass != 0 )
+		{
+			pMonster->m_iClass = m_iClass;
+			if ( pMonster->m_hEnemy != NULL )
+			{
+				pMonster->m_hEnemy = NULL;
+				pMonster->SetConditions( 0x10000 );
+			}
+		}
+
+		if ( m_iPrisoner != 0 )
+		{
+			unsigned int u = pMonster->pev->spawnflags;
+			if ( u & 0x10 )
+			{
+				if ( (unsigned)( m_iPrisoner - 2 ) <= 1 )
+					pMonster->pev->spawnflags = u & ~0x10;
+			}
+			else if ( m_iPrisoner != 2 )
+			{
+				pMonster->pev->spawnflags = u | 0x10;
+				if ( pMonster->m_hEnemy != NULL )
+				{
+					pMonster->m_hEnemy = NULL;
+					pMonster->SetConditions( 0x10000 );
+				}
+			}
+		}
+
+		if ( m_iPlayerAlly != 0 )
+		{
+			unsigned int u = pMonster->pev->spawnflags;
+			if ( u & 0x800 )
+			{
+				if ( (unsigned)( m_iPlayerAlly - 2 ) <= 1 )
+					pMonster->pev->spawnflags = u & ~0x800;
+			}
+			else if ( m_iPlayerAlly != 2 )
+			{
+				pMonster->pev->spawnflags = u | 0x800;
+			}
+		}
+
+		if ( m_iProvoked != 0 )
+		{
+			unsigned int u = pMonster->m_afMemory;
+			if ( !( u & 1 ) )
+			{
+				if ( m_iProvoked != 2 )
+					pMonster->m_afMemory = u | 1;
+			}
+			else if ( (unsigned)( m_iProvoked - 2 ) < 2 )
+				pMonster->m_afMemory = u & ~1;
+			else
+				pMonster->m_afMemory = u | 1;
+		}
+	}
+
+	if ( pev->spawnflags & SF_CUSTOMIZE_ONCE )
+		UTIL_Remove( this );
+}
+
 class CBaseTrigger : public CBaseToggle
 {
   public:
@@ -822,87 +1383,6 @@ class CBaseTrigger : public CBaseToggle
 	void InitTrigger( void );
 
 	virtual int ObjectCaps( void );
-};
-
-class CObjectCapture : public CBaseTrigger
-{
-  public:
-	bool m_bCapped;	// set when spawnflags & 2 (one-shot)
-	char sz_Group[256];		 // capobj_group, must match carried object
-	char sz_DoneTarget[256];	 // capobj_donetarget
-	string_t m_sMaster;
-	int m_iAreaIndex;
-	char sz_HudIcon[256];	 // capobj_hud_sprite
-
-  public:
-	virtual void Precache( void );
-	virtual void Spawn( void );
-	virtual void Touch( CBaseEntity *pOther );
-	virtual void KeyValue( KeyValueData *pkvd );
-	virtual void RoundRespawn( void );
-	virtual void area_SendStatus( class CBasePlayer *p );
-	virtual void area_SetIndex( int index );
-};
-
-class CAreaCapture : public CBaseTrigger
-{
-  public:
-	int m_iCapMode;	 // 0 timed, 1 catchup (para rules)
-	int m_bCapturing;
-	int m_nCapturingTeam;  // -1 idle
-	int m_nOwningTeam;	   // mirrors point owner, -1 none
-	int m_nCapTime;		  // area_time_to_cap (seconds)
-	float m_fTimeRemaining;
-	int m_nAlliesNumCap;  // area_allies_numcap, min 1
-	int m_nAxisNumCap;	  // area_axis_numcap, min 1
-	int m_nNumAllies;
-	int m_nNumAxis;
-	bool m_bAlliesCanCap;  // area_allies_cancap
-	bool m_bAxisCanCap;	  // area_axis_cancap
-	int m_iCappingRequired;
-	int m_iCappingPlayers;
-	char sz_AlliesCap[256];			  // area_allies_endcap
-	char sz_AxisCap[256];			  // area_axis_endcap
-	char sz_AlliesStart[256];		  // area_allies_startcap
-	char sz_AxisStart[256];			  // area_axis_startcap
-	char sz_AlliesBreak[256];		  // area_allies_breakcap
-	char sz_AxisBreak[256];			  // area_axis_breakcap
-	int m_iAreaIndex;  // HUD area slot, -1 until assigned
-	char sz_HudIcon[256];			  // area_hud_sprite
-	CControlPoint *m_pPoint;		  // area_cap_point target
-	char sz_CapPointName[256];		  // area_cap_point
-	char sz_RequiredObjectGroup[256];  // area_object_group
-	bool m_bRequiresObject;
-
-  public:
-	virtual void Precache( void );
-	virtual void RoundRespawn( void );
-	virtual void area_SetIndex( int index );
-	virtual void area_SendStatus( class CBasePlayer *p );
-	int GetNumAlive( int team );
-	bool CanUseCatchup();
-	void GetNumRequiredPlayers( int *reqAllies, int *reqAxis );
-	virtual void Spawn( void );
-	void EXPORT AreaTouch( CBaseEntity *pOther );
-	virtual void Think( void );
-	virtual void KeyValue( KeyValueData *pkvd );
-	void StartCapture( int team, int capmode );
-	void ReSendSwipeInfo();
-	void EndCapture( int team );
-	void BreakCapture( int team );
-	void SendNumPlayers( class CBasePlayer *p );
-	void SetOwner( int team );
-};
-
-class CDodPointRelay : public CBaseEntity
-{
-  public:
-	int m_nTeam;  // dod_relay_team, default -1
-
-  public:
-	virtual void Spawn( void );
-	virtual void KeyValue( KeyValueData *pkvd );
-	void EXPORT DodRelayUse( CBaseEntity *pA, CBaseEntity *pC, USE_TYPE u, float v );
 };
 
 int CBaseTrigger::ObjectCaps( void )
@@ -2209,6 +2689,13 @@ void CTriggerPush ::Spawn()
 	RoundStore();
 }
 
+void CTriggerPush::RoundRespawn( void )
+{
+	InitTrigger();
+	SetUse( &CBaseTrigger::ToggleUse );
+	m_iEnabled = 1;
+}
+
 void CTriggerPush ::Touch( CBaseEntity *pOther )
 {
 	if ( !m_iEnabled )
@@ -2470,6 +2957,55 @@ void CTriggerGravity::GravityTouch( CBaseEntity *pOther )
 		return;
 
 	pOther->pev->gravity = pev->gravity;
+}
+
+// ---- CTriggerSetPatrol (ptype SaveData[1], 0x164 alloc) ----
+class CTriggerSetPatrol : public CBaseDelay
+{
+public:
+	void KeyValue( KeyValueData *pkvd );
+	void Spawn( void );
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	virtual int ObjectCaps( void );
+	virtual int Save( CSave &save );
+	virtual int Restore( CRestore &restore );
+	static TYPEDESCRIPTION m_SaveData[];
+	int m_iszPath;
+};
+
+int CTriggerSetPatrol::ObjectCaps( void )
+{
+	return 0;
+}
+
+// Factory: GetClassPtr sets the vtable + pev (size 0x164).
+LINK_ENTITY_TO_CLASS( trigger_startpatrol, CTriggerSetPatrol );
+
+void CTriggerSetPatrol::KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "m_iszPath" ) )
+	{
+		m_iszPath = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else
+		CBaseDelay::KeyValue( pkvd );
+}
+
+TYPEDESCRIPTION CTriggerSetPatrol::m_SaveData[] = {
+	DEFINE_FIELD( CTriggerSetPatrol, m_iszPath, FIELD_STRING ),
+};
+IMPLEMENT_SAVERESTORE( CTriggerSetPatrol, CBaseDelay );
+
+void CTriggerSetPatrol::Spawn( void ) {}
+
+void CTriggerSetPatrol::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	CBaseMonster *pMonster = (CBaseMonster *)UTIL_FindEntityByTargetname( NULL, STRING( pev->target ) );
+	CBaseEntity *path = UTIL_FindEntityByTargetname( NULL, STRING( m_iszPath ) );
+
+	if ( path && pMonster && !strncmp( STRING( pMonster->pev->classname ), "monster_", 8 ) )
+		pMonster->StartPatrol( path );
 }
 
 // this is a really bad idea.
@@ -2807,1557 +3343,26 @@ void CTriggerCamera::Move()
 	float fraction = 2 * gpGlobals->frametime;
 	pev->velocity = ( ( pev->movedir * pev->speed ) * fraction ) + ( pev->velocity * ( 1 - fraction ) );
 }
-// DOD CSandBag plus CDoDCamera - source restore/triggers/dod_triggers.cpp - original file dod/dlls/triggers.cpp
-// dod_triggers.cpp -- DoD-specific triggers from dod/dlls/triggers.cpp
-// Restored from dod.so. Ghidra addr = link addr + 0x10000.
-// file:line below is addr2line on the LINK address (use Ghidra addr - 0x10000).
-//
-// SCOPE (per work split):
-//   PORTED here: dod_trigger_sandbag (CSandBag), dod_camera (CDoDCamera).
-//   SDK-IDENTICAL (not ported, listed for completeness): every other
-//     trigger_* / func_* / info_teleport_destination / multi_manager /
-//     trigger_camera (SDK) / trigger_endsection / trigger_cdaudio etc.
-//   NOT HERE (other agents): dod_capture_area / dod_control_point /
-//     dod_control_point_master / dod_object / dod_object_goal /
-//     dod_point_relay / dod_round_timer / dod_location / dod_mapmarker /
-//     info_doddetect -> objectives agent (~/rev/restore/objectives/);
-//     dod_preround -> gamerules agent; dod_stats -> stats (not ported).
-//
-// DoD entity -> class map (LINK_ENTITY_TO_CLASS, verified via string xrefs):
-//   dod_trigger_sandbag -> CSandBag (this file)
-//   dod_camera          -> CDoDCamera (this file)
-//   ammo_generic_american / german / british -> GenericAmmo* (items.cpp)
-//   dod_ammo -> CDodAmmoBox (weapons agent, see NOTES)
-//
-// KeyValue fields -- CSandBag (rest unhandled):
-//   sandbag_range (int) -> m_nRange | master (string) -> m_sMaster
-//
-// KeyValue fields -- CDoDCamera (rest -> CBaseDelay::KeyValue):
-//   wait (float) -> m_flWait | moveto (string) -> m_sPath |
-//   acceleration (float) -> m_acceleration | deceleration (float) -> m_deceleration |
-//   teambound (int) -> m_teamBound (3 = both teams) |
-//   zoomlevel (int, clamped 0..90) -> m_iFOV (QUIRK: fHandled NOT set) |
-//   overlay (int) -> m_iOverlay | subtitle (int) -> m_iSubtitle |
-//   triggerstart (string) -> m_sTrigrStart | triggerend (string) -> m_sTrigrEnd |
-//   cam_fade (int) -> m_iCamFade
 
-#include "cbase.h"
-
-class CSandBag : public CBaseTrigger
+class CObjectCapture : public CBaseTrigger
 {
   public:
-	CSandBag();
-	void Spawn();
-	void RoundRespawn();
-	void KeyValue( KeyValueData *pkvd );
-	void EXPORT SandBagTouch( CBaseEntity *pOther );
-	BOOL IsMasteredOn();
+	bool m_bCapped;	// set when spawnflags & 2 (one-shot)
+	char sz_Group[256];		 // capobj_group, must match carried object
+	char sz_DoneTarget[256];	 // capobj_donetarget
+	string_t m_sMaster;
+	int m_iAreaIndex;
+	char sz_HudIcon[256];	 // capobj_hud_sprite
 
-	int m_nYaw;		// +0x200, from pev->angles.y at Spawn
-	int m_nRange;	// +0x204, default 5 (ctor + LINK alloc init)
-	int m_sMaster;	// +0x208, string_t
-};
-
-// Factory: GetClassPtr sets the vtable + pev (ctor inits m_nRange=5, m_sMaster=0).
-LINK_ENTITY_TO_CLASS( dod_trigger_sandbag, CSandBag );
-
-CSandBag::CSandBag()
-{
-	m_nRange = 5;
-	m_sMaster = 0;
-}
-
-void CSandBag::Spawn()
-{
-	m_nYaw = (int) pev->angles.y;
-	if ( m_nYaw > 180 )
-		m_nYaw -= 360;
-	CBaseTrigger::InitTrigger();
-	Precache();
-	pev->sequence = 0;
-	pev->framerate = 1.0;
-	UTIL_SetOrigin( pev, pev->origin );
-	UTIL_SetSize( pev, pev->mins, pev->maxs );
-	SetTouch( &CSandBag::SandBagTouch );
-
-	RoundStore();
-}
-
-void CSandBag::RoundRespawn()
-{
-	CBaseTrigger::InitTrigger();
-	pev->sequence = 0;
-	pev->framerate = 1.0;
-	UTIL_SetSize( pev, pev->mins, pev->maxs );
-	SetTouch( &CSandBag::SandBagTouch );
-}
-
-void CSandBag::KeyValue( KeyValueData *pkvd )
-{
-	if ( FStrEq( pkvd->szKeyName, "sandbag_range" ) )
-	{
-		m_nRange = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "master" ) )
-	{
-		m_sMaster = ALLOC_STRING( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else
-	{
-		pkvd->fHandled = FALSE;
-	}
-}
-
-// .text: CSandBag::IsMasteredOn inlined (no symbol; 305B = SandBagTouch 0x141070 size 0x131=305): return !m_sMaster || IsMasterTriggered exact
-BOOL CSandBag::IsMasteredOn()
-{
-	return !m_sMaster || UTIL_IsMasterTriggered( m_sMaster, this );
-}
-
-// Deploy/bipod zone: sets bit0 @player+0x76c always, and bit 0x400 @player+0x7cc
-// with hint on first touch. Facing window = m_nRange degrees (default 5).
-// Active-item gate: m_pActiveItem->Classify() == 0x100 (LMG: MG34/MG42/BREN,
-// weapons agents own exact table) OR player already deployed.
-void CSandBag::SandBagTouch( CBaseEntity *pOther )
-{
-	if ( !pOther->IsPlayer() || !pOther->IsAlive() )
-		return;
-	if ( !IsMasteredOn() )
-		return;
-	int delta = abs( (int) pOther->pev->angles.y - m_nYaw );
-	if ( delta > 180 )
-		delta = 360 - delta;
-	if ( CBasePlayer::IsProne( (CBasePlayer *) pOther ) )
-	{
-		if ( !CBasePlayer::IsSandbagDeployed( (CBasePlayer *) pOther ) )
-			return;
-	}
-	else
-	{
-		if ( pOther->pev->button & IN_DUCK )
-			return;
-		if ( delta > m_nRange )
-		{
-			if ( !CBasePlayer::IsSandbagDeployed( (CBasePlayer *) pOther ) )
-				return;
-		}
-		else
-		{
-			CBasePlayerItem *pActive = ( (CBasePlayer *) pOther )->m_pActiveItem;  // +0x46c
-			if ( !pActive || pActive->Classify() != 0x100 )						   // 0x100 = LMG class
-			{
-				if ( !CBasePlayer::IsSandbagDeployed( (CBasePlayer *) pOther ) )
-					return;
-			}
-		}
-	}
-	// player fields owned by player agent: dword @+0x76c bit 0, dword @+0x7cc bit 0x400
-	CBasePlayer *pPlayer = (CBasePlayer *) pOther;
-	*(int *) ( (char *) pPlayer + 0x76c ) |= 1;
-	int *pFlags = (int *) ( (char *) pPlayer + 0x7cc );
-	if ( !( *pFlags & 0x400 ) )
-	{
-		*pFlags |= 0x400;
-		pPlayer->HintMessage( "#Hint_sandbag_area_touch", 0 );
-	}
-}
-
-// ---- dod_camera (CDoDCamera) ----
-// Cutscene camera for win/loose/draw/spawn scenes (see gamerules
-// FireDODCamera: allies_win_cut, axis_loose_cut, ...). Spawn hides the model
-// (null.mdl, MOVETYPE_NOCLIP, SOLID_NOT, rendermode TransTexture) and caches
-// pev->angles/origin plus the mapper-supplied pev->speed; speed then follows
-// path_corner targets. Entity size 0x2c8.
-// iuser2 selects the scene slot:
-//   1 axis spawn | 2 allie spawn | 3 axis win | 4 allie win |
-//   5 axis loose | 6 allie loose | 7 axis draw | 8 allie draw
-
-// Factory: GetClassPtr sets the vtable + pev (size 0x2c8).
-LINK_ENTITY_TO_CLASS( dod_camera, CDoDCamera );
-
-void CDoDCamera::Precache( void )
-{
-	PRECACHE_MODEL( "models/mapmodels/null.mdl" );
-}
-
-void CDoDCamera::Spawn( void )
-{
-	Precache();
-	SET_MODEL( ENT( pev ), "models/mapmodels/null.mdl" );
-	pev->movetype = MOVETYPE_NOCLIP;
-	pev->solid = SOLID_NOT;
-	pev->renderamt = 0.0;
-	pev->rendermode = 2;
-	m_angles = pev->angles;	 // remember spawn angles/origin
-	m_origin = pev->origin;
-	for ( int i = 1; i <= 32; i++ )
-		m_hPlayer[i] = NULL;
-	m_initialSpeed = pev->speed;
-	if ( m_acceleration == 0.0 )
-		m_acceleration = 500.0;
-	if ( m_deceleration == 0.0 )
-		m_deceleration = 500.0;
-}
-
-void CDoDCamera::KeyValue( KeyValueData *pkvd )
-{
-	if ( FStrEq( pkvd->szKeyName, "wait" ) )
-	{
-		m_flWait = atof( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "moveto" ) )
-	{
-		m_sPath = ALLOC_STRING( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "acceleration" ) )
-	{
-		m_acceleration = atof( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "deceleration" ) )
-	{
-		m_deceleration = atof( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "teambound" ) )
-	{
-		m_teamBound = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "zoomlevel" ) )
-	{
-		// QUIRK: clamps 0..90 but does NOT set fHandled (falls through unset).
-		m_iFOV = atoi( pkvd->szValue );
-		if ( m_iFOV > 90 )
-			m_iFOV = 90;
-		if ( m_iFOV < 0 )
-			m_iFOV = 0;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "overlay" ) )
-	{
-		m_iOverlay = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "subtitle" ) )
-	{
-		m_iSubtitle = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "triggerstart" ) )
-	{
-		m_sTrigrStart = ALLOC_STRING( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "triggerend" ) )
-	{
-		m_sTrigrEnd = ALLOC_STRING( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "cam_fade" ) )
-	{
-		m_iCamFade = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else
-	{
-		CBaseDelay::KeyValue( pkvd );
-	}
-}
-
-static BOOL SceneAlreadySeen( CBasePlayer *pPlayer, int slot );
-static void MarkSceneSeen( CBasePlayer *pPlayer, int slot );
-static const char *CutSceneName( int scene );
-
-// Binds players 1..32 (skips non-team, wrong-team unless teamBound==3,
-// invisible/dead-check via iuser2 scene slot state), then on toggle-on:
-// sets speed/target from moveto path, snaps to stored origin/angles,
-// SetView + EnableControl(0) + CameraView msg + scene-seen flag per iuser2,
-// fires triggerstart, think = FollowTarget.
-// NaN gate: binary 0x14ced0 Use has no float compare in bind loop, decompiler NaN equality never true, port omits it verified.
-void CDoDCamera::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{
-	if ( !ShouldToggle( useType, m_state ) )
-		return;
-	// scene-seen flags live on CBasePlayer (player agent owns offsets):
-	// 1 i_seenAxisSpawnScene | 2 i_seenAllieSpawnScene | 3 i_seenAxisWinScene |
-	// 4 i_seenAllieWinScene | 5 i_seenAxisLooseScene | 6 i_seenAllieLooseScene |
-	// 7 i_seenAxisDrawScene | 8 i_seenAllieDrawScene
-	BOOL bFound = FALSE;
-	for ( int i = 1; i <= 32; i++ )
-	{
-		m_hPlayer[i] = UTIL_PlayerByIndex( i );
-		if ( !m_hPlayer[i] )
-			continue;
-		CBaseEntity *pEnt = m_hPlayer[i];
-		if ( !pEnt->IsPlayer() || ( m_teamBound != 3 && pEnt->pev->team != m_teamBound ) ||
-			 ( (CBasePlayer *) pEnt )->m_iNextClass == -1 ||
-			 SceneAlreadySeen( (CBasePlayer *) (CBaseEntity *) m_hPlayer[i], pev->iuser2 ) )
-		{
-			m_hPlayer[i] = NULL;
-			continue;
-		}
-		bFound = TRUE;
-	}
-	if ( !bFound )
-		return;
-	m_state = !m_state;
-	if ( m_state == 0 )
-	{
-		m_flReturnTime = gpGlobals->time;
-		return;
-	}
-	m_flReturnTime = gpGlobals->time + m_flWait;
-	pev->speed = m_initialSpeed;
-	m_targetSpeed = m_initialSpeed;
-	m_hTarget = GetNextTarget();
-	if ( !m_hTarget )
-		return;
-	if ( !m_sPath )
-	{
-		m_pentPath = NULL;
-		m_flStopTime = gpGlobals->time;
-	}
-	else
-	{
-		m_pentPath = UTIL_FindEntityByTargetname( NULL, STRING( m_sPath ) );
-		m_flStopTime = gpGlobals->time;
-		if ( m_pentPath )
-		{
-			if ( m_pentPath->pev->speed != 0 )
-				m_targetSpeed = m_pentPath->pev->speed;
-			m_flStopTime = gpGlobals->time + m_pentPath->GetDelay();  // vtable[0x1f]
-		}
-	}
-	pev->velocity = g_vecZero;
-	pev->angles = m_angles;
-	pev->origin = m_origin;
-	for ( int i = 1; i <= 32; i++ )
-	{
-		if ( !m_hPlayer[i] || m_hPlayer[i]->pev->team <= 0 )
-			continue;
-		CBasePlayer *pPlayer = (CBasePlayer *) (CBaseEntity *) m_hPlayer[i];
-		pPlayer->pev->vuser1.z = 1.0;
-		UTIL_ScreenFade( pPlayer, g_vecZero, 1.0, 15.0, 0, 5 );
-		g_engfuncs.pfnSetView( pPlayer->pev->pContainingEntity, pev->pContainingEntity );
-		pPlayer->EnableControl( 0 );
-		MESSAGE_BEGIN( MSG_ONE, gmsgCameraView, NULL, pPlayer->pev );
-		WRITE_STRING( STRING( pev->targetname ) );
-		MESSAGE_END();
-		MarkSceneSeen( pPlayer, pev->iuser2 );	// sets the i_seen* flag above
-	}
-	FireTargets( STRING( m_sTrigrStart ), this, this, USE_TOGGLE, 0 );
-	// dword @g_pGameRules+8 inc (active-camera counter; gamerules agent owns it)
-	( *(int *) ( (char *) g_pGameRules + 8 ) )++;
-	SetThink( &CDoDCamera::FollowTarget );
-	pev->nextthink = gpGlobals->time;
-	m_moveDistance = 0;
-	Move();
-}
-
-// While time is before m_flReturnTime and m_hTarget lives: face the target
-// (angle wrap + avelocity), damp velocity unless spawnflags&4, think again
-// next frame via Move(). Otherwise: release all bound players (EnableControl
-// + SetView self), fire triggerend + SUB_UseTargets, park at stored
-// origin/angles, m_state = 0.
-void CDoDCamera::FollowTarget()
-{
-	if ( m_hTarget && gpGlobals->time <= m_flReturnTime )
-	{
-		Vector vecGoal = m_hTarget->pev->origin - pev->origin;
-		Vector vecAng;
-		vecAng = UTIL_VecToAngles( vecGoal );
-		vecAng.x = -vecAng.x;
-		if ( pev->angles.y > 360.0 )
-			pev->angles.y -= 360.0;
-		if ( pev->angles.y < 0.0 )
-			pev->angles.y += 360.0;
-		float dx = vecAng.x - pev->angles.x;
-		float dy = vecAng.y - pev->angles.y;
-		if ( dx < -180.0 )
-			dx += 360.0;
-		if ( dx > 180.0 )
-			dx -= 360.0;
-		if ( dy < -180.0 )
-			dy += 360.0;
-		if ( dy > 180.0 )
-			dy -= 360.0;
-		pev->avelocity.x = dx * 40.0 * gpGlobals->frametime;
-		pev->avelocity.y = dy * 40.0 * gpGlobals->frametime;
-		if ( !( pev->spawnflags & SF_DODCAMERA_NO_DAMPING ) )
-		{
-			pev->velocity = pev->velocity * 0.8;
-			if ( pev->velocity.Length() < 10.0 )
-				pev->velocity = g_vecZero;
-		}
-		pev->nextthink = gpGlobals->time;
-		Move();
-		return;
-	}
-	// dword @g_pGameRules+8 dec (active-camera counter; gamerules agent owns it)
-	( *(int *) ( (char *) g_pGameRules + 8 ) )--;
-	for ( int i = 1; i <= 32; i++ )
-	{
-		if ( !m_hPlayer[i] )
-			continue;
-		CBaseEntity *pEnt = m_hPlayer[i];
-		if ( pEnt->pev->team > 0 )
-		{
-			( (CBasePlayer *) (CBaseEntity *) m_hPlayer[i] )->EnableControl( 1 );
-			g_engfuncs.pfnSetView( pEnt->pev->pContainingEntity, pEnt->pev->pContainingEntity );
-			pEnt->pev->vuser1.z = 0;
-			m_hPlayer[i] = NULL;
-		}
-	}
-	FireTargets( STRING( m_sTrigrEnd ), this, this, USE_TOGGLE, 0 );
-	SUB_UseTargets( this, USE_TOGGLE, 0 );
-	pev->avelocity = g_vecZero;
-	m_state = 0;
-	pev->angles = m_angles;
-	pev->origin = m_origin;
-}
-
-// file-local reconstruction of the inline iuser2 scene-slot gate in Use:
-// slot -> CBasePlayer::i_seen* flag binary-verified 0x14ced0 Use scene gates 1..8, member names from DWARF.
-static int SeenFlag( CBasePlayer *pPlayer, int slot )
-{
-	switch ( slot )
-	{
-	case 1:
-		return pPlayer->i_seenAxisSpawnScene;
-	case 2:
-		return pPlayer->i_seenAllieSpawnScene;
-	case 3:
-		return pPlayer->i_seenAxisWinScene;
-	case 4:
-		return pPlayer->i_seenAllieWinScene;
-	case 5:
-		return pPlayer->i_seenAxisLooseScene;
-	case 6:
-		return pPlayer->i_seenAllieLooseScene;
-	case 7:
-		return pPlayer->i_seenAxisDrawScene;
-	case 8:
-		return pPlayer->i_seenAllieDrawScene;
-	default:
-		return 0;
-	}
-}
-static BOOL SceneAlreadySeen( CBasePlayer *pPlayer, int slot )
-{
-	return SeenFlag( pPlayer, slot ) != 0;
-}
-static void MarkSceneSeen( CBasePlayer *pPlayer, int slot )
-{
-	switch ( slot )
-	{
-	case 1:
-		pPlayer->i_seenAxisSpawnScene = 1;
-		break;
-	case 2:
-		pPlayer->i_seenAllieSpawnScene = 1;
-		break;
-	case 3:
-		pPlayer->i_seenAxisWinScene = 1;
-		break;
-	case 4:
-		pPlayer->i_seenAllieWinScene = 1;
-		break;
-	case 5:
-		pPlayer->i_seenAxisLooseScene = 1;
-		break;
-	case 6:
-		pPlayer->i_seenAllieLooseScene = 1;
-		break;
-	case 7:
-		pPlayer->i_seenAxisDrawScene = 1;
-		break;
-	case 8:
-		pPlayer->i_seenAllieDrawScene = 1;
-		break;
-	default:
-		break;
-	}
-}
-
-// Advances m_moveDistance by pev->speed * frametime toward m_pentPath.
-// On arrival: console log (plain for iuser2 < 1, cut-scene name for 1..8),
-// fire path message target (cleared when spawnflags & 4), advance along
-// GetNextTarget chain, re-seed speed/distance/dir. Speed approaches
-// m_targetSpeed (accel) before m_flStopTime else 0 (decel); velocity blends
-// with 2 * frametime smoothing. Cut-scene names by iuser2:
-//   1 axis_spawn_cut | 2 allie_spawn_cut | 3 axis_win_cut | 4 allie_win_cut |
-//   5 axis_loose_cut | 6 allie_loose_cut | 7 axis_draw_cut | 8 allie_draw_cut
-void CDoDCamera::Move()
-{
-	CBaseEntity *pPath = m_pentPath;
-	if ( !pPath )
-	{
-		ALERT( at_aiconsole, "**dod_camera** No Path_corner FOUND !!\n" );
-		return;
-	}
-	m_moveDistance = m_moveDistance - pev->speed * gpGlobals->frametime;
-	if ( m_moveDistance <= 0 )
-	{
-		if ( pev->iuser2 < 1 )
-		{
-			ALERT( at_aiconsole, "**dod_camera** Reached %s: %s\n", STRING( pPath->pev->classname ),
-				   STRING( pPath->pev->targetname ) );
-		}
-		else
-		{
-			ALERT( at_aiconsole, "**dod_camera** type: %s  Reached %s: %s\n", CutSceneName( pev->iuser2 ),
-				   STRING( pPath->pev->classname ), STRING( pPath->pev->targetname ) );
-		}
-		if ( pPath->pev->message )
-		{
-			FireTargets( STRING( pPath->pev->message ), this, this, USE_TOGGLE, 0 );
-			if ( pPath->pev->spawnflags & SF_CORNER_FIREONCE )
-				pPath->pev->message = 0;
-		}
-		if ( !strcmp( STRING( pPath->pev->classname ), "path_corner" ) )
-			SetCameraMode( STRING( pPath->pev->targetname ), ( (CPathCorner *) pPath )->m_iCamFade );
-		pPath = pPath->GetNextTarget();
-		m_pentPath = pPath;
-		if ( !pPath )
-		{
-			pev->velocity = g_vecZero;
-		}
-		else
-		{
-			if ( pPath->pev->speed != 0 )
-				m_targetSpeed = pPath->pev->speed;
-			Vector delta = pPath->pev->origin - pev->origin;
-			float len = delta.Length();
-			m_moveDistance = len;
-			if ( len == 0 )
-				pev->movedir = Vector( 0, 0, 1 );
-			else
-				pev->movedir = delta * ( 1.0 / len );
-			// path_corner delay wait (vtable[0x1f] = GetDelay)
-			m_flStopTime = gpGlobals->time + pPath->GetDelay();
-		}
-	}
-	if ( m_flStopTime <= gpGlobals->time )
-		pev->speed = UTIL_Approach( m_targetSpeed, pev->speed, m_acceleration * gpGlobals->frametime );
-	else
-		pev->speed = UTIL_Approach( 0, pev->speed, m_deceleration * gpGlobals->frametime );
-	float blend = gpGlobals->frametime + gpGlobals->frametime;
-	pev->velocity = pev->velocity * ( 1.0 - blend ) + pev->movedir * pev->speed * blend;
-}
-
-// file-local: iuser2 -> cut-scene target name for the Move() log line.
-static const char *CutSceneName( int scene )
-{
-	switch ( scene )
-	{
-	case 1:
-		return "axis_spawn_cut";
-	case 2:
-		return "allie_spawn_cut";
-	case 3:
-		return "axis_win_cut";
-	case 4:
-		return "allie_win_cut";
-	case 5:
-		return "axis_loose_cut";
-	case 6:
-		return "allie_loose_cut";
-	case 7:
-		return "axis_draw_cut";
-	case 8:
-		return "allie_draw_cut";
-	default:
-		return "";
-	}
-}
-
-// Sends gmsgCameraView(targetname) to every bound on-team player, with an
-// optional screen fade. fade index: 1..5 -> (fadeTime, flags) =
-// (0.6,1) (2.0,1) (2.0,0) (3.0,1) (4.0,0); anything else -> (2.0,5).
-// holdtime 1.0, color black, alpha 0xff.
-void CDoDCamera::SetCameraMode( const char *szTargetname, int nFade )
-{
-	for ( int i = 1; i <= 32; i++ )
-	{
-		if ( !m_hPlayer[i] )
-			continue;
-		CBaseEntity *pEnt = m_hPlayer[i];
-		if ( pEnt->pev->team <= 0 )
-			continue;
-		if ( nFade != 0 )
-		{
-			float fadeTime;
-			int flags;
-			switch ( nFade )
-			{
-			case 1:
-				fadeTime = 0.6;
-				flags = 1;
-				break;
-			case 2:
-				fadeTime = 2.0;
-				flags = 1;
-				break;
-			case 3:
-				fadeTime = 2.0;
-				flags = 0;
-				break;
-			case 4:
-				fadeTime = 3.0;
-				flags = 1;
-				break;
-			case 5:
-				fadeTime = 4.0;
-				flags = 0;
-				break;
-			default:
-				fadeTime = 2.0;
-				flags = 5;
-				break;
-			}
-			UTIL_ScreenFade( (CBaseEntity *) m_hPlayer[i], g_vecZero, fadeTime, 1.0, 0xff, flags );
-		}
-		MESSAGE_BEGIN( MSG_ONE, gmsgCameraView, NULL, pEnt->pev );
-		WRITE_STRING( szTargetname );
-		MESSAGE_END();
-	}
-}
-
-
-int GetClanScoringValues( int team, int cp )
-{
-	const char *szValues;
-
-	if ( team != TEAM_ALLIES )
-	{
-		if ( team != TEAM_AXIS )
-			return 0;
-
-		szValues = CVAR_GET_STRING( "mp_clan_scoring_values_axis" );
-	}
-	else
-	{
-		szValues = CVAR_GET_STRING( "mp_clan_scoring_values_allies" );
-	}
-
-	if ( (int) strlen( szValues ) - 1 < cp )
-	{
-		ALERT( at_console, "Tried to get a clan scoring value for a point not defined in mp_clan_scoring_values_x\n" );
-		return 0;
-	}
-
-	return szValues[cp] - '0';
-}
-
-float CDoDCamera::ReturnTimeLeft( void )
-{
-	return m_flReturnTime;
-}
-extern int gmsgClientAreas;
-extern int gmsgTimerStatus;
-extern int gmsgPlayersInArea;
-extern int gmsgProgBarUpdate;
-extern int gmsgCancelProgressBar;
-
-// ---- CDoDCamera SaveData (binary SaveData[13], mirrors CTriggerCamera 13 fields) ----
-TYPEDESCRIPTION CDoDCamera::m_SaveData[] = {
-	DEFINE_FIELD( CDoDCamera, m_hPlayer, FIELD_EHANDLE ),
-	DEFINE_FIELD( CDoDCamera, m_hTarget, FIELD_EHANDLE ),
-	DEFINE_FIELD( CDoDCamera, m_pentPath, FIELD_CLASSPTR ),
-	DEFINE_FIELD( CDoDCamera, m_sPath, FIELD_STRING ),
-	DEFINE_FIELD( CDoDCamera, m_flWait, FIELD_FLOAT ),
-	DEFINE_FIELD( CDoDCamera, m_flReturnTime, FIELD_TIME ),
-	DEFINE_FIELD( CDoDCamera, m_flStopTime, FIELD_TIME ),
-	DEFINE_FIELD( CDoDCamera, m_moveDistance, FIELD_FLOAT ),
-	DEFINE_FIELD( CDoDCamera, m_targetSpeed, FIELD_FLOAT ),
-	DEFINE_FIELD( CDoDCamera, m_initialSpeed, FIELD_FLOAT ),
-	DEFINE_FIELD( CDoDCamera, m_acceleration, FIELD_FLOAT ),
-	DEFINE_FIELD( CDoDCamera, m_deceleration, FIELD_FLOAT ),
-	DEFINE_FIELD( CDoDCamera, m_state, FIELD_INTEGER ),
-};
-IMPLEMENT_SAVERESTORE( CDoDCamera, CBaseDelay );
-
-// ODR: CControlPoint canonical in objective.h (DWARF layout)
-// ODR: CControlPointMaster canonical in objective.h
-
-// ODR: CAreaCapture canonical in objective.h
-
-// ODR: CObjectCapture canonical in objective.h
-
-// ODR: CDodRoundTimer canonical in objective.h
-
-
-// CControlPoint (binary ctor + getters)
-CControlPoint::CControlPoint()
-{
-	m_iPointIndex = -1;
-	m_bPointVisible = 0;
-	m_iAlliesIcon = 1;
-	m_iAxisIcon = 2;
-	m_iNeutralIcon = 0;
-	m_iAlliesModelBodygroup = 0;
-	m_bAlliesCantTouch = false;
-	m_bAxisCantTouch = false;
-	m_szGroup[0] = 0;
-	m_iAxisModelBodygroup = 0;
-	m_iResetModelBodygroup = 0;
-}
-int CControlPoint::GetOwner( void ) { return m_iTeam; }
-char *CControlPoint::GetGroup( void ) { return m_szGroup; }
-int CControlPoint::PointValue( void ) { return m_iPointValue; }
-
-// CControlPointMaster helpers
-int CControlPointMaster::GetPointOwner( int point )
-{
-	int owner = 0;
-	if ( point >= 0 && point < 20 && ControlPointArray[point] )
-		owner = ( (CControlPoint *)ControlPointArray[point] )->m_iTeam;
-	return owner;
-}
-int CControlPointMaster::TeamOwnsAllPoints()
-{
-	if ( m_iNumPoints < 1 || !ControlPointArray[0] )
-		return 0;
-	int team = ( (CControlPoint *)ControlPointArray[0] )->m_iTeam;
-	for ( int i = 1; i < m_iNumPoints; i++ )
-	{
-		if ( !ControlPointArray[i] || ( (CControlPoint *)ControlPointArray[i] )->m_iTeam != team )
-			return 0;
-	}
-	return team;
-}
-
-// CAreaCapture helpers (decompile + DWARF field names)
-void CAreaCapture::area_SetIndex( int index )
-{
-	m_iAreaIndex = index;
-	if ( index > 0x80 )
-		return;
-	MESSAGE_BEGIN( MSG_ALL, gmsgClientAreas );
-		WRITE_BYTE( m_iAreaIndex );
-		WRITE_BYTE( -1 );
-		WRITE_STRING( sz_HudIcon );
-	MESSAGE_END();
-}
-void CAreaCapture::area_SendStatus( CBasePlayer *p )
-{
-	if ( !p )
-		return;
-	if ( m_iAreaIndex > 0x80 )
-		return;
-	MESSAGE_BEGIN( MSG_ONE, gmsgClientAreas, NULL, p->pev );
-		WRITE_BYTE( m_iAreaIndex );
-		WRITE_BYTE( -1 );
-		WRITE_STRING( sz_HudIcon );
-	MESSAGE_END();
-	SendNumPlayers( p );
-}
-void CAreaCapture::GetNumRequiredPlayers( int *reqAllies, int *reqAxis )
-{
-	int numAllies = 0;
-	int numAxis = 0;
-
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
-	{
-		CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
-
-		if ( pPlayer )
-		{
-			if ( pPlayer->pev->team == TEAM_ALLIES )
-				numAllies++;
-			else if ( pPlayer->pev->team == TEAM_AXIS )
-				numAxis++;
-
-			if ( numAllies > m_nAlliesNumCap && numAxis > m_nAxisNumCap )
-				break;
-		}
-	}
-
-	*reqAllies = m_nAlliesNumCap;
-	*reqAxis = m_nAxisNumCap;
-
-	if ( *reqAllies < 1 )
-		*reqAllies = 1;
-	if ( *reqAxis < 1 )
-		*reqAxis = 1;
-}
-// ODR: CDoDTeamPlay canonical in dod_gamerules.h
-bool CAreaCapture::CanUseCatchup()
-{
-	bool bCatchup = false;
-	CDoDTeamPlay *pRules = (CDoDTeamPlay *) g_pGameRules;
-
-	if ( pRules )
-	{
-		bCatchup = true;
-
-		if ( pRules->IsAlliesInfinite() )
-			bCatchup = !pRules->IsAxisInfinite();
-	}
-
-	return ( pev->spawnflags & SF_AREA_CATCHUP ) && bCatchup;
-}
-int CAreaCapture::GetNumAlive( int team )
-{
-	int n = 0;
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
-	{
-		CBaseEntity *pEnt = UTIL_PlayerByIndex( i );
-		if ( pEnt && pEnt->IsPlayer() && pEnt->pev->team == team && pEnt->pev->deadflag == DEAD_NO )
-			n++;
-	}
-	return n;
-}
-void CAreaCapture::SendNumPlayers( CBasePlayer *pPlayer )
-{
-	if ( !m_pPoint )
-		return;
-	int team = 0;
-	int num = 0;
-	int req = -1;
-	int allies = m_nNumAllies;
-	int axis = m_nNumAxis;
-	if ( allies > 0 && axis < 1 && m_nOwningTeam != TEAM_ALLIES )
-	{
-		int ra = 1, rx = 1;
-		GetNumRequiredPlayers( &ra, &rx );
-		team = 1; num = allies; req = ra;
-	}
-	else if ( axis > 0 && allies < 1 && m_nOwningTeam != TEAM_AXIS )
-	{
-		int ra = 1, rx = 1;
-		GetNumRequiredPlayers( &ra, &rx );
-		team = 2; num = axis; req = rx;
-	}
-	else
-	{
-		int ra = 1, rx = 1;
-		GetNumRequiredPlayers( &ra, &rx );
-		team = 0; num = 0; req = -1;
-	}
-	if ( req != -1 && num > req )
-		num = req;
-	if ( req != -1 && req < 2 )
-		return;
-	if ( !pPlayer )
-		MESSAGE_BEGIN( MSG_ALL, gmsgPlayersInArea );
-	else
-		MESSAGE_BEGIN( MSG_ONE, gmsgPlayersInArea, NULL, pPlayer->pev );
-
-	WRITE_BYTE( m_pPoint->m_iIndex );
-	WRITE_BYTE( team );
-	WRITE_BYTE( num );
-	WRITE_BYTE( req );
-	MESSAGE_END();
-}
-void CAreaCapture::ReSendSwipeInfo()
-{
-	if ( !m_pPoint )
-		return;
-	if ( m_pPoint->pev->spawnflags & SF_CONTROLPOINT_HIDDEN )
-		return;
-	// nobody is capturing, nothing to divide by
-	if ( m_iCappingPlayers < 1 )
-		return;
-	float captime = (float)m_nCapTime * (float)( m_iCappingRequired / m_iCappingPlayers );
-	MESSAGE_BEGIN( MSG_ALL, gmsgProgBarUpdate );
-		WRITE_BYTE( m_pPoint->m_iIndex );
-		WRITE_COORD( captime );
-	MESSAGE_END();
-}
-void CAreaCapture::BreakCapture( int team )
-{
-	if ( !m_bCapturing )
-		return;
-
-	m_iCappingRequired = 0;
-	m_iCappingPlayers = 0;
-
-	if ( m_nCapturingTeam == TEAM_ALLIES )
-		FireTargets( sz_AlliesBreak, NULL, this, USE_BREAK, 0 );
-	else if ( m_nCapturingTeam == TEAM_AXIS )
-		FireTargets( sz_AxisBreak, NULL, this, USE_BREAK, 0 );
-
-	if ( team == TEAM_ALLIES )
-		UTIL_ClientPrintAll( HUD_PRINTCENTER, "#game_capture_broken_allie" );
-	else
-		UTIL_ClientPrintAll( HUD_PRINTCENTER, "#game_capture_broken_axis" );
-
-	m_bCapturing = 0;
-
-	if ( m_pPoint )
-	{
-		MESSAGE_BEGIN( MSG_ALL, gmsgCancelProgressBar );
-		WRITE_BYTE( m_pPoint->m_iIndex );
-		WRITE_BYTE( m_pPoint->m_iTeam );
-		MESSAGE_END();
-	}
-
-	UTIL_SendDirectorMessage( this, NULL, 12 );
-}
-
-// CObjectCapture area (triggers.cpp:3849/3827)
-void CObjectCapture::area_SetIndex( int index )
-{
-	m_iAreaIndex = index;
-	if ( index > 0x80 )
-		return;
-	MESSAGE_BEGIN( MSG_ALL, gmsgClientAreas );
-		WRITE_BYTE( m_iAreaIndex );
-		WRITE_BYTE( -1 );
-		WRITE_STRING( sz_HudIcon );
-	MESSAGE_END();
-}
-void CObjectCapture::area_SendStatus( CBasePlayer *p )
-{
-	if ( !p || m_iAreaIndex > 0x80 )
-		return;
-	MESSAGE_BEGIN( MSG_ONE, gmsgClientAreas, NULL, p->pev );
-		WRITE_BYTE( m_iAreaIndex );
-		WRITE_BYTE( -1 );
-		WRITE_STRING( sz_HudIcon );
-	MESSAGE_END();
-}
-
-// CDodRoundTimer (triggers.cpp:6412/6422/6440/6470/6489)
-void CDodRoundTimer::StartTimer()
-{
-	m_bTimer = 1;
-	if ( !( pev->spawnflags & SF_ROUNDTIMER_SHOW ) )
-		return;
-	if ( !UTIL_IsMasterTriggered( m_sMaster, this ) )
-		return;
-	if ( !m_bTimer )
-		return;
-	MESSAGE_BEGIN( MSG_ALL, gmsgTimerStatus );
-		WRITE_BYTE( m_bTimer );
-		WRITE_COORD( m_fRoundTime );
-	MESSAGE_END();
-}
-void CDodRoundTimer::StopTimer()
-{
-	m_bTimer = 0;
-	if ( !( pev->spawnflags & SF_ROUNDTIMER_SHOW ) )
-		return;
-	if ( !UTIL_IsMasterTriggered( m_sMaster, this ) )
-		return;
-	MESSAGE_BEGIN( MSG_ALL, gmsgTimerStatus );
-		WRITE_BYTE( m_bTimer );
-		WRITE_COORD( 0.0 );
-	MESSAGE_END();
-}
-void CDodRoundTimer::ResetTimer()
-{
-	m_bTimer = 0;
-	m_fUpdateTimer = 30.0;
-	m_fRoundTime = m_fTimerLength;
-	if ( !( pev->spawnflags & SF_ROUNDTIMER_SHOW ) )
-		return;
-	if ( !UTIL_IsMasterTriggered( m_sMaster, this ) )
-		return;
-	MESSAGE_BEGIN( MSG_ALL, gmsgTimerStatus );
-		WRITE_BYTE( m_bTimer );
-		WRITE_COORD( m_fRoundTime );
-	MESSAGE_END();
-}
-void CDodRoundTimer::SendStatus()
-{
-	if ( !( pev->spawnflags & SF_ROUNDTIMER_SHOW ) )
-		return;
-	if ( !UTIL_IsMasterTriggered( m_sMaster, this ) )
-		return;
-	if ( !m_bTimer )
-		return;
-	MESSAGE_BEGIN( MSG_ALL, gmsgTimerStatus );
-		WRITE_BYTE( m_bTimer );
-		WRITE_COORD( m_fRoundTime );
-	MESSAGE_END();
-}
-void CDodRoundTimer::SendStatus( CBasePlayer *pPlayer )
-{
-	if ( !pPlayer )
-		return;
-	if ( !( pev->spawnflags & SF_ROUNDTIMER_SHOW ) )
-		return;
-	if ( !UTIL_IsMasterTriggered( m_sMaster, this ) )
-		return;
-	if ( !m_bTimer )
-		return;
-	MESSAGE_BEGIN( MSG_ONE, gmsgTimerStatus, NULL, pPlayer->pev );
-		WRITE_BYTE( m_bTimer );
-		WRITE_COORD( m_fRoundTime );
-	MESSAGE_END();
-}
-
-// GetState (triggers.cpp:451/940)
-STATE CMultiManager::GetState() { return m_iState; }
-
-// ---- CStateWatcher (ptype: SaveData[3], 0x248 alloc, multi_watcher/watcher) ----
-class CStateWatcher : public CBaseToggle
-{
-public:
-	void Spawn( void );
-	void Think( void );
-	void KeyValue( KeyValueData *pkvd );
-	virtual STATE GetState();
-	virtual int Save( CSave &save );
-	virtual int Restore( CRestore &restore );
-	BOOL EvalLogic();
+  public:
+	virtual void Precache( void );
+	virtual void Spawn( void );
+	virtual void Touch( CBaseEntity *pOther );
+	virtual void KeyValue( KeyValueData *pkvd );
 	virtual void RoundRespawn( void );
-	static TYPEDESCRIPTION m_SaveData[];
-	int m_fLogic;
-	int m_cTargets;
-	int m_iTargetName[16];
+	virtual void area_SendStatus( class CBasePlayer *p );
+	virtual void area_SetIndex( int index );
 };
-TYPEDESCRIPTION CStateWatcher::m_SaveData[] = {
-	DEFINE_FIELD( CStateWatcher, m_fLogic, FIELD_INTEGER ),
-	DEFINE_FIELD( CStateWatcher, m_cTargets, FIELD_INTEGER ),
-	DEFINE_ARRAY( CStateWatcher, m_iTargetName, FIELD_STRING, 16 ),
-};
-IMPLEMENT_SAVERESTORE( CStateWatcher, CBaseToggle );
-
-void CStateWatcher::Spawn( void )
-{
-	pev->solid = SOLID_NOT;
-	pev->nextthink = gpGlobals->time + 0.5;
-
-	RoundStore();
-}
-
-void CStateWatcher::RoundRespawn( void )
-{
-	pev->nextthink = gpGlobals->time + 0.5;
-}
-
-void CStateWatcher::KeyValue( KeyValueData *pkvd )
-{
-	if ( FStrEq( pkvd->szKeyName, "m_fLogic" ) )
-	{
-		m_fLogic = (int) atof( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-		return;
-	}
-
-	if ( FStrEq( pkvd->szKeyName, "m_iszWatch" ) )
-	{
-		if ( m_cTargets < MAX_MULTI_TARGETS )
-		{
-			m_iTargetName[m_cTargets] = ALLOC_STRING( pkvd->szValue );
-			m_cTargets++;
-			pkvd->fHandled = TRUE;
-			return;
-		}
-	}
-	else if ( m_cTargets < MAX_MULTI_TARGETS )
-	{
-		char tmp[128];
-
-		UTIL_StripToken( pkvd->szKeyName, tmp, sizeof( tmp ) );
-		m_iTargetName[m_cTargets] = ALLOC_STRING( tmp );
-		m_cTargets++;
-		pkvd->fHandled = TRUE;
-		return;
-	}
-
-	if ( pev->targetname )
-		ALERT( at_console, "%s: Too many targets for %s %s (limit is %d)\n", pkvd->szKeyName, STRING( pev->classname ),
-			   STRING( pev->targetname ), MAX_MULTI_TARGETS );
-	else
-		ALERT( at_console, "%s: Too many targets for unnamed %s (limit is %d)\n", pkvd->szKeyName,
-			   STRING( pev->classname ), MAX_MULTI_TARGETS );
-}
-
-// Re-evaluates EvalLogic each 0.1s, latches result into spawnflag 0x200 and,
-// on a state change, fires targets (USE_ON/USE_OFF/USE_TOGGLE gated by
-// spawnflags 1=fire, 2=no-on, 4=no-off).
-void CStateWatcher::Think( void )
-{
-	pev->nextthink = gpGlobals->time + 0.1;
-
-	BOOL oldflag = ( pev->spawnflags & SF_WATCHER_STATE );
-	BOOL on = EvalLogic();
-
-	if ( on )
-		pev->spawnflags |= SF_WATCHER_STATE;
-	else
-		pev->spawnflags &= ~SF_WATCHER_STATE;
-
-	if ( ( pev->spawnflags & SF_WATCHER_STATE ) != oldflag )
-	{
-		if ( oldflag == 0 )
-		{
-			if ( pev->spawnflags & SF_WATCHER_NO_ON )
-				return;
-			if ( !( pev->spawnflags & SF_WATCHER_TOGGLE ) )
-			{
-				SUB_UseTargets( this, USE_ON, 0 );
-				return;
-			}
-		}
-		else
-		{
-			if ( pev->spawnflags & SF_WATCHER_NO_OFF )
-				return;
-			if ( !( pev->spawnflags & SF_WATCHER_TOGGLE ) )
-			{
-				SUB_UseTargets( this, USE_OFF, 0 );
-				return;
-			}
-		}
-		SUB_UseTargets( this, USE_TOGGLE, 0 );
-	}
-}
-
-STATE CStateWatcher::GetState() { return (STATE)( ( pev->spawnflags >> 8 ) & 2 ); }
-BOOL CStateWatcher::EvalLogic()
-{
-	int got = 0;
-	if ( m_cTargets < 1 )
-	{
-		if ( m_fLogic == 3 || m_fLogic == 0 )
-			return TRUE;
-		if ( m_fLogic == 4 )
-			return got;
-		if ( m_fLogic == 5 )
-			return ( got == 0 );
-		return FALSE;
-	}
-	for ( int i = 0; i < m_cTargets; i++ )
-	{
-		CBaseEntity *pEnt = UTIL_FindEntityByTargetname( NULL, STRING( m_iTargetName[i] ) );
-		if ( !pEnt )
-			continue;
-		int st = ( (int (*)( CBaseEntity * ))( ( (void ***)pEnt )[0][15] ) )( pEnt );
-		int flags = pev->spawnflags;
-		if ( st == 0 )
-		{
-			if ( !( flags & 0x10 ) )
-			{
-				if ( m_fLogic == 0 )
-					return FALSE;
-				if ( m_fLogic == 2 )
-					return TRUE;
-				continue;
-			}
-		}
-		else if ( st == 1 || st == 3 )
-		{
-			if ( !( flags & 0x20 ) )
-			{
-				if ( m_fLogic == 0 )
-					return FALSE;
-				if ( m_fLogic == 2 )
-					return TRUE;
-				continue;
-			}
-		}
-		else if ( st == 2 )
-		{
-			if ( !( flags & 8 ) )
-			{
-				if ( m_fLogic == 0 )
-					return FALSE;
-				if ( m_fLogic == 2 )
-					return TRUE;
-				continue;
-			}
-		}
-		else
-		{
-			if ( !( flags & 0x80 ) )
-			{
-				if ( m_fLogic == 0 )
-					return FALSE;
-				if ( m_fLogic == 2 )
-					return TRUE;
-				continue;
-			}
-		}
-		if ( m_fLogic == 3 )
-			return FALSE;
-		if ( m_fLogic == 1 )
-			return TRUE;
-		if ( m_fLogic == 4 )
-		{
-			if ( got )
-				return FALSE;
-			got = 1;
-			continue;
-		}
-		if ( m_fLogic == 5 )
-		{
-			if ( got )
-				return TRUE;
-			got = 1;
-			continue;
-		}
-	}
-	if ( m_fLogic == 3 || m_fLogic == 0 )
-		return TRUE;
-	if ( m_fLogic == 4 )
-		return got;
-	if ( m_fLogic == 5 )
-		return ( got == 0 );
-	return FALSE;
-}
-LINK_ENTITY_TO_CLASS( multi_watcher, CStateWatcher );
-LINK_ENTITY_TO_CLASS( watcher, CStateWatcher );
-
-// ---- CEnvCustomize (ptype SaveData[9], 0x17c alloc) ----
-class CEnvCustomize : public CBaseEntity
-{
-public:
-	void Spawn( void );
-	void Think( void );
-	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	virtual int ObjectCaps( void );
-	void KeyValue( KeyValueData *pkvd );
-	virtual int Save( CSave &save );
-	virtual int Restore( CRestore &restore );
-	static TYPEDESCRIPTION m_SaveData[];
-	float m_flRadius;
-	int m_iszModel;
-	int m_iClass;
-	int m_iPrisoner;
-	int m_iPlayerAlly;
-	int m_iVisible;
-	int m_iSolid;
-	int m_iProvoked;
-	int m_voicePitch;
-};
-TYPEDESCRIPTION CEnvCustomize::m_SaveData[] = {
-	DEFINE_FIELD( CEnvCustomize, m_flRadius, FIELD_FLOAT ),
-	DEFINE_FIELD( CEnvCustomize, m_iszModel, FIELD_STRING ),
-	DEFINE_FIELD( CEnvCustomize, m_iClass, FIELD_INTEGER ),
-	DEFINE_FIELD( CEnvCustomize, m_iPrisoner, FIELD_INTEGER ),
-	DEFINE_FIELD( CEnvCustomize, m_iPlayerAlly, FIELD_INTEGER ),
-	DEFINE_FIELD( CEnvCustomize, m_iVisible, FIELD_INTEGER ),
-	DEFINE_FIELD( CEnvCustomize, m_iSolid, FIELD_INTEGER ),
-	DEFINE_FIELD( CEnvCustomize, m_iProvoked, FIELD_INTEGER ),
-	DEFINE_FIELD( CEnvCustomize, m_voicePitch, FIELD_INTEGER ),
-};
-IMPLEMENT_SAVERESTORE( CEnvCustomize, CBaseEntity );
-
-void CEnvCustomize::Spawn( void )
-{
-	pev->solid = SOLID_NOT;
-	if ( m_iszModel )
-		PRECACHE_MODEL( (char *) STRING( m_iszModel ) );
-	if ( pev->targetname == 0 )
-		pev->nextthink = gpGlobals->time + 0.1;
-}
-
-int CEnvCustomize::ObjectCaps( void )
-{
-	return 0;
-}
-
-// Factory: GetClassPtr sets the vtable + pev (size 0x17c).
-LINK_ENTITY_TO_CLASS( env_customize, CEnvCustomize );
-
-// ---- CTriggerSetPatrol (ptype SaveData[1], 0x164 alloc) ----
-class CTriggerSetPatrol : public CBaseDelay
-{
-public:
-	void KeyValue( KeyValueData *pkvd );
-	void Spawn( void );
-	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	virtual int ObjectCaps( void );
-	virtual int Save( CSave &save );
-	virtual int Restore( CRestore &restore );
-	static TYPEDESCRIPTION m_SaveData[];
-	int m_iszPath;
-};
-TYPEDESCRIPTION CTriggerSetPatrol::m_SaveData[] = {
-	DEFINE_FIELD( CTriggerSetPatrol, m_iszPath, FIELD_STRING ),
-};
-IMPLEMENT_SAVERESTORE( CTriggerSetPatrol, CBaseDelay );
-
-void CTriggerSetPatrol::Spawn( void ) {}
-
-int CTriggerSetPatrol::ObjectCaps( void )
-{
-	return 0;
-}
-
-void CTriggerSetPatrol::KeyValue( KeyValueData *pkvd )
-{
-	if ( FStrEq( pkvd->szKeyName, "m_iszPath" ) )
-	{
-		m_iszPath = ALLOC_STRING( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else
-		CBaseDelay::KeyValue( pkvd );
-}
-
-// Factory: GetClassPtr sets the vtable + pev (size 0x164).
-LINK_ENTITY_TO_CLASS( trigger_startpatrol, CTriggerSetPatrol );
-
-void CEnvCustomize::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{
-	CBaseEntity *pTarget = UTIL_FindEntityGeneric( STRING( pev->target ), pev->origin, m_flRadius );
-	if ( !pTarget )
-		return;
-
-	CBaseMonster *pMonster = pTarget->MyMonsterPointer();
-
-	if ( !( pev->spawnflags & SF_CUSTOMIZE_DEAD ) && pMonster && pMonster->m_MonsterState == MONSTERSTATE_DEAD )
-		return;
-
-	if ( m_iszModel )
-	{
-		Vector vecMins = pTarget->pev->mins;
-		Vector vecMaxs = pTarget->pev->maxs;
-		( *g_engfuncs.pfnSetModel )( ENT( pTarget->pev ), STRING( m_iszModel ) );
-		UTIL_SetSize( pTarget->pev, vecMins, vecMaxs );
-	}
-
-	if ( pev->body != -1 )
-		pTarget->pev->body = pev->body;
-
-	if ( pev->skin == -2 )
-		pTarget->pev->skin = ( pTarget->pev->skin == 0 );
-	else if ( pev->skin != -1 && pev->skin != -99 )
-		pTarget->pev->skin = pev->skin;
-	else if ( pev->skin == -99 )
-		pTarget->pev->skin = -1;
-
-	if ( m_iVisible != 0 )
-	{
-		unsigned int u = pTarget->pev->effects;
-		if ( !( u & 0x80 ) )
-		{
-			if ( m_iVisible != 2 )
-				pTarget->pev->effects = u | 0x80;
-		}
-		else
-		{
-			if ( m_iVisible - 2 > 1 )
-				pTarget->pev->effects = u | 0x80;
-			else
-				pTarget->pev->effects = u & ~0x80;
-		}
-	}
-
-	if ( m_iSolid != 0 )
-	{
-		if ( pTarget->pev->solid != SOLID_NOT )
-		{
-			if ( m_iSolid != 2 )
-				pTarget->pev->solid = SOLID_NOT;
-		}
-		else
-		{
-			if ( m_iSolid - 2 > 1 )
-				pTarget->pev->solid = SOLID_NOT;
-			else
-				pTarget->pev->solid = pMonster ? 3 : 4;
-		}
-	}
-
-	if ( pMonster )
-	{
-		if ( m_voicePitch > 0 )
-		{
-			const char *pszClass = STRING( pTarget->pev->classname );
-			if ( FStrEq( pszClass, "monster_barney" ) || FStrEq( pszClass, "monster_scientist" ) ||
-				 FStrEq( pszClass, "monster_sitting_scientist" ) )
-				( (CTalkMonster *) pTarget )->m_voicePitch = m_voicePitch;
-		}
-
-		if ( m_iClass != 0 )
-		{
-			pMonster->m_iClass = m_iClass;
-			if ( pMonster->m_hEnemy != NULL )
-			{
-				pMonster->m_hEnemy = NULL;
-				pMonster->SetConditions( 0x10000 );
-			}
-		}
-
-		if ( m_iPrisoner != 0 )
-		{
-			unsigned int u = pMonster->pev->spawnflags;
-			if ( u & 0x10 )
-			{
-				if ( (unsigned)( m_iPrisoner - 2 ) <= 1 )
-					pMonster->pev->spawnflags = u & ~0x10;
-			}
-			else if ( m_iPrisoner != 2 )
-			{
-				pMonster->pev->spawnflags = u | 0x10;
-				if ( pMonster->m_hEnemy != NULL )
-				{
-					pMonster->m_hEnemy = NULL;
-					pMonster->SetConditions( 0x10000 );
-				}
-			}
-		}
-
-		if ( m_iPlayerAlly != 0 )
-		{
-			unsigned int u = pMonster->pev->spawnflags;
-			if ( u & 0x800 )
-			{
-				if ( (unsigned)( m_iPlayerAlly - 2 ) <= 1 )
-					pMonster->pev->spawnflags = u & ~0x800;
-			}
-			else if ( m_iPlayerAlly != 2 )
-			{
-				pMonster->pev->spawnflags = u | 0x800;
-			}
-		}
-
-		if ( m_iProvoked != 0 )
-		{
-			unsigned int u = pMonster->m_afMemory;
-			if ( !( u & 1 ) )
-			{
-				if ( m_iProvoked != 2 )
-					pMonster->m_afMemory = u | 1;
-			}
-			else if ( (unsigned)( m_iProvoked - 2 ) < 2 )
-				pMonster->m_afMemory = u & ~1;
-			else
-				pMonster->m_afMemory = u | 1;
-		}
-	}
-
-	if ( pev->spawnflags & SF_CUSTOMIZE_ONCE )
-		UTIL_Remove( this );
-}
-
-void CEnvCustomize::Think( void )
-{
-	Use( this, this, USE_TOGGLE, 0 );
-}
-
-void CEnvCustomize::KeyValue( KeyValueData *pkvd )
-{
-	if ( FStrEq( pkvd->szKeyName, "m_iVisible" ) )
-	{
-		m_iVisible = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iSolid" ) )
-	{
-		m_iSolid = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iszModel" ) )
-	{
-		m_iszModel = ALLOC_STRING( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "m_voicePitch" ) )
-	{
-		m_voicePitch = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iPlayerAlly" ) )
-	{
-		m_iPlayerAlly = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iPrisoner" ) )
-	{
-		m_iPrisoner = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iClass" ) )
-	{
-		m_iClass = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "m_flRadius" ) )
-	{
-		m_flRadius = atof( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iProvoked" ) )
-	{
-		m_iProvoked = atoi( pkvd->szValue );
-		pkvd->fHandled = TRUE;
-	}
-	else
-		pkvd->fHandled = FALSE;
-}
-
-void CTriggerSetPatrol::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{
-	CBaseMonster *pMonster = (CBaseMonster *)UTIL_FindEntityByTargetname( NULL, STRING( pev->target ) );
-	CBaseEntity *path = UTIL_FindEntityByTargetname( NULL, STRING( m_iszPath ) );
-
-	if ( path && pMonster && !strncmp( STRING( pMonster->pev->classname ), "monster_", 8 ) )
-		pMonster->StartPatrol( path );
-}
-
-void CAutoTrigger::RoundRespawn( void )
-{
-	m_iEnabled = 1;
-	if ( pev->spawnflags & SF_AUTO_ROUNDRESTART )
-	{
-		pev->nextthink = gpGlobals->time + 0.1f;
-		b_isRoundRestart = true;
-	}
-}
-
-void CTriggerPush::RoundRespawn( void )
-{
-	InitTrigger();
-	SetUse( &CBaseTrigger::ToggleUse );
-	m_iEnabled = 1;
-}
-
-void CMultiManager::RoundRespawn( void )
-{
-	int i;
-	int count = m_rscTargets;
-
-	m_index = m_rsindex;
-	m_cTargets = count;
-	m_startTime = m_rsstartTime;
-	m_flWait = m_rsflWait;
-	m_flMaxWait = m_rsflMaxWait;
-	m_sMaster = m_rssMaster;
-	m_iMode = m_rsiMode;
-
-	for ( i = 0; i < count; i++ )
-	{
-		m_iTargetName[i] = m_rsiTargetName[i];
-		m_flTargetDelay[i] = m_rsflTargetDelay[i];
-	}
-
-	m_iState = STATE_OFF;
-	SetUse( &CMultiManager::ManagerUse );
-	SetThink( &CMultiManager::ManagerThink );
-	if ( !( pev->spawnflags & SF_MULTIMAN_TRIGGERTYPE ) )
-		m_triggerType = USE_TOGGLE;
-
-	bool swapped;
-	do
-	{
-		swapped = false;
-		for ( i = 1; i < count; i++ )
-		{
-			if ( m_flTargetDelay[i] < m_flTargetDelay[i - 1] )
-			{
-				int name = m_iTargetName[i];
-				m_iTargetName[i] = m_iTargetName[i - 1];
-				m_iTargetName[i - 1] = name;
-				float d = m_flTargetDelay[i];
-				m_flTargetDelay[i] = m_flTargetDelay[i - 1];
-				m_flTargetDelay[i - 1] = d;
-				swapped = true;
-			}
-		}
-	} while ( swapped );
-}
 
 void CObjectCapture::KeyValue( KeyValueData *pkvd )
 {
@@ -4380,6 +3385,8 @@ void CObjectCapture::KeyValue( KeyValueData *pkvd )
 		CBaseTrigger::KeyValue( pkvd );
 }
 
+LINK_ENTITY_TO_CLASS( dod_object_goal, CObjectCapture );
+
 void CObjectCapture::Spawn()
 {
 	UTIL_SetOrigin( pev, pev->origin );
@@ -4395,11 +3402,133 @@ void CObjectCapture::RoundRespawn()
 	m_bCapped = false;
 }
 
+// link 0x141310 size 0x56a Ghidra 0x151310
+void CObjectCapture::Touch( CBaseEntity *pOther )
+{
+	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
+		return;
+	if ( !UTIL_IsMasterTriggered( m_sMaster, pOther ) )
+		return;
+	if ( g_pGameRules != NULL && g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
+		return;
+	if ( !pOther->IsPlayer() || !pOther->IsAlive() )
+		return;
+	if ( m_bCapped )
+		return;
+	CBasePlayer *pPlayer = (CBasePlayer *)pOther;
+	pPlayer->m_signals.Signal( SIGNAL_OBJECTAREA );
+	pPlayer->m_iObjectAreaIndex = m_iAreaIndex;
+	pPlayer->SetClientAreaIcon( m_iAreaIndex, true );
+	if ( !pPlayer->HasObject || !pPlayer->m_pObject )
+	{
+		if ( ( pPlayer->m_flDisplayHistory & HINT_AREA_REQUIRES_OBJECT ) == 0 )
+		{
+			pPlayer->m_flDisplayHistory |= HINT_AREA_REQUIRES_OBJECT;
+			pPlayer->HintMessage( "#Hint_area_requires_object", 0 );
+		}
+		return;
+	}
+	CObject *pObj = pPlayer->m_pObject;
+	if ( strcmp( sz_Group, pObj->sz_Group ) != 0 )
+		return;
+	CBaseEntity *pLast = NULL;
+	int NumObjects = 0;
+	CBaseEntity *pEnt = UTIL_FindEntityByClassname( NULL, "dod_object" );
+	while ( pEnt )
+	{
+		if ( pEnt == (CBaseEntity *)pObj )
+		{
+			UTIL_SendDirectorMessage( this, pOther, 11 );
+		}
+		else if ( strcmp( ( (CObject *)pEnt )->sz_Group, pObj->sz_Group ) == 0 )
+		{
+			if ( ( pEnt->pev->effects & EF_NODRAW ) == 0 )
+				NumObjects++;
+		}
+		pLast = pEnt;
+		pEnt = UTIL_FindEntityByClassname( pEnt, "dod_object" );
+	}
+	pPlayer->HasObject = FALSE;
+	CDoDTeamPlay *pRules = (CDoDTeamPlay *)g_pGameRules;
+	if ( pRules->m_RoundDoesCount )
+		pPlayer->AddObjScore( pObj->m_iCapPoints, TRUE );
+	if ( NumObjects == 0 || ( pev->spawnflags & SF_OBJECTGOAL_ONE_IS_ENOUGH ) )
+	{
+		FireTargets( sz_DoneTarget, pOther, this, USE_ON, 0.0 );
+		if ( pObj->sz_DoneTarget[0] )
+			FireTargets( pObj->sz_DoneTarget, pOther, this, USE_ON, 0.0 );
+		if ( pev->spawnflags & SF_OBJECTGOAL_ONCE )
+			m_bCapped = true;
+		int idx = ENTINDEX( pOther->edict() );
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CBaseEntity *pTeammate = UTIL_PlayerByIndex( i );
+			if ( pTeammate && pTeammate->pev->team == pOther->pev->team )
+			{
+				MESSAGE_BEGIN( MSG_ONE, gmsgPStatus, NULL, pTeammate->pev );
+				WRITE_BYTE( idx );
+				WRITE_BYTE( pPlayer->PlayerStatus() );
+				MESSAGE_END();
+			}
+		}
+	}
+	else
+	{
+		if ( NumObjects == 1 )
+			UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_left_object", UTIL_dtos1( 1 ), 0, 0, 0 );
+		else
+			UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_left_plural_object", UTIL_dtos1( NumObjects ), 0, 0, 0 );
+		if ( pev->target )
+			FireTargets( STRING( pev->target ), pOther, this, USE_TOGGLE, 0.0 );
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CBasePlayer *pPlr = (CBasePlayer *)UTIL_PlayerByIndex( i );
+			if ( pPlr && pPlr->pev->team == pOther->pev->team && pPlr != pPlayer && pRules->m_RoundDoesCount )
+				pPlr->AddObjScore( pObj->m_iOtherPoints, TRUE );
+		}
+	}
+	const char *teamName = ( pOther->pev->team == TEAM_ALLIES ) ? "Allies" : "Axis";
+	UTIL_LogPrintf( "\"%s<%i><%s><%s>\" triggered a \"dod_object_goal\"\n", STRING( pOther->pev->netname ),
+		GETPLAYERUSERID( pOther->edict() ), GETPLAYERAUTHID( pOther->edict() ), teamName );
+	if ( pLast && pLast->pev->noise1 )
+		EMIT_SOUND_DYN( pOther->edict(), CHAN_STATIC, STRING( ( (CObject *)pLast )->pev->noise1 ), 1.0, 0.0, 0, 100 );
+	else if ( pObj->pev->noise1 )
+		EMIT_SOUND_DYN( pOther->edict(), CHAN_STATIC, STRING( pObj->pev->noise1 ), 1.0, 0.0, 0, 100 );
+	pPlayer->HasObject = FALSE;
+	pPlayer->RemoveObjectIcon();
+}
+
 void CObjectCapture::Precache()
 {
 	if ( sz_HudIcon[0] )
 		PRECACHE_MODEL( sz_HudIcon );
 }
+
+void CObjectCapture::area_SendStatus( CBasePlayer *p )
+{
+	if ( !p || m_iAreaIndex > 0x80 )
+		return;
+	MESSAGE_BEGIN( MSG_ONE, gmsgClientAreas, NULL, p->pev );
+		WRITE_BYTE( m_iAreaIndex );
+		WRITE_BYTE( -1 );
+		WRITE_STRING( sz_HudIcon );
+	MESSAGE_END();
+}
+
+// CObjectCapture area (triggers.cpp:3849/3827)
+void CObjectCapture::area_SetIndex( int index )
+{
+	m_iAreaIndex = index;
+	if ( index > 0x80 )
+		return;
+	MESSAGE_BEGIN( MSG_ALL, gmsgClientAreas );
+		WRITE_BYTE( m_iAreaIndex );
+		WRITE_BYTE( -1 );
+		WRITE_STRING( sz_HudIcon );
+	MESSAGE_END();
+}
+
+LINK_ENTITY_TO_CLASS( dod_location, CLocation );
 
 void CLocation::Spawn()
 {
@@ -4444,6 +3573,52 @@ BOOL IsThisIndexUnique( CControlPoint *pThis )
 		p = (CControlPoint *) UTIL_FindEntityByClassname( p, "dod_control_point" );
 	}
 	return TRUE;
+}
+
+LINK_ENTITY_TO_CLASS( dod_control_point, CControlPoint );
+
+// ---- CDoDCamera SaveData (binary SaveData[13], mirrors CTriggerCamera 13 fields) ----
+TYPEDESCRIPTION CDoDCamera::m_SaveData[] = {
+	DEFINE_FIELD( CDoDCamera, m_hPlayer, FIELD_EHANDLE ),
+	DEFINE_FIELD( CDoDCamera, m_hTarget, FIELD_EHANDLE ),
+	DEFINE_FIELD( CDoDCamera, m_pentPath, FIELD_CLASSPTR ),
+	DEFINE_FIELD( CDoDCamera, m_sPath, FIELD_STRING ),
+	DEFINE_FIELD( CDoDCamera, m_flWait, FIELD_FLOAT ),
+	DEFINE_FIELD( CDoDCamera, m_flReturnTime, FIELD_TIME ),
+	DEFINE_FIELD( CDoDCamera, m_flStopTime, FIELD_TIME ),
+	DEFINE_FIELD( CDoDCamera, m_moveDistance, FIELD_FLOAT ),
+	DEFINE_FIELD( CDoDCamera, m_targetSpeed, FIELD_FLOAT ),
+	DEFINE_FIELD( CDoDCamera, m_initialSpeed, FIELD_FLOAT ),
+	DEFINE_FIELD( CDoDCamera, m_acceleration, FIELD_FLOAT ),
+	DEFINE_FIELD( CDoDCamera, m_deceleration, FIELD_FLOAT ),
+	DEFINE_FIELD( CDoDCamera, m_state, FIELD_INTEGER ),
+};
+IMPLEMENT_SAVERESTORE( CDoDCamera, CBaseDelay );
+
+// ODR: CControlPoint canonical in objective.h (DWARF layout)
+// ODR: CControlPointMaster canonical in objective.h
+
+// ODR: CAreaCapture canonical in objective.h
+
+// ODR: CObjectCapture canonical in objective.h
+
+// ODR: CDodRoundTimer canonical in objective.h
+
+
+// CControlPoint (binary ctor + getters)
+CControlPoint::CControlPoint()
+{
+	m_iPointIndex = -1;
+	m_bPointVisible = 0;
+	m_iAlliesIcon = 1;
+	m_iAxisIcon = 2;
+	m_iNeutralIcon = 0;
+	m_iAlliesModelBodygroup = 0;
+	m_bAlliesCantTouch = false;
+	m_bAxisCantTouch = false;
+	m_szGroup[0] = 0;
+	m_iAxisModelBodygroup = 0;
+	m_iResetModelBodygroup = 0;
 }
 
 void CControlPoint::Spawn()
@@ -4648,6 +3823,10 @@ void CControlPoint::SetOwner( int owner, BOOL bMakeSound, CBasePlayer *pPlayer )
 	m_fNextCapTime = gpGlobals->time + m_fCapDelayTime;
 }
 
+int CControlPoint::GetOwner( void ) { return m_iTeam; }
+char *CControlPoint::GetGroup( void ) { return m_szGroup; }
+int CControlPoint::PointValue( void ) { return m_iPointValue; }
+
 void CControlPoint::Precache()
 {
 	if ( pev->noise )
@@ -4831,6 +4010,8 @@ void CControlPoint::SetActive( bool active )
 		pev->effects &= ~EF_NODRAW;
 }
 
+LINK_ENTITY_TO_CLASS( dod_control_point_master, CControlPointMaster );
+
 CControlPointMaster::CControlPointMaster()
 {
 	m_szGroup[0] = 0;
@@ -4906,6 +4087,31 @@ void CControlPointMaster::KeyValue( KeyValueData *pkvd )
 void CControlPointMaster::Reset( void )
 {
 	m_bTeamHasWon = false;
+}
+
+int GetClanScoringValues( int team, int cp )
+{
+	const char *szValues;
+
+	if ( team != TEAM_ALLIES )
+	{
+		if ( team != TEAM_AXIS )
+			return 0;
+
+		szValues = CVAR_GET_STRING( "mp_clan_scoring_values_axis" );
+	}
+	else
+	{
+		szValues = CVAR_GET_STRING( "mp_clan_scoring_values_allies" );
+	}
+
+	if ( (int) strlen( szValues ) - 1 < cp )
+	{
+		ALERT( at_console, "Tried to get a clan scoring value for a point not defined in mp_clan_scoring_values_x\n" );
+		return 0;
+	}
+
+	return szValues[cp] - '0';
 }
 
 void CControlPointMaster::CPMThink()
@@ -5224,6 +4430,15 @@ void CControlPointMaster::BecomeInactive()
 	m_bActive = 0;
 }
 
+// CControlPointMaster helpers
+int CControlPointMaster::GetPointOwner( int point )
+{
+	int owner = 0;
+	if ( point >= 0 && point < 20 && ControlPointArray[point] )
+		owner = ( (CControlPoint *)ControlPointArray[point] )->m_iTeam;
+	return owner;
+}
+
 // Per player or broadcast InitObjDisplay: numPoints, then per point
 // edict index, m_iIndex, team, visible bit, 3 HUD icons, origin x/y.
 void CControlPointMaster::SendObjectiveStatus( CBasePlayer *pPlayer )
@@ -5256,6 +4471,192 @@ bool CControlPointMaster::IsMasteredOn()
 	return true;
 }
 
+int CControlPointMaster::TeamOwnsAllPoints()
+{
+	if ( m_iNumPoints < 1 || !ControlPointArray[0] )
+		return 0;
+	int team = ( (CControlPoint *)ControlPointArray[0] )->m_iTeam;
+	for ( int i = 1; i < m_iNumPoints; i++ )
+	{
+		if ( !ControlPointArray[i] || ( (CControlPoint *)ControlPointArray[i] )->m_iTeam != team )
+			return 0;
+	}
+	return team;
+}
+
+class CSandBag : public CBaseTrigger
+{
+  public:
+	CSandBag();
+	void Spawn();
+	void RoundRespawn();
+	void KeyValue( KeyValueData *pkvd );
+	void EXPORT SandBagTouch( CBaseEntity *pOther );
+	BOOL IsMasteredOn();
+
+	int m_nYaw;		// +0x200, from pev->angles.y at Spawn
+	int m_nRange;	// +0x204, default 5 (ctor + LINK alloc init)
+	int m_sMaster;	// +0x208, string_t
+};
+
+// .text: CSandBag::IsMasteredOn inlined (no symbol; 305B = SandBagTouch 0x141070 size 0x131=305): return !m_sMaster || IsMasterTriggered exact
+BOOL CSandBag::IsMasteredOn()
+{
+	return !m_sMaster || UTIL_IsMasterTriggered( m_sMaster, this );
+}
+
+// Factory: GetClassPtr sets the vtable + pev (ctor inits m_nRange=5, m_sMaster=0).
+LINK_ENTITY_TO_CLASS( dod_trigger_sandbag, CSandBag );
+
+CSandBag::CSandBag()
+{
+	m_nRange = 5;
+	m_sMaster = 0;
+}
+
+void CSandBag::Spawn()
+{
+	m_nYaw = (int) pev->angles.y;
+	if ( m_nYaw > 180 )
+		m_nYaw -= 360;
+	CBaseTrigger::InitTrigger();
+	Precache();
+	pev->sequence = 0;
+	pev->framerate = 1.0;
+	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetSize( pev, pev->mins, pev->maxs );
+	SetTouch( &CSandBag::SandBagTouch );
+
+	RoundStore();
+}
+
+void CSandBag::KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "sandbag_range" ) )
+	{
+		m_nRange = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "master" ) )
+	{
+		m_sMaster = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else
+	{
+		pkvd->fHandled = FALSE;
+	}
+}
+
+void CSandBag::RoundRespawn()
+{
+	CBaseTrigger::InitTrigger();
+	pev->sequence = 0;
+	pev->framerate = 1.0;
+	UTIL_SetSize( pev, pev->mins, pev->maxs );
+	SetTouch( &CSandBag::SandBagTouch );
+}
+
+// Deploy/bipod zone: sets bit0 @player+0x76c always, and bit 0x400 @player+0x7cc
+// with hint on first touch. Facing window = m_nRange degrees (default 5).
+// Active-item gate: m_pActiveItem->Classify() == 0x100 (LMG: MG34/MG42/BREN,
+// weapons agents own exact table) OR player already deployed.
+void CSandBag::SandBagTouch( CBaseEntity *pOther )
+{
+	if ( !pOther->IsPlayer() || !pOther->IsAlive() )
+		return;
+	if ( !IsMasteredOn() )
+		return;
+	int delta = abs( (int) pOther->pev->angles.y - m_nYaw );
+	if ( delta > 180 )
+		delta = 360 - delta;
+	if ( CBasePlayer::IsProne( (CBasePlayer *) pOther ) )
+	{
+		if ( !CBasePlayer::IsSandbagDeployed( (CBasePlayer *) pOther ) )
+			return;
+	}
+	else
+	{
+		if ( pOther->pev->button & IN_DUCK )
+			return;
+		if ( delta > m_nRange )
+		{
+			if ( !CBasePlayer::IsSandbagDeployed( (CBasePlayer *) pOther ) )
+				return;
+		}
+		else
+		{
+			CBasePlayerItem *pActive = ( (CBasePlayer *) pOther )->m_pActiveItem;  // +0x46c
+			if ( !pActive || pActive->Classify() != 0x100 )						   // 0x100 = LMG class
+			{
+				if ( !CBasePlayer::IsSandbagDeployed( (CBasePlayer *) pOther ) )
+					return;
+			}
+		}
+	}
+	// player fields owned by player agent: dword @+0x76c bit 0, dword @+0x7cc bit 0x400
+	CBasePlayer *pPlayer = (CBasePlayer *) pOther;
+	*(int *) ( (char *) pPlayer + 0x76c ) |= 1;
+	int *pFlags = (int *) ( (char *) pPlayer + 0x7cc );
+	if ( !( *pFlags & 0x400 ) )
+	{
+		*pFlags |= 0x400;
+		pPlayer->HintMessage( "#Hint_sandbag_area_touch", 0 );
+	}
+}
+
+class CAreaCapture : public CBaseTrigger
+{
+  public:
+	int m_iCapMode;	 // 0 timed, 1 catchup (para rules)
+	int m_bCapturing;
+	int m_nCapturingTeam;  // -1 idle
+	int m_nOwningTeam;	   // mirrors point owner, -1 none
+	int m_nCapTime;		  // area_time_to_cap (seconds)
+	float m_fTimeRemaining;
+	int m_nAlliesNumCap;  // area_allies_numcap, min 1
+	int m_nAxisNumCap;	  // area_axis_numcap, min 1
+	int m_nNumAllies;
+	int m_nNumAxis;
+	bool m_bAlliesCanCap;  // area_allies_cancap
+	bool m_bAxisCanCap;	  // area_axis_cancap
+	int m_iCappingRequired;
+	int m_iCappingPlayers;
+	char sz_AlliesCap[256];			  // area_allies_endcap
+	char sz_AxisCap[256];			  // area_axis_endcap
+	char sz_AlliesStart[256];		  // area_allies_startcap
+	char sz_AxisStart[256];			  // area_axis_startcap
+	char sz_AlliesBreak[256];		  // area_allies_breakcap
+	char sz_AxisBreak[256];			  // area_axis_breakcap
+	int m_iAreaIndex;  // HUD area slot, -1 until assigned
+	char sz_HudIcon[256];			  // area_hud_sprite
+	CControlPoint *m_pPoint;		  // area_cap_point target
+	char sz_CapPointName[256];		  // area_cap_point
+	char sz_RequiredObjectGroup[256];  // area_object_group
+	bool m_bRequiresObject;
+
+  public:
+	virtual void Precache( void );
+	virtual void RoundRespawn( void );
+	virtual void area_SetIndex( int index );
+	virtual void area_SendStatus( class CBasePlayer *p );
+	int GetNumAlive( int team );
+	bool CanUseCatchup();
+	void GetNumRequiredPlayers( int *reqAllies, int *reqAxis );
+	virtual void Spawn( void );
+	void EXPORT AreaTouch( CBaseEntity *pOther );
+	virtual void Think( void );
+	virtual void KeyValue( KeyValueData *pkvd );
+	void StartCapture( int team, int capmode );
+	void ReSendSwipeInfo();
+	void EndCapture( int team );
+	void BreakCapture( int team );
+	void SendNumPlayers( class CBasePlayer *p );
+	void SetOwner( int team );
+};
+
+LINK_ENTITY_TO_CLASS( dod_capture_area, CAreaCapture );
+
 void CAreaCapture::Spawn()
 {
 	CBaseTrigger::InitTrigger();
@@ -5279,6 +4680,32 @@ void CAreaCapture::Precache()
 {
 	if ( sz_HudIcon[0] )
 		PRECACHE_MODEL( sz_HudIcon );
+}
+
+// CAreaCapture helpers (decompile + DWARF field names)
+void CAreaCapture::area_SetIndex( int index )
+{
+	m_iAreaIndex = index;
+	if ( index > 0x80 )
+		return;
+	MESSAGE_BEGIN( MSG_ALL, gmsgClientAreas );
+		WRITE_BYTE( m_iAreaIndex );
+		WRITE_BYTE( -1 );
+		WRITE_STRING( sz_HudIcon );
+	MESSAGE_END();
+}
+void CAreaCapture::area_SendStatus( CBasePlayer *p )
+{
+	if ( !p )
+		return;
+	if ( m_iAreaIndex > 0x80 )
+		return;
+	MESSAGE_BEGIN( MSG_ONE, gmsgClientAreas, NULL, p->pev );
+		WRITE_BYTE( m_iAreaIndex );
+		WRITE_BYTE( -1 );
+		WRITE_STRING( sz_HudIcon );
+	MESSAGE_END();
+	SendNumPlayers( p );
 }
 
 // Master gate, RoundState==1, game live. Lazily resolves m_pPoint by target
@@ -5342,6 +4769,52 @@ presentState:
 			return;
 	}
 	pPlayer->m_iCapAreaIndex = m_iAreaIndex;
+}
+
+void CAreaCapture::GetNumRequiredPlayers( int *reqAllies, int *reqAxis )
+{
+	int numAllies = 0;
+	int numAxis = 0;
+
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
+
+		if ( pPlayer )
+		{
+			if ( pPlayer->pev->team == TEAM_ALLIES )
+				numAllies++;
+			else if ( pPlayer->pev->team == TEAM_AXIS )
+				numAxis++;
+
+			if ( numAllies > m_nAlliesNumCap && numAxis > m_nAxisNumCap )
+				break;
+		}
+	}
+
+	*reqAllies = m_nAlliesNumCap;
+	*reqAxis = m_nAxisNumCap;
+
+	if ( *reqAllies < 1 )
+		*reqAllies = 1;
+	if ( *reqAxis < 1 )
+		*reqAxis = 1;
+}
+// ODR: CDoDTeamPlay canonical in dod_gamerules.h
+bool CAreaCapture::CanUseCatchup()
+{
+	bool bCatchup = false;
+	CDoDTeamPlay *pRules = (CDoDTeamPlay *) g_pGameRules;
+
+	if ( pRules )
+	{
+		bCatchup = true;
+
+		if ( pRules->IsAlliesInfinite() )
+			bCatchup = !pRules->IsAxisInfinite();
+	}
+
+	return ( pev->spawnflags & SF_AREA_CATCHUP ) && bCatchup;
 }
 
 // Census: count allies/axis with matching area slot; carrier without the
@@ -5521,11 +4994,81 @@ timeCheck:
 	EndCapture( m_nCapturingTeam );
 }
 
+int CAreaCapture::GetNumAlive( int team )
+{
+	int n = 0;
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBaseEntity *pEnt = UTIL_PlayerByIndex( i );
+		if ( pEnt && pEnt->IsPlayer() && pEnt->pev->team == team && pEnt->pev->deadflag == DEAD_NO )
+			n++;
+	}
+	return n;
+}
+
 void CAreaCapture::SetOwner( int team )
 {
 	if ( m_bCapturing )
 		BreakCapture( m_nCapturingTeam );
 	m_nOwningTeam = team;
+}
+
+void CAreaCapture::SendNumPlayers( CBasePlayer *pPlayer )
+{
+	if ( !m_pPoint )
+		return;
+	int team = 0;
+	int num = 0;
+	int req = -1;
+	int allies = m_nNumAllies;
+	int axis = m_nNumAxis;
+	if ( allies > 0 && axis < 1 && m_nOwningTeam != TEAM_ALLIES )
+	{
+		int ra = 1, rx = 1;
+		GetNumRequiredPlayers( &ra, &rx );
+		team = 1; num = allies; req = ra;
+	}
+	else if ( axis > 0 && allies < 1 && m_nOwningTeam != TEAM_AXIS )
+	{
+		int ra = 1, rx = 1;
+		GetNumRequiredPlayers( &ra, &rx );
+		team = 2; num = axis; req = rx;
+	}
+	else
+	{
+		int ra = 1, rx = 1;
+		GetNumRequiredPlayers( &ra, &rx );
+		team = 0; num = 0; req = -1;
+	}
+	if ( req != -1 && num > req )
+		num = req;
+	if ( req != -1 && req < 2 )
+		return;
+	if ( !pPlayer )
+		MESSAGE_BEGIN( MSG_ALL, gmsgPlayersInArea );
+	else
+		MESSAGE_BEGIN( MSG_ONE, gmsgPlayersInArea, NULL, pPlayer->pev );
+
+	WRITE_BYTE( m_pPoint->m_iIndex );
+	WRITE_BYTE( team );
+	WRITE_BYTE( num );
+	WRITE_BYTE( req );
+	MESSAGE_END();
+}
+void CAreaCapture::ReSendSwipeInfo()
+{
+	if ( !m_pPoint )
+		return;
+	if ( m_pPoint->pev->spawnflags & SF_CONTROLPOINT_HIDDEN )
+		return;
+	// nobody is capturing, nothing to divide by
+	if ( m_iCappingPlayers < 1 )
+		return;
+	float captime = (float)m_nCapTime * (float)( m_iCappingRequired / m_iCappingPlayers );
+	MESSAGE_BEGIN( MSG_ALL, gmsgProgBarUpdate );
+		WRITE_BYTE( m_pPoint->m_iIndex );
+		WRITE_COORD( captime );
+	MESSAGE_END();
 }
 
 // Fire start targets, m_nCapturingTeam = team, m_bCapturing = 1,
@@ -5649,6 +5192,37 @@ void CAreaCapture::EndCapture( int team )
 	UTIL_SendDirectorMessage( this, NULL, 12 );
 }
 
+void CAreaCapture::BreakCapture( int team )
+{
+	if ( !m_bCapturing )
+		return;
+
+	m_iCappingRequired = 0;
+	m_iCappingPlayers = 0;
+
+	if ( m_nCapturingTeam == TEAM_ALLIES )
+		FireTargets( sz_AlliesBreak, NULL, this, USE_BREAK, 0 );
+	else if ( m_nCapturingTeam == TEAM_AXIS )
+		FireTargets( sz_AxisBreak, NULL, this, USE_BREAK, 0 );
+
+	if ( team == TEAM_ALLIES )
+		UTIL_ClientPrintAll( HUD_PRINTCENTER, "#game_capture_broken_allie" );
+	else
+		UTIL_ClientPrintAll( HUD_PRINTCENTER, "#game_capture_broken_axis" );
+
+	m_bCapturing = 0;
+
+	if ( m_pPoint )
+	{
+		MESSAGE_BEGIN( MSG_ALL, gmsgCancelProgressBar );
+		WRITE_BYTE( m_pPoint->m_iIndex );
+		WRITE_BYTE( m_pPoint->m_iTeam );
+		MESSAGE_END();
+	}
+
+	UTIL_SendDirectorMessage( this, NULL, 12 );
+}
+
 void CAreaCapture::RoundRespawn()
 {
 	CBaseTrigger::InitTrigger();
@@ -5751,6 +5325,19 @@ void CAreaCapture::KeyValue( KeyValueData *pkvd )
 		CBaseTrigger::KeyValue( pkvd );
 }
 
+class CDodPointRelay : public CBaseEntity
+{
+  public:
+	int m_nTeam;  // dod_relay_team, default -1
+
+  public:
+	virtual void Spawn( void );
+	virtual void KeyValue( KeyValueData *pkvd );
+	void EXPORT DodRelayUse( CBaseEntity *pA, CBaseEntity *pC, USE_TYPE u, float v );
+};
+
+LINK_ENTITY_TO_CLASS( dod_point_relay, CDodPointRelay );
+
 void CDodPointRelay::Spawn()
 {
 	pev->solid = SOLID_NOT;
@@ -5815,6 +5402,8 @@ void CDodPointRelay::KeyValue( KeyValueData *pkvd )
 		pkvd->fHandled = FALSE;
 }
 
+LINK_ENTITY_TO_CLASS( dod_round_timer, CDodRoundTimer );
+
 void CDodRoundTimer::Spawn()
 {
 	m_bTimer = false;
@@ -5856,6 +5445,48 @@ void CDodRoundTimer::Think()
 	}
 }
 
+// CDodRoundTimer (triggers.cpp:6412/6422/6440/6470/6489)
+void CDodRoundTimer::StartTimer()
+{
+	m_bTimer = 1;
+	if ( !( pev->spawnflags & SF_ROUNDTIMER_SHOW ) )
+		return;
+	if ( !UTIL_IsMasterTriggered( m_sMaster, this ) )
+		return;
+	if ( !m_bTimer )
+		return;
+	MESSAGE_BEGIN( MSG_ALL, gmsgTimerStatus );
+		WRITE_BYTE( m_bTimer );
+		WRITE_COORD( m_fRoundTime );
+	MESSAGE_END();
+}
+void CDodRoundTimer::StopTimer()
+{
+	m_bTimer = 0;
+	if ( !( pev->spawnflags & SF_ROUNDTIMER_SHOW ) )
+		return;
+	if ( !UTIL_IsMasterTriggered( m_sMaster, this ) )
+		return;
+	MESSAGE_BEGIN( MSG_ALL, gmsgTimerStatus );
+		WRITE_BYTE( m_bTimer );
+		WRITE_COORD( 0.0 );
+	MESSAGE_END();
+}
+void CDodRoundTimer::ResetTimer()
+{
+	m_bTimer = 0;
+	m_fUpdateTimer = 30.0;
+	m_fRoundTime = m_fTimerLength;
+	if ( !( pev->spawnflags & SF_ROUNDTIMER_SHOW ) )
+		return;
+	if ( !UTIL_IsMasterTriggered( m_sMaster, this ) )
+		return;
+	MESSAGE_BEGIN( MSG_ALL, gmsgTimerStatus );
+		WRITE_BYTE( m_bTimer );
+		WRITE_COORD( m_fRoundTime );
+	MESSAGE_END();
+}
+
 void CDodRoundTimer::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if ( !m_bTimer )
@@ -5885,6 +5516,35 @@ void CDodRoundTimer::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 	}
 }
 
+void CDodRoundTimer::SendStatus()
+{
+	if ( !( pev->spawnflags & SF_ROUNDTIMER_SHOW ) )
+		return;
+	if ( !UTIL_IsMasterTriggered( m_sMaster, this ) )
+		return;
+	if ( !m_bTimer )
+		return;
+	MESSAGE_BEGIN( MSG_ALL, gmsgTimerStatus );
+		WRITE_BYTE( m_bTimer );
+		WRITE_COORD( m_fRoundTime );
+	MESSAGE_END();
+}
+void CDodRoundTimer::SendStatus( CBasePlayer *pPlayer )
+{
+	if ( !pPlayer )
+		return;
+	if ( !( pev->spawnflags & SF_ROUNDTIMER_SHOW ) )
+		return;
+	if ( !UTIL_IsMasterTriggered( m_sMaster, this ) )
+		return;
+	if ( !m_bTimer )
+		return;
+	MESSAGE_BEGIN( MSG_ONE, gmsgTimerStatus, NULL, pPlayer->pev );
+		WRITE_BYTE( m_bTimer );
+		WRITE_COORD( m_fRoundTime );
+	MESSAGE_END();
+}
+
 void CDodRoundTimer::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "round_timer_length" ) )
@@ -5901,106 +5561,466 @@ void CDodRoundTimer::KeyValue( KeyValueData *pkvd )
 		pkvd->fHandled = FALSE;
 }
 
-LINK_ENTITY_TO_CLASS( dod_control_point, CControlPoint );
-LINK_ENTITY_TO_CLASS( dod_control_point_master, CControlPointMaster );
-LINK_ENTITY_TO_CLASS( dod_capture_area, CAreaCapture );
-LINK_ENTITY_TO_CLASS( dod_object_goal, CObjectCapture );
-LINK_ENTITY_TO_CLASS( dod_round_timer, CDodRoundTimer );
-LINK_ENTITY_TO_CLASS( dod_point_relay, CDodPointRelay );
-LINK_ENTITY_TO_CLASS( dod_location, CLocation );
+// ---- dod_camera (CDoDCamera) ----
+// Cutscene camera for win/loose/draw/spawn scenes (see gamerules
+// FireDODCamera: allies_win_cut, axis_loose_cut, ...). Spawn hides the model
+// (null.mdl, MOVETYPE_NOCLIP, SOLID_NOT, rendermode TransTexture) and caches
+// pev->angles/origin plus the mapper-supplied pev->speed; speed then follows
+// path_corner targets. Entity size 0x2c8.
+// iuser2 selects the scene slot:
+//   1 axis spawn | 2 allie spawn | 3 axis win | 4 allie win |
+//   5 axis loose | 6 allie loose | 7 axis draw | 8 allie draw
 
-// link 0x141310 size 0x56a Ghidra 0x151310
-void CObjectCapture::Touch( CBaseEntity *pOther )
+// Factory: GetClassPtr sets the vtable + pev (size 0x2c8).
+LINK_ENTITY_TO_CLASS( dod_camera, CDoDCamera );
+
+void CDoDCamera::Spawn( void )
 {
-	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
-		return;
-	if ( !UTIL_IsMasterTriggered( m_sMaster, pOther ) )
-		return;
-	if ( g_pGameRules != NULL && g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
-		return;
-	if ( !pOther->IsPlayer() || !pOther->IsAlive() )
-		return;
-	if ( m_bCapped )
-		return;
-	CBasePlayer *pPlayer = (CBasePlayer *)pOther;
-	pPlayer->m_signals.Signal( SIGNAL_OBJECTAREA );
-	pPlayer->m_iObjectAreaIndex = m_iAreaIndex;
-	pPlayer->SetClientAreaIcon( m_iAreaIndex, true );
-	if ( !pPlayer->HasObject || !pPlayer->m_pObject )
+	Precache();
+	SET_MODEL( ENT( pev ), "models/mapmodels/null.mdl" );
+	pev->movetype = MOVETYPE_NOCLIP;
+	pev->solid = SOLID_NOT;
+	pev->renderamt = 0.0;
+	pev->rendermode = 2;
+	m_angles = pev->angles;	 // remember spawn angles/origin
+	m_origin = pev->origin;
+	for ( int i = 1; i <= 32; i++ )
+		m_hPlayer[i] = NULL;
+	m_initialSpeed = pev->speed;
+	if ( m_acceleration == 0.0 )
+		m_acceleration = 500.0;
+	if ( m_deceleration == 0.0 )
+		m_deceleration = 500.0;
+}
+
+void CDoDCamera::KeyValue( KeyValueData *pkvd )
+{
+	if ( FStrEq( pkvd->szKeyName, "wait" ) )
 	{
-		if ( ( pPlayer->m_flDisplayHistory & HINT_AREA_REQUIRES_OBJECT ) == 0 )
-		{
-			pPlayer->m_flDisplayHistory |= HINT_AREA_REQUIRES_OBJECT;
-			pPlayer->HintMessage( "#Hint_area_requires_object", 0 );
-		}
-		return;
+		m_flWait = atof( pkvd->szValue );
+		pkvd->fHandled = TRUE;
 	}
-	CObject *pObj = pPlayer->m_pObject;
-	if ( strcmp( sz_Group, pObj->sz_Group ) != 0 )
-		return;
-	CBaseEntity *pLast = NULL;
-	int NumObjects = 0;
-	CBaseEntity *pEnt = UTIL_FindEntityByClassname( NULL, "dod_object" );
-	while ( pEnt )
+	else if ( FStrEq( pkvd->szKeyName, "moveto" ) )
 	{
-		if ( pEnt == (CBaseEntity *)pObj )
-		{
-			UTIL_SendDirectorMessage( this, pOther, 11 );
-		}
-		else if ( strcmp( ( (CObject *)pEnt )->sz_Group, pObj->sz_Group ) == 0 )
-		{
-			if ( ( pEnt->pev->effects & EF_NODRAW ) == 0 )
-				NumObjects++;
-		}
-		pLast = pEnt;
-		pEnt = UTIL_FindEntityByClassname( pEnt, "dod_object" );
+		m_sPath = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
 	}
-	pPlayer->HasObject = FALSE;
-	CDoDTeamPlay *pRules = (CDoDTeamPlay *)g_pGameRules;
-	if ( pRules->m_RoundDoesCount )
-		pPlayer->AddObjScore( pObj->m_iCapPoints, TRUE );
-	if ( NumObjects == 0 || ( pev->spawnflags & SF_OBJECTGOAL_ONE_IS_ENOUGH ) )
+	else if ( FStrEq( pkvd->szKeyName, "acceleration" ) )
 	{
-		FireTargets( sz_DoneTarget, pOther, this, USE_ON, 0.0 );
-		if ( pObj->sz_DoneTarget[0] )
-			FireTargets( pObj->sz_DoneTarget, pOther, this, USE_ON, 0.0 );
-		if ( pev->spawnflags & SF_OBJECTGOAL_ONCE )
-			m_bCapped = true;
-		int idx = ENTINDEX( pOther->edict() );
-		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
-		{
-			CBaseEntity *pTeammate = UTIL_PlayerByIndex( i );
-			if ( pTeammate && pTeammate->pev->team == pOther->pev->team )
-			{
-				MESSAGE_BEGIN( MSG_ONE, gmsgPStatus, NULL, pTeammate->pev );
-				WRITE_BYTE( idx );
-				WRITE_BYTE( pPlayer->PlayerStatus() );
-				MESSAGE_END();
-			}
-		}
+		m_acceleration = atof( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "deceleration" ) )
+	{
+		m_deceleration = atof( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "teambound" ) )
+	{
+		m_teamBound = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "zoomlevel" ) )
+	{
+		// QUIRK: clamps 0..90 but does NOT set fHandled (falls through unset).
+		m_iFOV = atoi( pkvd->szValue );
+		if ( m_iFOV > 90 )
+			m_iFOV = 90;
+		if ( m_iFOV < 0 )
+			m_iFOV = 0;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "overlay" ) )
+	{
+		m_iOverlay = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "subtitle" ) )
+	{
+		m_iSubtitle = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "triggerstart" ) )
+	{
+		m_sTrigrStart = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "triggerend" ) )
+	{
+		m_sTrigrEnd = ALLOC_STRING( pkvd->szValue );
+		pkvd->fHandled = TRUE;
+	}
+	else if ( FStrEq( pkvd->szKeyName, "cam_fade" ) )
+	{
+		m_iCamFade = atoi( pkvd->szValue );
+		pkvd->fHandled = TRUE;
 	}
 	else
 	{
-		if ( NumObjects == 1 )
-			UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_left_object", UTIL_dtos1( 1 ), 0, 0, 0 );
-		else
-			UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_left_plural_object", UTIL_dtos1( NumObjects ), 0, 0, 0 );
-		if ( pev->target )
-			FireTargets( STRING( pev->target ), pOther, this, USE_TOGGLE, 0.0 );
-		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		CBaseDelay::KeyValue( pkvd );
+	}
+}
+
+void CDoDCamera::Precache( void )
+{
+	PRECACHE_MODEL( "models/mapmodels/null.mdl" );
+}
+
+// Binds players 1..32 (skips non-team, wrong-team unless teamBound==3,
+// invisible/dead-check via iuser2 scene slot state), then on toggle-on:
+// sets speed/target from moveto path, snaps to stored origin/angles,
+// SetView + EnableControl(0) + CameraView msg + scene-seen flag per iuser2,
+// fires triggerstart, think = FollowTarget.
+// NaN gate: binary 0x14ced0 Use has no float compare in bind loop, decompiler NaN equality never true, port omits it verified.
+void CDoDCamera::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	if ( !ShouldToggle( useType, m_state ) )
+		return;
+	// scene-seen flags live on CBasePlayer (player agent owns offsets):
+	// 1 i_seenAxisSpawnScene | 2 i_seenAllieSpawnScene | 3 i_seenAxisWinScene |
+	// 4 i_seenAllieWinScene | 5 i_seenAxisLooseScene | 6 i_seenAllieLooseScene |
+	// 7 i_seenAxisDrawScene | 8 i_seenAllieDrawScene
+	BOOL bFound = FALSE;
+	for ( int i = 1; i <= 32; i++ )
+	{
+		m_hPlayer[i] = UTIL_PlayerByIndex( i );
+		if ( !m_hPlayer[i] )
+			continue;
+		CBaseEntity *pEnt = m_hPlayer[i];
+		if ( !pEnt->IsPlayer() || ( m_teamBound != 3 && pEnt->pev->team != m_teamBound ) ||
+			 ( (CBasePlayer *) pEnt )->m_iNextClass == -1 ||
+			 SceneAlreadySeen( (CBasePlayer *) (CBaseEntity *) m_hPlayer[i], pev->iuser2 ) )
 		{
-			CBasePlayer *pPlr = (CBasePlayer *)UTIL_PlayerByIndex( i );
-			if ( pPlr && pPlr->pev->team == pOther->pev->team && pPlr != pPlayer && pRules->m_RoundDoesCount )
-				pPlr->AddObjScore( pObj->m_iOtherPoints, TRUE );
+			m_hPlayer[i] = NULL;
+			continue;
+		}
+		bFound = TRUE;
+	}
+	if ( !bFound )
+		return;
+	m_state = !m_state;
+	if ( m_state == 0 )
+	{
+		m_flReturnTime = gpGlobals->time;
+		return;
+	}
+	m_flReturnTime = gpGlobals->time + m_flWait;
+	pev->speed = m_initialSpeed;
+	m_targetSpeed = m_initialSpeed;
+	m_hTarget = GetNextTarget();
+	if ( !m_hTarget )
+		return;
+	if ( !m_sPath )
+	{
+		m_pentPath = NULL;
+		m_flStopTime = gpGlobals->time;
+	}
+	else
+	{
+		m_pentPath = UTIL_FindEntityByTargetname( NULL, STRING( m_sPath ) );
+		m_flStopTime = gpGlobals->time;
+		if ( m_pentPath )
+		{
+			if ( m_pentPath->pev->speed != 0 )
+				m_targetSpeed = m_pentPath->pev->speed;
+			m_flStopTime = gpGlobals->time + m_pentPath->GetDelay();  // vtable[0x1f]
 		}
 	}
-	const char *teamName = ( pOther->pev->team == TEAM_ALLIES ) ? "Allies" : "Axis";
-	UTIL_LogPrintf( "\"%s<%i><%s><%s>\" triggered a \"dod_object_goal\"\n", STRING( pOther->pev->netname ),
-		GETPLAYERUSERID( pOther->edict() ), GETPLAYERAUTHID( pOther->edict() ), teamName );
-	if ( pLast && pLast->pev->noise1 )
-		EMIT_SOUND_DYN( pOther->edict(), CHAN_STATIC, STRING( ( (CObject *)pLast )->pev->noise1 ), 1.0, 0.0, 0, 100 );
-	else if ( pObj->pev->noise1 )
-		EMIT_SOUND_DYN( pOther->edict(), CHAN_STATIC, STRING( pObj->pev->noise1 ), 1.0, 0.0, 0, 100 );
-	pPlayer->HasObject = FALSE;
-	pPlayer->RemoveObjectIcon();
+	pev->velocity = g_vecZero;
+	pev->angles = m_angles;
+	pev->origin = m_origin;
+	for ( int i = 1; i <= 32; i++ )
+	{
+		if ( !m_hPlayer[i] || m_hPlayer[i]->pev->team <= 0 )
+			continue;
+		CBasePlayer *pPlayer = (CBasePlayer *) (CBaseEntity *) m_hPlayer[i];
+		pPlayer->pev->vuser1.z = 1.0;
+		UTIL_ScreenFade( pPlayer, g_vecZero, 1.0, 15.0, 0, 5 );
+		g_engfuncs.pfnSetView( pPlayer->pev->pContainingEntity, pev->pContainingEntity );
+		pPlayer->EnableControl( 0 );
+		MESSAGE_BEGIN( MSG_ONE, gmsgCameraView, NULL, pPlayer->pev );
+		WRITE_STRING( STRING( pev->targetname ) );
+		MESSAGE_END();
+		MarkSceneSeen( pPlayer, pev->iuser2 );	// sets the i_seen* flag above
+	}
+	FireTargets( STRING( m_sTrigrStart ), this, this, USE_TOGGLE, 0 );
+	// dword @g_pGameRules+8 inc (active-camera counter; gamerules agent owns it)
+	( *(int *) ( (char *) g_pGameRules + 8 ) )++;
+	SetThink( &CDoDCamera::FollowTarget );
+	pev->nextthink = gpGlobals->time;
+	m_moveDistance = 0;
+	Move();
+}
+
+// While time is before m_flReturnTime and m_hTarget lives: face the target
+// (angle wrap + avelocity), damp velocity unless spawnflags&4, think again
+// next frame via Move(). Otherwise: release all bound players (EnableControl
+// + SetView self), fire triggerend + SUB_UseTargets, park at stored
+// origin/angles, m_state = 0.
+void CDoDCamera::FollowTarget()
+{
+	if ( m_hTarget && gpGlobals->time <= m_flReturnTime )
+	{
+		Vector vecGoal = m_hTarget->pev->origin - pev->origin;
+		Vector vecAng;
+		vecAng = UTIL_VecToAngles( vecGoal );
+		vecAng.x = -vecAng.x;
+		if ( pev->angles.y > 360.0 )
+			pev->angles.y -= 360.0;
+		if ( pev->angles.y < 0.0 )
+			pev->angles.y += 360.0;
+		float dx = vecAng.x - pev->angles.x;
+		float dy = vecAng.y - pev->angles.y;
+		if ( dx < -180.0 )
+			dx += 360.0;
+		if ( dx > 180.0 )
+			dx -= 360.0;
+		if ( dy < -180.0 )
+			dy += 360.0;
+		if ( dy > 180.0 )
+			dy -= 360.0;
+		pev->avelocity.x = dx * 40.0 * gpGlobals->frametime;
+		pev->avelocity.y = dy * 40.0 * gpGlobals->frametime;
+		if ( !( pev->spawnflags & SF_DODCAMERA_NO_DAMPING ) )
+		{
+			pev->velocity = pev->velocity * 0.8;
+			if ( pev->velocity.Length() < 10.0 )
+				pev->velocity = g_vecZero;
+		}
+		pev->nextthink = gpGlobals->time;
+		Move();
+		return;
+	}
+	// dword @g_pGameRules+8 dec (active-camera counter; gamerules agent owns it)
+	( *(int *) ( (char *) g_pGameRules + 8 ) )--;
+	for ( int i = 1; i <= 32; i++ )
+	{
+		if ( !m_hPlayer[i] )
+			continue;
+		CBaseEntity *pEnt = m_hPlayer[i];
+		if ( pEnt->pev->team > 0 )
+		{
+			( (CBasePlayer *) (CBaseEntity *) m_hPlayer[i] )->EnableControl( 1 );
+			g_engfuncs.pfnSetView( pEnt->pev->pContainingEntity, pEnt->pev->pContainingEntity );
+			pEnt->pev->vuser1.z = 0;
+			m_hPlayer[i] = NULL;
+		}
+	}
+	FireTargets( STRING( m_sTrigrEnd ), this, this, USE_TOGGLE, 0 );
+	SUB_UseTargets( this, USE_TOGGLE, 0 );
+	pev->avelocity = g_vecZero;
+	m_state = 0;
+	pev->angles = m_angles;
+	pev->origin = m_origin;
+}
+
+// file-local reconstruction of the inline iuser2 scene-slot gate in Use:
+// slot -> CBasePlayer::i_seen* flag binary-verified 0x14ced0 Use scene gates 1..8, member names from DWARF.
+static int SeenFlag( CBasePlayer *pPlayer, int slot )
+{
+	switch ( slot )
+	{
+	case 1:
+		return pPlayer->i_seenAxisSpawnScene;
+	case 2:
+		return pPlayer->i_seenAllieSpawnScene;
+	case 3:
+		return pPlayer->i_seenAxisWinScene;
+	case 4:
+		return pPlayer->i_seenAllieWinScene;
+	case 5:
+		return pPlayer->i_seenAxisLooseScene;
+	case 6:
+		return pPlayer->i_seenAllieLooseScene;
+	case 7:
+		return pPlayer->i_seenAxisDrawScene;
+	case 8:
+		return pPlayer->i_seenAllieDrawScene;
+	default:
+		return 0;
+	}
+}
+static BOOL SceneAlreadySeen( CBasePlayer *pPlayer, int slot )
+{
+	return SeenFlag( pPlayer, slot ) != 0;
+}
+static void MarkSceneSeen( CBasePlayer *pPlayer, int slot )
+{
+	switch ( slot )
+	{
+	case 1:
+		pPlayer->i_seenAxisSpawnScene = 1;
+		break;
+	case 2:
+		pPlayer->i_seenAllieSpawnScene = 1;
+		break;
+	case 3:
+		pPlayer->i_seenAxisWinScene = 1;
+		break;
+	case 4:
+		pPlayer->i_seenAllieWinScene = 1;
+		break;
+	case 5:
+		pPlayer->i_seenAxisLooseScene = 1;
+		break;
+	case 6:
+		pPlayer->i_seenAllieLooseScene = 1;
+		break;
+	case 7:
+		pPlayer->i_seenAxisDrawScene = 1;
+		break;
+	case 8:
+		pPlayer->i_seenAllieDrawScene = 1;
+		break;
+	default:
+		break;
+	}
+}
+
+// Advances m_moveDistance by pev->speed * frametime toward m_pentPath.
+// On arrival: console log (plain for iuser2 < 1, cut-scene name for 1..8),
+// fire path message target (cleared when spawnflags & 4), advance along
+// GetNextTarget chain, re-seed speed/distance/dir. Speed approaches
+// m_targetSpeed (accel) before m_flStopTime else 0 (decel); velocity blends
+// with 2 * frametime smoothing. Cut-scene names by iuser2:
+//   1 axis_spawn_cut | 2 allie_spawn_cut | 3 axis_win_cut | 4 allie_win_cut |
+//   5 axis_loose_cut | 6 allie_loose_cut | 7 axis_draw_cut | 8 allie_draw_cut
+void CDoDCamera::Move()
+{
+	CBaseEntity *pPath = m_pentPath;
+	if ( !pPath )
+	{
+		ALERT( at_aiconsole, "**dod_camera** No Path_corner FOUND !!\n" );
+		return;
+	}
+	m_moveDistance = m_moveDistance - pev->speed * gpGlobals->frametime;
+	if ( m_moveDistance <= 0 )
+	{
+		if ( pev->iuser2 < 1 )
+		{
+			ALERT( at_aiconsole, "**dod_camera** Reached %s: %s\n", STRING( pPath->pev->classname ),
+				   STRING( pPath->pev->targetname ) );
+		}
+		else
+		{
+			ALERT( at_aiconsole, "**dod_camera** type: %s  Reached %s: %s\n", CutSceneName( pev->iuser2 ),
+				   STRING( pPath->pev->classname ), STRING( pPath->pev->targetname ) );
+		}
+		if ( pPath->pev->message )
+		{
+			FireTargets( STRING( pPath->pev->message ), this, this, USE_TOGGLE, 0 );
+			if ( pPath->pev->spawnflags & SF_CORNER_FIREONCE )
+				pPath->pev->message = 0;
+		}
+		if ( !strcmp( STRING( pPath->pev->classname ), "path_corner" ) )
+			SetCameraMode( STRING( pPath->pev->targetname ), ( (CPathCorner *) pPath )->m_iCamFade );
+		pPath = pPath->GetNextTarget();
+		m_pentPath = pPath;
+		if ( !pPath )
+		{
+			pev->velocity = g_vecZero;
+		}
+		else
+		{
+			if ( pPath->pev->speed != 0 )
+				m_targetSpeed = pPath->pev->speed;
+			Vector delta = pPath->pev->origin - pev->origin;
+			float len = delta.Length();
+			m_moveDistance = len;
+			if ( len == 0 )
+				pev->movedir = Vector( 0, 0, 1 );
+			else
+				pev->movedir = delta * ( 1.0 / len );
+			// path_corner delay wait (vtable[0x1f] = GetDelay)
+			m_flStopTime = gpGlobals->time + pPath->GetDelay();
+		}
+	}
+	if ( m_flStopTime <= gpGlobals->time )
+		pev->speed = UTIL_Approach( m_targetSpeed, pev->speed, m_acceleration * gpGlobals->frametime );
+	else
+		pev->speed = UTIL_Approach( 0, pev->speed, m_deceleration * gpGlobals->frametime );
+	float blend = gpGlobals->frametime + gpGlobals->frametime;
+	pev->velocity = pev->velocity * ( 1.0 - blend ) + pev->movedir * pev->speed * blend;
+}
+
+float CDoDCamera::ReturnTimeLeft( void )
+{
+	return m_flReturnTime;
+}
+
+// file-local: iuser2 -> cut-scene target name for the Move() log line.
+static const char *CutSceneName( int scene )
+{
+	switch ( scene )
+	{
+	case 1:
+		return "axis_spawn_cut";
+	case 2:
+		return "allie_spawn_cut";
+	case 3:
+		return "axis_win_cut";
+	case 4:
+		return "allie_win_cut";
+	case 5:
+		return "axis_loose_cut";
+	case 6:
+		return "allie_loose_cut";
+	case 7:
+		return "axis_draw_cut";
+	case 8:
+		return "allie_draw_cut";
+	default:
+		return "";
+	}
+}
+
+// Sends gmsgCameraView(targetname) to every bound on-team player, with an
+// optional screen fade. fade index: 1..5 -> (fadeTime, flags) =
+// (0.6,1) (2.0,1) (2.0,0) (3.0,1) (4.0,0); anything else -> (2.0,5).
+// holdtime 1.0, color black, alpha 0xff.
+void CDoDCamera::SetCameraMode( const char *szTargetname, int nFade )
+{
+	for ( int i = 1; i <= 32; i++ )
+	{
+		if ( !m_hPlayer[i] )
+			continue;
+		CBaseEntity *pEnt = m_hPlayer[i];
+		if ( pEnt->pev->team <= 0 )
+			continue;
+		if ( nFade != 0 )
+		{
+			float fadeTime;
+			int flags;
+			switch ( nFade )
+			{
+			case 1:
+				fadeTime = 0.6;
+				flags = 1;
+				break;
+			case 2:
+				fadeTime = 2.0;
+				flags = 1;
+				break;
+			case 3:
+				fadeTime = 2.0;
+				flags = 0;
+				break;
+			case 4:
+				fadeTime = 3.0;
+				flags = 1;
+				break;
+			case 5:
+				fadeTime = 4.0;
+				flags = 0;
+				break;
+			default:
+				fadeTime = 2.0;
+				flags = 5;
+				break;
+			}
+			UTIL_ScreenFade( (CBaseEntity *) m_hPlayer[i], g_vecZero, fadeTime, 1.0, 0xff, flags );
+		}
+		MESSAGE_BEGIN( MSG_ONE, gmsgCameraView, NULL, pEnt->pev );
+		WRITE_STRING( szTargetname );
+		MESSAGE_END();
+	}
 }

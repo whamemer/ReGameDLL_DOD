@@ -9,6 +9,11 @@
 #include "cbase.h"
 #include "saverestore.h"
 
+// engine STRING() returns const char*: const-ify read-only string params (was char* in older SDKs)
+CBaseEntity *UTIL_FollowAliasReference( CBaseEntity *pStartEntity, const char *szValue );
+CBaseEntity *UTIL_FollowGroupReference( CBaseEntity *pStartEntity, const char *szGroupName, const char *szMemberName );
+CBaseEntity *UTIL_FollowReference( CBaseEntity *pStartEntity, const char *szName );
+
 #define SF_ALIAS_OFF 0x0001		// info_alias starts switched off (target and netname are swapped)
 #define SF_ALIAS_DEBUG 0x0002	// the alias entities print what they change
 #define SF_CHANGEALIAS_FOLLOW 0x0001	// trigger_changealias takes the name of the entity its netname refers to
@@ -24,13 +29,14 @@ class CInfoAlias : public CBaseEntity
 	STATE GetState();
 };
 
-class CTriggerChangeAlias : public CBaseEntity
+int CInfoAlias::ObjectCaps()
 {
-  public:
-	void Spawn();
-	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	int ObjectCaps();
-};
+	return 0;
+}
+STATE CInfoAlias::GetState()
+{
+	return ( pev->spawnflags & SF_ALIAS_OFF ) ? STATE_OFF : STATE_ON;
+}
 
 TYPEDESCRIPTION CMultiAlias::m_SaveData[] = {
 	DEFINE_FIELD( CMultiAlias, m_cTargets, FIELD_INTEGER ),
@@ -46,15 +52,6 @@ TYPEDESCRIPTION CInfoGroup::m_SaveData[] = {
 IMPLEMENT_SAVERESTORE( CInfoGroup, CBaseEntity )
 
 LINK_ENTITY_TO_CLASS( info_alias, CInfoAlias )
-LINK_ENTITY_TO_CLASS( info_group, CInfoGroup )
-LINK_ENTITY_TO_CLASS( multi_alias, CMultiAlias )
-LINK_ENTITY_TO_CLASS( trigger_changealias, CTriggerChangeAlias )
-
-// engine STRING() returns const char*: const-ify read-only string params (was char* in older SDKs)
-CBaseEntity *UTIL_FollowAliasReference( CBaseEntity *pStartEntity, const char *szValue );
-CBaseEntity *UTIL_FollowGroupReference( CBaseEntity *pStartEntity, const char *szGroupName, const char *szMemberName );
-CBaseEntity *UTIL_FollowReference( CBaseEntity *pStartEntity, const char *szName );
-
 
 void CInfoAlias::Spawn()
 {
@@ -75,6 +72,13 @@ void CInfoAlias::RoundRespawn()
 		pev->netname = tmp;
 	}
 }
+
+void CInfoAlias::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	if ( ShouldToggle( useType, GetState() ) )
+		pev->nextthink = gpGlobals->time;
+}
+
 void CInfoAlias::Think()
 {
 	if ( ( pev->spawnflags & SF_ALIAS_OFF ) == 0 )
@@ -99,19 +103,9 @@ void CInfoAlias::Think()
 	if ( pev->spawnflags & SF_ALIAS_DEBUG )
 		ALERT( at_console, ": target becomes \"%s\"\n", STRING( pev->target ) );
 }
-void CInfoAlias::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{
-	if ( ShouldToggle( useType, GetState() ) )
-		pev->nextthink = gpGlobals->time;
-}
-int CInfoAlias::ObjectCaps()
-{
-	return 0;
-}
-STATE CInfoAlias::GetState()
-{
-	return ( pev->spawnflags & SF_ALIAS_OFF ) ? STATE_OFF : STATE_ON;
-}
+
+LINK_ENTITY_TO_CLASS( info_group, CInfoGroup )
+
 void CInfoGroup::KeyValue( KeyValueData *pkvd )
 {
 	if ( m_cMembers < 16 )
@@ -126,6 +120,12 @@ void CInfoGroup::KeyValue( KeyValueData *pkvd )
 	else
 		ALERT( at_error, "Too many members for info_group %s (limit is %d)", STRING( pev->targetname ), 16 );
 }
+
+void CInfoGroup::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	pev->nextthink = gpGlobals->time;
+}
+
 void CInfoGroup::Think()
 {
 	CBaseEntity *pT = UTIL_FindEntityByTargetname( 0, STRING( pev->target ) );
@@ -142,10 +142,7 @@ void CInfoGroup::Think()
 		ALERT( at_console, "info_group %s: alias %s was not found or not an alias!", STRING( pev->targetname ),
 			   STRING( pev->target ) );
 }
-void CInfoGroup::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{
-	pev->nextthink = gpGlobals->time;
-}
+
 int CInfoGroup::GetMember( const char *szMemberName )
 {
 	if ( szMemberName == 0 )
@@ -161,6 +158,9 @@ int CInfoGroup::GetMember( const char *szMemberName )
 	ALERT( at_console, "info_group %s has no member called %s.", STRING( pev->targetname ), szMemberName );
 	return 0;
 }
+
+LINK_ENTITY_TO_CLASS( multi_alias, CMultiAlias )
+
 void CMultiAlias::KeyValue( KeyValueData *pkvd )
 {
 	if ( m_cTargets < 16 )
@@ -174,6 +174,22 @@ void CMultiAlias::KeyValue( KeyValueData *pkvd )
 	else
 		ALERT( at_error, "Too many targets for multi_alias %s (limit is %d)", STRING( pev->targetname ), 16 );
 }
+
+class CTriggerChangeAlias : public CBaseEntity
+{
+  public:
+	void Spawn();
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	int ObjectCaps();
+};
+
+int CTriggerChangeAlias::ObjectCaps()
+{
+	return 0;
+}
+
+LINK_ENTITY_TO_CLASS( trigger_changealias, CTriggerChangeAlias )
+
 void CTriggerChangeAlias::Spawn()
 {
 	return;
@@ -208,8 +224,5 @@ void CTriggerChangeAlias::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, US
 		ALERT( at_console, "DEBUG: trigger_changealias %s activated: changed contents of alias \"%s\" to \"%s\"\n",
 			   STRING( pev->targetname ), STRING( pAlias->pev->targetname ), STRING( iNewValue ) );
 }
-int CTriggerChangeAlias::ObjectCaps()
-{
-	return 0;
-}
+
 // NOTE: CBaseEntity::Illumination (alias.cpp:270) skipped, already inline in cbase.h

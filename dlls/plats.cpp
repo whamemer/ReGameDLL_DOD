@@ -932,6 +932,24 @@ void CFuncTrain::OverrideReset( void )
 	}
 }
 
+void CFuncTrain::RoundRespawn( void )
+{
+	STOP_SOUND( ENT( pev ), CHAN_STATIC, (char *)STRING( pev->noise ) );
+	CBaseEntity *pTarg = UTIL_FindEntityByTargetname( NULL, STRING( m_pInitialTarget ) );
+	pev->target = pTarg->pev->target;
+	m_iState = STATE_OFF;
+	m_pevCurrentTarget = pTarg->pev;
+	m_activated = FALSE;
+	UTIL_SetOrigin( pev, pTarg->pev->origin - ( pev->mins + pev->maxs ) * 0.5 );
+	if ( !FStringNull( pev->targetname ) && !( pev->spawnflags & SF_TRAIN_START_ON ) )
+	{
+		pev->spawnflags |= SF_TRAIN_WAIT_RETRIGGER;
+		return;
+	}
+	pev->nextthink = pev->ltime + 0.1;
+	SetThink( &CFuncTrain::Next );
+}
+
 // ---------------------------------------------------------------------
 //
 // Track Train
@@ -1048,6 +1066,26 @@ void CFuncTrackTrain ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 		Next();
 		ALERT( at_aiconsole, "TRAIN(%s), speed to %.2f\n", STRING( pev->targetname ), pev->speed );
 	}
+}
+
+void CFuncTrackTrain::SetSpeed( float spd )
+{
+	pev->speed = spd;
+}
+
+void CFuncTrackTrain::SetVelocity( Vector vel )
+{
+	pev->velocity = vel;
+}
+
+void CFuncTrackTrain::SetAvelocity( Vector avel )
+{
+	pev->avelocity = avel;
+}
+
+void CFuncTrackTrain::SetAngles( Vector angles )
+{
+	pev->angles = angles;
 }
 
 static float Fix( float angle )
@@ -1503,6 +1541,32 @@ void CFuncTrackTrain ::Spawn( void )
 	RoundStore();
 }
 
+void CFuncTrackTrain::RoundRespawn( void )
+{
+	m_speed = pev->speed ? pev->speed : 100.0;
+	SetSpeed( 0 );
+	SetVelocity( g_vecZero );
+	SetAvelocity( g_vecZero );
+	pev->impulse = (int)m_speed;
+	m_dir = 1;
+	if ( FStringNull( pev->target ) )
+	{
+		if ( FStringNull( pev->targetname ) )
+			ALERT( at_console, "func_tracktrain with no target\n" );
+		else
+			ALERT( at_console, "func_tracktrain %s has no target\n", STRING( pev->targetname ) );
+	}
+	UTIL_SetSize( pev, pev->mins, pev->maxs );
+	UTIL_SetOrigin( pev, pev->origin );
+	pev->oldorigin = pev->origin;
+	m_controlMins = pev->mins;
+	m_controlMaxs = pev->maxs;
+	m_controlMaxs.z += 72.0;
+	pev->flags &= ~FL_ALWAYSTHINK;
+	pev->nextthink = pev->ltime + 0.1;
+	SetThink( &CFuncTrackTrain::Find );
+}
+
 void CFuncTrackTrain ::Precache( void )
 {
 	if ( m_flVolume == 0.0 )
@@ -1714,6 +1778,31 @@ void CFuncTrackChange ::Spawn( void )
 	Precache();
 
 	RoundStore();
+}
+
+void CFuncTrackChange::RoundRespawn( void )
+{
+	Setup();
+	if ( FBitSet( pev->spawnflags, SF_TRACK_DONT_MOVE ) )
+		m_vecPosition2.z = pev->origin.z;
+	SetupRotation();
+	if ( !FBitSet( pev->spawnflags, SF_TRACK_STARTBOTTOM ) )
+	{
+		UTIL_SetOrigin( pev, m_vecPosition1 );
+		m_toggle_state = TS_AT_TOP;
+		pev->angles = m_end;
+		m_targetState = TS_AT_BOTTOM;
+	}
+	else
+	{
+		UTIL_SetOrigin( pev, m_vecPosition2 );
+		m_toggle_state = TS_AT_BOTTOM;
+		pev->angles = m_start;
+		m_targetState = TS_AT_TOP;
+	}
+	m_use = 1;
+	pev->nextthink = pev->ltime + 2.0;
+	SetThink( &CFuncTrackChange::Find );
 }
 
 void CFuncTrackChange ::Precache( void )
@@ -2263,93 +2352,4 @@ void CGunTarget::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 		pev->health = pev->max_health;
 		Next();
 	}
-}
-
-void CFuncTrain::RoundRespawn( void )
-{
-	STOP_SOUND( ENT( pev ), CHAN_STATIC, (char *)STRING( pev->noise ) );
-	CBaseEntity *pTarg = UTIL_FindEntityByTargetname( NULL, STRING( m_pInitialTarget ) );
-	pev->target = pTarg->pev->target;
-	m_iState = STATE_OFF;
-	m_pevCurrentTarget = pTarg->pev;
-	m_activated = FALSE;
-	UTIL_SetOrigin( pev, pTarg->pev->origin - ( pev->mins + pev->maxs ) * 0.5 );
-	if ( !FStringNull( pev->targetname ) && !( pev->spawnflags & SF_TRAIN_START_ON ) )
-	{
-		pev->spawnflags |= SF_TRAIN_WAIT_RETRIGGER;
-		return;
-	}
-	pev->nextthink = pev->ltime + 0.1;
-	SetThink( &CFuncTrain::Next );
-}
-
-void CFuncTrackTrain::RoundRespawn( void )
-{
-	m_speed = pev->speed ? pev->speed : 100.0;
-	SetSpeed( 0 );
-	SetVelocity( g_vecZero );
-	SetAvelocity( g_vecZero );
-	pev->impulse = (int)m_speed;
-	m_dir = 1;
-	if ( FStringNull( pev->target ) )
-	{
-		if ( FStringNull( pev->targetname ) )
-			ALERT( at_console, "func_tracktrain with no target\n" );
-		else
-			ALERT( at_console, "func_tracktrain %s has no target\n", STRING( pev->targetname ) );
-	}
-	UTIL_SetSize( pev, pev->mins, pev->maxs );
-	UTIL_SetOrigin( pev, pev->origin );
-	pev->oldorigin = pev->origin;
-	m_controlMins = pev->mins;
-	m_controlMaxs = pev->maxs;
-	m_controlMaxs.z += 72.0;
-	pev->flags &= ~FL_ALWAYSTHINK;
-	pev->nextthink = pev->ltime + 0.1;
-	SetThink( &CFuncTrackTrain::Find );
-}
-
-void CFuncTrackChange::RoundRespawn( void )
-{
-	Setup();
-	if ( FBitSet( pev->spawnflags, SF_TRACK_DONT_MOVE ) )
-		m_vecPosition2.z = pev->origin.z;
-	SetupRotation();
-	if ( !FBitSet( pev->spawnflags, SF_TRACK_STARTBOTTOM ) )
-	{
-		UTIL_SetOrigin( pev, m_vecPosition1 );
-		m_toggle_state = TS_AT_TOP;
-		pev->angles = m_end;
-		m_targetState = TS_AT_BOTTOM;
-	}
-	else
-	{
-		UTIL_SetOrigin( pev, m_vecPosition2 );
-		m_toggle_state = TS_AT_BOTTOM;
-		pev->angles = m_start;
-		m_targetState = TS_AT_TOP;
-	}
-	m_use = 1;
-	pev->nextthink = pev->ltime + 2.0;
-	SetThink( &CFuncTrackChange::Find );
-}
-
-void CFuncTrackTrain::SetSpeed( float spd )
-{
-	pev->speed = spd;
-}
-
-void CFuncTrackTrain::SetVelocity( Vector vel )
-{
-	pev->velocity = vel;
-}
-
-void CFuncTrackTrain::SetAvelocity( Vector avel )
-{
-	pev->avelocity = avel;
-}
-
-void CFuncTrackTrain::SetAngles( Vector angles )
-{
-	pev->angles = angles;
 }

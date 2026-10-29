@@ -692,6 +692,26 @@ void ScriptEntityCancel( edict_t *pentCine )
 	}
 }
 
+void CCineMonster::DoDReset( void )
+{
+	// binary-verified 0x12f860 scripted.cpp:757: re-arm scripted targets for round reset
+	edict_t *pent = FIND_ENTITY_BY_TARGETNAME( NULL, STRING( m_iszEntity ) );
+	while ( !FNullEnt( pent ) )
+	{
+		CBaseEntity *pEnt = CBaseEntity::Instance( pent );
+		if ( pEnt && ( pEnt->pev->flags & FL_MONSTER ) )
+		{
+			CBaseMonster *pMon = pEnt->MyMonsterPointer();
+			if ( pMon )
+			{
+				pMon->DoDSetScriptReset();
+				pMon->m_pGoalEnt = NULL;
+			}
+		}
+		pent = FIND_ENTITY_BY_TARGETNAME( pent, STRING( m_iszEntity ) );
+	}
+}
+
 // find all the cinematic entities with my targetname and stop them from playing
 void CCineMonster ::CancelScript( void )
 {
@@ -1090,6 +1110,13 @@ void CScriptedSentence ::FindThink( void )
 		ALERT( at_console, "ScriptedSentence: can't find \"player\" to play HEV sentence!?\n" );
 }
 
+void CScriptedSentence ::DurationThink( void )
+{
+	m_playing = FALSE;
+	pev->nextthink = gpGlobals->time + m_flRepeat;
+	SetThink( &CScriptedSentence::DelayThink );
+}
+
 void CScriptedSentence ::DelayThink( void )
 {
 	m_active = TRUE;
@@ -1240,31 +1267,4 @@ void CFurniture ::Spawn()
 int CFurniture::Classify( void )
 {
 	return CLASS_NONE;
-}
-
-void CCineMonster::DoDReset( void )
-{
-	// binary-verified 0x12f860 scripted.cpp:757: re-arm scripted targets for round reset
-	edict_t *pent = FIND_ENTITY_BY_TARGETNAME( NULL, STRING( m_iszEntity ) );
-	while ( !FNullEnt( pent ) )
-	{
-		CBaseEntity *pEnt = CBaseEntity::Instance( pent );
-		if ( pEnt && ( pEnt->pev->flags & FL_MONSTER ) )
-		{
-			CBaseMonster *pMon = pEnt->MyMonsterPointer();
-			if ( pMon )
-			{
-				pMon->DoDSetScriptReset();
-				pMon->m_pGoalEnt = NULL;
-			}
-		}
-		pent = FIND_ENTITY_BY_TARGETNAME( pent, STRING( m_iszEntity ) );
-	}
-}
-
-void CScriptedSentence ::DurationThink( void )
-{
-	m_playing = FALSE;
-	pev->nextthink = gpGlobals->time + m_flRepeat;
-	SetThink( &CScriptedSentence::DelayThink );
 }

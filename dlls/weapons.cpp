@@ -34,6 +34,8 @@
 extern CGraph WorldGraph;
 extern int gEvilImpulse101;
 
+extern int gmsgCurWeapon;
+
 #define NOT_USED 255
 
 DLL_GLOBAL short g_sModelIndexLaser;  // holds the index for the laser beam
@@ -44,14 +46,12 @@ DLL_GLOBAL short g_sModelIndexSmoke;	   // holds the index for the smoke cloud
 DLL_GLOBAL short g_sModelIndexBubbles;	   // holds the index for the bubbles model
 DLL_GLOBAL short g_sModelIndexBloodDrop;   // holds the sprite index for the initial blood
 DLL_GLOBAL short g_sModelIndexBloodSpray;  // holds the sprite index for splattered blood
+unsigned short m_usPlayWhizz;
 
 ItemInfo CBasePlayerItem::ItemInfoArray[MAX_WEAPONS];
 AmmoInfo CBasePlayerItem::AmmoInfoArray[MAX_AMMO_SLOTS];
 
-extern int gmsgCurWeapon;
-
 MULTIDAMAGE gMultiDamage;
-unsigned short m_usPlayWhizz;
 
 #define TRACER_FREQ 4  // Tracers fire every fourth bullet
 
@@ -458,6 +458,8 @@ void CBasePlayerItem::FallThink( void )
 	}
 }
 
+char *szRespawnWeapons[3] = { "weapon_bazooka", "weapon_pschreck", "weapon_piat" };
+
 //=========================================================
 // Materialize - make a CBasePlayerItem visible and tangible
 //=========================================================
@@ -495,8 +497,6 @@ void CBasePlayerItem::AttemptToMaterialize( void )
 
 	pev->nextthink = UTIL_WeaponTimeBase() + time;
 }
-
-char *szRespawnWeapons[3] = { "weapon_bazooka", "weapon_pschreck", "weapon_piat" };
 
 //=========================================================
 // CheckRespawn - a player is taking this weapon, should
@@ -547,6 +547,15 @@ CBaseEntity *CBasePlayerItem::Respawn( void )
 	return pNewWeapon;
 }
 
+void CBasePlayerItem::RoundRespawn( void )
+{
+	if ( m_bReadyToRespawn )
+	{
+		SetThink( &CBasePlayerItem::AttemptToMaterialize );
+		pev->nextthink = gpGlobals->time + 0.1f;
+	}
+}
+
 void CBasePlayerItem::DefaultTouch( CBaseEntity *pOther )
 {
 	// if it's not a player, ignore
@@ -569,6 +578,27 @@ void CBasePlayerItem::DefaultTouch( CBaseEntity *pOther )
 	else if ( gEvilImpulse101 )
 	{
 		UTIL_Remove( this );
+	}
+}
+
+void CBasePlayerItem::PickupUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	if ( !pActivator->IsPlayer() )
+		return;
+
+	CBasePlayer *pPlayer = (CBasePlayer *)pActivator;
+	if ( g_pGameRules->CanHavePlayerItem( pPlayer, this ) )
+	{
+		if ( pPlayer->AddPlayerItem( this ) )
+		{
+			AttachToPlayer( pPlayer );
+			EMIT_SOUND_DYN( ENT( pActivator->pev ), CHAN_ITEM, "items/weaponpickup.wav", 1.0, 0.8, 0, 100 );
+		}
+	}
+	else
+	{
+		if ( gEvilImpulse101 )
+			UTIL_Remove( this );
 	}
 }
 
@@ -777,6 +807,23 @@ void CBasePlayerItem::Kill( void )
 	SetTouch( NULL );
 	SetThink( &CBasePlayerItem::SUB_Remove );
 	pev->nextthink = UTIL_WeaponTimeBase() + 0.1;
+}
+
+void CBasePlayerItem::SpawnReplacement( void )
+{
+	if ( !m_bTriggerSpawnOnDie )
+		return;
+
+	for ( CBaseEntity *p = UTIL_FindEntityByClassname( NULL, STRING( pev->classname ) ); p != NULL;
+		  p = UTIL_FindEntityByClassname( p, STRING( pev->classname ) ) )
+	{
+		if ( ( (CBasePlayerItem *)p )->m_bTriggerSpawnOnDie == 0 )
+		{
+			p->SetThink( &CBasePlayerItem::AttemptToMaterialize );
+			p->pev->nextthink = gpGlobals->time + 0.1f;
+			return;
+		}
+	}
 }
 
 void CBasePlayerItem::Holster( int skiplocal /* = 0 */ )
@@ -1037,6 +1084,115 @@ BOOL CBasePlayerWeapon::TimedDeploy( char *szViewModel, char *szWeaponModel, int
 	return TRUE;
 }
 
+Vector CBasePlayerWeapon::Aim( float accuracyFactor, CBasePlayer *pOther, int shared_rand )
+// link 0x15a950 size 0x81 Ghidra 0x16a950: 3x UTIL_SharedRandomFloat xyz, returns Vector
+{
+	float targetx = UTIL_SharedRandomFloat( shared_rand, accuracyFactor, 0.0f );
+	float targety = UTIL_SharedRandomFloat( shared_rand, accuracyFactor, 0.0f );
+	float targetz = UTIL_SharedRandomFloat( shared_rand, accuracyFactor, 0.0f );
+	return Vector( targetx, targety, targetz );
+}
+float CBasePlayerWeapon::flAim( float accuracyFactor, CBasePlayer *pOther )
+// EXACT link 0x15a230 size 5 identity return a exact
+{
+	return accuracyFactor;
+}
+
+void CBasePlayerWeapon::RemoveStamina( float removeAmount, CBasePlayer *pOther )
+{
+	if ( !pOther )
+		pOther = m_pPlayer;
+	if ( !pOther )
+		return;
+	if ( ( pOther->pev->button & IN_DUCK ) == 0 && !CBasePlayer::IsProne( pOther ) )
+	{
+		float f = pOther->pev->fuser4 - removeAmount;
+		if ( f < 0.0f )
+			f = 0.0f;
+		else if ( f > 100.0f )
+			f = 100.0f;
+		pOther->pev->fuser4 = f;
+	}
+}
+
+int CBasePlayerWeapon::ChangeFOV( int fov )
+{
+	if ( m_pPlayer->m_iFOV > 0 )
+	{
+		m_pPlayer->UpdateScope( 0 );
+		return 0;
+	}
+
+	return fov;
+}
+
+int CBasePlayerWeapon::ZoomIn( void )
+{
+	if ( Classify() == CLASS_SCOPED_RIFLE || Classify() == 0x400 )
+	{
+		m_pPlayer->UpdateScope( m_iId );
+		return 20;
+	}
+
+	return 0;
+}
+
+int CBasePlayerWeapon::ZoomOut( void )
+{
+	if ( m_pPlayer->pev->vuser1.z != 0.0f )
+		return m_pPlayer->m_iFOV;
+
+	m_pPlayer->CheckPlayerSpeed();
+	m_pPlayer->UpdateScope( 0 );
+
+	return 0;
+}
+
+// NOTE: the HL single-player weapons (CRpg/CRpgRocket/CShotgun/CGauss/CEgon/CSatchel)
+// do not exist in Day of Defeat; their savestore tables (and the vtables/typeinfo they
+// emitted) were removed so the DLL exports/imports match the shipped dod.so exactly.
+
+// DoD zoom/stamina/mortar/water-sniping impls
+void CBasePlayerWeapon::UpdateZoomSpeed( void )
+{
+	if ( !m_pPlayer )
+		return;
+	if ( Classify() != 0x20 )
+		return;
+	m_pPlayer->CheckPlayerSpeed();
+}
+
+int CBasePlayerWeapon::GetFOV( void )
+{
+	return m_pPlayer ? m_pPlayer->m_iFOV : 0;
+}
+
+bool CBasePlayerWeapon::PlayerIsWaterSniping( void )
+{
+	if ( !m_pPlayer )
+		return false;
+	int wl = m_pPlayer->pev->waterlevel;
+	if ( wl == 3 )
+		return true;
+	if ( wl > 0 )
+		return CBasePlayer::IsProne( m_pPlayer ) != 0;
+	return false;
+}
+
+void CBasePlayerWeapon::ThinkZoomOut( void )
+{
+	m_pPlayer->m_iFOV = ZoomOut();
+	UpdateZoomSpeed();
+}
+void CBasePlayerWeapon::ThinkZoomIn( void )
+{
+	if ( m_pPlayer->pev->velocity.Length() <= 45.0f && !( m_pPlayer->pev->button & IN_ATTACK ) )
+	{
+		m_pPlayer->m_iFOV = ZoomIn();
+		UpdateZoomSpeed();
+	}
+}
+
 BOOL CBasePlayerWeapon ::DefaultReload( int iClipSize, int iAnim, float fDelay )
 {
 	int iAmmo = m_pPlayer->m_rgAmmo[m_iPrimaryAmmoType];
@@ -1099,6 +1255,11 @@ int CBasePlayerWeapon::PrimaryAmmoIndex( void )
 int CBasePlayerWeapon::SecondaryAmmoIndex( void )
 {
 	return -1;
+}
+
+int CBasePlayerWeapon::GetRoundState( void )
+{
+	return g_pGameRules->RoundState();
 }
 
 void CBasePlayerWeapon::Holster( int skiplocal /* = 0 */ )
@@ -1187,6 +1348,34 @@ void CBasePlayerAmmo ::DefaultTouch( CBaseEntity *pOther )
 	}
 }
 
+bool CBasePlayerAmmo::GiveGenericAmmo( CBaseEntity *pOther )
+{
+	if ( !pOther->IsPlayer() )
+		return false;
+
+	CBasePlayer *pPlayer = (CBasePlayer *)pOther;
+
+	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
+	{
+		for ( CBasePlayerItem *pItem = pPlayer->m_rgpPlayerItems[i]; pItem != NULL; pItem = pItem->m_pNext )
+		{
+			if ( pItem->Classify() & 0x3f0 )
+			{
+				ItemInfo ii;
+				memset( &ii, 0, sizeof( ii ) );
+				pItem->GetItemInfo( &ii );
+
+				int iClip = ii.iMaxClip;
+				if ( iClip == -1 )
+					iClip = P_WpnInfo[ii.iId].ammo_default;
+
+				return pPlayer->GiveAmmo( iClip, ii.pszAmmo1, ii.iMaxAmmo1 ) != -1;
+			}
+		}
+	}
+	return false;
+}
+
 //=========================================================
 // called by the new item with the existing item as parameter
 //
@@ -1249,6 +1438,17 @@ void CBasePlayerWeapon::RetireWeapon( void )
 	//m_pPlayer->pev->viewmodelindex = NULL;
 
 	g_pGameRules->GetNextBestWeapon( m_pPlayer, this );
+}
+
+void CBasePlayerWeapon::PostMortarValue( float v )
+// EXACT link 0x15db40 Ghidra 0x16db40 weapons.cpp:1624 server stub empty mortar owned by gamerules
+{
+	return;
+}
+void CBasePlayerWeapon::SendMortarFireCommand( char *c )
+// EXACT link 0x15db50 Ghidra 0x16db50 weapons.cpp:1629 server stub empty dispatch via gamerules string table
+{
+	return;
 }
 
 //*********************************************************
@@ -1431,6 +1631,13 @@ void CWeaponBox::Touch( CBaseEntity *pOther )
 	}
 }
 
+void CWeaponBox::ActivateThink( void )
+{
+	m_bTouch = TRUE;
+	SetThink( &CWeaponBox::Kill );
+	pev->nextthink = gpGlobals->time + 20.0f;
+}
+
 //=========================================================
 // CWeaponBox - PackWeapon: Add this weapon to the box
 //=========================================================
@@ -1606,6 +1813,11 @@ void CWeaponBox::SetObjectCollisionBox( void )
 	pev->absmax = pev->origin + Vector( 16, 16, 16 );
 }
 
+void CWeaponBox::RoundRespawn( void )
+{
+	Kill();
+}
+
 void CBasePlayerWeapon::PrintState( void )
 {
 	ALERT( at_console, "primary:  %f\n", m_flNextPrimaryAttack );
@@ -1615,151 +1827,7 @@ void CBasePlayerWeapon::PrintState( void )
 	ALERT( at_console, "m_iWeaponState:  %i\n", m_iWeaponState );
 }
 
-// NOTE: the HL single-player weapons (CRpg/CRpgRocket/CShotgun/CGauss/CEgon/CSatchel)
-// do not exist in Day of Defeat; their savestore tables (and the vtables/typeinfo they
-// emitted) were removed so the DLL exports/imports match the shipped dod.so exactly.
-
-// DoD zoom/stamina/mortar/water-sniping impls
-void CBasePlayerWeapon::UpdateZoomSpeed( void )
-{
-	if ( !m_pPlayer )
-		return;
-	if ( Classify() != 0x20 )
-		return;
-	m_pPlayer->CheckPlayerSpeed();
-}
-int CBasePlayerWeapon::ZoomOut( void )
-{
-	if ( m_pPlayer->pev->vuser1.z != 0.0f )
-		return m_pPlayer->m_iFOV;
-
-	m_pPlayer->CheckPlayerSpeed();
-	m_pPlayer->UpdateScope( 0 );
-
-	return 0;
-}
-int CBasePlayerWeapon::ZoomIn( void )
-{
-	if ( Classify() == CLASS_SCOPED_RIFLE || Classify() == 0x400 )
-	{
-		m_pPlayer->UpdateScope( m_iId );
-		return 20;
-	}
-
-	return 0;
-}
-int CBasePlayerWeapon::ChangeFOV( int fov )
-{
-	if ( m_pPlayer->m_iFOV > 0 )
-	{
-		m_pPlayer->UpdateScope( 0 );
-		return 0;
-	}
-
-	return fov;
-}
-void CBasePlayerWeapon::ThinkZoomOut( void )
-{
-	m_pPlayer->m_iFOV = ZoomOut();
-	UpdateZoomSpeed();
-}
-void CBasePlayerWeapon::ThinkZoomIn( void )
-{
-	if ( m_pPlayer->pev->velocity.Length() <= 45.0f && !( m_pPlayer->pev->button & IN_ATTACK ) )
-	{
-		m_pPlayer->m_iFOV = ZoomIn();
-		UpdateZoomSpeed();
-	}
-}
-void CBasePlayerWeapon::RemoveStamina( float removeAmount, CBasePlayer *pOther )
-{
-	if ( !pOther )
-		pOther = m_pPlayer;
-	if ( !pOther )
-		return;
-	if ( ( pOther->pev->button & IN_DUCK ) == 0 && !CBasePlayer::IsProne( pOther ) )
-	{
-		float f = pOther->pev->fuser4 - removeAmount;
-		if ( f < 0.0f )
-			f = 0.0f;
-		else if ( f > 100.0f )
-			f = 100.0f;
-		pOther->pev->fuser4 = f;
-	}
-}
-bool CBasePlayerWeapon::PlayerIsWaterSniping( void )
-{
-	if ( !m_pPlayer )
-		return false;
-	int wl = m_pPlayer->pev->waterlevel;
-	if ( wl == 3 )
-		return true;
-	if ( wl > 0 )
-		return CBasePlayer::IsProne( m_pPlayer ) != 0;
-	return false;
-}
-Vector CBasePlayerWeapon::Aim( float accuracyFactor, CBasePlayer *pOther, int shared_rand )
-// link 0x15a950 size 0x81 Ghidra 0x16a950: 3x UTIL_SharedRandomFloat xyz, returns Vector
-{
-	float targetx = UTIL_SharedRandomFloat( shared_rand, accuracyFactor, 0.0f );
-	float targety = UTIL_SharedRandomFloat( shared_rand, accuracyFactor, 0.0f );
-	float targetz = UTIL_SharedRandomFloat( shared_rand, accuracyFactor, 0.0f );
-	return Vector( targetx, targety, targetz );
-}
-float CBasePlayerWeapon::flAim( float accuracyFactor, CBasePlayer *pOther )
-// EXACT link 0x15a230 size 5 identity return a exact
-{
-	return accuracyFactor;
-}
-int CBasePlayerWeapon::GetFOV( void )
-{
-	return m_pPlayer ? m_pPlayer->m_iFOV : 0;
-}
-void CBasePlayerWeapon::PostMortarValue( float v )
-// EXACT link 0x15db40 Ghidra 0x16db40 weapons.cpp:1624 server stub empty mortar owned by gamerules
-{
-	return;
-}
-void CBasePlayerWeapon::SendMortarFireCommand( char *c )
-// EXACT link 0x15db50 Ghidra 0x16db50 weapons.cpp:1629 server stub empty dispatch via gamerules string table
-{
-	return;
-}
-
-void CBasePlayerItem::SpawnReplacement( void )
-{
-	if ( !m_bTriggerSpawnOnDie )
-		return;
-
-	for ( CBaseEntity *p = UTIL_FindEntityByClassname( NULL, STRING( pev->classname ) ); p != NULL;
-		  p = UTIL_FindEntityByClassname( p, STRING( pev->classname ) ) )
-	{
-		if ( ( (CBasePlayerItem *)p )->m_bTriggerSpawnOnDie == 0 )
-		{
-			p->SetThink( &CBasePlayerItem::AttemptToMaterialize );
-			p->pev->nextthink = gpGlobals->time + 0.1f;
-			return;
-		}
-	}
-}
-
-void CWeaponBox::ActivateThink( void )
-{
-	m_bTouch = TRUE;
-	SetThink( &CWeaponBox::Kill );
-	pev->nextthink = gpGlobals->time + 20.0f;
-}
-
-int CBasePlayerWeapon::GetRoundState( void )
-{
-	return g_pGameRules->RoundState();
-}
-
-void CDodAmmoBox::Precache( void )
-{
-	PRECACHE_MODEL( "models/allied_ammo.mdl" );
-	PRECACHE_MODEL( "models/axis_ammo.mdl" );
-}
+LINK_ENTITY_TO_CLASS( dod_ammo, CDodAmmoBox )
 
 void CDodAmmoBox::Spawn( void )
 {
@@ -1770,18 +1838,15 @@ void CDodAmmoBox::Spawn( void )
 	SET_MODEL( ENT( pev ), "models/allied_ammo.mdl" );
 }
 
+void CDodAmmoBox::Precache( void )
+{
+	PRECACHE_MODEL( "models/allied_ammo.mdl" );
+	PRECACHE_MODEL( "models/axis_ammo.mdl" );
+}
+
 void CDodAmmoBox::KillThink( void )
 {
 	UTIL_Remove( this );
-}
-
-void CBasePlayerItem::RoundRespawn( void )
-{
-	if ( m_bReadyToRespawn )
-	{
-		SetThink( &CBasePlayerItem::AttemptToMaterialize );
-		pev->nextthink = gpGlobals->time + 0.1f;
-	}
 }
 
 void CDodAmmoBox::Touch( CBaseEntity *pOther )
@@ -1835,62 +1900,6 @@ void CDodAmmoBox::Touch( CBaseEntity *pOther )
 	SetTouch( NULL );
 	UTIL_Remove( this );
 }
-
-void CWeaponBox::RoundRespawn( void )
-{
-	Kill();
-}
-
-bool CBasePlayerAmmo::GiveGenericAmmo( CBaseEntity *pOther )
-{
-	if ( !pOther->IsPlayer() )
-		return false;
-
-	CBasePlayer *pPlayer = (CBasePlayer *)pOther;
-
-	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
-	{
-		for ( CBasePlayerItem *pItem = pPlayer->m_rgpPlayerItems[i]; pItem != NULL; pItem = pItem->m_pNext )
-		{
-			if ( pItem->Classify() & 0x3f0 )
-			{
-				ItemInfo ii;
-				memset( &ii, 0, sizeof( ii ) );
-				pItem->GetItemInfo( &ii );
-
-				int iClip = ii.iMaxClip;
-				if ( iClip == -1 )
-					iClip = P_WpnInfo[ii.iId].ammo_default;
-
-				return pPlayer->GiveAmmo( iClip, ii.pszAmmo1, ii.iMaxAmmo1 ) != -1;
-			}
-		}
-	}
-	return false;
-}
-
-void CBasePlayerItem::PickupUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{
-	if ( !pActivator->IsPlayer() )
-		return;
-
-	CBasePlayer *pPlayer = (CBasePlayer *)pActivator;
-	if ( g_pGameRules->CanHavePlayerItem( pPlayer, this ) )
-	{
-		if ( pPlayer->AddPlayerItem( this ) )
-		{
-			AttachToPlayer( pPlayer );
-			EMIT_SOUND_DYN( ENT( pActivator->pev ), CHAN_ITEM, "items/weaponpickup.wav", 1.0, 0.8, 0, 100 );
-		}
-	}
-	else
-	{
-		if ( gEvilImpulse101 )
-			UTIL_Remove( this );
-	}
-}
-
-LINK_ENTITY_TO_CLASS( dod_ammo, CDodAmmoBox )
 
 // Factory only allocates the entity (GetClassPtr); Spawn is invoked by the
 // engine via DispatchSpawn. DoD binary factory does NOT call Spawn.

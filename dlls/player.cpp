@@ -58,10 +58,7 @@ extern cvar_t *pcvar_mp_nummapmarkers;
 extern DLL_GLOBAL ULONG g_ulModelIndexPlayer;
 extern DLL_GLOBAL BOOL g_fGameOver;
 extern DLL_GLOBAL BOOL g_fDrawLines;
-int gEvilImpulse101;
 extern DLL_GLOBAL int g_iSkillLevel, gDisplayTitle;
-
-BOOL gInitHUD = TRUE;
 
 extern void respawn( entvars_t *pev, BOOL fCopyCorpse );
 extern Vector VecBModelOrigin( entvars_t *pevBModel );
@@ -71,6 +68,81 @@ extern cvar_t cvar_fadetoblack;
 
 // the world node graph
 extern CGraph WorldGraph;
+
+extern const char *g_PlayerAnimationNames[34];
+extern const char *sIdleAnimations[5];
+extern const char *g_PlayerAnimationList[88];
+int gEvilImpulse101;
+
+BOOL gInitHUD = TRUE;
+
+const char *sIdleAnimations[5] = { "dod_idle1", "dod_idle2", "dod_idle3", "dod_idle4", "dod_idle5" };
+
+enum PLAYER_ANIM_STATES
+{
+	PANIM_NONE = 0,
+	PANIM_SW_AIM = 1,
+	PANIM_SPRINT_AIM = 2,
+	PANIM_CROUCH_AIM = 3,
+	PANIM_PRONE_AIM = 4,
+	PANIM_EXTENDED_AIM = 5,
+	PANIM_SANDBAG_AIM = 6,
+	PANIM_SW_ZOOMIN = 7,
+	PANIM_CROUCH_ZOOMIN = 8,
+	PANIM_PRONE_ZOOMIN = 9,
+	PANIM_SW_SHOOT = 10,
+	PANIM_SPRINT_SHOOT = 11,
+	PANIM_CROUCH_SHOOT = 12,
+	PANIM_PRONE_SHOOT = 13,
+	PANIM_EXTENDED_SHOOT = 14,
+	PANIM_SANDBAG_SHOOT = 15,
+	PANIM_REF_STAB = 16,
+	PANIM_CROUCH_STAB = 17,
+	PANIM_PRONE_STAB = 18,
+	PANIM_PRONE_MOVE = 19,
+	PANIM_DEEPIDLE = 20,
+	PANIM_STAND_RELOAD = 21,
+	PANIM_CROUCH_RELOAD = 22,
+	PANIM_PRONE_RELOAD = 23,
+	PANIM_EXTENDED_RELOAD = 24,
+	PANIM_SANDBAG_RELOAD = 25,
+	PANIM_STAND_ROLL = 26,
+	PANIM_CROUCH_ROLL = 27,
+	PANIM_STAND_ZOOMLOAD = 28,
+	PANIM_CROUCH_ZOOMLOAD = 29,
+	PANIM_PRONE_ZOOMLOAD = 30,
+	PANIM_STAND_BUTSWING = 31,
+	PANIM_CROUCH_BUTSWING = 32,
+	PANIM_PRONE_BUTSWING = 33,
+};
+
+// ============================================================================
+// DoD-only CBasePlayer methods ported from dod.so (player.cpp). LINK addrs are
+// in the .text comments; Ghidra addr = link + 0x10000.
+// ============================================================================
+
+const char *g_PlayerAnimationNames[34] = {
+	"", "stand_%s_aim", "sprint_%s_aim", "crouch_%s_aim", "prone_%s_aim", "bipod_%s_aim", "sandbag_%s_aim",
+	"stand_%s_zoom", "crouch_%s_zoom", "prone_%s_zoom", "stand_%s_shoot", "sprint_%s_shoot", "crouch_%s_shoot",
+	"prone_%s_shoot", "bipod_%s_shoot", "sandbag_%s_shoot", "stand_%s_stab", "crouch_%s_stab", "prone_%s_stab",
+	"prone_forward", "deep_idle", "stand_%s_reload", "crouch_%s_reload", "prone_%s_reload", "bipod_%s_reload",
+	"sandbag_%s_reload", "stand_%s_roll", "crouch_%s_roll", "stand_%s_zoomload", "crouch_%s_zoomload",
+	"prone_%s_zoomload", "stand_%s_swing", "crouch_%s_swing", "prone_%s_swing",
+};
+
+const char *g_PlayerAnimationList[88] = {
+	"", "", "", "", "", "", "", "",
+	"", "", "", "", "", "", "", "",
+	"", "", "", "", "", "", "", "",
+	"", "", "", "", "", "", "", "",
+	"", "", "", "", "die_gutshot", "die_backwards", "die_forwards", "",
+	"", "", "", "", "", "", "", "",
+	"", "", "swim_idle", "", "", "", "", "",
+	"", "", "", "", "", "", "", "",
+	"", "", "die_headshot", "die_gutshot", "die_gutshot", "", "", "",
+	"", "", "", "", "", "", "", "",
+	"", "die_crouch_head", "die_crouch_backwards", "die_prone1", "die_backward_explode", "die_forward_explode", "die_simple", "die_buttstock",
+};
 
 #define TRAIN_ACTIVE 0x80
 #define TRAIN_NEW 0xc0
@@ -119,10 +191,12 @@ int gmsgCurWeapon = 0;
 int gmsgHealth = 0;
 int gmsgWeaponList = 0;
 int gmsgAmmoX = 0;
+int gmsgAmmoShort = 0;
 int gmsgHudText = 0;
-int gmsgVGUIMenu = 0; // DoD VGUIMenu (dod.so BSS 0x2161c4)
 int gmsgDeathMsg = 0;
 int gmsgScoreInfo = 0;
+int gmsgGameRules = 0;
+int gmsgResetSens = 0;
 int gmsgTeamScore = 0;
 int gmsgMOTD = 0;
 int gmsgServerName = 0;
@@ -134,154 +208,46 @@ int gmsgSayText = 0;
 int gmsgTextMsg = 0;
 int gmsgSetFOV = 0;
 int gmsgShowMenu = 0;
-
-int gmsgStatusValue = 0;
-int gmsgScope = 0;
-int gmsgFrags = 0;
-int gmsgObjScore = 0;
-int gmsgObject = 0;
-int gmsgClientAreas = 0;
-int gmsgYouDied = 0;
 int gmsgBloodPuff = 0;
-int gmsgResetSens = 0;
-int gmsgPStatus = 0;
-int gmsgPClass = 0;
-int gmsgPTeam = 0;
-int gmsgPShoot = 0;
-int gmsgMapMarker = 0;
-int gmsgCurMarker = 0;
-int gmsgHandSignal = 0;
-int gmsgSendCorpse = 0;
-int gmsgWeather = 0;
-int gmsgCapMsg = 0;
 int gmsgHLTV = 0;
+int gmsgVGUIMenu = 0; // DoD VGUIMenu (dod.so BSS 0x2161c4)
 int gmsgSpectator = 0;
-int gmsgScoreShort = 0;
-int gmsgScoreInfoLong = 0;
-int gmsgGameRules = 0;
+int gmsgWaveTime = 0;
+int gmsgWaveStatus = 0;
+int gmsgCameraView = 0;
+int gmsgScope = 0;
+int gmsgObject = 0;
 int gmsgInitObjDisplay = 0;
 int gmsgSetObjOwner = 0;
 int gmsgStartProgressBar = 0;
 int gmsgStartProgressBarF = 0;
-int gmsgCancelProgressBar = 0;
 int gmsgProgBarUpdate = 0;
-int gmsgPlayersInArea = 0;
+int gmsgCancelProgressBar = 0;
 int gmsgTimerStatus = 0;
+int gmsgClientAreas = 0;
+int gmsgPlayersInArea = 0;
+
+int gmsgStatusValue = 0;
 int gmsgClanTimer = 0;
-int gmsgTimeLeft = 0;
-int gmsgRoundState = 0;
-int gmsgWaveStatus = 0;
-int gmsgWaveTime = 0;
-int gmsgCameraView = 0;
-int gmsgUseSound = 0;
+int gmsgMapMarker = 0;
+int gmsgFrags = 0;
+int gmsgPStatus = 0;
+int gmsgScoreShort = 0;
+int gmsgPTeam = 0;
+int gmsgPClass = 0;
+int gmsgYouDied = 0;
+int gmsgPShoot = 0;
+int gmsgWeather = 0;
+int gmsgObjScore = 0;
 int gmsgReloadDone = 0;
-int gmsgAmmoShort = 0;
-
-enum PLAYER_ANIM_STATES
-{
-	PANIM_NONE = 0,
-	PANIM_SW_AIM = 1,
-	PANIM_SPRINT_AIM = 2,
-	PANIM_CROUCH_AIM = 3,
-	PANIM_PRONE_AIM = 4,
-	PANIM_EXTENDED_AIM = 5,
-	PANIM_SANDBAG_AIM = 6,
-	PANIM_SW_ZOOMIN = 7,
-	PANIM_CROUCH_ZOOMIN = 8,
-	PANIM_PRONE_ZOOMIN = 9,
-	PANIM_SW_SHOOT = 10,
-	PANIM_SPRINT_SHOOT = 11,
-	PANIM_CROUCH_SHOOT = 12,
-	PANIM_PRONE_SHOOT = 13,
-	PANIM_EXTENDED_SHOOT = 14,
-	PANIM_SANDBAG_SHOOT = 15,
-	PANIM_REF_STAB = 16,
-	PANIM_CROUCH_STAB = 17,
-	PANIM_PRONE_STAB = 18,
-	PANIM_PRONE_MOVE = 19,
-	PANIM_DEEPIDLE = 20,
-	PANIM_STAND_RELOAD = 21,
-	PANIM_CROUCH_RELOAD = 22,
-	PANIM_PRONE_RELOAD = 23,
-	PANIM_EXTENDED_RELOAD = 24,
-	PANIM_SANDBAG_RELOAD = 25,
-	PANIM_STAND_ROLL = 26,
-	PANIM_CROUCH_ROLL = 27,
-	PANIM_STAND_ZOOMLOAD = 28,
-	PANIM_CROUCH_ZOOMLOAD = 29,
-	PANIM_PRONE_ZOOMLOAD = 30,
-	PANIM_STAND_BUTSWING = 31,
-	PANIM_CROUCH_BUTSWING = 32,
-	PANIM_PRONE_BUTSWING = 33,
-};
-
-extern const char *g_PlayerAnimationNames[34];
-extern const char *sIdleAnimations[5];
-extern char *sHandSignals[30];	// defined in dod_shared.cpp
-extern const char *g_PlayerAnimationList[88];
-
-
-cvar_t *pcvar_developer;
-cvar_t *pcvar_sv_gravity;
-cvar_t *pcvar_mp_chatmsg;
-cvar_t *pcvar_mp_log_scores_delay;
-cvar_t *pcvar_mp_log_scores;
-cvar_t *pcvar_mp_chattime;
-cvar_t *pcvar_mp_combinemglimits;
-cvar_t *pcvar_mp_deathmsg;
-cvar_t *pcvar_mp_tkpenalty;
-cvar_t *pcvar_mp_friendlyfire;
-cvar_t *pcvar_mp_timelimit;
-cvar_t *pcvar_mp_spawnbazookas;
-cvar_t *pcvar_mp_teamlimit;
-cvar_t *pcvar_mp_allowspectators;
-cvar_t *pcvar_mp_nummapmarkers;
-cvar_t *pcvar_mp_markerstaytime;
-cvar_t *pcvar_mp_clan_match;
-cvar_t *pcvar_mp_clan_restartround;
-cvar_t *pcvar_mp_clan_readyrestart;
-cvar_t *pcvar_mp_clan_match_warmup;
-cvar_t *pcvar_mp_clan_respawntime;
-cvar_t *pcvar_mp_clan_scoring;
-cvar_t *pcvar_mp_clan_scoring_delay;
-cvar_t *pcvar_mp_clan_timer;
-cvar_t *pcvar_mp_clan_scoring_bonus_allies;
-cvar_t *pcvar_mp_clan_scoring_bonus_axis;
-cvar_t *pcvar_mp_alliesclasses;
-cvar_t *pcvar_mp_axisclasses;
-
-#define PCVAR( name ) pcvar_##name = g_engfuncs.pfnCVarGetPointer( #name )
-
-void GetCVARPointers( void )
-{
-	PCVAR( developer );
-	PCVAR( sv_gravity );
-	PCVAR( mp_chatmsg );
-	PCVAR( mp_log_scores_delay );
-	PCVAR( mp_log_scores );
-	PCVAR( mp_chattime );
-	PCVAR( mp_combinemglimits );
-	PCVAR( mp_deathmsg );
-	PCVAR( mp_tkpenalty );
-	PCVAR( mp_friendlyfire );
-	PCVAR( mp_timelimit );
-	PCVAR( mp_teamlimit );
-	PCVAR( mp_allowspectators );
-	PCVAR( mp_nummapmarkers );
-	PCVAR( mp_markerstaytime );
-	PCVAR( mp_clan_match );
-	PCVAR( mp_clan_restartround );
-	PCVAR( mp_clan_readyrestart );
-	PCVAR( mp_clan_match_warmup );
-	PCVAR( mp_clan_respawntime );
-	PCVAR( mp_clan_scoring );
-	PCVAR( mp_clan_scoring_delay );
-	PCVAR( mp_clan_timer );
-	PCVAR( mp_clan_scoring_bonus_allies );
-	PCVAR( mp_clan_scoring_bonus_axis );
-	PCVAR( mp_alliesclasses );
-	PCVAR( mp_axisclasses );
-}
+int gmsgRoundState = 0;
+int gmsgUseSound = 0;
+int gmsgCapMsg = 0;
+int gmsgHandSignal = 0;
+int gmsgScoreInfoLong = 0;
+int gmsgCurMarker = 0;
+int gmsgSendCorpse = 0;
+int gmsgTimeLeft = 0;
 
 void LinkUserMessages( void )
 {
@@ -350,6 +316,69 @@ void LinkUserMessages( void )
 	gmsgTimeLeft = REG_USER_MSG( "TimeLeft", 2 );
 }
 
+extern char *sHandSignals[30];	// defined in dod_shared.cpp
+
+cvar_t *pcvar_developer;
+cvar_t *pcvar_mp_clan_match;
+cvar_t *pcvar_mp_chatmsg;
+cvar_t *pcvar_mp_chattime;
+cvar_t *pcvar_mp_log_scores;
+cvar_t *pcvar_mp_log_scores_delay;
+cvar_t *pcvar_mp_clan_restartround;
+cvar_t *pcvar_mp_clan_readyrestart;
+cvar_t *pcvar_mp_clan_match_warmup;
+cvar_t *pcvar_mp_clan_respawntime;
+cvar_t *pcvar_mp_clan_timer;
+cvar_t *pcvar_mp_clan_scoring;
+cvar_t *pcvar_mp_clan_scoring_delay;
+cvar_t *pcvar_mp_combinemglimits;
+cvar_t *pcvar_mp_deathmsg;
+cvar_t *pcvar_mp_tkpenalty;
+cvar_t *pcvar_mp_friendlyfire;
+cvar_t *pcvar_mp_timelimit;
+cvar_t *pcvar_mp_teamlimit;
+cvar_t *pcvar_mp_allowspectators;
+cvar_t *pcvar_mp_clan_scoring_bonus_allies;
+cvar_t *pcvar_mp_clan_scoring_bonus_axis;
+cvar_t *pcvar_mp_nummapmarkers;
+cvar_t *pcvar_mp_markerstaytime;
+cvar_t *pcvar_sv_gravity;
+cvar_t *pcvar_mp_alliesclasses;
+cvar_t *pcvar_mp_axisclasses;
+cvar_t *pcvar_mp_spawnbazookas;
+
+#define PCVAR( name ) pcvar_##name = g_engfuncs.pfnCVarGetPointer( #name )
+
+void GetCVARPointers( void )
+{
+	PCVAR( developer );
+	PCVAR( sv_gravity );
+	PCVAR( mp_chatmsg );
+	PCVAR( mp_log_scores_delay );
+	PCVAR( mp_log_scores );
+	PCVAR( mp_chattime );
+	PCVAR( mp_combinemglimits );
+	PCVAR( mp_deathmsg );
+	PCVAR( mp_tkpenalty );
+	PCVAR( mp_friendlyfire );
+	PCVAR( mp_timelimit );
+	PCVAR( mp_teamlimit );
+	PCVAR( mp_allowspectators );
+	PCVAR( mp_nummapmarkers );
+	PCVAR( mp_markerstaytime );
+	PCVAR( mp_clan_match );
+	PCVAR( mp_clan_restartround );
+	PCVAR( mp_clan_readyrestart );
+	PCVAR( mp_clan_match_warmup );
+	PCVAR( mp_clan_respawntime );
+	PCVAR( mp_clan_scoring );
+	PCVAR( mp_clan_scoring_delay );
+	PCVAR( mp_clan_timer );
+	PCVAR( mp_clan_scoring_bonus_allies );
+	PCVAR( mp_clan_scoring_bonus_axis );
+	PCVAR( mp_alliesclasses );
+	PCVAR( mp_axisclasses );
+}
 
 LINK_ENTITY_TO_CLASS( player, CBasePlayer );
 
@@ -471,6 +500,59 @@ Vector CBasePlayer ::GetGunPosition()
 	origin = pev->origin + pev->view_ofs;
 
 	return origin;
+}
+
+// static helpers (inlined in binary; declared in player.h)
+BOOL CBasePlayer::IsProne( CBasePlayer *pPlayer )
+{
+	return pPlayer && pPlayer->IsProne();
+}
+BOOL CBasePlayer::IsSandbagDeployed( CBasePlayer *pPlayer )
+{
+	return pPlayer && pPlayer->IsSandbagDeployed();
+}
+
+void UTIL_EdictScreenFadeBuild( ScreenFade &fade, const Vector &color, float fadeTime, float fadeHold, int alpha,
+								int flags )
+{
+	fade.duration = FixedUnsigned16( fadeTime, 1 << 12 );  // 4.12 fixed
+	fade.holdTime = FixedUnsigned16( fadeHold, 1 << 12 );  // 4.12 fixed
+	fade.r = (int) color.x;
+	fade.g = (int) color.y;
+	fade.b = (int) color.z;
+	fade.a = alpha;
+	fade.fadeFlags = flags;
+}
+
+void UTIL_EdictScreenFadeWrite( const ScreenFade &fade, edict_t *pEntity )
+{
+	MESSAGE_BEGIN( MSG_ONE, gmsgFade, NULL, pEntity );
+	WRITE_SHORT( fade.duration );
+	WRITE_SHORT( fade.holdTime );
+	WRITE_SHORT( fade.fadeFlags );
+	WRITE_BYTE( fade.r );
+	WRITE_BYTE( fade.g );
+	WRITE_BYTE( fade.b );
+	WRITE_BYTE( fade.a );
+	MESSAGE_END();
+}
+
+void CBasePlayer::UTIL_EdictScreenFade( edict_t *pEdict, const Vector &color, float fadeTime, float fadeHold,
+										int alpha, int flags )
+{
+	ScreenFade fade;
+
+	UTIL_EdictScreenFadeBuild( fade, color, fadeTime, fadeHold, alpha, flags );
+	UTIL_EdictScreenFadeWrite( fade, pEdict );
+}
+
+void UTIL_DodBloodPuff( Vector &origin )
+{
+	MESSAGE_BEGIN( MSG_PVS, gmsgBloodPuff, origin );
+		WRITE_COORD( origin.x );
+		WRITE_COORD( origin.y );
+		WRITE_COORD( origin.z );
+	MESSAGE_END();
 }
 
 //=========================================================
@@ -1875,6 +1957,14 @@ void CBasePlayer::Jump()
 		pev->velocity = pev->velocity + pev->basevelocity;
 }
 
+CBasePlayerWeapon *CBasePlayer::GetPrimaryWeapon()
+{
+	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
+		for ( CBasePlayerItem *pItem = m_rgpPlayerItems[i]; pItem; pItem = pItem->m_pNext )
+			if ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & ITEM_FLAG_PRIMARY )
+				return (CBasePlayerWeapon *) pItem;
+	return NULL;
+}
 
 // This is a glorious hack to find free space when you've crouched into some solid space
 // Our crouching collisions do not work correctly for some reason and this is easier
@@ -1901,6 +1991,37 @@ void CBasePlayer::Duck()
 		SetAnimation( PLAYER_WALK );
 }
 
+void CBasePlayer::AddFrags( int num, BOOL bSendMsgToAll )
+{
+	if ( !g_pGameRules->IsClanMatch() || g_pGameRules->IsClanMatchActive() )
+	{
+		pev->frags += num;
+
+		if ( bSendMsgToAll )
+		{
+			MESSAGE_BEGIN( MSG_ALL, gmsgFrags );
+			WRITE_BYTE( ENTINDEX( edict() ) );
+			WRITE_SHORT( (int) pev->frags );
+			MESSAGE_END();
+		}
+	}
+}
+
+void CBasePlayer::AddObjScore( int num, BOOL bSendMsgToAll )
+{
+	if ( !g_pGameRules->IsClanMatch() || g_pGameRules->IsClanMatchActive() )
+	{
+		m_iObjScore += num;
+
+		if ( bSendMsgToAll )
+		{
+			MESSAGE_BEGIN( MSG_ALL, gmsgObjScore );
+			WRITE_BYTE( ENTINDEX( edict() ) );
+			WRITE_SHORT( m_iObjScore );
+			MESSAGE_END();
+		}
+	}
+}
 
 void CBasePlayer::AddPoints( int score, BOOL bAllowNegativeScore )
 {
@@ -1956,116 +2077,6 @@ void CBasePlayer::AddPointsToTeam( int score, BOOL bAllowNegativeScore )
 				MESSAGE_END();
 			}
 		}
-	}
-}
-
-//Player ID
-void CBasePlayer::InitStatusBar()
-{
-	m_flStatusBarDisappearDelay = 0;
-	m_SbarString1[0] = m_SbarString0[0] = 0;
-}
-
-void CBasePlayer::UpdateStatusBar()
-{
-	CBaseEntity *pEntity;
-	int iIndex;
-	int iHealth = 0;
-	float flDelay;
-
-	if ( m_hObserverTarget && ( pev->iuser1 == 1 || pev->iuser1 == 2 || pev->iuser1 == 4 ) )
-	{
-		// spectators see the health of the player they are watching
-		pEntity = UTIL_PlayerByIndex( ENTINDEX( m_hObserverTarget->edict() ) );
-
-		if ( pEntity && !FNullEnt( pEntity->edict() ) )
-		{
-			iHealth = pEntity->pev->health / pEntity->pev->max_health * 100;
-			iIndex = ENTINDEX( pEntity->edict() );
-		}
-		else
-		{
-			iIndex = -1;
-
-			if ( m_flStatusBarDisappearDelay > gpGlobals->time )
-			{
-				iIndex = m_izSBarState[SBAR_ID_TARGETNAME];
-				iHealth = m_izSBarState[SBAR_ID_TARGETHEALTH];
-			}
-		}
-
-		flDelay = gpGlobals->time + 10.0;
-	}
-	else
-	{
-		// find an ID target
-		TraceResult tr;
-
-		UTIL_MakeVectors( pev->v_angle + pev->punchangle );
-
-		Vector vecSrc = EyePosition();
-		Vector vecEnd = vecSrc + gpGlobals->v_forward * 2048;
-
-		UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, edict(), &tr );
-
-		if ( tr.flFraction == 1.0 || FNullEnt( tr.pHit ) )
-			return;
-
-		pEntity = CBaseEntity::Instance( tr.pHit );
-
-		if ( pEntity->Classify() != CLASS_PLAYER )
-			return;
-
-		if ( pev->team == pEntity->pev->team || pev->iuser1 > 0 )
-		{
-			if ( !( m_flDisplayHistory & HINT_SPOTTED_FRIEND ) )
-			{
-				if ( IsAlive() )
-				{
-					m_flDisplayHistory |= HINT_SPOTTED_FRIEND;
-
-					if ( m_bShowHints )
-					{
-						MESSAGE_BEGIN( MSG_ONE, gmsgHudText, NULL, pev );
-							WRITE_STRING( "#Hint_spotted_a_friend" );
-							WRITE_BYTE( 1 );
-						MESSAGE_END();
-					}
-				}
-			}
-
-			iHealth = pEntity->pev->health / pEntity->pev->max_health * 100;
-			iIndex = ENTINDEX( edict() );
-			flDelay = gpGlobals->time + 2.0;
-		}
-		else
-		{
-			if ( (unsigned int) ( pEntity->pev->team - 1 ) <= 1 )
-			{
-				if ( m_flDisplayHistory & HINT_SPOTTED_ENEMY )
-				{
-					m_flDisplayHistory |= HINT_SPOTTED_ENEMY;
-					HintMessage( "#Hint_spotted_an_enemy", FALSE );
-				}
-			}
-
-			return;
-		}
-	}
-
-	m_flStatusBarDisappearDelay = flDelay;
-	m_hLastIDTarget = pEntity;
-
-	if ( iIndex != -1 && ( m_izSBarState[SBAR_ID_TARGETNAME] != iIndex || m_izSBarState[SBAR_ID_TARGETHEALTH] != iHealth ) )
-	{
-		int iSend = iHealth >= 0 ? iHealth : 0;
-
-		MESSAGE_BEGIN( MSG_ONE, gmsgStatusValue, NULL, pev );
-			WRITE_BYTE( iSend );
-		MESSAGE_END();
-
-		m_izSBarState[SBAR_ID_TARGETHEALTH] = iSend;
-		m_izSBarState[SBAR_ID_TARGETNAME] = iIndex;
 	}
 }
 
@@ -2789,6 +2800,24 @@ edict_t *EntSelectSpawnPoint( CBaseEntity *pPlayer, BOOL bJustChecking )
 	return ReturnSpot( pSpot, (CBasePlayer *) pPlayer, bJustChecking );
 }
 
+void CBasePlayer::DelayedSpawn( void )
+{
+	SetThink( &CBasePlayer::SpawnThink );
+	pev->nextthink = gpGlobals->time + 1.0;
+}
+
+void CBasePlayer::SpawnThink( void )
+{
+	edict_t *pSpawn = EntSelectSpawnPoint( this, 1 );
+	if ( pSpawn )
+	{
+		StopObserver();
+		RemoveAllItems( 1 );
+		Spawn();
+		return;
+	}
+	pev->nextthink = gpGlobals->time + 1.0;
+}
 
 // DoD Spawn - PORTED from restore (dod.so). See restore/ NOTES.
 
@@ -3861,30 +3890,6 @@ void CBasePlayer ::UpdateClientData( void )
 	}
 }
 
-
-void CBasePlayer ::SetPrefsFromUserinfo( char *infobuffer )
-{
-	const char *pszKeyVal;
-
-	pszKeyVal = g_engfuncs.pfnInfoKeyValue( infobuffer, "_ah" );
-	if ( pszKeyVal[0] == '\0' )
-		m_bShowHints = TRUE;
-	else
-		m_bShowHints = ( atoi( pszKeyVal ) != 0 );
-
-	pszKeyVal = g_engfuncs.pfnInfoKeyValue( infobuffer, "cl_autoreload" );
-	if ( pszKeyVal[0] == '\0' )
-		m_bAutoReload = TRUE;
-	else
-		m_bAutoReload = ( atoi( pszKeyVal ) != 0 );
-
-	pszKeyVal = g_engfuncs.pfnInfoKeyValue( infobuffer, "_cl_minimap" );
-	if ( pszKeyVal[0] == '\0' )
-		m_iMinimap = 0;
-	else
-		m_iMinimap = atoi( pszKeyVal );
-}
-
 //=========================================================
 // FBecomeProne - Overridden for the player to set the proper
 // physics flags when a barnacle grabs player.
@@ -4386,6 +4391,76 @@ void CInfoIntermission::Think( void )
 
 LINK_ENTITY_TO_CLASS( info_intermission, CInfoIntermission );
 
+void CBasePlayer::GetObject( CObject *pObject )
+{
+	if ( HasObject || !IsAlive() )
+		return;
+	HasObject = 1;
+	m_pObject = pObject;
+	if ( pObject->m_szObjectHIcon )
+		AddObjectIcon( pObject->m_szObjectHIcon );
+	pObject->SendPickupMsg( this );
+	const char *pszTeam = ( pev->team == TEAM_ALLIES ) ? "Allies" : "Axis";
+	UTIL_LogPrintf( "\"%s<%i><%s><%s>\" triggered a \"dod_object\"\n", STRING( pev->netname ),
+					GETPLAYERUSERID( edict() ), GETPLAYERAUTHID( edict() ), pszTeam );
+	EMIT_SOUND_DYN( edict(), CHAN_ITEM, "items/ammopickup.wav", 1.0, 0.8, 0, 100 );
+	int entindex = ENTINDEX( edict() );
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBaseEntity *plr = UTIL_PlayerByIndex( i );
+		if ( plr && plr->pev->team == pev->team )
+		{
+			MESSAGE_BEGIN( MSG_ONE, gmsgPStatus, NULL, plr->pev );
+			WRITE_BYTE( entindex );
+			WRITE_BYTE( PlayerStatus() );
+			MESSAGE_END();
+		}
+	}
+}
+
+void CBasePlayer::DropObject()
+{
+	if ( !HasObject || !m_pObject )
+		return;
+
+	CObject *pObject = m_pObject;
+
+	UTIL_MakeVectors( pev->angles );
+
+	pObject->pev->origin = pev->origin + gpGlobals->v_forward * 20;
+	pObject->pev->velocity = pev->velocity + gpGlobals->v_forward * 400;
+
+	pObject->Drop();
+
+	HasObject = 0;
+	m_pObject = NULL;
+
+	pObject->SendDroppedMsg( this );
+
+	if ( pObject->pev->noise2 )
+		EMIT_SOUND_DYN( edict(), CHAN_STATIC, STRING( pObject->pev->noise2 ), 1.0, ATTN_NORM, 0, PITCH_NORM );
+
+	MESSAGE_BEGIN( MSG_ONE, gmsgObject, NULL, pev );
+		WRITE_STRING( "" );
+	MESSAGE_END();
+
+	pObject->m_hOwner = NULL;
+	pObject->m_bCarried = 0;
+
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
+
+		if ( pPlayer && pPlayer->pev->team == pev->team )
+		{
+			MESSAGE_BEGIN( MSG_ONE, gmsgPStatus, NULL, pPlayer->pev );
+				WRITE_BYTE( ENTINDEX( edict() ) );
+				WRITE_BYTE( PlayerStatus() );
+			MESSAGE_END();
+		}
+	}
+}
+
 // DoD-only (player.cpp:5171 Stamina, 6513 CheckPlayerSpeed, 6587 SetSpeed) - PORTED
 void CBasePlayer::Stamina( void )
 {
@@ -4417,124 +4492,49 @@ void CBasePlayer::Stamina( void )
 		pev->fuser4 = 100.0f;
 	m_fNextStamina = gpGlobals->time + 0.1f;
 }
-bool CBasePlayer::CheckPlayerSpeed( void )
+
+void CBasePlayer::DropGenericAmmo()
 {
-	if ( m_bSlowedByHit && m_flUnslowTime <= gpGlobals->time )
-		m_bSlowedByHit = false;
+	if ( pev->iuser1 != 0 || pev->iuser2 != 0 || pev->health <= 0.0f || m_nGenericAmmoCount <= 0 )
+		return;
+	const char *szName = "ammo_generic_german";
+	if ( pev->team != TEAM_AXIS && (unsigned) ( pev->playerclass - 0x15 ) >= 6 )
+		szName = "ammo_generic_american";
+	else if ( pev->team != TEAM_AXIS )
+		szName = "ammo_generic_british";
+	CBaseEntity *pAmmo = CBaseEntity::Create( szName, pev->origin, pev->angles, edict() );
+	pAmmo->pev->owner = edict();
+	UTIL_MakeVectors( pev->angles );
+	pAmmo->pev->angles.x = 0;
+	pAmmo->pev->angles.z = 0;
+	pAmmo->pev->velocity = gpGlobals->v_forward * 200.0f;
+	pAmmo->SetThink( &CBaseEntity::SUB_Remove );
+	pAmmo->pev->nextthink = gpGlobals->time + 30.0f;
+	pAmmo->pev->spawnflags |= SF_NORESPAWN;
+	m_nGenericAmmoCount--;
+}
 
-	BOOL bBazookaDeployed = FALSE;
-	if ( m_bBazookaDeployed && m_pActiveItem && m_pActiveItem->Classify() == CLASS_ROCKET )
-		bBazookaDeployed = TRUE;
-
-	int speed = 350;
-	if ( IsAlive() )
+void CBasePlayer::HandSignal( int signal )
+{
+	if ( m_flNextHand > gpGlobals->time )
+		return;
+	m_handSignal = signal;
+	SetAnimation( PLAYER_SIGNAL );
+	m_flNextHand = gpGlobals->time + 1.0f;
+	if ( (unsigned) signal < 0x1a )
 	{
-		speed = 1;
-		if ( !( (CDoDTeamPlay *) g_pGameRules )->IsRoundFrozen() )
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 		{
-			if ( pev->vuser1.x != SANDBAG_DEPLOYED )
+			CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
+			if ( pPlayer && pPlayer->pev->team == pev->team )
 			{
-				int iUser3 = pev->iuser3;
-				speed = 1;
-				if ( iUser3 != 2 && iUser3 != 3 )
-				{
-					if ( pev->deadflag == DEAD_NO && (unsigned) ( iUser3 - 1 ) < 2 )
-					{
-						speed = 30 + ( ( m_iFOV < 1 ) ? 20 : 0 );
-					}
-					else
-					{
-						speed = 42;
-						if ( m_iFOV < 1 )
-						{
-							speed = 50;
-							if ( !bBazookaDeployed )
-							{
-								float stamina = pev->fuser4;
-								float f;
-								if ( stamina < 10.0f )
-									f = 0.3f;
-								else if ( stamina < 25.0f )
-									f = 0.4f;
-								else if ( stamina < 37.0f )
-									f = 0.55f;
-								else if ( stamina < 50.0f )
-									f = 0.75f;
-								else
-									f = 1.0f;
-								if ( m_bSlowedByHit )
-									f = 0.2f;
-								speed = (int) ( (float) m_iClassSpeed * f );
-							}
-						}
-					}
-				}
+				MESSAGE_BEGIN( MSG_ONE, gmsgHandSignal, NULL, pPlayer->pev );
+				WRITE_BYTE( ENTINDEX( edict() ) );
+				WRITE_BYTE( signal );
+				MESSAGE_END();
 			}
 		}
 	}
-	if ( m_iPlayerSpeed != speed )
-	{
-		ALERT( at_aiconsole, "Changing max speed to %d\n", speed );
-		g_engfuncs.pfnSetClientMaxspeed( ENT( pev ), (float) speed );
-		m_iPlayerSpeed = speed;
-		return true;
-	}
-	return false;
-}
-bool CBasePlayer::SetSpeed( int speed )
-{
-	ALERT( at_aiconsole, "Changing max speed to %d\n", speed );
-	g_engfuncs.pfnSetClientMaxspeed( ENT( pev ), (float) speed );
-	m_iPlayerSpeed = speed;
-	return true;
-}
-
-// DoD hint system - RESTORED from dod.so player.cpp 6308-6331.
-bool CBasePlayer::HintMessage( const char *pMessage, BOOL bOverride )
-{
-	char tmp[512];
-
-	if ( !m_bShowHints )
-		return true;
-
-	MESSAGE_BEGIN( MSG_ONE, gmsgHudText, NULL, pev );
-
-	if ( strlen( pMessage ) > 499 )
-	{
-		strncpy( tmp, pMessage, 499 );
-		tmp[499] = 0;
-		pMessage = tmp;
-	}
-
-	WRITE_STRING( pMessage );
-	WRITE_BYTE( 1 );
-	MESSAGE_END();
-
-	return true;
-}
-
-void CBasePlayer::GoProne( void )
-{
-	pev->iuser3 = STANCE_PRONE;
-	m_flNextAttack = 0.1f;
-	SetAnimation( PLAYER_PRONE1 );
-	m_inextprone = gpGlobals->time + 1.0f;
-	ForceZoomOut();
-}
-
-void CBasePlayer::MortarDeploy( void )
-{
-	if ( pev->deadflag == DEAD_NO && ( STANCE_IS_PRONE( pev->iuser3 ) ) )
-	{
-		pev->iuser3 = STANCE_STANDING;
-		m_ianimupdate = 1;
-		m_flNextAttack = 0.1f;
-		SetAnimation( PLAYER_PRONE3 );
-		m_inextprone = gpGlobals->time + 1.0f;
-		ForceZoomOut();
-	}
-	pev->iuser3 = STANCE_MORTAR;
-	CheckPlayerSpeed();
 }
 
 extern int iVoiceToHandSignal[29];	// defined in dod_shared.cpp
@@ -4565,62 +4565,178 @@ void CBasePlayer::VoiceCom( int command )
 	m_flNextVoice = gpGlobals->time + 1.0f;
 }
 
-void CBasePlayer::PushPlayer( void )
+void CBasePlayer::ShowMenu( int slots, int time, char *szText, int bitsvalid, int menu )
 {
-	TraceResult tr;
-	Vector vecSrc, vecEnd;
-	UTIL_MakeVectors( pev->v_angle );
-	vecSrc = GetGunPosition();
-	vecEnd = vecSrc + gpGlobals->v_forward * 32.0f;
-	UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, ENT( pev ), &tr );
-	if ( tr.flFraction >= 1.0f )
-	{
-		UTIL_TraceHull( vecSrc, vecEnd, dont_ignore_monsters, 3, ENT( pev ), &tr );
-		if ( tr.flFraction >= 1.0f )
-			return;
-	}
-	CBaseEntity *pEnt = CBaseEntity::Instance( tr.pHit );
-	if ( pEnt && pEnt->Classify() == CLASS_PLAYER )
-	{
-		pEnt->pev->velocity.x = pev->velocity.x * 1.2f;
-		pEnt->pev->velocity.y = pev->velocity.y * 1.2f;
-		pEnt->pev->velocity.z = pev->velocity.z * 1.2f;
-	}
+	MESSAGE_BEGIN( MSG_ONE, gmsgShowMenu, NULL, pev );
+	WRITE_SHORT( slots );
+	WRITE_CHAR( time );
+	WRITE_BYTE( 0 );
+	WRITE_STRING( szText );
+	MESSAGE_END();
+}
+void CBasePlayer::ClearVoiceMenu()
+{
+	lastMenuSelected = -1;
+	MESSAGE_BEGIN( MSG_ONE, gmsgShowMenu, NULL, pev );
+	WRITE_SHORT( 0 );
+	WRITE_CHAR( 0 );
+	WRITE_BYTE( 0 );
+	MESSAGE_END();
 }
 
-
-// ============================================================================
-// DoD-only CBasePlayer methods ported from dod.so (player.cpp). LINK addrs are
-// in the .text comments; Ghidra addr = link + 0x10000.
-// ============================================================================
-
-const char *g_PlayerAnimationNames[34] = {
-	"", "stand_%s_aim", "sprint_%s_aim", "crouch_%s_aim", "prone_%s_aim", "bipod_%s_aim", "sandbag_%s_aim",
-	"stand_%s_zoom", "crouch_%s_zoom", "prone_%s_zoom", "stand_%s_shoot", "sprint_%s_shoot", "crouch_%s_shoot",
-	"prone_%s_shoot", "bipod_%s_shoot", "sandbag_%s_shoot", "stand_%s_stab", "crouch_%s_stab", "prone_%s_stab",
-	"prone_forward", "deep_idle", "stand_%s_reload", "crouch_%s_reload", "prone_%s_reload", "bipod_%s_reload",
-	"sandbag_%s_reload", "stand_%s_roll", "crouch_%s_roll", "stand_%s_zoomload", "crouch_%s_zoomload",
-	"prone_%s_zoomload", "stand_%s_swing", "crouch_%s_swing", "prone_%s_swing",
-};
-
-const char *sIdleAnimations[5] = { "dod_idle1", "dod_idle2", "dod_idle3", "dod_idle4", "dod_idle5" };
-const char *g_PlayerAnimationList[88] = {
-	"", "", "", "", "", "", "", "",
-	"", "", "", "", "", "", "", "",
-	"", "", "", "", "", "", "", "",
-	"", "", "", "", "", "", "", "",
-	"", "", "", "", "die_gutshot", "die_backwards", "die_forwards", "",
-	"", "", "", "", "", "", "", "",
-	"", "", "swim_idle", "", "", "", "", "",
-	"", "", "", "", "", "", "", "",
-	"", "", "die_headshot", "die_gutshot", "die_gutshot", "", "", "",
-	"", "", "", "", "", "", "", "",
-	"", "die_crouch_head", "die_crouch_backwards", "die_prone1", "die_backward_explode", "die_forward_explode", "die_simple", "die_buttstock",
-};
-
-bool CBasePlayer::IsInMGDeploy()
+void CBasePlayer::VoiceMenu( int menuNum )
 {
-	return pev->iuser3 == STANCE_PRONE_DEPLOYED || pev->vuser1.x == SANDBAG_DEPLOYED;
+	char szText[32];
+
+	if ( pev->iuser1 || pev->iuser2 )
+		return;
+
+	lastMenuSelected = menuNum;
+
+	if ( menuNum == 1 )
+	{
+		if ( pev->team != TEAM_ALLIES )
+			strcpy( szText, "#Menu_GerVoice1" );
+		else if ( ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
+			strcpy( szText, "#Menu_BritVoice1" );
+		else
+			strcpy( szText, "#Menu_AmerVoice1" );
+	}
+	else if ( menuNum == 2 )
+	{
+		if ( pev->team != TEAM_ALLIES )
+			strcpy( szText, "#Menu_GerVoice2" );
+		else if ( ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
+			strcpy( szText, "#Menu_BritVoice2" );
+		else
+			strcpy( szText, "#Menu_AmerVoice2" );
+	}
+	else
+	{
+		if ( pev->team != TEAM_ALLIES )
+			strcpy( szText, "#Menu_GerVoice3" );
+		else if ( ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
+			strcpy( szText, "#Menu_BritVoice3" );
+		else
+			strcpy( szText, "#Menu_AmerVoice3" );
+	}
+
+	MESSAGE_BEGIN( MSG_ONE, gmsgShowMenu, NULL, pev );
+		WRITE_SHORT( 1023 );
+		WRITE_CHAR( 127 );
+		WRITE_BYTE( 0 );
+		WRITE_STRING( szText );
+	MESSAGE_END();
+}
+
+//Player ID
+void CBasePlayer::InitStatusBar()
+{
+	m_flStatusBarDisappearDelay = 0;
+	m_SbarString1[0] = m_SbarString0[0] = 0;
+}
+
+void CBasePlayer::UpdateStatusBar()
+{
+	CBaseEntity *pEntity;
+	int iIndex;
+	int iHealth = 0;
+	float flDelay;
+
+	if ( m_hObserverTarget && ( pev->iuser1 == 1 || pev->iuser1 == 2 || pev->iuser1 == 4 ) )
+	{
+		// spectators see the health of the player they are watching
+		pEntity = UTIL_PlayerByIndex( ENTINDEX( m_hObserverTarget->edict() ) );
+
+		if ( pEntity && !FNullEnt( pEntity->edict() ) )
+		{
+			iHealth = pEntity->pev->health / pEntity->pev->max_health * 100;
+			iIndex = ENTINDEX( pEntity->edict() );
+		}
+		else
+		{
+			iIndex = -1;
+
+			if ( m_flStatusBarDisappearDelay > gpGlobals->time )
+			{
+				iIndex = m_izSBarState[SBAR_ID_TARGETNAME];
+				iHealth = m_izSBarState[SBAR_ID_TARGETHEALTH];
+			}
+		}
+
+		flDelay = gpGlobals->time + 10.0;
+	}
+	else
+	{
+		// find an ID target
+		TraceResult tr;
+
+		UTIL_MakeVectors( pev->v_angle + pev->punchangle );
+
+		Vector vecSrc = EyePosition();
+		Vector vecEnd = vecSrc + gpGlobals->v_forward * 2048;
+
+		UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, edict(), &tr );
+
+		if ( tr.flFraction == 1.0 || FNullEnt( tr.pHit ) )
+			return;
+
+		pEntity = CBaseEntity::Instance( tr.pHit );
+
+		if ( pEntity->Classify() != CLASS_PLAYER )
+			return;
+
+		if ( pev->team == pEntity->pev->team || pev->iuser1 > 0 )
+		{
+			if ( !( m_flDisplayHistory & HINT_SPOTTED_FRIEND ) )
+			{
+				if ( IsAlive() )
+				{
+					m_flDisplayHistory |= HINT_SPOTTED_FRIEND;
+
+					if ( m_bShowHints )
+					{
+						MESSAGE_BEGIN( MSG_ONE, gmsgHudText, NULL, pev );
+							WRITE_STRING( "#Hint_spotted_a_friend" );
+							WRITE_BYTE( 1 );
+						MESSAGE_END();
+					}
+				}
+			}
+
+			iHealth = pEntity->pev->health / pEntity->pev->max_health * 100;
+			iIndex = ENTINDEX( edict() );
+			flDelay = gpGlobals->time + 2.0;
+		}
+		else
+		{
+			if ( (unsigned int) ( pEntity->pev->team - 1 ) <= 1 )
+			{
+				if ( m_flDisplayHistory & HINT_SPOTTED_ENEMY )
+				{
+					m_flDisplayHistory |= HINT_SPOTTED_ENEMY;
+					HintMessage( "#Hint_spotted_an_enemy", FALSE );
+				}
+			}
+
+			return;
+		}
+	}
+
+	m_flStatusBarDisappearDelay = flDelay;
+	m_hLastIDTarget = pEntity;
+
+	if ( iIndex != -1 && ( m_izSBarState[SBAR_ID_TARGETNAME] != iIndex || m_izSBarState[SBAR_ID_TARGETHEALTH] != iHealth ) )
+	{
+		int iSend = iHealth >= 0 ? iHealth : 0;
+
+		MESSAGE_BEGIN( MSG_ONE, gmsgStatusValue, NULL, pev );
+			WRITE_BYTE( iSend );
+		MESSAGE_END();
+
+		m_izSBarState[SBAR_ID_TARGETHEALTH] = iSend;
+		m_izSBarState[SBAR_ID_TARGETNAME] = iIndex;
+	}
 }
 
 void CBasePlayer::UpdateScope( int weapon_id )
@@ -4632,132 +4748,6 @@ void CBasePlayer::UpdateScope( int weapon_id )
 	MESSAGE_END();
 }
 
-void CBasePlayer::AddFrags( int num, BOOL bSendMsgToAll )
-{
-	if ( !g_pGameRules->IsClanMatch() || g_pGameRules->IsClanMatchActive() )
-	{
-		pev->frags += num;
-
-		if ( bSendMsgToAll )
-		{
-			MESSAGE_BEGIN( MSG_ALL, gmsgFrags );
-			WRITE_BYTE( ENTINDEX( edict() ) );
-			WRITE_SHORT( (int) pev->frags );
-			MESSAGE_END();
-		}
-	}
-}
-
-void CBasePlayer::AddObjScore( int num, BOOL bSendMsgToAll )
-{
-	if ( !g_pGameRules->IsClanMatch() || g_pGameRules->IsClanMatchActive() )
-	{
-		m_iObjScore += num;
-
-		if ( bSendMsgToAll )
-		{
-			MESSAGE_BEGIN( MSG_ALL, gmsgObjScore );
-			WRITE_BYTE( ENTINDEX( edict() ) );
-			WRITE_SHORT( m_iObjScore );
-			MESSAGE_END();
-		}
-	}
-}
-
-void CBasePlayer::DelayedSpawn( void )
-{
-	SetThink( &CBasePlayer::SpawnThink );
-	pev->nextthink = gpGlobals->time + 1.0;
-}
-
-void CBasePlayer::SpawnThink( void )
-{
-	edict_t *pSpawn = EntSelectSpawnPoint( this, 1 );
-	if ( pSpawn )
-	{
-		StopObserver();
-		RemoveAllItems( 1 );
-		Spawn();
-		return;
-	}
-	pev->nextthink = gpGlobals->time + 1.0;
-}
-
-bool CBasePlayer::PlayerHasExplodingGrenades()
-{
-	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
-	{
-		for ( CBasePlayerItem *pItem = m_rgpPlayerItems[i]; pItem; pItem = pItem->m_pNext )
-		{
-			if ( pItem->Classify() == CLASS_GRENADE_EX && m_rgAmmo[pItem->PrimaryAmmoIndex()] > 0 )
-				return true;
-		}
-	}
-	return false;
-}
-
-void CBasePlayer::SetClientAreaIcon( int areaIndex, bool state )
-{
-	if ( areaIndex > 0x80 )
-		return;
-	MESSAGE_BEGIN( MSG_ONE, gmsgClientAreas, NULL, pev );
-	WRITE_BYTE( areaIndex );
-	WRITE_BYTE( state );
-	MESSAGE_END();
-}
-
-void CBasePlayer::AddObjectIcon( char *szIconName )
-{
-	if ( !szIconName )
-		return;
-	MESSAGE_BEGIN( MSG_ONE, gmsgObject, NULL, pev );
-	WRITE_STRING( szIconName );
-	MESSAGE_END();
-}
-
-void CBasePlayer::RemoveObjectIcon()
-{
-	MESSAGE_BEGIN( MSG_ONE, gmsgObject, NULL, pev );
-	WRITE_STRING( "" );
-	MESSAGE_END();
-}
-
-void CBasePlayer::GetObject( CObject *pObject )
-{
-	if ( HasObject || !IsAlive() )
-		return;
-	HasObject = 1;
-	m_pObject = pObject;
-	if ( pObject->m_szObjectHIcon )
-		AddObjectIcon( pObject->m_szObjectHIcon );
-	pObject->SendPickupMsg( this );
-	const char *pszTeam = ( pev->team == TEAM_ALLIES ) ? "Allies" : "Axis";
-	UTIL_LogPrintf( "\"%s<%i><%s><%s>\" triggered a \"dod_object\"\n", STRING( pev->netname ),
-					GETPLAYERUSERID( edict() ), GETPLAYERAUTHID( edict() ), pszTeam );
-	EMIT_SOUND_DYN( edict(), CHAN_ITEM, "items/ammopickup.wav", 1.0, 0.8, 0, 100 );
-	int entindex = ENTINDEX( edict() );
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
-	{
-		CBaseEntity *plr = UTIL_PlayerByIndex( i );
-		if ( plr && plr->pev->team == pev->team )
-		{
-			MESSAGE_BEGIN( MSG_ONE, gmsgPStatus, NULL, plr->pev );
-			WRITE_BYTE( entindex );
-			WRITE_BYTE( PlayerStatus() );
-			MESSAGE_END();
-		}
-	}
-}
-
-CBasePlayerWeapon *CBasePlayer::GetPrimaryWeapon()
-{
-	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
-		for ( CBasePlayerItem *pItem = m_rgpPlayerItems[i]; pItem; pItem = pItem->m_pNext )
-			if ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & ITEM_FLAG_PRIMARY )
-				return (CBasePlayerWeapon *) pItem;
-	return NULL;
-}
-
 int CBasePlayer::PlayerStatus()
 {
 	if ( HasObject && pev->deadflag == DEAD_NO )
@@ -4767,143 +4757,6 @@ int CBasePlayer::PlayerStatus()
 	return IsAlive() ? 0 : 1;
 }
 
-void CBasePlayer::HandleSignals()
-{
-	int changed = m_signals.Update();
-	int sig = m_signals.GetState();
-
-	if ( changed & SIGNAL_SANDBAG )
-	{
-		if ( !( sig & SIGNAL_SANDBAG ) )
-			pev->vuser1.x = SANDBAG_NONE;
-		else if ( pev->vuser1.x != SANDBAG_DEPLOYED )
-			pev->vuser1.x = SANDBAG_ZONE;
-	}
-	if ( ( changed & SIGNAL_CAPTUREAREA ) && !( sig & SIGNAL_CAPTUREAREA ) )
-	{
-		if ( m_iCapAreaIconIndex < 0x81 )
-			SetClientAreaIcon( m_iCapAreaIconIndex, false );
-		m_iCapAreaIndex = -1;
-		m_iCapAreaIconIndex = -1;
-	}
-	if ( ( changed & SIGNAL_OBJECTAREA ) && !( sig & SIGNAL_OBJECTAREA ) )
-	{
-		if ( m_iObjectAreaIndex < 0x81 )
-			SetClientAreaIcon( m_iObjectAreaIndex, false );
-		m_iObjectAreaIndex = -1;
-	}
-}
-
-bool CBasePlayer::IsProneDeployed() { return pev->iuser3 == STANCE_PRONE_DEPLOYED; }
-bool CBasePlayer::IsInSandbagZone() { return pev->vuser1.x == 1.0f; }
-bool CBasePlayer::IsSandbagDeployed() { return pev->vuser1.x == SANDBAG_DEPLOYED; }
-bool CBasePlayer::IsProne() { return pev->deadflag == DEAD_NO && STANCE_IS_PRONE( pev->iuser3 ); }
-bool CBasePlayer::IsInMortarDeploy() { return pev->iuser3 == 3; }
-void CBasePlayer::SetProneState( int state ) { pev->iuser3 = state; }
-void CBasePlayer::SetSandbagState( int state ) { pev->vuser1.x = (float) state; }
-bool CBasePlayer::IsDucking() { return ( pev->flags & FL_DUCKING ) != 0; }
-bool CBasePlayer::IsParatrooper()
-{
-	return g_pGameRules != NULL && ( (CDoDTeamPlay *) g_pGameRules )->IsTeamPara( pev->team );
-}
-bool CBasePlayer::IsBritish() { return (unsigned) ( pev->playerclass - 0x15 ) < 6; }
-void CBasePlayer::MortarFireCommand( byte command ) { }
-void CBasePlayer::MortarUnDeploy()
-{
-	pev->iuser3 = 0;
-	SetAnimation( PLAYER_WALK );
-	CheckPlayerSpeed();
-}
-void CBasePlayer::UnProne()
-{
-	pev->iuser3 = STANCE_STANDING;
-	m_ianimupdate = 1;
-	m_flNextAttack = 0.1f;
-	SetAnimation( PLAYER_PRONE3 );
-	m_inextprone = gpGlobals->time + 1.0f;
-	ForceZoomOut();
-}
-Activity CBasePlayer::SetIdealActivity( Activity i_RequestedActivity )
-{
-	Activity cur = m_IdealActivity;
-	switch ( cur )
-	{
-	case ACT_SWIM:
-	case ACT_HOVER:
-	case ACT_HOP:
-	case ACT_LEAP:
-	case DOD_CROUCH_BACKWARD:
-	case DOD_SIMPLE:
-	case DOD_PRONE1:
-	case ACT_DIESIMPLE:
-	case DOD_CROUCH_HEADSHOT:
-	case ACT_DIE_HEADSHOT:
-	case DOD_EXPLOSION_FORWARD:
-	case DOD_EXPLOSION_BACK:
-	case ACT_DIE_CHESTSHOT:
-	case ACT_DIE_GUTSHOT:
-	case ACT_DIEFORWARD:
-	case ACT_DIEBACKWARD:
-	case DOD_BUTTSTOCK:
-		return cur;
-	default:
-		return i_RequestedActivity;
-	}
-}
-void CBasePlayer::ForceZoomOut()
-{
-	if ( m_iFOV < 1 )
-		return;
-	CBasePlayerWeapon *wpn = GetPrimaryWeapon();
-	if ( wpn )
-		m_iFOV = wpn->ZoomOut();
-}
-bool CBasePlayer::ShouldGunLower()
-{
-	if ( !m_pActiveItem )
-		return true;
-	int wpnClass = m_pActiveItem->Classify();
-	if ( wpnClass == CLASS_SCOPED_RIFLE )
-	{
-		if ( m_iFOV > 0 )
-			return false;
-	}
-	else if ( wpnClass < CLASS_SCOPED_RIFLE )
-	{
-		if ( wpnClass != CLASS_PISTOL && wpnClass != CLASS_RIFLE )
-			return true;
-	}
-	else if ( wpnClass != CLASS_UNUSED_128 && wpnClass != CLASS_MACHINEGUN && wpnClass != CLASS_SMG )
-	{
-		return true;
-	}
-	return m_fGunDropTime <= gpGlobals->time;
-}
-void CBasePlayer::SetHasWeapon( int weaponId )
-{
-	if ( weaponId > 0x1f )
-		m_iWeapons2 |= 1 << ( ( weaponId - 0x20 ) & 0x1f );
-	else
-		pev->weapons |= 1 << ( weaponId & 0x1f );
-}
-void CBasePlayer::ClearHasWeapon( int weaponId )
-{
-	if ( weaponId > 0x1f )
-		m_iWeapons2 &= ~( 1 << ( ( weaponId - 0x20 ) & 0x1f ) );
-	else
-		pev->weapons &= ~( 1 << ( weaponId & 0x1f ) );
-}
-bool CBasePlayer::HasWeapons( int weaponId )
-{
-	if ( weaponId > 0x1f )
-		return ( m_iWeapons2 & ( 1 << ( ( weaponId - 0x20 ) & 0x1f ) ) ) != 0;
-	return ( pev->weapons & ( 1 << ( weaponId & 0x1f ) ) ) != 0;
-}
-void CBasePlayer::RemoveAllWeaponFlags()
-{
-	pev->weapons = 0;
-	m_iWeapons2 = 0;
-}
 void CBasePlayer::ServerSpawnCheck()
 {
 	CDoDTeamPlay *pRules = (CDoDTeamPlay *)g_pGameRules;
@@ -4950,235 +4803,46 @@ void CBasePlayer::ClientDisconnect()
 	pev->playerclass = 0;
 	m_bIsObserver = 0;
 }
-BOOL CBasePlayer::DropItemByClass( int weaponclass )
+
+void CBasePlayer::AddObjectIcon( char *szIconName )
 {
-	BOOL bDropped = FALSE;
-	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
-	{
-		CBasePlayerItem *pItem = m_rgpPlayerItems[i];
-		while ( pItem )
-		{
-			if ( weaponclass & pItem->Classify() )
-			{
-				char wpnname[64];
-				strcpy( wpnname, STRING( pItem->pev->classname ) );
-				DropPlayerItem( wpnname, true );
-				bDropped = TRUE;
-			}
-			pItem = pItem->m_pNext;
-		}
-	}
-	return bDropped;
-}
-void CBasePlayer::DropGenericAmmo()
-{
-	if ( pev->iuser1 != 0 || pev->iuser2 != 0 || pev->health <= 0.0f || m_nGenericAmmoCount <= 0 )
+	if ( !szIconName )
 		return;
-	const char *szName = "ammo_generic_german";
-	if ( pev->team != TEAM_AXIS && (unsigned) ( pev->playerclass - 0x15 ) >= 6 )
-		szName = "ammo_generic_american";
-	else if ( pev->team != TEAM_AXIS )
-		szName = "ammo_generic_british";
-	CBaseEntity *pAmmo = CBaseEntity::Create( szName, pev->origin, pev->angles, edict() );
-	pAmmo->pev->owner = edict();
-	UTIL_MakeVectors( pev->angles );
-	pAmmo->pev->angles.x = 0;
-	pAmmo->pev->angles.z = 0;
-	pAmmo->pev->velocity = gpGlobals->v_forward * 200.0f;
-	pAmmo->SetThink( &CBaseEntity::SUB_Remove );
-	pAmmo->pev->nextthink = gpGlobals->time + 30.0f;
-	pAmmo->pev->spawnflags |= SF_NORESPAWN;
-	m_nGenericAmmoCount--;
-}
-void CBasePlayer::ShowMenu( int slots, int time, char *szText, int bitsvalid, int menu )
-{
-	MESSAGE_BEGIN( MSG_ONE, gmsgShowMenu, NULL, pev );
-	WRITE_SHORT( slots );
-	WRITE_CHAR( time );
-	WRITE_BYTE( 0 );
-	WRITE_STRING( szText );
+	MESSAGE_BEGIN( MSG_ONE, gmsgObject, NULL, pev );
+	WRITE_STRING( szIconName );
 	MESSAGE_END();
 }
-void CBasePlayer::ClearVoiceMenu()
+
+void CBasePlayer::RemoveObjectIcon()
 {
-	lastMenuSelected = -1;
-	MESSAGE_BEGIN( MSG_ONE, gmsgShowMenu, NULL, pev );
-	WRITE_SHORT( 0 );
-	WRITE_CHAR( 0 );
-	WRITE_BYTE( 0 );
-	MESSAGE_END();
-}
-void CBasePlayer::VoteMenu( int kickplayer, int menu )
-{
-	lastMenuSelected = menu;
-	MESSAGE_BEGIN( MSG_ONE, gmsgShowMenu, NULL, pev );
-	WRITE_SHORT( 0x3ff );
-	WRITE_CHAR( 0x7f );
-	WRITE_BYTE( 0 );
+	MESSAGE_BEGIN( MSG_ONE, gmsgObject, NULL, pev );
 	WRITE_STRING( "" );
 	MESSAGE_END();
 }
-void CBasePlayer::VoiceMenu( int menuNum )
+
+void CBasePlayer::PushPlayer( void )
 {
-	char szText[32];
-
-	if ( pev->iuser1 || pev->iuser2 )
-		return;
-
-	lastMenuSelected = menuNum;
-
-	if ( menuNum == 1 )
-	{
-		if ( pev->team != TEAM_ALLIES )
-			strcpy( szText, "#Menu_GerVoice1" );
-		else if ( ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
-			strcpy( szText, "#Menu_BritVoice1" );
-		else
-			strcpy( szText, "#Menu_AmerVoice1" );
-	}
-	else if ( menuNum == 2 )
-	{
-		if ( pev->team != TEAM_ALLIES )
-			strcpy( szText, "#Menu_GerVoice2" );
-		else if ( ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
-			strcpy( szText, "#Menu_BritVoice2" );
-		else
-			strcpy( szText, "#Menu_AmerVoice2" );
-	}
-	else
-	{
-		if ( pev->team != TEAM_ALLIES )
-			strcpy( szText, "#Menu_GerVoice3" );
-		else if ( ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
-			strcpy( szText, "#Menu_BritVoice3" );
-		else
-			strcpy( szText, "#Menu_AmerVoice3" );
-	}
-
-	MESSAGE_BEGIN( MSG_ONE, gmsgShowMenu, NULL, pev );
-		WRITE_SHORT( 1023 );
-		WRITE_CHAR( 127 );
-		WRITE_BYTE( 0 );
-		WRITE_STRING( szText );
-	MESSAGE_END();
-}
-void CBasePlayer::HandSignal( int signal )
-{
-	if ( m_flNextHand > gpGlobals->time )
-		return;
-	m_handSignal = signal;
-	SetAnimation( PLAYER_SIGNAL );
-	m_flNextHand = gpGlobals->time + 1.0f;
-	if ( (unsigned) signal < 0x1a )
-	{
-		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
-		{
-			CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
-			if ( pPlayer && pPlayer->pev->team == pev->team )
-			{
-				MESSAGE_BEGIN( MSG_ONE, gmsgHandSignal, NULL, pPlayer->pev );
-				WRITE_BYTE( ENTINDEX( edict() ) );
-				WRITE_BYTE( signal );
-				MESSAGE_END();
-			}
-		}
-	}
-}
-void CBasePlayer::SpawnClientSideCorpse()
-{
-	char *infobuffer = g_engfuncs.pfnGetInfoKeyBuffer( edict() );
-	char *pModel = g_engfuncs.pfnInfoKeyValue( infobuffer, "model" );
-	MESSAGE_BEGIN( MSG_ALL, gmsgSendCorpse );
-	WRITE_STRING( pModel );
-	WRITE_COORD( pev->origin.x );
-	WRITE_COORD( pev->origin.y );
-	WRITE_COORD( pev->origin.z );
-	WRITE_ANGLE( pev->angles.x );
-	WRITE_ANGLE( pev->angles.y );
-	WRITE_ANGLE( pev->angles.z );
-	WRITE_BYTE( pev->sequence );
-	WRITE_SHORT( pev->body );
-	WRITE_BYTE( pev->team );
-	MESSAGE_END();
-}
-void CBasePlayer::NextMapMarker()
-{
-	int m = m_iMapMarker + 1;
-	m_iMapMarker = ( m < 0xf ) ? m : 0;
-	MESSAGE_BEGIN( MSG_ONE, gmsgCurMarker, NULL, pev );
-	WRITE_BYTE( m_iMapMarker );
-	MESSAGE_END();
-}
-void CBasePlayer::PrevMapMarker()
-{
-	int m = m_iMapMarker - 1;
-	m_iMapMarker = ( m >= 0 ) ? m : 0xe;
-	MESSAGE_BEGIN( MSG_ONE, gmsgCurMarker, NULL, pev );
-	WRITE_BYTE( m_iMapMarker );
-	MESSAGE_END();
-}
-void CBasePlayer::SetMapMarker( int marker )
-{
-	if ( (unsigned) marker < 0xf )
-		m_iMapMarker = marker;
-}
-void CBasePlayer::FireMapMarker()
-{
-	if ( !IsAlive() || pev->iuser1 != 0 || pev->iuser2 != 0 || g_fGameOver || m_flNextMapMarkerTime > gpGlobals->time )
-		return;
-
-	// the oldest marker of the player goes away when the limit is reached
-	CBaseEntity *pMarker = UTIL_FindEntityByClassname( NULL, "dod_mapmarker" );
-	float flMaxMarkers = 1;
-
-	if ( pcvar_mp_nummapmarkers )
-	{
-		flMaxMarkers = 1;
-
-		if ( pcvar_mp_nummapmarkers->value >= 1 )
-			flMaxMarkers = pcvar_mp_nummapmarkers->value;
-	}
-
-	if ( pMarker )
-	{
-		int iCount = 1;
-		CBaseEntity *pOldest = NULL;
-		float flOldestCreatedTime = 1000000000;
-
-		do
-		{
-			if ( pMarker->pev->owner == edict() )
-			{
-				iCount++;
-
-				if ( flOldestCreatedTime > pMarker->pev->fuser1 )
-				{
-					flOldestCreatedTime = pMarker->pev->fuser1;
-					pOldest = pMarker;
-				}
-			}
-
-			pMarker = UTIL_FindEntityByClassname( pMarker, "dod_mapmarker" );
-		}
-		while ( pMarker );
-
-		if ( iCount > flMaxMarkers && pOldest )
-			UTIL_Remove( pOldest );
-	}
-
-	UTIL_MakeVectors( pev->v_angle );
-
-	Vector vecOrg = GetGunPosition();
-	Vector vecEnd = vecOrg + gpGlobals->v_forward * 4096;
 	TraceResult tr;
-
-	UTIL_TraceLine( vecOrg, vecEnd, ignore_monsters, edict(), &tr );
-
-	if ( tr.flFraction < 1.0 )
-		CMapMarker::CreateMapMarker( tr.vecEndPos, Vector( 0, 0, 0 ), this, m_iMapMarker );
-
-	m_flNextMapMarkerTime = gpGlobals->time + 1.0;
+	Vector vecSrc, vecEnd;
+	UTIL_MakeVectors( pev->v_angle );
+	vecSrc = GetGunPosition();
+	vecEnd = vecSrc + gpGlobals->v_forward * 32.0f;
+	UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, ENT( pev ), &tr );
+	if ( tr.flFraction >= 1.0f )
+	{
+		UTIL_TraceHull( vecSrc, vecEnd, dont_ignore_monsters, 3, ENT( pev ), &tr );
+		if ( tr.flFraction >= 1.0f )
+			return;
+	}
+	CBaseEntity *pEnt = CBaseEntity::Instance( tr.pHit );
+	if ( pEnt && pEnt->Classify() == CLASS_PLAYER )
+	{
+		pEnt->pev->velocity.x = pev->velocity.x * 1.2f;
+		pEnt->pev->velocity.y = pev->velocity.y * 1.2f;
+		pEnt->pev->velocity.z = pev->velocity.z * 1.2f;
+	}
 }
+
 void CBasePlayer::PopHelmet( Vector *vecdir )
 {
 	int helmetgroup = GetBodygroup( 1 );
@@ -5252,119 +4916,81 @@ void CBasePlayer::PopHelmet( Vector *vecdir )
 
 	UTIL_SendDirectorMessage( this, NULL, 5 | DRC_FLAG_SLOWMOTION );
 }
-void CBasePlayer::DropObject()
+
+bool CBasePlayer::PlayerHasExplodingGrenades()
 {
-	if ( !HasObject || !m_pObject )
-		return;
+	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
+	{
+		for ( CBasePlayerItem *pItem = m_rgpPlayerItems[i]; pItem; pItem = pItem->m_pNext )
+		{
+			if ( pItem->Classify() == CLASS_GRENADE_EX && m_rgAmmo[pItem->PrimaryAmmoIndex()] > 0 )
+				return true;
+		}
+	}
+	return false;
+}
 
-	CObject *pObject = m_pObject;
+Activity CBasePlayer::SetIdealActivity( Activity i_RequestedActivity )
+{
+	Activity cur = m_IdealActivity;
+	switch ( cur )
+	{
+	case ACT_SWIM:
+	case ACT_HOVER:
+	case ACT_HOP:
+	case ACT_LEAP:
+	case DOD_CROUCH_BACKWARD:
+	case DOD_SIMPLE:
+	case DOD_PRONE1:
+	case ACT_DIESIMPLE:
+	case DOD_CROUCH_HEADSHOT:
+	case ACT_DIE_HEADSHOT:
+	case DOD_EXPLOSION_FORWARD:
+	case DOD_EXPLOSION_BACK:
+	case ACT_DIE_CHESTSHOT:
+	case ACT_DIE_GUTSHOT:
+	case ACT_DIEFORWARD:
+	case ACT_DIEBACKWARD:
+	case DOD_BUTTSTOCK:
+		return cur;
+	default:
+		return i_RequestedActivity;
+	}
+}
 
-	UTIL_MakeVectors( pev->angles );
-
-	pObject->pev->origin = pev->origin + gpGlobals->v_forward * 20;
-	pObject->pev->velocity = pev->velocity + gpGlobals->v_forward * 400;
-
-	pObject->Drop();
-
-	HasObject = 0;
-	m_pObject = NULL;
-
-	pObject->SendDroppedMsg( this );
-
-	if ( pObject->pev->noise2 )
-		EMIT_SOUND_DYN( edict(), CHAN_STATIC, STRING( pObject->pev->noise2 ), 1.0, ATTN_NORM, 0, PITCH_NORM );
-
-	MESSAGE_BEGIN( MSG_ONE, gmsgObject, NULL, pev );
-		WRITE_STRING( "" );
+void CBasePlayer::VoteMenu( int kickplayer, int menu )
+{
+	lastMenuSelected = menu;
+	MESSAGE_BEGIN( MSG_ONE, gmsgShowMenu, NULL, pev );
+	WRITE_SHORT( 0x3ff );
+	WRITE_CHAR( 0x7f );
+	WRITE_BYTE( 0 );
+	WRITE_STRING( "" );
 	MESSAGE_END();
-
-	pObject->m_hOwner = NULL;
-	pObject->m_bCarried = 0;
-
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
-	{
-		CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
-
-		if ( pPlayer && pPlayer->pev->team == pev->team )
-		{
-			MESSAGE_BEGIN( MSG_ONE, gmsgPStatus, NULL, pPlayer->pev );
-				WRITE_BYTE( ENTINDEX( edict() ) );
-				WRITE_BYTE( PlayerStatus() );
-			MESSAGE_END();
-		}
-	}
 }
-void CBasePlayer::StudioPlayerBlend( int *pBlend, float *pPitch )
+
+bool CBasePlayer::ShouldGunLower()
 {
-	// calc up/down pointing
-	*pBlend = (int)( -( 3.0f * *pPitch ) );
-
-	if ( *pBlend < -45 )
+	if ( !m_pActiveItem )
+		return true;
+	int wpnClass = m_pActiveItem->Classify();
+	if ( wpnClass == CLASS_SCOPED_RIFLE )
 	{
-		*pPitch = *pPitch - 15;
-		*pBlend = 0;
+		if ( m_iFOV > 0 )
+			return false;
 	}
-	else if ( *pBlend > 45 )
+	else if ( wpnClass < CLASS_SCOPED_RIFLE )
 	{
-		*pPitch = *pPitch + 15;
-		*pBlend = 255;
+		if ( wpnClass != CLASS_PISTOL && wpnClass != CLASS_RIFLE )
+			return true;
 	}
-	else
+	else if ( wpnClass != CLASS_UNUSED_128 && wpnClass != CLASS_MACHINEGUN && wpnClass != CLASS_SMG )
 	{
-		*pBlend = (int)( ( *pBlend + 45.0 ) * 255.0 / 90.0 );
-		*pPitch = 0;
+		return true;
 	}
+	return m_fGunDropTime <= gpGlobals->time;
 }
-void CBasePlayer::CalculatePitchBlend()
-{
-	int iBlend;
-	float temp = pev->angles.x;
-	StudioPlayerBlend( &iBlend, &temp );
-	pev->blending[1] = iBlend;
-	m_flPitch = temp;
-}
-void CBasePlayer::CalculateYawBlend()
-{
-	float dt;
-	float flYaw;
-	float maxyaw = 255.0f;
-	float blend_yaw;
 
-	StudioEstimateGait();
-
-	// calc side to side turning
-	flYaw = pev->angles.y - m_flGaityaw;
-	flYaw = fmod( flYaw, 360.0f );
-
-	if ( flYaw < -180 )
-		flYaw = flYaw + 360;
-	else if ( flYaw > 180 )
-		flYaw = flYaw - 360;
-
-	if ( m_flGaitMovement != 0.0 )
-	{
-		if ( flYaw > 120 )
-		{
-			m_flGaityaw = m_flGaityaw - 180;
-			m_flGaitMovement = -m_flGaitMovement;
-			flYaw = flYaw - 180;
-		}
-		else if ( flYaw < -120 )
-		{
-			m_flGaityaw = m_flGaityaw + 180;
-			m_flGaitMovement = -m_flGaitMovement;
-			flYaw = flYaw + 180;
-		}
-	}
-
-	// adjust torso
-	blend_yaw = ( flYaw / 90 ) * 128.0 + 127.0;
-	blend_yaw = clamp( blend_yaw, 0.0f, maxyaw );
-	blend_yaw = 255.0 - blend_yaw;
-
-	pev->blending[0] = (int) blend_yaw;
-	m_flYaw = blend_yaw;
-}
 void CBasePlayer::StudioEstimateGait()
 {
 	if ( !IsAlive() )
@@ -5443,6 +5069,79 @@ void CBasePlayer::StudioEstimateGait()
 			m_flGaityaw = -180;
 	}
 }
+
+void CBasePlayer::StudioPlayerBlend( int *pBlend, float *pPitch )
+{
+	// calc up/down pointing
+	*pBlend = (int)( -( 3.0f * *pPitch ) );
+
+	if ( *pBlend < -45 )
+	{
+		*pPitch = *pPitch - 15;
+		*pBlend = 0;
+	}
+	else if ( *pBlend > 45 )
+	{
+		*pPitch = *pPitch + 15;
+		*pBlend = 255;
+	}
+	else
+	{
+		*pBlend = (int)( ( *pBlend + 45.0 ) * 255.0 / 90.0 );
+		*pPitch = 0;
+	}
+}
+void CBasePlayer::CalculatePitchBlend()
+{
+	int iBlend;
+	float temp = pev->angles.x;
+	StudioPlayerBlend( &iBlend, &temp );
+	pev->blending[1] = iBlend;
+	m_flPitch = temp;
+}
+void CBasePlayer::CalculateYawBlend()
+{
+	float dt;
+	float flYaw;
+	float maxyaw = 255.0f;
+	float blend_yaw;
+
+	StudioEstimateGait();
+
+	// calc side to side turning
+	flYaw = pev->angles.y - m_flGaityaw;
+	flYaw = fmod( flYaw, 360.0f );
+
+	if ( flYaw < -180 )
+		flYaw = flYaw + 360;
+	else if ( flYaw > 180 )
+		flYaw = flYaw - 360;
+
+	if ( m_flGaitMovement != 0.0 )
+	{
+		if ( flYaw > 120 )
+		{
+			m_flGaityaw = m_flGaityaw - 180;
+			m_flGaitMovement = -m_flGaitMovement;
+			flYaw = flYaw - 180;
+		}
+		else if ( flYaw < -120 )
+		{
+			m_flGaityaw = m_flGaityaw + 180;
+			m_flGaitMovement = -m_flGaitMovement;
+			flYaw = flYaw + 180;
+		}
+	}
+
+	// adjust torso
+	blend_yaw = ( flYaw / 90 ) * 128.0 + 127.0;
+	blend_yaw = clamp( blend_yaw, 0.0f, maxyaw );
+	blend_yaw = 255.0 - blend_yaw;
+
+	pev->blending[0] = (int) blend_yaw;
+	m_flYaw = blend_yaw;
+}
+
 void CBasePlayer::StudioProcessGait()
 {
 	float dt = gpGlobals->frametime;
@@ -5471,56 +5170,13 @@ void CBasePlayer::StudioProcessGait()
 	if ( m_flGaitframe < 0 )
 		m_flGaitframe += pseqdesc->numframes;
 }
-void CBasePlayer::UTIL_EdictScreenFade( edict_t *pEdict, const Vector &color, float fadeTime, float fadeHold,
-										int alpha, int flags )
-{
-	ScreenFade fade;
 
-	UTIL_EdictScreenFadeBuild( fade, color, fadeTime, fadeHold, alpha, flags );
-	UTIL_EdictScreenFadeWrite( fade, pEdict );
-}
+float GetPlayerPitchBlend( const edict_t *pEdict )
+{
+	if ( pEdict )
+		return pEdict->v.blending[1];
 
-void UTIL_DodBloodPuff( Vector &origin )
-{
-	MESSAGE_BEGIN( MSG_PVS, gmsgBloodPuff, origin );
-		WRITE_COORD( origin.x );
-		WRITE_COORD( origin.y );
-		WRITE_COORD( origin.z );
-	MESSAGE_END();
-}
-// static helpers (inlined in binary; declared in player.h)
-BOOL CBasePlayer::IsProne( CBasePlayer *pPlayer )
-{
-	return pPlayer && pPlayer->IsProne();
-}
-BOOL CBasePlayer::IsSandbagDeployed( CBasePlayer *pPlayer )
-{
-	return pPlayer && pPlayer->IsSandbagDeployed();
-}
-
-void UTIL_EdictScreenFadeBuild( ScreenFade &fade, const Vector &color, float fadeTime, float fadeHold, int alpha,
-								int flags )
-{
-	fade.duration = FixedUnsigned16( fadeTime, 1 << 12 );  // 4.12 fixed
-	fade.holdTime = FixedUnsigned16( fadeHold, 1 << 12 );  // 4.12 fixed
-	fade.r = (int) color.x;
-	fade.g = (int) color.y;
-	fade.b = (int) color.z;
-	fade.a = alpha;
-	fade.fadeFlags = flags;
-}
-
-void UTIL_EdictScreenFadeWrite( const ScreenFade &fade, edict_t *pEntity )
-{
-	MESSAGE_BEGIN( MSG_ONE, gmsgFade, NULL, pEntity );
-	WRITE_SHORT( fade.duration );
-	WRITE_SHORT( fade.holdTime );
-	WRITE_SHORT( fade.fadeFlags );
-	WRITE_BYTE( fade.r );
-	WRITE_BYTE( fade.g );
-	WRITE_BYTE( fade.b );
-	WRITE_BYTE( fade.a );
-	MESSAGE_END();
+	return 0;
 }
 
 float GetPlayerGaitYaw( const edict_t *pEdict )
@@ -5562,14 +5218,6 @@ float GetPlayerYaw( const edict_t *pEdict )
 	return 0;
 }
 
-float GetPlayerPitchBlend( const edict_t *pEdict )
-{
-	if ( pEdict )
-		return pEdict->v.blending[1];
-
-	return 0;
-}
-
 int GetPlayerGaitsequence( const edict_t *pEdict )
 {
 	if ( pEdict )
@@ -5582,3 +5230,376 @@ int GetPlayerGaitsequence( const edict_t *pEdict )
 
 	return 1;
 }
+
+BOOL CBasePlayer::DropItemByClass( int weaponclass )
+{
+	BOOL bDropped = FALSE;
+	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
+	{
+		CBasePlayerItem *pItem = m_rgpPlayerItems[i];
+		while ( pItem )
+		{
+			if ( weaponclass & pItem->Classify() )
+			{
+				char wpnname[64];
+				strcpy( wpnname, STRING( pItem->pev->classname ) );
+				DropPlayerItem( wpnname, true );
+				bDropped = TRUE;
+			}
+			pItem = pItem->m_pNext;
+		}
+	}
+	return bDropped;
+}
+
+void CBasePlayer::HandleSignals()
+{
+	int changed = m_signals.Update();
+	int sig = m_signals.GetState();
+
+	if ( changed & SIGNAL_SANDBAG )
+	{
+		if ( !( sig & SIGNAL_SANDBAG ) )
+			pev->vuser1.x = SANDBAG_NONE;
+		else if ( pev->vuser1.x != SANDBAG_DEPLOYED )
+			pev->vuser1.x = SANDBAG_ZONE;
+	}
+	if ( ( changed & SIGNAL_CAPTUREAREA ) && !( sig & SIGNAL_CAPTUREAREA ) )
+	{
+		if ( m_iCapAreaIconIndex < 0x81 )
+			SetClientAreaIcon( m_iCapAreaIconIndex, false );
+		m_iCapAreaIndex = -1;
+		m_iCapAreaIconIndex = -1;
+	}
+	if ( ( changed & SIGNAL_OBJECTAREA ) && !( sig & SIGNAL_OBJECTAREA ) )
+	{
+		if ( m_iObjectAreaIndex < 0x81 )
+			SetClientAreaIcon( m_iObjectAreaIndex, false );
+		m_iObjectAreaIndex = -1;
+	}
+}
+
+void CBasePlayer::SetClientAreaIcon( int areaIndex, bool state )
+{
+	if ( areaIndex > 0x80 )
+		return;
+	MESSAGE_BEGIN( MSG_ONE, gmsgClientAreas, NULL, pev );
+	WRITE_BYTE( areaIndex );
+	WRITE_BYTE( state );
+	MESSAGE_END();
+}
+
+// DoD hint system - RESTORED from dod.so player.cpp 6308-6331.
+bool CBasePlayer::HintMessage( const char *pMessage, BOOL bOverride )
+{
+	char tmp[512];
+
+	if ( !m_bShowHints )
+		return true;
+
+	MESSAGE_BEGIN( MSG_ONE, gmsgHudText, NULL, pev );
+
+	if ( strlen( pMessage ) > 499 )
+	{
+		strncpy( tmp, pMessage, 499 );
+		tmp[499] = 0;
+		pMessage = tmp;
+	}
+
+	WRITE_STRING( pMessage );
+	WRITE_BYTE( 1 );
+	MESSAGE_END();
+
+	return true;
+}
+
+void CBasePlayer ::SetPrefsFromUserinfo( char *infobuffer )
+{
+	const char *pszKeyVal;
+
+	pszKeyVal = g_engfuncs.pfnInfoKeyValue( infobuffer, "_ah" );
+	if ( pszKeyVal[0] == '\0' )
+		m_bShowHints = TRUE;
+	else
+		m_bShowHints = ( atoi( pszKeyVal ) != 0 );
+
+	pszKeyVal = g_engfuncs.pfnInfoKeyValue( infobuffer, "cl_autoreload" );
+	if ( pszKeyVal[0] == '\0' )
+		m_bAutoReload = TRUE;
+	else
+		m_bAutoReload = ( atoi( pszKeyVal ) != 0 );
+
+	pszKeyVal = g_engfuncs.pfnInfoKeyValue( infobuffer, "_cl_minimap" );
+	if ( pszKeyVal[0] == '\0' )
+		m_iMinimap = 0;
+	else
+		m_iMinimap = atoi( pszKeyVal );
+}
+
+void CBasePlayer::ForceZoomOut()
+{
+	if ( m_iFOV < 1 )
+		return;
+	CBasePlayerWeapon *wpn = GetPrimaryWeapon();
+	if ( wpn )
+		m_iFOV = wpn->ZoomOut();
+}
+
+void CBasePlayer::FireMapMarker()
+{
+	if ( !IsAlive() || pev->iuser1 != 0 || pev->iuser2 != 0 || g_fGameOver || m_flNextMapMarkerTime > gpGlobals->time )
+		return;
+
+	// the oldest marker of the player goes away when the limit is reached
+	CBaseEntity *pMarker = UTIL_FindEntityByClassname( NULL, "dod_mapmarker" );
+	float flMaxMarkers = 1;
+
+	if ( pcvar_mp_nummapmarkers )
+	{
+		flMaxMarkers = 1;
+
+		if ( pcvar_mp_nummapmarkers->value >= 1 )
+			flMaxMarkers = pcvar_mp_nummapmarkers->value;
+	}
+
+	if ( pMarker )
+	{
+		int iCount = 1;
+		CBaseEntity *pOldest = NULL;
+		float flOldestCreatedTime = 1000000000;
+
+		do
+		{
+			if ( pMarker->pev->owner == edict() )
+			{
+				iCount++;
+
+				if ( flOldestCreatedTime > pMarker->pev->fuser1 )
+				{
+					flOldestCreatedTime = pMarker->pev->fuser1;
+					pOldest = pMarker;
+				}
+			}
+
+			pMarker = UTIL_FindEntityByClassname( pMarker, "dod_mapmarker" );
+		}
+		while ( pMarker );
+
+		if ( iCount > flMaxMarkers && pOldest )
+			UTIL_Remove( pOldest );
+	}
+
+	UTIL_MakeVectors( pev->v_angle );
+
+	Vector vecOrg = GetGunPosition();
+	Vector vecEnd = vecOrg + gpGlobals->v_forward * 4096;
+	TraceResult tr;
+
+	UTIL_TraceLine( vecOrg, vecEnd, ignore_monsters, edict(), &tr );
+
+	if ( tr.flFraction < 1.0 )
+		CMapMarker::CreateMapMarker( tr.vecEndPos, Vector( 0, 0, 0 ), this, m_iMapMarker );
+
+	m_flNextMapMarkerTime = gpGlobals->time + 1.0;
+}
+
+void CBasePlayer::NextMapMarker()
+{
+	int m = m_iMapMarker + 1;
+	m_iMapMarker = ( m < 0xf ) ? m : 0;
+	MESSAGE_BEGIN( MSG_ONE, gmsgCurMarker, NULL, pev );
+	WRITE_BYTE( m_iMapMarker );
+	MESSAGE_END();
+}
+void CBasePlayer::PrevMapMarker()
+{
+	int m = m_iMapMarker - 1;
+	m_iMapMarker = ( m >= 0 ) ? m : 0xe;
+	MESSAGE_BEGIN( MSG_ONE, gmsgCurMarker, NULL, pev );
+	WRITE_BYTE( m_iMapMarker );
+	MESSAGE_END();
+}
+void CBasePlayer::SetMapMarker( int marker )
+{
+	if ( (unsigned) marker < 0xf )
+		m_iMapMarker = marker;
+}
+
+void CBasePlayer::SpawnClientSideCorpse()
+{
+	char *infobuffer = g_engfuncs.pfnGetInfoKeyBuffer( edict() );
+	char *pModel = g_engfuncs.pfnInfoKeyValue( infobuffer, "model" );
+	MESSAGE_BEGIN( MSG_ALL, gmsgSendCorpse );
+	WRITE_STRING( pModel );
+	WRITE_COORD( pev->origin.x );
+	WRITE_COORD( pev->origin.y );
+	WRITE_COORD( pev->origin.z );
+	WRITE_ANGLE( pev->angles.x );
+	WRITE_ANGLE( pev->angles.y );
+	WRITE_ANGLE( pev->angles.z );
+	WRITE_BYTE( pev->sequence );
+	WRITE_SHORT( pev->body );
+	WRITE_BYTE( pev->team );
+	MESSAGE_END();
+}
+
+bool CBasePlayer::CheckPlayerSpeed( void )
+{
+	if ( m_bSlowedByHit && m_flUnslowTime <= gpGlobals->time )
+		m_bSlowedByHit = false;
+
+	BOOL bBazookaDeployed = FALSE;
+	if ( m_bBazookaDeployed && m_pActiveItem && m_pActiveItem->Classify() == CLASS_ROCKET )
+		bBazookaDeployed = TRUE;
+
+	int speed = 350;
+	if ( IsAlive() )
+	{
+		speed = 1;
+		if ( !( (CDoDTeamPlay *) g_pGameRules )->IsRoundFrozen() )
+		{
+			if ( pev->vuser1.x != SANDBAG_DEPLOYED )
+			{
+				int iUser3 = pev->iuser3;
+				speed = 1;
+				if ( iUser3 != 2 && iUser3 != 3 )
+				{
+					if ( pev->deadflag == DEAD_NO && (unsigned) ( iUser3 - 1 ) < 2 )
+					{
+						speed = 30 + ( ( m_iFOV < 1 ) ? 20 : 0 );
+					}
+					else
+					{
+						speed = 42;
+						if ( m_iFOV < 1 )
+						{
+							speed = 50;
+							if ( !bBazookaDeployed )
+							{
+								float stamina = pev->fuser4;
+								float f;
+								if ( stamina < 10.0f )
+									f = 0.3f;
+								else if ( stamina < 25.0f )
+									f = 0.4f;
+								else if ( stamina < 37.0f )
+									f = 0.55f;
+								else if ( stamina < 50.0f )
+									f = 0.75f;
+								else
+									f = 1.0f;
+								if ( m_bSlowedByHit )
+									f = 0.2f;
+								speed = (int) ( (float) m_iClassSpeed * f );
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	if ( m_iPlayerSpeed != speed )
+	{
+		ALERT( at_aiconsole, "Changing max speed to %d\n", speed );
+		g_engfuncs.pfnSetClientMaxspeed( ENT( pev ), (float) speed );
+		m_iPlayerSpeed = speed;
+		return true;
+	}
+	return false;
+}
+bool CBasePlayer::SetSpeed( int speed )
+{
+	ALERT( at_aiconsole, "Changing max speed to %d\n", speed );
+	g_engfuncs.pfnSetClientMaxspeed( ENT( pev ), (float) speed );
+	m_iPlayerSpeed = speed;
+	return true;
+}
+
+bool CBasePlayer::HasWeapons( int weaponId )
+{
+	if ( weaponId > 0x1f )
+		return ( m_iWeapons2 & ( 1 << ( ( weaponId - 0x20 ) & 0x1f ) ) ) != 0;
+	return ( pev->weapons & ( 1 << ( weaponId & 0x1f ) ) ) != 0;
+}
+
+void CBasePlayer::SetHasWeapon( int weaponId )
+{
+	if ( weaponId > 0x1f )
+		m_iWeapons2 |= 1 << ( ( weaponId - 0x20 ) & 0x1f );
+	else
+		pev->weapons |= 1 << ( weaponId & 0x1f );
+}
+void CBasePlayer::ClearHasWeapon( int weaponId )
+{
+	if ( weaponId > 0x1f )
+		m_iWeapons2 &= ~( 1 << ( ( weaponId - 0x20 ) & 0x1f ) );
+	else
+		pev->weapons &= ~( 1 << ( weaponId & 0x1f ) );
+}
+
+void CBasePlayer::RemoveAllWeaponFlags()
+{
+	pev->weapons = 0;
+	m_iWeapons2 = 0;
+}
+
+void CBasePlayer::GoProne( void )
+{
+	pev->iuser3 = STANCE_PRONE;
+	m_flNextAttack = 0.1f;
+	SetAnimation( PLAYER_PRONE1 );
+	m_inextprone = gpGlobals->time + 1.0f;
+	ForceZoomOut();
+}
+
+void CBasePlayer::UnProne()
+{
+	pev->iuser3 = STANCE_STANDING;
+	m_ianimupdate = 1;
+	m_flNextAttack = 0.1f;
+	SetAnimation( PLAYER_PRONE3 );
+	m_inextprone = gpGlobals->time + 1.0f;
+	ForceZoomOut();
+}
+
+void CBasePlayer::MortarDeploy( void )
+{
+	if ( pev->deadflag == DEAD_NO && ( STANCE_IS_PRONE( pev->iuser3 ) ) )
+	{
+		pev->iuser3 = STANCE_STANDING;
+		m_ianimupdate = 1;
+		m_flNextAttack = 0.1f;
+		SetAnimation( PLAYER_PRONE3 );
+		m_inextprone = gpGlobals->time + 1.0f;
+		ForceZoomOut();
+	}
+	pev->iuser3 = STANCE_MORTAR;
+	CheckPlayerSpeed();
+}
+
+void CBasePlayer::MortarUnDeploy()
+{
+	pev->iuser3 = 0;
+	SetAnimation( PLAYER_WALK );
+	CheckPlayerSpeed();
+}
+
+bool CBasePlayer::IsInMGDeploy()
+{
+	return pev->iuser3 == STANCE_PRONE_DEPLOYED || pev->vuser1.x == SANDBAG_DEPLOYED;
+}
+
+bool CBasePlayer::IsProneDeployed() { return pev->iuser3 == STANCE_PRONE_DEPLOYED; }
+bool CBasePlayer::IsInSandbagZone() { return pev->vuser1.x == 1.0f; }
+bool CBasePlayer::IsSandbagDeployed() { return pev->vuser1.x == SANDBAG_DEPLOYED; }
+bool CBasePlayer::IsProne() { return pev->deadflag == DEAD_NO && STANCE_IS_PRONE( pev->iuser3 ); }
+bool CBasePlayer::IsInMortarDeploy() { return pev->iuser3 == 3; }
+void CBasePlayer::SetProneState( int state ) { pev->iuser3 = state; }
+void CBasePlayer::SetSandbagState( int state ) { pev->vuser1.x = (float) state; }
+bool CBasePlayer::IsDucking() { return ( pev->flags & FL_DUCKING ) != 0; }
+bool CBasePlayer::IsParatrooper()
+{
+	return g_pGameRules != NULL && ( (CDoDTeamPlay *) g_pGameRules )->IsTeamPara( pev->team );
+}
+bool CBasePlayer::IsBritish() { return (unsigned) ( pev->playerclass - 0x15 ) < 6; }
+void CBasePlayer::MortarFireCommand( byte command ) { }

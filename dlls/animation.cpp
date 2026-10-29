@@ -49,6 +49,21 @@ void AngleMatrix( const float *angles, float ( *matrix )[4] );
 
 #include "activitymap.h"
 
+// ===========================================================================
+#include "com_model.h"
+
+extern globalvars_t *gpGlobals;
+float GetPlayerYaw( const edict_t *pEdict );
+float GetPlayerPitchBlend( const edict_t *pEdict );
+float GetPlayerGaitYaw( const edict_t *pEdict );
+int GetPlayerGaitsequence( const edict_t *pEdict );
+
+void SV_StudioSetupBones( model_t *pModel, float frame, int sequence, const vec_t *angles,
+						  const vec_t *origin, const byte *pcontroller, const byte *pblending,
+						  int iBone, const edict_t *pEdict );
+
+void DrawLine( float *start, float *end, byte r, byte g, byte b );
+
 #ifndef ANIMATION_H
 #include "animation.h"
 #endif
@@ -64,8 +79,6 @@ void AngleMatrix( const float *angles, float ( *matrix )[4] );
 #ifndef SVC_TEMPENTITY
 #define SVC_TEMPENTITY 23
 #endif
-
-extern globalvars_t *gpGlobals;
 
 #pragma warning( disable : 4244 )
 
@@ -539,9 +552,6 @@ int GetBodygroup( void *pmodel, entvars_t *pev, int iGroup )
 	return iCurrent;
 }
 
-
-// ===========================================================================
-#include "com_model.h"
 #ifndef NUM_BLENDING
 #define NUM_BLENDING 9
 #endif
@@ -556,10 +566,7 @@ int GetBodygroup( void *pmodel, entvars_t *pev, int iGroup )
 #define ANIM_SWIM_2 8
 #define ANIM_FIRST_SINGLE_GAIT_SEQUENCE 239
 #define ANIM_LAST_SINGLE_GAIT_SEQUENCE 286
-float GetPlayerYaw( const edict_t *pEdict );
-float GetPlayerPitchBlend( const edict_t *pEdict );
-float GetPlayerGaitYaw( const edict_t *pEdict );
-int GetPlayerGaitsequence( const edict_t *pEdict );
+
 #ifndef Q_abs
 #define Q_abs fabs
 #endif
@@ -586,9 +593,6 @@ int GetPlayerGaitsequence( const edict_t *pEdict );
 #ifndef model_t
 typedef struct model_s model_t;
 #endif
-void SV_StudioSetupBones( model_t *pModel, float frame, int sequence, const vec_t *angles,
-						  const vec_t *origin, const byte *pcontroller, const byte *pblending,
-						  int iBone, const edict_t *pEdict );
 
 // Server-side studio/bone block, reconstructed from the shipped binary
 // (the engine headers in-tree do not ship it; blending at runtime is provided
@@ -1020,6 +1024,45 @@ void ConcatTransforms(float in1[3][4], float in2[3][4], float out[3][4])
 	out[2][3] = in1[2][0] * in2[0][3] + in1[2][1] * in2[1][3] + in1[2][2] * in2[2][3] + in1[2][3];
 }
 
+static float zero[3];
+
+void DrawLine( float *start, float *end, byte r, byte g, byte b )
+{
+	MESSAGE_BEGIN( MSG_ALL, SVC_TEMPENTITY, zero );
+		WRITE_BYTE( TE_LINE );
+		WRITE_COORD( start[0] );
+		WRITE_COORD( start[1] );
+		WRITE_COORD( start[2] );
+		WRITE_COORD( end[0] );
+		WRITE_COORD( end[1] );
+		WRITE_COORD( end[2] );
+		WRITE_SHORT( 5 );
+		WRITE_BYTE( r );
+		WRITE_BYTE( g );
+		WRITE_BYTE( b );
+	MESSAGE_END();
+}
+
+// the edges of a box given by its eight vertices
+void DrawBox( float ( *p )[3], byte r, byte g, byte b )
+{
+	DrawLine( p[0], p[1], r, g, b );
+	DrawLine( p[0], p[4], r, g, b );
+	DrawLine( p[0], p[2], r, g, b );
+	DrawLine( p[7], p[3], r, g, b );
+	DrawLine( p[7], p[5], r, g, b );
+	DrawLine( p[7], p[6], r, g, b );
+	DrawLine( p[7], p[3], r, g, b );
+	DrawLine( p[7], p[5], r, g, b );
+	DrawLine( p[7], p[6], r, g, b );
+	DrawLine( p[6], p[4], r, g, b );
+	DrawLine( p[6], p[2], r, g, b );
+	DrawLine( p[5], p[1], r, g, b );
+	DrawLine( p[5], p[4], r, g, b );
+	DrawLine( p[3], p[1], r, g, b );
+	DrawLine( p[3], p[2], r, g, b );
+}
+
 float StudioEstimateFrame(float frame, mstudioseqdesc_t *pseqdesc)
 {
 	if (pseqdesc->numframes <= 1)
@@ -1253,45 +1296,4 @@ void SV_StudioSetupBones(model_t *pModel, float frame, int sequence, const vec_t
 		else
 			ConcatTransforms((*g_pBoneTransform)[pbones[j].parent], bonematrix, (*g_pBoneTransform)[j]);
 	}
-}
-
-void DrawLine( float *start, float *end, byte r, byte g, byte b );
-
-// the edges of a box given by its eight vertices
-void DrawBox( float ( *p )[3], byte r, byte g, byte b )
-{
-	DrawLine( p[0], p[1], r, g, b );
-	DrawLine( p[0], p[4], r, g, b );
-	DrawLine( p[0], p[2], r, g, b );
-	DrawLine( p[7], p[3], r, g, b );
-	DrawLine( p[7], p[5], r, g, b );
-	DrawLine( p[7], p[6], r, g, b );
-	DrawLine( p[7], p[3], r, g, b );
-	DrawLine( p[7], p[5], r, g, b );
-	DrawLine( p[7], p[6], r, g, b );
-	DrawLine( p[6], p[4], r, g, b );
-	DrawLine( p[6], p[2], r, g, b );
-	DrawLine( p[5], p[1], r, g, b );
-	DrawLine( p[5], p[4], r, g, b );
-	DrawLine( p[3], p[1], r, g, b );
-	DrawLine( p[3], p[2], r, g, b );
-}
-
-static float zero[3];
-
-void DrawLine( float *start, float *end, byte r, byte g, byte b )
-{
-	MESSAGE_BEGIN( MSG_ALL, SVC_TEMPENTITY, zero );
-		WRITE_BYTE( TE_LINE );
-		WRITE_COORD( start[0] );
-		WRITE_COORD( start[1] );
-		WRITE_COORD( start[2] );
-		WRITE_COORD( end[0] );
-		WRITE_COORD( end[1] );
-		WRITE_COORD( end[2] );
-		WRITE_SHORT( 5 );
-		WRITE_BYTE( r );
-		WRITE_BYTE( g );
-		WRITE_BYTE( b );
-	MESSAGE_END();
 }

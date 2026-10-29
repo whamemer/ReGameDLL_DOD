@@ -135,6 +135,11 @@ class CBaseTurret : public CBaseMonster
 	float m_flSpinUpTime;  // Amount of time until the barrel should spin down when searching
 };
 
+STATE CBaseTurret::getState( void )
+{
+	return ( m_iOn == 0 ) ? STATE_ON : STATE_OFF;
+}
+
 TYPEDESCRIPTION CBaseTurret::m_SaveData[] = {
 	DEFINE_FIELD( CBaseTurret, m_flMaxSpin, FIELD_FLOAT ),
 	DEFINE_FIELD( CBaseTurret, m_iSpin, FIELD_INTEGER ),
@@ -1281,9 +1286,4 @@ void CSentry ::SentryDeath( void )
 		pev->framerate = 0;
 		SetThink( NULL );
 	}
-}
-
-STATE CBaseTurret::getState( void )
-{
-	return ( m_iOn == 0 ) ? STATE_ON : STATE_OFF;
 }

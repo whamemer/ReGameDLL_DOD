@@ -29,6 +29,71 @@
 #include "maprules.h"
 #include "cbase.h"
 #include "player.h"
+
+// DOD capture_area - original file triggers.cpp - source restore/objectives/capture_area.cpp
+// capture_area.cpp -- dod_capture_area (CAreaCapture)
+// Restored from dod.so. Ghidra addr = link addr + 0x10000.
+#include "objective.h"
+
+// KeyValue fields (rest => CBaseTrigger::KeyValue):
+// area_allies_cancap / area_axis_cancap (int>0) | area_allies_numcap /
+// area_axis_numcap (min 1) | area_allies_startcap / area_axis_startcap
+// area_allies_endcap / area_axis_endcap | area_allies_breakcap /
+// area_axis_breakcap | master => trigger master | area_hud_sprite
+// area_time_to_cap => m_nCapTime | area_cap_point => sz_CapPointName
+// area_object_group => sz_RequiredObjectGroup, sets m_bRequiresObject.
+
+// AreaTouch, think 0.1 s, m_iAreaIndex = m_nOwningTeam = -1,
+// m_nCapturingTeam = -1, m_bCapturing = 0, m_fTimeRemaining = 0.
+// when index <= 0x80. .text:0015af00 area_SendStatus: same, unicast.
+
+
+// m_nAlliesNumCap / m_nAxisNumCap clamped to min 1.
+// (AlliesInfinite && not AxisInfinite) && spawnflags & 1.
+
+
+// Clears progress, fires break relays for capmode relays, prints
+// #game_capture_broken_allie / _axis, cancels progress bar HUD, director 12.
+
+
+// (point index, capturing team, player count, required) to all / one player.
+// resend with required/players scaled captime.
+// DOD control_point - original file triggers.cpp - source restore/objectives/control_point.cpp
+// control_point.cpp -- dod_control_point + dod_control_point_master
+// Restored from dod.so. Ghidra addr = link addr + 0x10000.
+#include "objective.h"
+
+// KeyValue fields, dod_control_point (all handled, rest => CBaseEntity):
+// point_name => pev->netname | point_pointvalue => m_iPointValue
+// point_team_points => m_iTeamPoints | point_points_for_cap => m_iCapPoints
+// point_reset_time => m_iResetTime | point_default_owner => m_iDefaultOwner (0..2)
+// point_axis_capsound => pev->noise2 | point_allies_capsound => pev->noise1
+// point_resetsound => pev->noise | point_allies_model / point_axis_model /
+//   point_reset_model (+ _bodygroup ints, default 0)
+// point_allies_target / point_axis_target / point_reset_target
+// point_can_allies_touch => m_bAlliesCantTouch (NOTE inverted: >0 blocks)
+// point_can_axis_touch => m_bAxisCantTouch (same inversion)
+// visible => m_bPointVisible | point_win_string => sz_WinString
+// point_index => m_iPointIndex = value - 1 | point_group => m_szGroup
+// master => m_sMaster | point_hud_icon_allies/axis/neutral
+// point_allies_win_string / point_axis_win_string
+
+
+// See table in header comment above. point_index stored 0-based.
+
+
+// trivial field readers (triggers.cpp:4295/4300/4310).
+
+// DOD control_master - original file triggers.cpp - source restore/objectives/control_master.cpp
+// control_master.cpp -- dod_control_point_master
+// Restored from dod.so. Ghidra addr = link addr + 0x10000.
+#include "objective.h"
+
+// DOD timers_relays triggers parts - original files triggers.cpp plus mapmarker plus dod_gamerules notes - source restore/objectives/timers_relays.cpp
+// timers_relays.cpp -- dod_round_timer, dod_point_relay, dod_location,
+// dod_mapmarker, info_doddetect, para timer. Restored from dod.so.
+#include "objective.h"
+
 extern DLL_GLOBAL BOOL g_fGameOver;
 extern int gmsgStartProgressBar;
 extern int gmsgStartProgressBarF;
@@ -43,6 +108,30 @@ extern int gmsgTimerStatus;
 extern cvar_t *pcvar_mp_clan_match;
 extern cvar_t *pcvar_mp_clan_scoring;
 extern cvar_t *pcvar_mp_clan_scoring_delay;
+
+// KeyValue fields, dod_control_point_master:
+// point_give_delay_time => m_iGivePointsDelay | allies_capture_target,
+// axis_capture_target | main => m_iMainObjective | master => m_sMaster
+// cpm_group => m_szGroup (matched against point_group). Rest unhandled.
+
+
+// Stages:
+// 1. Master gate: m_sMaster via UTIL_IsMasterTriggered. While off, points
+//    forced inactive + hidden. When on and not active, BecomeActive.
+// 2. Discovery (once): collect dod_control_point with matching cpm_group,
+//    max 20. Indexing: point_index values when unique, else distance order
+//    from info_player_allies. Brit fixup of allies icon 1 -> 27.
+//    Broadcasts InitObjDisplay. Error to console when zero points.
+// 3. Idle states: RoundState 5 (or inactive / 3 / 4) => reschedule 0.5 s.
+// 4. Periodic score (RoundState==1, game live, past m_fGivePointsTime):
+//    sum m_iPointValue per owner team, require a live player of that team,
+//    AddToTeamScores(team, sum). Clan variant uses mp_clan_scoring_values_*
+//    digit strings per slot. Reschedule by delay (clan delay or give delay).
+// 5. Win check: all slots share owner != 0 => FireTargets(allies/axis target),
+//    m_bTeamHasWon = true.
+// 6. Spectator refresh every 20.0 s: InitObjDisplay to MSG_SPEC + TimeLeft.
+extern int GetClanScoringValues( int team, int cp );
+extern int get_maptime_left( void );
 
 class CRuleEntity : public CBaseEntity
 {
@@ -253,7 +342,87 @@ class CGameText : public CRulePointEntity
 	void RoundRespawn( void );
 };
 
+void CGameText::RoundRespawn( void )
+{
+	m_iEnabled = 1;
+}
+
 LINK_ENTITY_TO_CLASS( game_text, CGameText );
+
+// ---- dod_round_timer (CDodRoundTimer, triggers.cpp) ----
+// KeyValue: round_timer_length (int seconds) => m_fTimerLength,
+// master => m_sMaster. Rest unhandled.
+// think 0.1 s.
+// Think cadence 0.1 s (.text:001559f0, file:triggers.cpp:6380): counts down
+// m_fRoundTime; HUD TimerStatus(on, remaining) at most every 30.0 s and only
+// when spawnflags & 1 + master allows. At zero: timer off, zero status,
+// FireTargets(pev target). Only while m_bTimer.
+// gated status send (remaining on start, 0.0 on stop).
+// m_fRoundTime = m_fTimerLength + status.
+// broadcast / unicast TimerStatus, same gates.
+
+
+// ---- dod_location (CLocation, triggers.cpp) ----
+// KeyValue: location_name => pev->netname, master => m_sMaster.
+// zero size, no touch. .text:0014f4a0 RoundRespawn (file:triggers.cpp:3888):
+// zero size, no touch. Pure position + name marker.
+
+// ---- dod_mapmarker (CMapMarker, mapmarker.cpp, 4 funcs) ----
+// classname dod_mapmarker, icon => pev->body, owner/team from creator,
+// angles (0,90,0), fuser1 = now, static counter++.
+// sprite, zero size, rehash classname, Think = Die at now + stay time
+// (max(mp_markerstaytime, 2.0)). .text:0016fda0 Die (file:mapmarker.cpp:70):
+// UpdateOnRemove + FL_KILLME + clear targetname.
+// 4th func: LINK factory thunk. Player side (Fire/Next/Prev/SetMapMarker,
+// player.cpp:6390-6484) belongs to the player agent; HUD icon flows through
+// pev->body.
+
+// ---- info_doddetect (CDoDDetect, dod_gamerules.cpp) ----
+// Ctor defaults (.text:000ee020, file:dod_gamerules.cpp:6387): infinite
+// lives both true, paras false, brit false, timer off, elim points 5/5,
+// timer-expire points 0, respawn factors 1.0, timer team 0.
+// KeyValue (.text:000e5420, file:dod_gamerules.cpp:6403) table:
+// detect_axis_infinite / allies_infinite_lifes / axis_infinite_lifes (==1) /
+// detect_allies_infinite (==1) => infinite flags; detect_axis_paras /
+// detect_allies_paras (>0); detect_allies_country (==1 => brit);
+// detect_points_allieseliminated / axiseliminated (int);
+// detect_target_allieseliminated / axiseliminated (string);
+// detect_use_timer (>0); detect_target_timerexpired (string);
+// detect_timer_team (int); detect_points_timerexpired (int);
+// detect_allies_respawnfactor / detect_axis_respawnfactor (float);
+// master => m_sMaster. Rest unhandled.
+
+// ---- para round timer (CDodParaRoundTimer, dod_gamerules.cpp) ----
+// Code-created (no map LINK). .text:000e3b90 Spawn: Think = TimerThink,
+// 0.1 s, timers cleared, update 30.0. .text:000eaa80 TimerThink: frame-delta
+// countdown; round not active => stop + status + Think NULL; 30 s status
+// refresh; expiry => CDoDTeamPlay::TimerExpired + stop + status.
+// (240.0 s, on, update 30.0) / .text:000ee310 / .text:000ee380 SendStatus.
+
+// ---- gamerules hook ----
+// RoundState to player, first mastered dod_control_point_master =>
+// SendObjectiveStatus, then per-player area_SendStatus for dod_capture_area,
+// dod_object_goal, func_breakable, plus dod_round_timer SendStatus and
+// particle_shooter updates.
+
+// ============================================================================
+// Additional capture member bodies ported from dod.so (Ghidra = link + 0x10000)
+// ============================================================================
+
+
+// Capture entity factory registrations (string -> class, verified via binary xrefs)
+
+
+void CGameText::Spawn( void )
+{
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	pev->effects = EF_NODRAW;
+	pev->frame = 0;
+	pev->model = 0;
+	m_iEnabled = 1;
+	RoundStore();
+}
 
 // Save parms as a block.  Will break save/restore if the structure changes, but this entity didn't ship with Half-Life, so
 // it can't impact saved Half-Life games.
@@ -417,6 +586,23 @@ class CGameTeamMaster : public CRulePointEntity
 
 LINK_ENTITY_TO_CLASS( game_team_master, CGameTeamMaster );
 
+void CGameTeamMaster::Spawn( void )
+{
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	pev->effects = EF_NODRAW;
+	pev->frame = 0;
+	pev->model = 0;
+	m_iEnabled = 1;
+	m_rrteamIndex = m_teamIndex;
+	RoundStore();
+}
+void CGameTeamMaster::RoundRespawn( void )
+{
+	m_iEnabled = 1;
+	m_teamIndex = m_rrteamIndex;
+}
+
 void CGameTeamMaster::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "teamindex" ) )
@@ -518,7 +704,23 @@ class CGameTeamSet : public CRulePointEntity
 	void RoundRespawn( void );
 };
 
+void CGameTeamSet::RoundRespawn( void )
+{
+	m_iEnabled = 1;
+}
+
 LINK_ENTITY_TO_CLASS( game_team_set, CGameTeamSet );
+
+void CGameTeamSet::Spawn( void )
+{
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	pev->effects = EF_NODRAW;
+	pev->frame = 0;
+	pev->model = 0;
+	m_iEnabled = 1;
+	RoundStore();
+}
 
 void CGameTeamSet::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
@@ -671,6 +873,21 @@ class CGamePlayerHurt : public CRulePointEntity
 	void RoundRespawn( void );
 };
 
+void CGamePlayerHurt::Spawn( void )
+{
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	pev->effects = EF_NODRAW;
+	pev->frame = 0;
+	pev->model = 0;
+	m_iEnabled = 1;
+	RoundStore();
+}
+void CGamePlayerHurt::RoundRespawn( void )
+{
+	m_iEnabled = 1;
+}
+
 LINK_ENTITY_TO_CLASS( game_player_hurt, CGamePlayerHurt );
 
 void CGamePlayerHurt::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
@@ -736,6 +953,11 @@ void CGameCounter::Spawn( void )
 	RoundStore();
 }
 
+void CGameCounter::RoundRespawn( void )
+{
+	pev->dmg = (float)(int)pev->frags;
+}
+
 void CGameCounter::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	if ( !CanFireForActivator( pActivator ) )
@@ -784,7 +1006,23 @@ class CGameCounterSet : public CRulePointEntity
 	void RoundRespawn( void );
 };
 
+void CGameCounterSet::RoundRespawn( void )
+{
+	m_iEnabled = 1;
+}
+
 LINK_ENTITY_TO_CLASS( game_counter_set, CGameCounterSet );
+
+void CGameCounterSet::Spawn( void )
+{
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	pev->effects = EF_NODRAW;
+	pev->frame = 0;
+	pev->model = 0;
+	m_iEnabled = 1;
+	RoundStore();
+}
 
 void CGameCounterSet::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
@@ -945,233 +1183,4 @@ void CGamePlayerTeam::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 	{
 		UTIL_Remove( this );
 	}
-}
-
-// DOD capture_area - original file triggers.cpp - source restore/objectives/capture_area.cpp
-// capture_area.cpp -- dod_capture_area (CAreaCapture)
-// Restored from dod.so. Ghidra addr = link addr + 0x10000.
-#include "objective.h"
-
-// KeyValue fields (rest => CBaseTrigger::KeyValue):
-// area_allies_cancap / area_axis_cancap (int>0) | area_allies_numcap /
-// area_axis_numcap (min 1) | area_allies_startcap / area_axis_startcap
-// area_allies_endcap / area_axis_endcap | area_allies_breakcap /
-// area_axis_breakcap | master => trigger master | area_hud_sprite
-// area_time_to_cap => m_nCapTime | area_cap_point => sz_CapPointName
-// area_object_group => sz_RequiredObjectGroup, sets m_bRequiresObject.
-
-// AreaTouch, think 0.1 s, m_iAreaIndex = m_nOwningTeam = -1,
-// m_nCapturingTeam = -1, m_bCapturing = 0, m_fTimeRemaining = 0.
-// when index <= 0x80. .text:0015af00 area_SendStatus: same, unicast.
-
-
-// m_nAlliesNumCap / m_nAxisNumCap clamped to min 1.
-// (AlliesInfinite && not AxisInfinite) && spawnflags & 1.
-
-
-// Clears progress, fires break relays for capmode relays, prints
-// #game_capture_broken_allie / _axis, cancels progress bar HUD, director 12.
-
-
-// (point index, capturing team, player count, required) to all / one player.
-// resend with required/players scaled captime.
-// DOD control_point - original file triggers.cpp - source restore/objectives/control_point.cpp
-// control_point.cpp -- dod_control_point + dod_control_point_master
-// Restored from dod.so. Ghidra addr = link addr + 0x10000.
-#include "objective.h"
-
-// KeyValue fields, dod_control_point (all handled, rest => CBaseEntity):
-// point_name => pev->netname | point_pointvalue => m_iPointValue
-// point_team_points => m_iTeamPoints | point_points_for_cap => m_iCapPoints
-// point_reset_time => m_iResetTime | point_default_owner => m_iDefaultOwner (0..2)
-// point_axis_capsound => pev->noise2 | point_allies_capsound => pev->noise1
-// point_resetsound => pev->noise | point_allies_model / point_axis_model /
-//   point_reset_model (+ _bodygroup ints, default 0)
-// point_allies_target / point_axis_target / point_reset_target
-// point_can_allies_touch => m_bAlliesCantTouch (NOTE inverted: >0 blocks)
-// point_can_axis_touch => m_bAxisCantTouch (same inversion)
-// visible => m_bPointVisible | point_win_string => sz_WinString
-// point_index => m_iPointIndex = value - 1 | point_group => m_szGroup
-// master => m_sMaster | point_hud_icon_allies/axis/neutral
-// point_allies_win_string / point_axis_win_string
-
-
-// See table in header comment above. point_index stored 0-based.
-
-
-// trivial field readers (triggers.cpp:4295/4300/4310).
-
-// DOD control_master - original file triggers.cpp - source restore/objectives/control_master.cpp
-// control_master.cpp -- dod_control_point_master
-// Restored from dod.so. Ghidra addr = link addr + 0x10000.
-#include "objective.h"
-
-// KeyValue fields, dod_control_point_master:
-// point_give_delay_time => m_iGivePointsDelay | allies_capture_target,
-// axis_capture_target | main => m_iMainObjective | master => m_sMaster
-// cpm_group => m_szGroup (matched against point_group). Rest unhandled.
-
-
-// Stages:
-// 1. Master gate: m_sMaster via UTIL_IsMasterTriggered. While off, points
-//    forced inactive + hidden. When on and not active, BecomeActive.
-// 2. Discovery (once): collect dod_control_point with matching cpm_group,
-//    max 20. Indexing: point_index values when unique, else distance order
-//    from info_player_allies. Brit fixup of allies icon 1 -> 27.
-//    Broadcasts InitObjDisplay. Error to console when zero points.
-// 3. Idle states: RoundState 5 (or inactive / 3 / 4) => reschedule 0.5 s.
-// 4. Periodic score (RoundState==1, game live, past m_fGivePointsTime):
-//    sum m_iPointValue per owner team, require a live player of that team,
-//    AddToTeamScores(team, sum). Clan variant uses mp_clan_scoring_values_*
-//    digit strings per slot. Reschedule by delay (clan delay or give delay).
-// 5. Win check: all slots share owner != 0 => FireTargets(allies/axis target),
-//    m_bTeamHasWon = true.
-// 6. Spectator refresh every 20.0 s: InitObjDisplay to MSG_SPEC + TimeLeft.
-extern int GetClanScoringValues( int team, int cp );
-extern int get_maptime_left( void );
-
-// DOD timers_relays triggers parts - original files triggers.cpp plus mapmarker plus dod_gamerules notes - source restore/objectives/timers_relays.cpp
-// timers_relays.cpp -- dod_round_timer, dod_point_relay, dod_location,
-// dod_mapmarker, info_doddetect, para timer. Restored from dod.so.
-#include "objective.h"
-
-// ---- dod_round_timer (CDodRoundTimer, triggers.cpp) ----
-// KeyValue: round_timer_length (int seconds) => m_fTimerLength,
-// master => m_sMaster. Rest unhandled.
-// think 0.1 s.
-// Think cadence 0.1 s (.text:001559f0, file:triggers.cpp:6380): counts down
-// m_fRoundTime; HUD TimerStatus(on, remaining) at most every 30.0 s and only
-// when spawnflags & 1 + master allows. At zero: timer off, zero status,
-// FireTargets(pev target). Only while m_bTimer.
-// gated status send (remaining on start, 0.0 on stop).
-// m_fRoundTime = m_fTimerLength + status.
-// broadcast / unicast TimerStatus, same gates.
-
-
-// ---- dod_location (CLocation, triggers.cpp) ----
-// KeyValue: location_name => pev->netname, master => m_sMaster.
-// zero size, no touch. .text:0014f4a0 RoundRespawn (file:triggers.cpp:3888):
-// zero size, no touch. Pure position + name marker.
-
-// ---- dod_mapmarker (CMapMarker, mapmarker.cpp, 4 funcs) ----
-// classname dod_mapmarker, icon => pev->body, owner/team from creator,
-// angles (0,90,0), fuser1 = now, static counter++.
-// sprite, zero size, rehash classname, Think = Die at now + stay time
-// (max(mp_markerstaytime, 2.0)). .text:0016fda0 Die (file:mapmarker.cpp:70):
-// UpdateOnRemove + FL_KILLME + clear targetname.
-// 4th func: LINK factory thunk. Player side (Fire/Next/Prev/SetMapMarker,
-// player.cpp:6390-6484) belongs to the player agent; HUD icon flows through
-// pev->body.
-
-// ---- info_doddetect (CDoDDetect, dod_gamerules.cpp) ----
-// Ctor defaults (.text:000ee020, file:dod_gamerules.cpp:6387): infinite
-// lives both true, paras false, brit false, timer off, elim points 5/5,
-// timer-expire points 0, respawn factors 1.0, timer team 0.
-// KeyValue (.text:000e5420, file:dod_gamerules.cpp:6403) table:
-// detect_axis_infinite / allies_infinite_lifes / axis_infinite_lifes (==1) /
-// detect_allies_infinite (==1) => infinite flags; detect_axis_paras /
-// detect_allies_paras (>0); detect_allies_country (==1 => brit);
-// detect_points_allieseliminated / axiseliminated (int);
-// detect_target_allieseliminated / axiseliminated (string);
-// detect_use_timer (>0); detect_target_timerexpired (string);
-// detect_timer_team (int); detect_points_timerexpired (int);
-// detect_allies_respawnfactor / detect_axis_respawnfactor (float);
-// master => m_sMaster. Rest unhandled.
-
-// ---- para round timer (CDodParaRoundTimer, dod_gamerules.cpp) ----
-// Code-created (no map LINK). .text:000e3b90 Spawn: Think = TimerThink,
-// 0.1 s, timers cleared, update 30.0. .text:000eaa80 TimerThink: frame-delta
-// countdown; round not active => stop + status + Think NULL; 30 s status
-// refresh; expiry => CDoDTeamPlay::TimerExpired + stop + status.
-// (240.0 s, on, update 30.0) / .text:000ee310 / .text:000ee380 SendStatus.
-
-// ---- gamerules hook ----
-// RoundState to player, first mastered dod_control_point_master =>
-// SendObjectiveStatus, then per-player area_SendStatus for dod_capture_area,
-// dod_object_goal, func_breakable, plus dod_round_timer SendStatus and
-// particle_shooter updates.
-
-// ============================================================================
-// Additional capture member bodies ported from dod.so (Ghidra = link + 0x10000)
-// ============================================================================
-
-
-// Capture entity factory registrations (string -> class, verified via binary xrefs)
-
-
-void CGameText::Spawn( void )
-{
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NONE;
-	pev->effects = EF_NODRAW;
-	pev->frame = 0;
-	pev->model = 0;
-	m_iEnabled = 1;
-	RoundStore();
-}
-void CGameTeamMaster::Spawn( void )
-{
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NONE;
-	pev->effects = EF_NODRAW;
-	pev->frame = 0;
-	pev->model = 0;
-	m_iEnabled = 1;
-	m_rrteamIndex = m_teamIndex;
-	RoundStore();
-}
-void CGameTeamMaster::RoundRespawn( void )
-{
-	m_iEnabled = 1;
-	m_teamIndex = m_rrteamIndex;
-}
-void CGameTeamSet::Spawn( void )
-{
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NONE;
-	pev->effects = EF_NODRAW;
-	pev->frame = 0;
-	pev->model = 0;
-	m_iEnabled = 1;
-	RoundStore();
-}
-void CGameCounter::RoundRespawn( void )
-{
-	pev->dmg = (float)(int)pev->frags;
-}
-void CGameText::RoundRespawn( void )
-{
-	m_iEnabled = 1;
-}
-void CGameTeamSet::RoundRespawn( void )
-{
-	m_iEnabled = 1;
-}
-void CGamePlayerHurt::Spawn( void )
-{
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NONE;
-	pev->effects = EF_NODRAW;
-	pev->frame = 0;
-	pev->model = 0;
-	m_iEnabled = 1;
-	RoundStore();
-}
-void CGamePlayerHurt::RoundRespawn( void )
-{
-	m_iEnabled = 1;
-}
-void CGameCounterSet::RoundRespawn( void )
-{
-	m_iEnabled = 1;
-}
-void CGameCounterSet::Spawn( void )
-{
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NONE;
-	pev->effects = EF_NODRAW;
-	pev->frame = 0;
-	pev->model = 0;
-	m_iEnabled = 1;
-	RoundStore();
 }

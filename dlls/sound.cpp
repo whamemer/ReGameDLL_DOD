@@ -24,13 +24,13 @@
 #include "talkmonster.h"
 #include "gamerules.h"
 
+static char *memfgets( byte *pMemFile, int fileSize, int &filePos, char *pBuffer, int bufferSize );
+
 #if !defined( _WIN32 )
 #include <ctype.h>
 #endif
 
 #define SF_AMBIENT_OFF 16
-
-static char *memfgets( byte *pMemFile, int fileSize, int &filePos, char *pBuffer, int bufferSize );
 
 // ==================== GENERIC AMBIENT SOUND ======================================
 
@@ -604,6 +604,16 @@ void CAmbientGeneric ::ToggleUse( CBaseEntity *pActivator, CBaseEntity *pCaller,
 		pev->nextthink = gpGlobals->time + 0.1;
 	}
 }
+
+void CAmbientGeneric::RoundRespawn( void )
+{
+	if ( FBitSet( pev->spawnflags, SF_AMBIENT_OFF ) && m_fActive )	// 0x10
+	{
+		UTIL_EmitAmbientSound( ENT( pev ), pev->origin, STRING( pev->message ), 0.0, 0.0, SND_STOP, 0 );
+		m_fActive = FALSE;
+	}
+}
+
 // KeyValue - load keyvalue pairs into member data of the
 // ambient generic. NOTE: called BEFORE spawn!
 
@@ -1957,13 +1967,4 @@ void CSpeaker ::KeyValue( KeyValueData *pkvd )
 	}
 	else
 		CBaseEntity::KeyValue( pkvd );
-}
-
-void CAmbientGeneric::RoundRespawn( void )
-{
-	if ( FBitSet( pev->spawnflags, SF_AMBIENT_OFF ) && m_fActive )	// 0x10
-	{
-		UTIL_EmitAmbientSound( ENT( pev ), pev->origin, STRING( pev->message ), 0.0, 0.0, SND_STOP, 0 );
-		m_fActive = FALSE;
-	}
 }

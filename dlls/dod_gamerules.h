@@ -312,4 +312,6 @@ class CDoDTeamPlay : public CGameRules
 	CDoDTeamPlay( void );
 
 };
+
+static const char g_szTeamNames[4][128] = { "", "Allies", "Axis", "Spectators" };
 #endif

@@ -79,6 +79,7 @@ public:
 	CUSTOM_SCHEDULES;
 };
 
+LINK_ENTITY_TO_CLASS( monster_sarge_allies, CSarge );
 
 TYPEDESCRIPTION	CSarge::m_SaveData[] = 
 {
@@ -687,68 +688,50 @@ void CSarge :: DeclineFollowing( void )
 	PlaySentence( "BA_POK", 2.0, VOL_NORM, ATTN_NORM );
 }
 
-
-
-
-
-//=========================================================
-// DEAD BARNEY PROP
-//
-// Designer selects a pose in worldcraft, 0 through num_poses-1
-// this value is added to what is selected as the 'first dead pose'
-// among the monster's normal animations. All dead poses must
-// appear sequentially in the model file. Be sure and set
-// the m_iFirstPose properly!
-//
-//=========================================================
-
-
-
-
-
-
-
-
-int CSarge :: IRelationship( CBaseEntity *pTarget )
+void CSarge :: RunAI( void )
 {
-	int rel = 0;
-	if ( pTarget->pev->iuser1 == 0 && pTarget->pev->deadflag != 2 )
-		rel = ( pTarget->pev->team != pev->team ) * 5 - 2;
-	return rel;
-}
-CBaseEntity *CSarge :: BestVisibleEnemy( void )
-{
-	CBaseEntity *pReturn = NULL;
-	CBaseEntity *pNextEnt = m_pLink;
-	int iBestRel = 0;
-	int iNearest = 8192;
-	while ( pNextEnt )
+	// to test model's eye height
+	UTIL_ParticleEffect ( pev->origin + pev->view_ofs, g_vecZero, 255, 10 );
+
+	// IDLE sound permitted in ALERT state is because monsters were silent in ALERT state. Only play IDLE sound in IDLE state
+	// once we have sounds for that state.
+	if ( ( m_MonsterState == MONSTERSTATE_IDLE || m_MonsterState == MONSTERSTATE_ALERT ) && RANDOM_LONG( 0, 99 ) == 0 &&
+		 !( pev->flags & SF_MONSTER_GAG ) )
 	{
-		if ( pNextEnt->IsAlive() && pNextEnt->pev->team != pev->team )
-		{
-			int rel = IRelationship( pNextEnt );
-			if ( rel > iBestRel )
-			{
-				iBestRel = rel;
-				Vector vecDiff = pNextEnt->pev->origin - pev->origin;
-				iNearest = (int)vecDiff.Length();
-				pReturn = pNextEnt;
-			}
-			else if ( rel == iBestRel )
-			{
-				Vector vecDiff = pNextEnt->pev->origin - pev->origin;
-				int d = (int)vecDiff.Length();
-				if ( d <= iNearest )
-				{
-					iNearest = d;
-					pReturn = pNextEnt;
-				}
-			}
-		}
-		pNextEnt = pNextEnt->m_pLink;
+		IdleSound();
 	}
-	return pReturn;
+
+	if ( m_MonsterState != MONSTERSTATE_NONE && m_MonsterState != MONSTERSTATE_PRONE &&
+		 m_MonsterState != MONSTERSTATE_DEAD )	// don't bother with this crap if monster is prone.
+	{
+		// collect some sensory Condition information.
+		if ( !FNullEnt( FIND_CLIENT_IN_PVS( edict() ) ) || ( m_MonsterState == MONSTERSTATE_COMBAT ) )
+		{
+			Look( m_flDistLook );
+			Listen();  // check for audible sounds.
+
+			// now filter conditions.
+			ClearConditions( IgnoreConditions() );
+
+			GetEnemy();
+		}
+
+		// do these calculations if monster has an enemy.
+		if ( m_hEnemy != NULL )
+		{
+			CheckEnemy( m_hEnemy );
+		}
+
+		CheckAmmo();
+	}
+
+	FCheckAITrigger();
+
+	PrescheduleThink();
+
+	MaintainSchedule();
 }
+
 BOOL CSarge :: GetEnemy( void )
 {
 	CBaseEntity *pNewEnemy;
@@ -802,49 +785,67 @@ BOOL CSarge :: GetEnemy( void )
 
 	return FALSE;  // monster has no enemy
 }
-void CSarge :: RunAI( void )
+
+CBaseEntity *CSarge :: BestVisibleEnemy( void )
 {
-	// to test model's eye height
-	UTIL_ParticleEffect ( pev->origin + pev->view_ofs, g_vecZero, 255, 10 );
-
-	// IDLE sound permitted in ALERT state is because monsters were silent in ALERT state. Only play IDLE sound in IDLE state
-	// once we have sounds for that state.
-	if ( ( m_MonsterState == MONSTERSTATE_IDLE || m_MonsterState == MONSTERSTATE_ALERT ) && RANDOM_LONG( 0, 99 ) == 0 &&
-		 !( pev->flags & SF_MONSTER_GAG ) )
+	CBaseEntity *pReturn = NULL;
+	CBaseEntity *pNextEnt = m_pLink;
+	int iBestRel = 0;
+	int iNearest = 8192;
+	while ( pNextEnt )
 	{
-		IdleSound();
-	}
-
-	if ( m_MonsterState != MONSTERSTATE_NONE && m_MonsterState != MONSTERSTATE_PRONE &&
-		 m_MonsterState != MONSTERSTATE_DEAD )	// don't bother with this crap if monster is prone.
-	{
-		// collect some sensory Condition information.
-		if ( !FNullEnt( FIND_CLIENT_IN_PVS( edict() ) ) || ( m_MonsterState == MONSTERSTATE_COMBAT ) )
+		if ( pNextEnt->IsAlive() && pNextEnt->pev->team != pev->team )
 		{
-			Look( m_flDistLook );
-			Listen();  // check for audible sounds.
-
-			// now filter conditions.
-			ClearConditions( IgnoreConditions() );
-
-			GetEnemy();
+			int rel = IRelationship( pNextEnt );
+			if ( rel > iBestRel )
+			{
+				iBestRel = rel;
+				Vector vecDiff = pNextEnt->pev->origin - pev->origin;
+				iNearest = (int)vecDiff.Length();
+				pReturn = pNextEnt;
+			}
+			else if ( rel == iBestRel )
+			{
+				Vector vecDiff = pNextEnt->pev->origin - pev->origin;
+				int d = (int)vecDiff.Length();
+				if ( d <= iNearest )
+				{
+					iNearest = d;
+					pReturn = pNextEnt;
+				}
+			}
 		}
-
-		// do these calculations if monster has an enemy.
-		if ( m_hEnemy != NULL )
-		{
-			CheckEnemy( m_hEnemy );
-		}
-
-		CheckAmmo();
+		pNextEnt = pNextEnt->m_pLink;
 	}
-
-	FCheckAITrigger();
-
-	PrescheduleThink();
-
-	MaintainSchedule();
+	return pReturn;
 }
+
+//=========================================================
+// DEAD BARNEY PROP
+//
+// Designer selects a pose in worldcraft, 0 through num_poses-1
+// this value is added to what is selected as the 'first dead pose'
+// among the monster's normal animations. All dead poses must
+// appear sequentially in the model file. Be sure and set
+// the m_iFirstPose properly!
+//
+//=========================================================
+
+
+
+
+
+
+
+
+int CSarge :: IRelationship( CBaseEntity *pTarget )
+{
+	int rel = 0;
+	if ( pTarget->pev->iuser1 == 0 && pTarget->pev->deadflag != 2 )
+		rel = ( pTarget->pev->team != pev->team ) * 5 - 2;
+	return rel;
+}
+
 void CSarge :: Touch( CBaseEntity *pOther )
 {
 	if ( pOther->IsPlayer() )
@@ -859,11 +860,5 @@ void CSarge :: Touch( CBaseEntity *pOther )
 void CSarge :: GiveAdvice( CBaseEntity *pPlayer )
 {
 }
-
-
-
-LINK_ENTITY_TO_CLASS( monster_sarge_allies, CSarge );
-
-
 
 

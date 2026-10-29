@@ -64,14 +64,14 @@ class CFuncWall : public CBaseEntity
 	virtual STATE GetState( void );
 };
 
-LINK_ENTITY_TO_CLASS( func_wall, CFuncWall );
-
 STATE CFuncWall ::GetState( void )
 {
 	if ( pev->frame != 0 )
 		return STATE_ON;
 	return STATE_OFF;
 }
+
+LINK_ENTITY_TO_CLASS( func_wall, CFuncWall );
 
 void CFuncWall ::Spawn( void )
 {
@@ -106,6 +106,13 @@ class CFuncWallToggle : public CFuncWall
 	virtual STATE GetState( void );
 };
 
+STATE CFuncWallToggle ::GetState( void )
+{
+	if ( pev->solid == SOLID_NOT )
+		return STATE_OFF;
+	return STATE_ON;
+}
+
 LINK_ENTITY_TO_CLASS( func_wall_toggle, CFuncWallToggle );
 
 void CFuncWallToggle ::Spawn( void )
@@ -113,6 +120,22 @@ void CFuncWallToggle ::Spawn( void )
 	CFuncWall::Spawn();
 	if ( pev->spawnflags & SF_WALL_START_OFF )
 		TurnOff();
+}
+
+void CFuncWallToggle ::RoundRespawn( void )
+{
+	if ( !FBitSet( pev->spawnflags, SF_WALL_START_OFF ) )
+	{
+		pev->solid = SOLID_BSP;
+		pev->effects &= ~EF_NODRAW;
+	}
+	else
+	{
+		pev->solid = SOLID_NOT;
+		pev->effects |= EF_NODRAW;
+	}
+	UTIL_SetOrigin( pev, pev->origin );
+	SET_MODEL( ENT( pev ), STRING( pev->model ) );
 }
 
 void CFuncWallToggle ::TurnOff( void )
@@ -149,29 +172,6 @@ void CFuncWallToggle ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 	}
 }
 
-void CFuncWallToggle ::RoundRespawn( void )
-{
-	if ( !FBitSet( pev->spawnflags, SF_WALL_START_OFF ) )
-	{
-		pev->solid = SOLID_BSP;
-		pev->effects &= ~EF_NODRAW;
-	}
-	else
-	{
-		pev->solid = SOLID_NOT;
-		pev->effects |= EF_NODRAW;
-	}
-	UTIL_SetOrigin( pev, pev->origin );
-	SET_MODEL( ENT( pev ), STRING( pev->model ) );
-}
-
-STATE CFuncWallToggle ::GetState( void )
-{
-	if ( pev->solid == SOLID_NOT )
-		return STATE_OFF;
-	return STATE_ON;
-}
-
 #define SF_CONVEYOR_VISUAL 0x0001
 #define SF_CONVEYOR_NOTSOLID 0x0002
 
@@ -183,6 +183,19 @@ class CFuncConveyor : public CFuncWall
 	void UpdateSpeed( float speed );
 	virtual void RoundRespawn( void );
 };
+
+void CFuncConveyor ::RoundRespawn( void )
+{
+	int speedCode = (int) ( fabs( pev->speed ) * 16.0 );
+
+	if ( pev->speed < 0 )
+		pev->rendercolor.x = 1;
+	else
+		pev->rendercolor.x = 0;
+
+	pev->rendercolor.y = ( speedCode >> 8 );
+	pev->rendercolor.z = ( speedCode & 0xFF );
+}
 
 LINK_ENTITY_TO_CLASS( func_conveyor, CFuncConveyor );
 void CFuncConveyor ::Spawn( void )
@@ -227,19 +240,6 @@ void CFuncConveyor ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 {
 	pev->speed = -pev->speed;
 	UpdateSpeed( pev->speed );
-}
-
-void CFuncConveyor ::RoundRespawn( void )
-{
-	int speedCode = (int) ( fabs( pev->speed ) * 16.0 );
-
-	if ( pev->speed < 0 )
-		pev->rendercolor.x = 1;
-	else
-		pev->rendercolor.x = 0;
-
-	pev->rendercolor.y = ( speedCode >> 8 );
-	pev->rendercolor.z = ( speedCode & 0xFF );
 }
 
 // =================== FUNC_ILLUSIONARY ==============================================
@@ -340,6 +340,11 @@ class CFuncRotating : public CBaseEntity
 	int m_sounds;
 	STATE m_iState;
 };
+
+STATE CFuncRotating ::GetState( void )
+{
+	return m_iState;
+}
 
 TYPEDESCRIPTION CFuncRotating::m_SaveData[] = {
 	DEFINE_FIELD( CFuncRotating, m_flFanFriction, FIELD_FLOAT ),
@@ -486,6 +491,41 @@ void CFuncRotating ::Spawn()
 	Precache();
 }
 
+void CFuncRotating ::RoundRespawn( void )
+{
+	float flVolume = m_flVolume;
+
+	SetUse( &CFuncRotating::RotatingUse );
+	m_iState = STATE_OFF;
+	m_pitch = PITCH_NORM - 1;
+	if ( flVolume == 0.0 )
+		m_flVolume = 1.0;
+
+	m_flAttenuation = ATTN_NORM;
+	if ( FBitSet( pev->spawnflags, SF_BRUSH_ROTATE_SMALLRADIUS ) )
+		m_flAttenuation = ATTN_IDLE;
+	else if ( FBitSet( pev->spawnflags, SF_BRUSH_ROTATE_MEDIUMRADIUS ) )
+		m_flAttenuation = ATTN_STATIC;
+
+	if ( m_flFanFriction == 0.0 )
+		m_flFanFriction = 1.0;
+
+	if ( FBitSet( pev->spawnflags, SF_BRUSH_ROTATE_INSTANT ) )
+	{
+		SetThink( &CBaseEntity::SUB_CallUseToggle );
+		pev->nextthink = pev->ltime + 1.5;
+	}
+	if ( FBitSet( pev->spawnflags, SF_BRUSH_HURT ) )
+	{
+		SetTouch( &CFuncRotating::HurtTouch );
+	}
+	if ( pev->avelocity != g_vecZero )
+	{
+		SetThink( &CFuncRotating::SpinUp );
+		pev->nextthink = pev->ltime + 1.5;
+	}
+}
+
 void CFuncRotating ::Precache( void )
 {
 	char *szSoundFile = (char *) STRING( pev->message );
@@ -551,46 +591,6 @@ void CFuncRotating ::Precache( void )
 		SetThink( &CFuncRotating::SpinUp );
 		pev->nextthink = pev->ltime + 1.5;
 	}
-}
-
-void CFuncRotating ::RoundRespawn( void )
-{
-	float flVolume = m_flVolume;
-
-	SetUse( &CFuncRotating::RotatingUse );
-	m_iState = STATE_OFF;
-	m_pitch = PITCH_NORM - 1;
-	if ( flVolume == 0.0 )
-		m_flVolume = 1.0;
-
-	m_flAttenuation = ATTN_NORM;
-	if ( FBitSet( pev->spawnflags, SF_BRUSH_ROTATE_SMALLRADIUS ) )
-		m_flAttenuation = ATTN_IDLE;
-	else if ( FBitSet( pev->spawnflags, SF_BRUSH_ROTATE_MEDIUMRADIUS ) )
-		m_flAttenuation = ATTN_STATIC;
-
-	if ( m_flFanFriction == 0.0 )
-		m_flFanFriction = 1.0;
-
-	if ( FBitSet( pev->spawnflags, SF_BRUSH_ROTATE_INSTANT ) )
-	{
-		SetThink( &CBaseEntity::SUB_CallUseToggle );
-		pev->nextthink = pev->ltime + 1.5;
-	}
-	if ( FBitSet( pev->spawnflags, SF_BRUSH_HURT ) )
-	{
-		SetTouch( &CFuncRotating::HurtTouch );
-	}
-	if ( pev->avelocity != g_vecZero )
-	{
-		SetThink( &CFuncRotating::SpinUp );
-		pev->nextthink = pev->ltime + 1.5;
-	}
-}
-
-STATE CFuncRotating ::GetState( void )
-{
-	return m_iState;
 }
 
 //
@@ -834,6 +834,13 @@ class CPendulum : public CBaseEntity
 	vec3_t m_start;
 };
 
+STATE CPendulum ::GetState( void )
+{
+	if ( pev->speed != 0 )
+		return STATE_ON;
+	return STATE_OFF;
+}
+
 LINK_ENTITY_TO_CLASS( func_pendulum, CPendulum );
 
 TYPEDESCRIPTION CPendulum::m_SaveData[] = {
@@ -925,13 +932,6 @@ void CPendulum ::RoundRespawn( void )
 	{
 		SetTouch( &CPendulum::RopeTouch );
 	}
-}
-
-STATE CPendulum ::GetState( void )
-{
-	if ( pev->speed != 0 )
-		return STATE_ON;
-	return STATE_OFF;
 }
 
 void CPendulum ::PendulumUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )

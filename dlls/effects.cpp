@@ -53,6 +53,11 @@ class CBubbling : public CBaseEntity
 	virtual STATE GetState( void );
 };
 
+STATE CBubbling::GetState( void )
+{
+	return m_state ? STATE_ON : STATE_OFF;
+}
+
 LINK_ENTITY_TO_CLASS( env_bubbles, CBubbling );
 
 TYPEDESCRIPTION CBubbling::m_SaveData[] = {
@@ -91,6 +96,30 @@ void CBubbling::Spawn( void )
 	}
 	else
 		m_state = 0;
+}
+
+void CBubbling::RoundRespawn( void )
+{
+	Precache();
+	SET_MODEL( ENT( pev ), STRING( pev->model ) );
+	pev->solid = SOLID_NOT;
+	pev->renderamt = 0;
+	pev->rendermode = kRenderTransTexture;
+	int speed = pev->speed > 0 ? (int) pev->speed : (int) -pev->speed;
+	pev->rendercolor.x = ( speed >> 8 );
+	pev->rendercolor.y = ( speed & 255 );
+	pev->rendercolor.z = ( pev->speed < 0 ) ? 1 : 0;
+	if ( FBitSet( pev->spawnflags, SF_BUBBLING_START_OFF ) )
+	{
+		SetThink( NULL );
+		m_state = STATE_OFF;
+	}
+	else
+	{
+		SetThink( &CBubbling::FizzThink );
+		pev->nextthink = gpGlobals->time + 2.0;
+		m_state = STATE_ON;
+	}
 }
 
 void CBubbling::Precache( void )
@@ -149,11 +178,6 @@ void CBubbling::FizzThink( void )
 		pev->nextthink = gpGlobals->time + 0.5;
 	else
 		pev->nextthink = gpGlobals->time + 2.5 - ( 0.1 * m_frequency );
-}
-
-STATE CBubbling::GetState( void )
-{
-	return m_state ? STATE_ON : STATE_OFF;
 }
 
 // --------------------------------------------------
@@ -403,6 +427,11 @@ class CLightning : public CBeam
 
 	float m_radius;
 };
+
+STATE CLightning::GetState( void )
+{
+	return ( m_active == 0 ) ? STATE_ON : STATE_OFF;
+}
 
 LINK_ENTITY_TO_CLASS( env_lightning, CLightning );
 LINK_ENTITY_TO_CLASS( env_beam, CLightning );
@@ -859,6 +888,47 @@ void CLightning::RandomPoint( Vector &vecSrc )
 	}
 }
 
+void CLightning::BeamUpdatePoints( void )
+{
+	CBaseEntity *pStart = UTIL_FindEntityByTargetname( NULL, STRING( m_iszStartEntity ) );
+	CBaseEntity *pEnd = UTIL_FindEntityByTargetname( NULL, STRING( m_iszEndEntity ) );
+	int pointStart = IsPointEntity( pStart );
+	int pointEnd = IsPointEntity( pEnd );
+	if ( !pointStart && !pointEnd )
+	{
+		pev->rendermode = ( pev->rendermode & 0xF0 ) | BEAM_ENTS;
+		unsigned short idxStart = ENTINDEX( pStart->edict() );
+		pev->sequence = ( idxStart & 0xFFF ) | ( ( pev->sequence & 0xF000 ) << 12 );
+		pev->owner = pStart->edict();
+	}
+	else if ( pointStart && pointEnd )
+	{
+		pev->rendermode &= 0xF0;
+		pev->origin = pStart->pev->origin;
+		pev->angles = pEnd->pev->origin;
+		RelinkBeam();
+		return;
+	}
+	else
+	{
+		if ( !pointStart )
+		{
+			CBaseEntity *pTemp = pStart;
+			pStart = pEnd;
+			pEnd = pTemp;
+			int s = pointStart;
+			pointStart = pointEnd;
+			pointEnd = s;
+		}
+		pev->rendermode = ( pev->rendermode & 0xF0 ) | BEAM_ENTPOINT;
+		pev->origin = pStart->pev->origin;
+	}
+	unsigned short idx = ENTINDEX( pEnd->edict() );
+	pev->skin = ( idx & 0xFFF ) | ( ( pev->skin & 0xF000 ) << 12 );
+	pev->aiment = pEnd->edict();
+	RelinkBeam();
+}
+
 void CLightning::BeamUpdateVars( void )
 {
 	pev->skin = 0;
@@ -1144,6 +1214,27 @@ void CSprite::Precache( void )
 		pev->skin = 0;
 		pev->body = 0;
 	}
+}
+
+void CSprite::RoundRespawn( void )
+{
+	Precache();
+	SET_MODEL( ENT( pev ), STRING( pev->model ) );
+	m_maxFrame = (float) MODEL_FRAMES( pev->modelindex ) - 1;
+	if ( !FStringNull( pev->targetname ) && !FBitSet( pev->spawnflags, SF_SPRITE_STARTOFF ) )
+	{
+		pev->effects |= EF_NODRAW;
+		pev->nextthink = 0;
+		return;
+	}
+	pev->effects &= ~EF_NODRAW;
+	if ( m_maxFrame > 1.0 && pev->framerate != 0 )
+	{
+		SetThink( &CSprite::AnimateThink );
+		pev->nextthink = gpGlobals->time;
+		m_lastTime = gpGlobals->time;
+	}
+	pev->frame = 0;
 }
 
 void CSprite::SpriteInit( const char *pSpriteName, const Vector &origin )
@@ -1759,6 +1850,16 @@ class CShake : public CPointEntity
   private:
 };
 
+STATE CShake::GetState( void )
+{
+	return m_iState;
+}
+
+void CShake::Think( void )
+{
+	m_iState = STATE_OFF;
+}
+
 LINK_ENTITY_TO_CLASS( env_shake, CShake );
 
 // pev->scale is amplitude
@@ -1820,16 +1921,6 @@ void CShake::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useTyp
 	pev->nextthink = gpGlobals->time + Duration();
 }
 
-STATE CShake::GetState( void )
-{
-	return m_iState;
-}
-
-void CShake::Think( void )
-{
-	m_iState = STATE_OFF;
-}
-
 class CFade : public CPointEntity
 {
   public:
@@ -1850,6 +1941,17 @@ class CFade : public CPointEntity
 
   private:
 };
+
+STATE CFade::GetState( void )
+{
+	return m_iState;
+}
+
+// NEW in DoD.
+void CFade::RoundRespawn( void )
+{
+	m_iState = STATE_OFF;
+}
 
 LINK_ENTITY_TO_CLASS( env_fade, CFade );
 
@@ -1913,11 +2015,6 @@ void CFade::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType
 	SUB_UseTargets( this, USE_TOGGLE, 0 );
 }
 
-STATE CFade::GetState( void )
-{
-	return m_iState;
-}
-
 void CFade::Think( void )
 {
 	if ( m_iState != STATE_TURN_ON )
@@ -1948,6 +2045,12 @@ class CMessage : public CPointEntity
 
   private:
 };
+
+// NEW in DoD: re-arm once-only messages each round.
+void CMessage::RoundRespawn( void )
+{
+	m_iMsgEnabled = 1;
+}
 
 LINK_ENTITY_TO_CLASS( env_message, CMessage );
 
@@ -2027,6 +2130,13 @@ void CMessage::KeyValue( KeyValueData *pkvd )
 	}
 	else
 		pkvd->fHandled = FALSE;
+}
+
+BOOL CMessage::CanFireForActivator( CBaseEntity *pActivator )
+{
+	if ( m_iszMaster )
+		return UTIL_IsMasterTriggered( m_iszMaster, pActivator );
+	return TRUE;
 }
 
 void CMessage::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
@@ -2129,241 +2239,6 @@ void CEnvFunnel::Spawn( void )
 	pev->effects = EF_NODRAW;
 }
 
-//=========================================================
-// Beverage Dispenser
-// overloaded pev->frags, is now a flag for whether or not a can is stuck in the dispenser.
-// overloaded pev->health, is now how many cans remain in the machine.
-//=========================================================
-class CEnvBeverage : public CBaseDelay
-{
-  public:
-	void Spawn( void );
-	void Precache( void );
-	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	virtual STATE GetState( void );
-};
-
-void CEnvBeverage ::Precache( void )
-{
-	PRECACHE_MODEL( "models/can.mdl" );
-	PRECACHE_SOUND( "weapons/g_bounce3.wav" );
-}
-
-LINK_ENTITY_TO_CLASS( env_beverage, CEnvBeverage );
-
-void CEnvBeverage::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{
-	if ( pev->frags != 0 || pev->health <= 0 )
-	{
-		// no more cans while one is waiting in the dispenser, or if I'm out of cans.
-		return;
-	}
-
-	CBaseEntity *pCan = CBaseEntity::Create( "item_sodacan", pev->origin, pev->angles, edict() );
-
-	if ( pev->skin == 6 )
-	{
-		// random
-		pCan->pev->skin = RANDOM_LONG( 0, 5 );
-	}
-	else
-	{
-		pCan->pev->skin = pev->skin;
-	}
-
-	pev->frags = 1;
-	pev->health--;
-
-	//SetThink (SUB_Remove);
-	//pev->nextthink = gpGlobals->time;
-}
-
-void CEnvBeverage::Spawn( void )
-{
-	Precache();
-	pev->solid = SOLID_NOT;
-	pev->effects = EF_NODRAW;
-	pev->frags = 0;
-
-	if ( pev->health == 0 )
-	{
-		pev->health = 10;
-	}
-}
-
-STATE CEnvBeverage::GetState( void )
-{
-	return ( pev->health > 0 ) ? STATE_ON : STATE_OFF;
-}
-
-//=========================================================
-// Soda can
-//=========================================================
-class CItemSoda : public CBaseEntity
-{
-  public:
-	void Spawn( void );
-	void Precache( void );
-	void EXPORT CanThink( void );
-	void EXPORT CanTouch( CBaseEntity *pOther );
-};
-
-void CItemSoda ::Precache( void ) {}
-
-LINK_ENTITY_TO_CLASS( item_sodacan, CItemSoda );
-
-void CItemSoda::Spawn( void )
-{
-	Precache();
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_TOSS;
-
-	SET_MODEL( ENT( pev ), "models/can.mdl" );
-	UTIL_SetSize( pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ) );
-
-	SetThink( &CItemSoda::CanThink );
-	pev->nextthink = gpGlobals->time + 0.5;
-}
-
-void CItemSoda::CanThink( void )
-{
-	EMIT_SOUND( ENT( pev ), CHAN_WEAPON, "weapons/g_bounce3.wav", 1, ATTN_NORM );
-
-	pev->solid = SOLID_TRIGGER;
-	UTIL_SetSize( pev, Vector( -8, -8, 0 ), Vector( 8, 8, 8 ) );
-	SetThink( NULL );
-	SetTouch( &CItemSoda::CanTouch );
-}
-
-void CItemSoda::CanTouch( CBaseEntity *pOther )
-{
-	if ( !pOther->IsPlayer() )
-	{
-		return;
-	}
-
-	// spoit sound here
-
-	pOther->TakeHealth( 1, DMG_GENERIC );  // a bit of health.
-
-	if ( !FNullEnt( pev->owner ) )
-	{
-		// tell the machine the can was taken
-		pev->owner->v.frags = 0;
-	}
-
-	pev->solid = SOLID_NOT;
-	pev->movetype = MOVETYPE_NONE;
-	pev->effects = EF_NODRAW;
-	SetTouch( NULL );
-	SetThink( &CItemSoda::SUB_Remove );
-	pev->nextthink = gpGlobals->time;
-}
-void CBubbling::RoundRespawn( void )
-{
-	Precache();
-	SET_MODEL( ENT( pev ), STRING( pev->model ) );
-	pev->solid = SOLID_NOT;
-	pev->renderamt = 0;
-	pev->rendermode = kRenderTransTexture;
-	int speed = pev->speed > 0 ? (int) pev->speed : (int) -pev->speed;
-	pev->rendercolor.x = ( speed >> 8 );
-	pev->rendercolor.y = ( speed & 255 );
-	pev->rendercolor.z = ( pev->speed < 0 ) ? 1 : 0;
-	if ( FBitSet( pev->spawnflags, SF_BUBBLING_START_OFF ) )
-	{
-		SetThink( NULL );
-		m_state = STATE_OFF;
-	}
-	else
-	{
-		SetThink( &CBubbling::FizzThink );
-		pev->nextthink = gpGlobals->time + 2.0;
-		m_state = STATE_ON;
-	}
-}
-void CSprite::RoundRespawn( void )
-{
-	Precache();
-	SET_MODEL( ENT( pev ), STRING( pev->model ) );
-	m_maxFrame = (float) MODEL_FRAMES( pev->modelindex ) - 1;
-	if ( !FStringNull( pev->targetname ) && !FBitSet( pev->spawnflags, SF_SPRITE_STARTOFF ) )
-	{
-		pev->effects |= EF_NODRAW;
-		pev->nextthink = 0;
-		return;
-	}
-	pev->effects &= ~EF_NODRAW;
-	if ( m_maxFrame > 1.0 && pev->framerate != 0 )
-	{
-		SetThink( &CSprite::AnimateThink );
-		pev->nextthink = gpGlobals->time;
-		m_lastTime = gpGlobals->time;
-	}
-	pev->frame = 0;
-}
-// NEW in DoD.
-void CFade::RoundRespawn( void )
-{
-	m_iState = STATE_OFF;
-}
-// NEW in DoD: re-arm once-only messages each round.
-void CMessage::RoundRespawn( void )
-{
-	m_iMsgEnabled = 1;
-}
-BOOL CMessage::CanFireForActivator( CBaseEntity *pActivator )
-{
-	if ( m_iszMaster )
-		return UTIL_IsMasterTriggered( m_iszMaster, pActivator );
-	return TRUE;
-}
-void CLightning::BeamUpdatePoints( void )
-{
-	CBaseEntity *pStart = UTIL_FindEntityByTargetname( NULL, STRING( m_iszStartEntity ) );
-	CBaseEntity *pEnd = UTIL_FindEntityByTargetname( NULL, STRING( m_iszEndEntity ) );
-	int pointStart = IsPointEntity( pStart );
-	int pointEnd = IsPointEntity( pEnd );
-	if ( !pointStart && !pointEnd )
-	{
-		pev->rendermode = ( pev->rendermode & 0xF0 ) | BEAM_ENTS;
-		unsigned short idxStart = ENTINDEX( pStart->edict() );
-		pev->sequence = ( idxStart & 0xFFF ) | ( ( pev->sequence & 0xF000 ) << 12 );
-		pev->owner = pStart->edict();
-	}
-	else if ( pointStart && pointEnd )
-	{
-		pev->rendermode &= 0xF0;
-		pev->origin = pStart->pev->origin;
-		pev->angles = pEnd->pev->origin;
-		RelinkBeam();
-		return;
-	}
-	else
-	{
-		if ( !pointStart )
-		{
-			CBaseEntity *pTemp = pStart;
-			pStart = pEnd;
-			pEnd = pTemp;
-			int s = pointStart;
-			pointStart = pointEnd;
-			pointEnd = s;
-		}
-		pev->rendermode = ( pev->rendermode & 0xF0 ) | BEAM_ENTPOINT;
-		pev->origin = pStart->pev->origin;
-	}
-	unsigned short idx = ENTINDEX( pEnd->edict() );
-	pev->skin = ( idx & 0xFFF ) | ( ( pev->skin & 0xF000 ) << 12 );
-	pev->aiment = pEnd->edict();
-	RelinkBeam();
-}
-
-STATE CLightning::GetState( void )
-{
-	return ( m_active == 0 ) ? STATE_ON : STATE_OFF;
-}
-
 // ============================================================================
 // DoD-only effect entities (absent from the HL SDK): env_rain, env_warpball,
 // env_model, env_rocketshooter.
@@ -2399,6 +2274,11 @@ class CEnvRain : public CBaseEntity
 	float m_flUpdateTime;
 };
 
+STATE CEnvRain::GetState( void )
+{
+	return m_iState;
+}
+
 TYPEDESCRIPTION CEnvRain::m_SaveData[] = {
 	DEFINE_FIELD( CEnvRain, m_iState, FIELD_INTEGER ),
 	DEFINE_FIELD( CEnvRain, m_spriteTexture, FIELD_INTEGER ),
@@ -2414,104 +2294,9 @@ IMPLEMENT_SAVERESTORE( CEnvRain, CBaseEntity );
 
 LINK_ENTITY_TO_CLASS( env_rain, CEnvRain );
 
-void CEnvRain::Spawn( void )
-{
-	Precache();
-	SET_MODEL( ENT( pev ), STRING( pev->model ) );
-	pev->solid = SOLID_NOT;
-	pev->effects |= EF_NODRAW;
-
-	if ( pev->rendercolor == g_vecZero )
-	{
-		pev->rendercolor.x = 255;
-		pev->rendercolor.y = 255;
-		pev->rendercolor.z = 255;
-	}
-
-	if ( m_pitch == 0 )
-	{
-		if ( pev->angles.x == 0 )
-			pev->angles.x = 90;
-	}
-	else
-	{
-		pev->angles.x = (float) m_pitch;
-	}
-
-	if ( m_burstSize == 0 )
-		m_burstSize = 2;
-
-	if ( FBitSet( pev->spawnflags, SF_RAIN_START_OFF ) )
-	{
-		m_iState = STATE_OFF;
-	}
-	else
-	{
-		m_iState = STATE_ON;
-		pev->nextthink = gpGlobals->time + 0.1;
-	}
-}
-
 void CEnvRain::Precache( void )
 {
 	m_spriteTexture = PRECACHE_MODEL( (char *) STRING( m_iszSpriteName ) );
-}
-
-void CEnvRain::Think( void )
-{
-	UTIL_MakeVectors( pev->angles );
-	float t = pev->size.z / gpGlobals->v_forward.z;
-	int repeats = ( m_flUpdateTime == 0 ) ? m_burstSize * 3 : m_burstSize;
-
-	for ( int i = 0; i < repeats; i++ )
-	{
-		Vector vecSrc;
-		vecSrc.x = pev->mins.x + RANDOM_LONG( 0, (int) pev->size.x );
-		vecSrc.y = pev->mins.y + RANDOM_LONG( 0, (int) pev->size.y );
-		vecSrc.z = pev->maxs.z;
-		Vector vecDest = vecSrc - gpGlobals->v_forward * t;
-
-		MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
-		WRITE_BYTE( TE_BEAMPOINTS );
-		WRITE_COORD( vecDest.x );
-		WRITE_COORD( vecDest.y );
-		WRITE_COORD( vecDest.z );
-		WRITE_COORD( vecSrc.x );
-		WRITE_COORD( vecSrc.y );
-		WRITE_COORD( vecSrc.z );
-		WRITE_SHORT( m_spriteTexture );
-		WRITE_BYTE( 0 );
-		WRITE_BYTE( 0 );
-		WRITE_BYTE( (int) ( 30.0 * m_flUpdateTime ) );
-		WRITE_BYTE( m_dripSize );
-		WRITE_BYTE( 5 );
-		WRITE_BYTE( (int) pev->rendercolor.x );
-		WRITE_BYTE( (int) pev->rendercolor.y );
-		WRITE_BYTE( (int) pev->rendercolor.z );
-		WRITE_BYTE( m_brightness );
-		WRITE_BYTE( RANDOM_LONG( m_minDripSpeed, m_maxDripSpeed ) );
-		MESSAGE_END();
-	}
-
-	if ( m_flUpdateTime != 0 )
-		pev->nextthink = gpGlobals->time + m_flUpdateTime;
-}
-
-void CEnvRain::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{
-	if ( ShouldToggle( useType, m_iState ) )
-	{
-		if ( m_iState == STATE_ON )
-		{
-			m_iState = STATE_OFF;
-			pev->nextthink = -1;
-		}
-		else
-		{
-			m_iState = STATE_ON;
-			pev->nextthink = gpGlobals->time + 0.1;
-		}
-	}
 }
 
 void CEnvRain::KeyValue( KeyValueData *pkvd )
@@ -2559,9 +2344,99 @@ void CEnvRain::KeyValue( KeyValueData *pkvd )
 	}
 }
 
-STATE CEnvRain::GetState( void )
+void CEnvRain::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	return m_iState;
+	if ( ShouldToggle( useType, m_iState ) )
+	{
+		if ( m_iState == STATE_ON )
+		{
+			m_iState = STATE_OFF;
+			pev->nextthink = -1;
+		}
+		else
+		{
+			m_iState = STATE_ON;
+			pev->nextthink = gpGlobals->time + 0.1;
+		}
+	}
+}
+
+void CEnvRain::Spawn( void )
+{
+	Precache();
+	SET_MODEL( ENT( pev ), STRING( pev->model ) );
+	pev->solid = SOLID_NOT;
+	pev->effects |= EF_NODRAW;
+
+	if ( pev->rendercolor == g_vecZero )
+	{
+		pev->rendercolor.x = 255;
+		pev->rendercolor.y = 255;
+		pev->rendercolor.z = 255;
+	}
+
+	if ( m_pitch == 0 )
+	{
+		if ( pev->angles.x == 0 )
+			pev->angles.x = 90;
+	}
+	else
+	{
+		pev->angles.x = (float) m_pitch;
+	}
+
+	if ( m_burstSize == 0 )
+		m_burstSize = 2;
+
+	if ( FBitSet( pev->spawnflags, SF_RAIN_START_OFF ) )
+	{
+		m_iState = STATE_OFF;
+	}
+	else
+	{
+		m_iState = STATE_ON;
+		pev->nextthink = gpGlobals->time + 0.1;
+	}
+}
+
+void CEnvRain::Think( void )
+{
+	UTIL_MakeVectors( pev->angles );
+	float t = pev->size.z / gpGlobals->v_forward.z;
+	int repeats = ( m_flUpdateTime == 0 ) ? m_burstSize * 3 : m_burstSize;
+
+	for ( int i = 0; i < repeats; i++ )
+	{
+		Vector vecSrc;
+		vecSrc.x = pev->mins.x + RANDOM_LONG( 0, (int) pev->size.x );
+		vecSrc.y = pev->mins.y + RANDOM_LONG( 0, (int) pev->size.y );
+		vecSrc.z = pev->maxs.z;
+		Vector vecDest = vecSrc - gpGlobals->v_forward * t;
+
+		MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
+		WRITE_BYTE( TE_BEAMPOINTS );
+		WRITE_COORD( vecDest.x );
+		WRITE_COORD( vecDest.y );
+		WRITE_COORD( vecDest.z );
+		WRITE_COORD( vecSrc.x );
+		WRITE_COORD( vecSrc.y );
+		WRITE_COORD( vecSrc.z );
+		WRITE_SHORT( m_spriteTexture );
+		WRITE_BYTE( 0 );
+		WRITE_BYTE( 0 );
+		WRITE_BYTE( (int) ( 30.0 * m_flUpdateTime ) );
+		WRITE_BYTE( m_dripSize );
+		WRITE_BYTE( 5 );
+		WRITE_BYTE( (int) pev->rendercolor.x );
+		WRITE_BYTE( (int) pev->rendercolor.y );
+		WRITE_BYTE( (int) pev->rendercolor.z );
+		WRITE_BYTE( m_brightness );
+		WRITE_BYTE( RANDOM_LONG( m_minDripSpeed, m_maxDripSpeed ) );
+		MESSAGE_END();
+	}
+
+	if ( m_flUpdateTime != 0 )
+		pev->nextthink = gpGlobals->time + m_flUpdateTime;
 }
 
 // ---- CEnvWarpBall (env_warpball) ----
@@ -2574,12 +2449,12 @@ class CEnvWarpBall : public CBaseEntity
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 };
 
-LINK_ENTITY_TO_CLASS( env_warpball, CEnvWarpBall );
-
 void CEnvWarpBall::Spawn( void )
 {
 	Precache();
 }
+
+LINK_ENTITY_TO_CLASS( env_warpball, CEnvWarpBall );
 
 void CEnvWarpBall::Precache( void )
 {
@@ -2588,12 +2463,6 @@ void CEnvWarpBall::Precache( void )
 	PRECACHE_MODEL( "sprites/XFlare1.spr" );
 	PRECACHE_SOUND( "debris/beamstart2.wav" );
 	PRECACHE_SOUND( "debris/beamstart7.wav" );
-}
-
-void CEnvWarpBall::Think( void )
-{
-	EMIT_SOUND_DYN( ENT( pev ), CHAN_ITEM, "debris/beamstart7.wav", 1.0, ATTN_NORM, 0, 100 );
-	SUB_UseTargets( this, USE_TOGGLE, 0 );
 }
 
 void CEnvWarpBall::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
@@ -2659,6 +2528,143 @@ void CEnvWarpBall::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 	pev->nextthink = gpGlobals->time + 0.5;
 }
 
+void CEnvWarpBall::Think( void )
+{
+	EMIT_SOUND_DYN( ENT( pev ), CHAN_ITEM, "debris/beamstart7.wav", 1.0, ATTN_NORM, 0, 100 );
+	SUB_UseTargets( this, USE_TOGGLE, 0 );
+}
+
+//=========================================================
+// Beverage Dispenser
+// overloaded pev->frags, is now a flag for whether or not a can is stuck in the dispenser.
+// overloaded pev->health, is now how many cans remain in the machine.
+//=========================================================
+class CEnvBeverage : public CBaseDelay
+{
+  public:
+	void Spawn( void );
+	void Precache( void );
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	virtual STATE GetState( void );
+};
+
+STATE CEnvBeverage::GetState( void )
+{
+	return ( pev->health > 0 ) ? STATE_ON : STATE_OFF;
+}
+
+void CEnvBeverage ::Precache( void )
+{
+	PRECACHE_MODEL( "models/can.mdl" );
+	PRECACHE_SOUND( "weapons/g_bounce3.wav" );
+}
+
+LINK_ENTITY_TO_CLASS( env_beverage, CEnvBeverage );
+
+void CEnvBeverage::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	if ( pev->frags != 0 || pev->health <= 0 )
+	{
+		// no more cans while one is waiting in the dispenser, or if I'm out of cans.
+		return;
+	}
+
+	CBaseEntity *pCan = CBaseEntity::Create( "item_sodacan", pev->origin, pev->angles, edict() );
+
+	if ( pev->skin == 6 )
+	{
+		// random
+		pCan->pev->skin = RANDOM_LONG( 0, 5 );
+	}
+	else
+	{
+		pCan->pev->skin = pev->skin;
+	}
+
+	pev->frags = 1;
+	pev->health--;
+
+	//SetThink (SUB_Remove);
+	//pev->nextthink = gpGlobals->time;
+}
+
+void CEnvBeverage::Spawn( void )
+{
+	Precache();
+	pev->solid = SOLID_NOT;
+	pev->effects = EF_NODRAW;
+	pev->frags = 0;
+
+	if ( pev->health == 0 )
+	{
+		pev->health = 10;
+	}
+}
+
+//=========================================================
+// Soda can
+//=========================================================
+class CItemSoda : public CBaseEntity
+{
+  public:
+	void Spawn( void );
+	void Precache( void );
+	void EXPORT CanThink( void );
+	void EXPORT CanTouch( CBaseEntity *pOther );
+};
+
+void CItemSoda ::Precache( void ) {}
+
+LINK_ENTITY_TO_CLASS( item_sodacan, CItemSoda );
+
+void CItemSoda::Spawn( void )
+{
+	Precache();
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_TOSS;
+
+	SET_MODEL( ENT( pev ), "models/can.mdl" );
+	UTIL_SetSize( pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ) );
+
+	SetThink( &CItemSoda::CanThink );
+	pev->nextthink = gpGlobals->time + 0.5;
+}
+
+void CItemSoda::CanThink( void )
+{
+	EMIT_SOUND( ENT( pev ), CHAN_WEAPON, "weapons/g_bounce3.wav", 1, ATTN_NORM );
+
+	pev->solid = SOLID_TRIGGER;
+	UTIL_SetSize( pev, Vector( -8, -8, 0 ), Vector( 8, 8, 8 ) );
+	SetThink( NULL );
+	SetTouch( &CItemSoda::CanTouch );
+}
+
+void CItemSoda::CanTouch( CBaseEntity *pOther )
+{
+	if ( !pOther->IsPlayer() )
+	{
+		return;
+	}
+
+	// spoit sound here
+
+	pOther->TakeHealth( 1, DMG_GENERIC );  // a bit of health.
+
+	if ( !FNullEnt( pev->owner ) )
+	{
+		// tell the machine the can was taken
+		pev->owner->v.frags = 0;
+	}
+
+	pev->solid = SOLID_NOT;
+	pev->movetype = MOVETYPE_NONE;
+	pev->effects = EF_NODRAW;
+	SetTouch( NULL );
+	SetThink( &CItemSoda::SUB_Remove );
+	pev->nextthink = gpGlobals->time;
+}
+
 // ---- CEnvModel (env_model) ----
 #define SF_ENVMODEL_OFF 0x0001		// env_model is switched off (GetState reports STATE_OFF)
 #define SF_ENVMODEL_DROPT_OFLOOR 0x0002
@@ -2698,82 +2704,6 @@ TYPEDESCRIPTION CEnvModel::m_SaveData[] = {
 IMPLEMENT_SAVERESTORE( CEnvModel, CBaseAnimating );
 
 LINK_ENTITY_TO_CLASS( env_model, CEnvModel );
-
-void CEnvModel::Spawn( void )
-{
-	Precache();
-
-	if ( FStringNull( pev->targetname ) )
-	{
-		UTIL_Remove( this );
-		return;
-	}
-
-	SET_MODEL( ENT( pev ), STRING( pev->model ) );
-	UTIL_SetOrigin( pev, pev->origin );
-	m_rsorigin = pev->origin;
-
-	if ( FBitSet( pev->spawnflags, SF_ENVMODEL_DROPT_OFLOOR ) )
-	{
-		pev->origin.z += 1;
-		DROP_TO_FLOOR( ENT( pev ) );
-	}
-
-	SetBoneController( 0, 0.5 );
-	SetBoneController( 1, 0.5 );
-	SetBoneController( 2, 0.5 );
-	SetBoneController( 3, 0.5 );
-	SetSequence();
-	pev->nextthink = gpGlobals->time + 0.1;
-
-	RoundStore();
-}
-
-void CEnvModel::Precache( void )
-{
-	PRECACHE_MODEL( (char *) STRING( pev->model ) );
-}
-
-void CEnvModel::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{
-	if ( ShouldToggle( useType, FBitSet( pev->spawnflags, 1 ) ? FALSE : TRUE ) )
-	{
-		if ( FBitSet( pev->spawnflags, 1 ) )
-			ClearBits( pev->spawnflags, 1 );
-		else
-			SetBits( pev->spawnflags, 1 );
-
-		SetSequence();
-		pev->nextthink = gpGlobals->time + 0.1;
-	}
-}
-
-void CEnvModel::Think( void )
-{
-	StudioFrameAdvance( 0.0 );
-
-	if ( m_fSequenceFinished && !m_fSequenceLoops )
-	{
-		int action = FBitSet( pev->spawnflags, 1 ) ? m_iAction_Off : m_iAction_On;
-
-		if ( action != 2 )
-			return;
-
-		if ( FBitSet( pev->spawnflags, 1 ) )
-			ClearBits( pev->spawnflags, 1 );
-		else
-			SetBits( pev->spawnflags, 1 );
-
-		SetSequence();
-	}
-
-	pev->nextthink = gpGlobals->time + 0.1;
-}
-
-STATE CEnvModel::GetState( void )
-{
-	return ( pev->spawnflags & SF_ENVMODEL_OFF ) ? STATE_OFF : STATE_ON;
-}
 
 void CEnvModel::KeyValue( KeyValueData *pkvd )
 {
@@ -2828,6 +2758,94 @@ void CEnvModel::KeyValue( KeyValueData *pkvd )
 	}
 }
 
+void CEnvModel::Spawn( void )
+{
+	Precache();
+
+	if ( FStringNull( pev->targetname ) )
+	{
+		UTIL_Remove( this );
+		return;
+	}
+
+	SET_MODEL( ENT( pev ), STRING( pev->model ) );
+	UTIL_SetOrigin( pev, pev->origin );
+	m_rsorigin = pev->origin;
+
+	if ( FBitSet( pev->spawnflags, SF_ENVMODEL_DROPT_OFLOOR ) )
+	{
+		pev->origin.z += 1;
+		DROP_TO_FLOOR( ENT( pev ) );
+	}
+
+	SetBoneController( 0, 0.5 );
+	SetBoneController( 1, 0.5 );
+	SetBoneController( 2, 0.5 );
+	SetBoneController( 3, 0.5 );
+	SetSequence();
+	pev->nextthink = gpGlobals->time + 0.1;
+
+	RoundStore();
+}
+
+void CEnvModel::RoundRespawn( void )
+{
+	Precache();
+	SET_MODEL( ENT( pev ), STRING( pev->model ) );
+	SetBoneController( 0, 0.5 );
+	SetBoneController( 1, 0.5 );
+	SetBoneController( 2, 0.5 );
+	SetBoneController( 3, 0.5 );
+	SetSequence();
+	pev->nextthink = gpGlobals->time + 0.1;
+}
+
+void CEnvModel::Precache( void )
+{
+	PRECACHE_MODEL( (char *) STRING( pev->model ) );
+}
+
+STATE CEnvModel::GetState( void )
+{
+	return ( pev->spawnflags & SF_ENVMODEL_OFF ) ? STATE_OFF : STATE_ON;
+}
+
+void CEnvModel::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	if ( ShouldToggle( useType, FBitSet( pev->spawnflags, 1 ) ? FALSE : TRUE ) )
+	{
+		if ( FBitSet( pev->spawnflags, 1 ) )
+			ClearBits( pev->spawnflags, 1 );
+		else
+			SetBits( pev->spawnflags, 1 );
+
+		SetSequence();
+		pev->nextthink = gpGlobals->time + 0.1;
+	}
+}
+
+void CEnvModel::Think( void )
+{
+	StudioFrameAdvance( 0.0 );
+
+	if ( m_fSequenceFinished && !m_fSequenceLoops )
+	{
+		int action = FBitSet( pev->spawnflags, 1 ) ? m_iAction_Off : m_iAction_On;
+
+		if ( action != 2 )
+			return;
+
+		if ( FBitSet( pev->spawnflags, 1 ) )
+			ClearBits( pev->spawnflags, 1 );
+		else
+			SetBits( pev->spawnflags, 1 );
+
+		SetSequence();
+	}
+
+	pev->nextthink = gpGlobals->time + 0.1;
+}
+
 void CEnvModel::SetSequence( void )
 {
 	string_t iszSeq = FBitSet( pev->spawnflags, 1 ) ? m_iszSequence_Off : m_iszSequence_On;
@@ -2855,18 +2873,6 @@ void CEnvModel::SetSequence( void )
 		m_fSequenceLoops = ( m_iAction_Off == 1 ) ? TRUE : FALSE;
 	else
 		m_fSequenceLoops = ( m_iAction_On == 1 ) ? TRUE : FALSE;
-}
-
-void CEnvModel::RoundRespawn( void )
-{
-	Precache();
-	SET_MODEL( ENT( pev ), STRING( pev->model ) );
-	SetBoneController( 0, 0.5 );
-	SetBoneController( 1, 0.5 );
-	SetBoneController( 2, 0.5 );
-	SetBoneController( 3, 0.5 );
-	SetSequence();
-	pev->nextthink = gpGlobals->time + 0.1;
 }
 
 // ---- CRocketShooter (env_rocketshooter) ----
@@ -2900,16 +2906,6 @@ void CRocketShooter::Precache( void )
 	UTIL_PrecacheOther( "shell_pschreck" );
 }
 
-void CRocketShooter::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
-{
-	if ( m_iNumRockets > 0 )
-	{
-		SetThink( &CRocketShooter::FireThink );
-		pev->nextthink = gpGlobals->time;
-		m_iRocketsLeft = m_iNumRockets;
-	}
-}
-
 void CRocketShooter::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "rockettype" ) )
@@ -2937,6 +2933,16 @@ void CRocketShooter::KeyValue( KeyValueData *pkvd )
 	else
 	{
 		pkvd->fHandled = FALSE;
+	}
+}
+
+void CRocketShooter::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+{
+	if ( m_iNumRockets > 0 )
+	{
+		SetThink( &CRocketShooter::FireThink );
+		pev->nextthink = gpGlobals->time;
+		m_iRocketsLeft = m_iNumRockets;
 	}
 }
 

@@ -10,47 +10,33 @@
 #include "dod_gamerules.h"
 #include "skill.h"
 #include "items.h"
+
+CSPDoDRules::CSPDoDRules( void )
+{
+	CGameRules::RefreshSkillData();
+}
+
+void CSPDoDRules::Init( void ) {}
+
 // SDK-IDENTICAL: dlls/singleplay_gamerules.cpp CHalfLifeRules Think empty
 void CSPDoDRules::Think( void )
 {
 	return;
 }
-void CSPDoDRules::PlayerKilled( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags )
+
+BOOL CSPDoDRules::IsMultiplayer( void )
 {
-	return;
+	return FALSE;
 }
-void CSPDoDRules::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags )
+
+BOOL CSPDoDRules::IsDeathmatch( void )
 {
-	return;
+	return FALSE;
 }
-void CSPDoDRules::PlayerDeathThink( CBasePlayer *pPlayer )
+
+BOOL CSPDoDRules::IsCoOp( void )
 {
-	return;
-}
-void CSPDoDRules::PlayerThink( CBasePlayer *pPlayer )
-{
-	return;
-}
-void CSPDoDRules::PlayerSpawn( CBasePlayer *pPlayer )
-{
-	CBaseEntity *e = NULL;
-	while ( ( e = UTIL_FindEntityByClassname( e, "game_player_equip" ) ) != NULL )
-		e->Touch( pPlayer );
-	pPlayer->RemoveAllWeaponFlags();
-	pPlayer->m_iClassSpeed = 600;
-	pPlayer->SetSpeed( 600 );
-}
-CSPDoDRules::CSPDoDRules( void )
-{
-	CGameRules::RefreshSkillData();
-}
-void CSPDoDRules::InitHUD( CBasePlayer *pPlayer )
-{
-	return;
-}
-void CSPDoDRules::ClientDisconnected( edict_t *pClient )
-{
-	return;
+	return FALSE;
 }
 
 BOOL CSPDoDRules::FShouldSwitchWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon )
@@ -61,62 +47,179 @@ BOOL CSPDoDRules::FShouldSwitchWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pW
 		return FALSE;
 	return TRUE;
 }
+
+BOOL CSPDoDRules::GetNextBestWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pCurrentWeapon )
+{
+	return FALSE;
+}
+
+BOOL CSPDoDRules::ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress, char *szRejectReason )
+{
+	return TRUE;
+}
+
+void CSPDoDRules::InitHUD( CBasePlayer *pPlayer )
+{
+	return;
+}
+void CSPDoDRules::ClientDisconnected( edict_t *pClient )
+{
+	return;
+}
+
 float CSPDoDRules::FlPlayerFallDamage( CBasePlayer *pPlayer )
 {
 	pPlayer->m_flFallVelocity -= 500.0f;
 	return pPlayer->m_flFallVelocity * 100.0f / 400.0f;
 }
-Vector CSPDoDRules::VecWeaponRespawnSpot( CBasePlayerItem *pWeapon )
+
+void CSPDoDRules::PlayerSpawn( CBasePlayer *pPlayer )
 {
-	return pWeapon->pev->origin;
+	CBaseEntity *e = NULL;
+	while ( ( e = UTIL_FindEntityByClassname( e, "game_player_equip" ) ) != NULL )
+		e->Touch( pPlayer );
+	pPlayer->RemoveAllWeaponFlags();
+	pPlayer->m_iClassSpeed = 600;
+	pPlayer->SetSpeed( 600 );
 }
-Vector CSPDoDRules::VecItemRespawnSpot( CItem *pItem )
-{
-	return pItem->pev->origin;
-}
-Vector CSPDoDRules::VecAmmoRespawnSpot( CBasePlayerAmmo *pAmmo )
-{
-	return pAmmo->pev->origin;
-}
+
 BOOL CSPDoDRules::AllowAutoTargetCrosshair( void )
 {
 	return ( g_iSkillLevel == SKILL_EASY );
 }
-BOOL CSPDoDRules::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon )
+
+void CSPDoDRules::PlayerThink( CBasePlayer *pPlayer )
 {
-	int wid = pWeapon->m_iId;
-	if ( wid == 4 || wid == 10 )
-		return FALSE;
-	if ( wid != 6 && wid != 8 && wid != 0x0c && wid != 0x0e && wid != 0x11 )
-	{
-		BOOL hasKnife = FALSE, hasSidearm = FALSE, hasPrimary = FALSE;
-		for ( int i = 0; i < 6; i++ )
-		{
-			for ( CBasePlayerItem *it = pPlayer->m_rgpPlayerItems[i]; it; it = it->m_pNext )
-			{
-				int fl = CBasePlayerItem::ItemInfoArray[it->m_iId].iFlags;
-				if ( fl & 0x20 ) hasKnife = TRUE;
-				if ( fl & 0x40 ) hasSidearm = TRUE;
-				if ( fl & 0x80 ) hasPrimary = TRUE;
-				if ( wid == it->m_iId )
-					return FALSE;
-			}
-		}
-		int myfl = CBasePlayerItem::ItemInfoArray[wid].iFlags;
-		if ( ( myfl & 0x20 ) && hasKnife )
-			return FALSE;
-		if ( ( myfl & 0x40 ) && hasSidearm )
-			return FALSE;
-		if ( ( myfl & 0x80 ) && hasPrimary )
-			return FALSE;
-		return TRUE;
-	}
-	return FALSE;
+	return;
 }
 
-// DoD event-id accessors on the single-player rules object (dod.so CSPDoDRules::*).
-// Single-player is vestigial in DoD; overrides return neutral values.
-unsigned short CSPDoDRules::Camera( void ) { return 0; }
+BOOL CSPDoDRules::FPlayerCanRespawn( CBasePlayer *pPlayer )
+{
+	return TRUE;
+}
+
+float CSPDoDRules::FlPlayerSpawnTime( CBasePlayer *pPlayer )
+{
+	return 0;
+}
+
+int CSPDoDRules::IPointsForKill( CBasePlayer *pAttacker, CBasePlayer *pKilled )
+{
+	return 1;
+}
+
+void CSPDoDRules::PlayerKilled( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags )
+{
+	return;
+}
+void CSPDoDRules::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags )
+{
+	return;
+}
+
+void CSPDoDRules::PlayerGotWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon )
+{
+}
+
+float CSPDoDRules::FlWeaponRespawnTime( CBasePlayerItem *pWeapon )
+{
+	return 0;
+}
+
+float CSPDoDRules::FlWeaponTryRespawn( CBasePlayerItem *pWeapon )
+{
+	return 0;
+}
+
+Vector CSPDoDRules::VecWeaponRespawnSpot( CBasePlayerItem *pWeapon )
+{
+	return pWeapon->pev->origin;
+}
+
+int CSPDoDRules::WeaponShouldRespawn( CBasePlayerItem *pWeapon )
+{
+	return 0;
+}
+
+BOOL CSPDoDRules::CanHaveItem( CBasePlayer *pPlayer, CItem *pItem )
+{
+	return TRUE;
+}
+
+void CSPDoDRules::PlayerGotItem( CBasePlayer *pPlayer, CItem *pItem )
+{
+}
+
+int CSPDoDRules::ItemShouldRespawn( CItem *pItem )
+{
+	return 0;
+}
+
+float CSPDoDRules::FlItemRespawnTime( CItem *pItem )
+{
+	return 0;
+}
+
+Vector CSPDoDRules::VecItemRespawnSpot( CItem *pItem )
+{
+	return pItem->pev->origin;
+}
+
+BOOL CSPDoDRules::IsAllowedToSpawn( CBaseEntity *pEntity )
+{
+	return TRUE;
+}
+
+void CSPDoDRules::PlayerGotAmmo( CBasePlayer *pPlayer, char *szName, int iCount )
+{
+}
+
+int CSPDoDRules::AmmoShouldRespawn( CBasePlayerAmmo *pAmmo )
+{
+	return 0;
+}
+
+float CSPDoDRules::FlAmmoRespawnTime( CBasePlayerAmmo *pAmmo )
+{
+	return 0;
+}
+
+Vector CSPDoDRules::VecAmmoRespawnSpot( CBasePlayerAmmo *pAmmo )
+{
+	return pAmmo->pev->origin;
+}
+
+float CSPDoDRules::FlHealthChargerRechargeTime( void )
+{
+	return 0;
+}
+
+int CSPDoDRules::DeadPlayerWeapons( CBasePlayer *pPlayer )
+{
+	return 0;
+}
+
+int CSPDoDRules::DeadPlayerAmmo( CBasePlayer *pPlayer )
+{
+	return 0;
+}
+
+int CSPDoDRules::PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget )
+{
+	return 0;
+}
+
+BOOL CSPDoDRules::FAllowMonsters( void )
+{
+	return TRUE;
+}
+
+int CSPDoDRules::RoundState( void ) { return 1; }
+void CSPDoDRules::SetRoundState( int iState ) {}
+void CSPDoDRules::SetRestartTime( float fTime ) {}
+int CSPDoDRules::TeamScores( int iTeam ) { return 1; }
+void CSPDoDRules::SetTeamScores( int iTeam, int iScore ) {}
+void CSPDoDRules::AddToTeamScores( int iTeam, int iScore ) {}
 unsigned short CSPDoDRules::usVoice( void ) { return 0; }
 unsigned short CSPDoDRules::bodyDamage( void ) { return 0; }
 unsigned short CSPDoDRules::roundRestartSound( void ) { return 0; }
@@ -153,143 +256,56 @@ void CSPDoDRules::SetBubbleTrails( short s ) {}
 void CSPDoDRules::SetBubbles( short s ) {}
 void CSPDoDRules::SetShards( short s ) {}
 void CSPDoDRules::SetExplosion( short s ) {}
+int CSPDoDRules::ReturnGameRules( void ) { return 0; }
 void CSPDoDRules::SetPopHelmet( short s ) {}
 void CSPDoDRules::SetRoundReset( short s ) {}
 void CSPDoDRules::SetRocketTrail( short s ) {}
-int CSPDoDRules::RoundState( void ) { return 1; }
-int CSPDoDRules::TeamScores( int iTeam ) { return 1; }
-float CSPDoDRules::getWaveTime( int iTeam ) { return 0.0f; }
-void CSPDoDRules::setWaveTime( int iTeam, float fTime ) {}
-float CSPDoDRules::GetMaxWaveTime( int nTeam ) { return 0.0f; }
-void CSPDoDRules::setMapTime( void ) {}
-void CSPDoDRules::SetRoundState( int iState ) {}
-void CSPDoDRules::SetTeamScores( int iTeam, int iScore ) {}
-void CSPDoDRules::SendTeamScores( int iTeam ) {}
-void CSPDoDRules::SetRestartTime( float fTime ) {}
-void CSPDoDRules::AddToTeamScores( int iTeam, int iScore ) {}
 void CSPDoDRules::SetMapChangeFromTime( int iTime ) {}
-int CSPDoDRules::ReturnGameRules( void ) { return 0; }
-void CSPDoDRules::Init( void ) {}
+float CSPDoDRules::GetMaxWaveTime( int nTeam ) { return 0.0f; }
+float CSPDoDRules::getWaveTime( int iTeam ) { return 0.0f; }
+void CSPDoDRules::SendTeamScores( int iTeam ) {}
 void CSPDoDRules::VoteKick( CBasePlayer *pPlayer, int id, bool b ) {}
+void CSPDoDRules::setWaveTime( int iTeam, float fTime ) {}
 
-BOOL CSPDoDRules::CanHaveItem( CBasePlayer *pPlayer, CItem *pItem )
+BOOL CSPDoDRules::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon )
 {
-	return TRUE;
-}
-
-BOOL CSPDoDRules::IsDeathmatch( void )
-{
+	int wid = pWeapon->m_iId;
+	if ( wid == 4 || wid == 10 )
+		return FALSE;
+	if ( wid != 6 && wid != 8 && wid != 0x0c && wid != 0x0e && wid != 0x11 )
+	{
+		BOOL hasKnife = FALSE, hasSidearm = FALSE, hasPrimary = FALSE;
+		for ( int i = 0; i < 6; i++ )
+		{
+			for ( CBasePlayerItem *it = pPlayer->m_rgpPlayerItems[i]; it; it = it->m_pNext )
+			{
+				int fl = CBasePlayerItem::ItemInfoArray[it->m_iId].iFlags;
+				if ( fl & 0x20 ) hasKnife = TRUE;
+				if ( fl & 0x40 ) hasSidearm = TRUE;
+				if ( fl & 0x80 ) hasPrimary = TRUE;
+				if ( wid == it->m_iId )
+					return FALSE;
+			}
+		}
+		int myfl = CBasePlayerItem::ItemInfoArray[wid].iFlags;
+		if ( ( myfl & 0x20 ) && hasKnife )
+			return FALSE;
+		if ( ( myfl & 0x40 ) && hasSidearm )
+			return FALSE;
+		if ( ( myfl & 0x80 ) && hasPrimary )
+			return FALSE;
+		return TRUE;
+	}
 	return FALSE;
 }
 
-BOOL CSPDoDRules::IsMultiplayer( void )
+void CSPDoDRules::setMapTime( void ) {}
+
+void CSPDoDRules::PlayerDeathThink( CBasePlayer *pPlayer )
 {
-	return FALSE;
+	return;
 }
 
-void CSPDoDRules::PlayerGotAmmo( CBasePlayer *pPlayer, char *szName, int iCount )
-{
-}
-
-void CSPDoDRules::PlayerGotItem( CBasePlayer *pPlayer, CItem *pItem )
-{
-}
-
-int CSPDoDRules::DeadPlayerAmmo( CBasePlayer *pPlayer )
-{
-	return 0;
-}
-
-BOOL CSPDoDRules::FAllowMonsters( void )
-{
-	return TRUE;
-}
-
-int CSPDoDRules::IPointsForKill( CBasePlayer *pAttacker, CBasePlayer *pKilled )
-{
-	return 1;
-}
-
-BOOL CSPDoDRules::ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress, char *szRejectReason )
-{
-	return TRUE;
-}
-
-void CSPDoDRules::PlayerGotWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon )
-{
-}
-
-BOOL CSPDoDRules::IsAllowedToSpawn( CBaseEntity *pEntity )
-{
-	return TRUE;
-}
-
-int CSPDoDRules::AmmoShouldRespawn( CBasePlayerAmmo *pAmmo )
-{
-	return 0;
-}
-
-int CSPDoDRules::DeadPlayerWeapons( CBasePlayer *pPlayer )
-{
-	return 0;
-}
-
-BOOL CSPDoDRules::FPlayerCanRespawn( CBasePlayer *pPlayer )
-{
-	return TRUE;
-}
-
-float CSPDoDRules::FlAmmoRespawnTime( CBasePlayerAmmo *pAmmo )
-{
-	return 0;
-}
-
-float CSPDoDRules::FlItemRespawnTime( CItem *pItem )
-{
-	return 0;
-}
-
-float CSPDoDRules::FlPlayerSpawnTime( CBasePlayer *pPlayer )
-{
-	return 0;
-}
-
-BOOL CSPDoDRules::GetNextBestWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pCurrentWeapon )
-{
-	return FALSE;
-}
-
-int CSPDoDRules::ItemShouldRespawn( CItem *pItem )
-{
-	return 0;
-}
-
-float CSPDoDRules::FlWeaponTryRespawn( CBasePlayerItem *pWeapon )
-{
-	return 0;
-}
-
-int CSPDoDRules::PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget )
-{
-	return 0;
-}
-
-float CSPDoDRules::FlWeaponRespawnTime( CBasePlayerItem *pWeapon )
-{
-	return 0;
-}
-
-int CSPDoDRules::WeaponShouldRespawn( CBasePlayerItem *pWeapon )
-{
-	return 0;
-}
-
-float CSPDoDRules::FlHealthChargerRechargeTime( void )
-{
-	return 0;
-}
-
-BOOL CSPDoDRules::IsCoOp( void )
-{
-	return FALSE;
-}
+// DoD event-id accessors on the single-player rules object (dod.so CSPDoDRules::*).
+// Single-player is vestigial in DoD; overrides return neutral values.
+unsigned short CSPDoDRules::Camera( void ) { return 0; }
