@@ -677,6 +677,7 @@ void CFuncRotating ::SpinUp( void )
 		 abs( vecAVel.y ) >= abs( pev->movedir.y * pev->speed ) &&
 		 abs( vecAVel.z ) >= abs( pev->movedir.z * pev->speed ) )
 	{
+		m_iState = STATE_ON;
 		pev->avelocity = pev->movedir * pev->speed;	 // set speed in case we overshot
 		EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseRunning ), m_flVolume, m_flAttenuation,
 						SND_CHANGE_PITCH | SND_CHANGE_VOL, FANPITCHMAX );
@@ -717,6 +718,7 @@ void CFuncRotating ::SpinDown( void )
 	if ( ( ( vecdir > 0 ) && ( vecAVel.x <= 0 && vecAVel.y <= 0 && vecAVel.z <= 0 ) ) ||
 		 ( ( vecdir < 0 ) && ( vecAVel.x >= 0 && vecAVel.y >= 0 && vecAVel.z >= 0 ) ) )
 	{
+		m_iState = STATE_OFF;
 		pev->avelocity = g_vecZero;	 // set speed in case we overshot
 
 		// stop sound, we're done
@@ -748,6 +750,7 @@ void CFuncRotating ::RotatingUse( CBaseEntity *pActivator, CBaseEntity *pCaller,
 		// fan is spinning, so stop it.
 		if ( pev->avelocity != g_vecZero )
 		{
+			m_iState = STATE_TURN_OFF;
 			SetThink( &CFuncRotating::SpinDown );
 			//EMIT_SOUND_DYN(ENT(pev), CHAN_WEAPON, (char *)STRING(pev->noiseStop),
 			//	m_flVolume, m_flAttenuation, 0, m_pitch);
@@ -756,6 +759,7 @@ void CFuncRotating ::RotatingUse( CBaseEntity *pActivator, CBaseEntity *pCaller,
 		}
 		else  // fan is not moving, so start it
 		{
+			m_iState = STATE_TURN_ON;
 			SetThink( &CFuncRotating::SpinUp );
 			EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseRunning ), 0.01, m_flAttenuation, 0,
 							FANPITCHMIN );
@@ -768,6 +772,7 @@ void CFuncRotating ::RotatingUse( CBaseEntity *pActivator, CBaseEntity *pCaller,
 		if ( pev->avelocity != g_vecZero )
 		{
 			// play stopping sound here
+			m_iState = STATE_OFF;
 			SetThink( &CFuncRotating::SpinDown );
 
 			// EMIT_SOUND_DYN(ENT(pev), CHAN_WEAPON, (char *)STRING(pev->noiseStop),
@@ -778,6 +783,7 @@ void CFuncRotating ::RotatingUse( CBaseEntity *pActivator, CBaseEntity *pCaller,
 		}
 		else
 		{
+			m_iState = STATE_ON;
 			EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, (char *) STRING( pev->noiseRunning ), m_flVolume, m_flAttenuation,
 							0, FANPITCHMAX );
 			pev->avelocity = pev->movedir * pev->speed;
