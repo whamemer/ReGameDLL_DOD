@@ -373,7 +373,7 @@ public:
 };
 
 #if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of the original, the MSVC ABI differs
-static_assert( sizeof( CBaseMonster ) == 940, "CBaseMonster size must be 940 (dod.so DWARF)" );
+static_assert( sizeof( CBaseMonster ) == 940, "CBaseMonster size must be 940 (original)" );
 static_assert( offsetof( CBaseMonster, m_hEnemy ) == 516, "CBaseMonster::m_hEnemy @516" );
 static_assert( offsetof( CBaseMonster, m_hTargetEnt ) == 524, "CBaseMonster::m_hTargetEnt @524" );
 static_assert( offsetof( CBaseMonster, m_hOldEnemy ) == 532, "CBaseMonster::m_hOldEnemy @532" );

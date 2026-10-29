@@ -9,9 +9,9 @@
 #include "items.h"
 #include "game.h"
 #include "scripted.h"
-#include <skill.h>
-#include <objective.h>
-#include <voice_gamemgr.h>
+#include "skill.h"
+#include "objective.h"
+#include "voice_gamemgr.h"
 #include "dod_shared.h"
 extern DodClassInfo_t g_ClassInfo[];
 extern DodClassInfo_t g_ParaClassInfo[];

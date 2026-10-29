@@ -447,7 +447,7 @@ public:
 };
 
 #if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of the original, the MSVC ABI differs
-static_assert( sizeof( CBasePlayer ) == 2132, "CBasePlayer size must be 2132 (dod.so DWARF)" );
+static_assert( sizeof( CBasePlayer ) == 2132, "CBasePlayer size must be 2132 (original)" );
 #endif
 
 #define AUTOAIM_2DEGREES 0.0348994967025

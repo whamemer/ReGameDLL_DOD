@@ -561,7 +561,7 @@ public:
 };
 
 #if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of the original, the MSVC ABI differs
-static_assert( sizeof( CBaseEntity ) == 344, "CBaseEntity size must be 344 (dod.so DWARF)" );
+static_assert( sizeof( CBaseEntity ) == 344, "CBaseEntity size must be 344 (original)" );
 static_assert( offsetof( CBaseEntity, pev ) == 4, "CBaseEntity::pev @4" );
 static_assert( offsetof( CBaseEntity, m_pGoalEnt ) == 8, "CBaseEntity::m_pGoalEnt @8" );
 static_assert( offsetof( CBaseEntity, m_pLink ) == 12, "CBaseEntity::m_pLink @12" );
@@ -712,7 +712,7 @@ public:
 };
 
 #if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of the original, the MSVC ABI differs
-static_assert( sizeof( CBaseDelay ) == 352, "CBaseDelay size must be 352 (dod.so DWARF)" );
+static_assert( sizeof( CBaseDelay ) == 352, "CBaseDelay size must be 352 (original)" );
 static_assert( offsetof( CBaseDelay, m_flDelay ) == 344, "CBaseDelay::m_flDelay @344" );
 static_assert( offsetof( CBaseDelay, m_iszKillTarget ) == 348, "CBaseDelay::m_iszKillTarget @348" );
 #endif
@@ -758,7 +758,7 @@ public:
 };
 
 #if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of the original, the MSVC ABI differs
-static_assert( sizeof( CBaseAnimating ) == 372, "CBaseAnimating size must be 372 (dod.so DWARF)" );
+static_assert( sizeof( CBaseAnimating ) == 372, "CBaseAnimating size must be 372 (original)" );
 static_assert( offsetof( CBaseAnimating, m_flFrameRate ) == 352, "CBaseAnimating::m_flFrameRate @352" );
 static_assert( offsetof( CBaseAnimating, m_flGroundSpeed ) == 356, "CBaseAnimating::m_flGroundSpeed @356" );
 static_assert( offsetof( CBaseAnimating, m_flLastEventCheck ) == 360, "CBaseAnimating::m_flLastEventCheck @360" );
@@ -828,7 +828,7 @@ public:
 };
 
 #if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of the original, the MSVC ABI differs
-static_assert( sizeof( CBaseToggle ) == 512, "CBaseToggle size must be 512 (dod.so DWARF)" );
+static_assert( sizeof( CBaseToggle ) == 512, "CBaseToggle size must be 512 (original)" );
 static_assert( offsetof( CBaseToggle, m_toggle_state ) == 372, "CBaseToggle::m_toggle_state @372" );
 static_assert( offsetof( CBaseToggle, m_flActivateFinished ) == 376, "CBaseToggle::m_flActivateFinished @376" );
 static_assert( offsetof( CBaseToggle, m_flMoveDistance ) == 380, "CBaseToggle::m_flMoveDistance @380" );
