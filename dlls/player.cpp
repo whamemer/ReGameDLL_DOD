@@ -823,8 +823,6 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 	DropItemByClass( CLASS_DROPPED_ON_DEATH );
 
 	RemoveAllItems( 1 );
-	if ( pevAttacker->pContainingEntity == NULL )
-		pevAttacker = VARS( INDEXENT( 0 ) );
 	g_pGameRules->PlayerKilled( this, pevAttacker, g_pevLastInflictor, iGib );
 	if ( lastMenuSelected > 0 )
 	{

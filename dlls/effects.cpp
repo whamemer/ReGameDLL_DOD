@@ -571,12 +571,15 @@ void CLightning::ToggleUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 	if ( m_active )
 	{
 		m_active = 0;
+		SUB_UseTargets( this, USE_OFF, 0 );
 		pev->effects |= EF_NODRAW;
 		pev->nextthink = 0;
 	}
 	else
 	{
 		m_active = 1;
+		SUB_UseTargets( this, USE_ON, 0 );
+		BeamUpdatePoints();
 		pev->effects &= ~EF_NODRAW;
 		DoSparks( GetStartPos(), GetEndPos() );
 		if ( pev->dmg > 0 )

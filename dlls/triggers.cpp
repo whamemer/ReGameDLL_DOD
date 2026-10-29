@@ -30,6 +30,7 @@
 #include "gamerules.h"
 #include "objective.h"
 #include "dod_gamerules.h"
+#include "talkmonster.h"
 
 #define SF_TRIGGER_PUSH_START_OFF 2			//spawnflag that makes trigger_push spawn turned OFF
 #define SF_TRIGGER_HURT_TARGETONCE 1		// Only fire hurt target once
@@ -4103,6 +4104,14 @@ void CEnvCustomize::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 
 	if ( pMonster )
 	{
+		if ( m_voicePitch > 0 )
+		{
+			const char *pszClass = STRING( pTarget->pev->classname );
+			if ( FStrEq( pszClass, "monster_barney" ) || FStrEq( pszClass, "monster_scientist" ) ||
+				 FStrEq( pszClass, "monster_sitting_scientist" ) )
+				( (CTalkMonster *) pTarget )->m_voicePitch = m_voicePitch;
+		}
+
 		if ( m_iClass != 0 )
 		{
 			pMonster->m_iClass = m_iClass;
