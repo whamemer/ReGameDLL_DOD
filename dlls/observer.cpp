@@ -133,7 +133,7 @@ void CBasePlayer::SendObserverTargetWeaponAnim()
 	int team = m_hObserverTarget->pev->team;
 	int body = 2;
 	if ( team == TEAM_ALLIES )
-		body = ( ( m_hObserverTarget->pev->playerclass - 0x15 ) < 6 ) ? 1 : 0;
+		body = ( (unsigned)( m_hObserverTarget->pev->playerclass - 0x15 ) < 6 ) ? 1 : 0;
 
 	MESSAGE_BEGIN( MSG_ONE, SVC_WEAPONANIM, NULL, pev );
 	WRITE_BYTE( 0 );

@@ -2434,7 +2434,7 @@ BOOL CDoDTeamPlay::PlayFootstepSounds( CBasePlayer *pl, float fvol )
 	if ( pl->pev->movetype == MOVETYPE_FLY )
 		return TRUE;
 	float vel = sqrtf( pl->pev->velocity.x * pl->pev->velocity.x + pl->pev->velocity.y * pl->pev->velocity.y );
-	return ( vel > 30.0f );
+	return ( vel > 200.0f );
 }
 float CDoDTeamPlay::GetMaxWaveTime( int nTeam )
 {
