@@ -2110,6 +2110,9 @@ void CTriggerPush ::Spawn()
 
 void CTriggerPush ::Touch( CBaseEntity *pOther )
 {
+	if ( !m_iEnabled )
+		return;
+
 	entvars_t *pevToucher = pOther->pev;
 
 	// UNDONE: Is there a better way than health to detect things that have physics? (clients/monsters)
@@ -2124,13 +2127,13 @@ void CTriggerPush ::Touch( CBaseEntity *pOther )
 
 	if ( pevToucher->solid != SOLID_NOT && pevToucher->solid != SOLID_BSP )
 	{
-		// Instant trigger, just transfer velocity and remove
+		// Instant trigger, just transfer velocity and switch off until the round restart
 		if ( FBitSet( pev->spawnflags, SF_TRIG_PUSH_ONCE ) )
 		{
 			pevToucher->velocity = pevToucher->velocity + ( pev->speed * pev->movedir );
 			if ( pevToucher->velocity.z > 0 )
 				pevToucher->flags &= ~FL_ONGROUND;
-			UTIL_Remove( this );
+			m_iEnabled = 0;
 		}
 		else
 		{  // Push field, transfer to base velocity
@@ -2178,6 +2181,13 @@ void CBaseTrigger ::TeleportTouch( CBaseEntity *pOther )
 			return;
 		}
 	}
+
+	// the team the trigger is closed for is not teleported
+	if ( FBitSet( pev->spawnflags, SF_TRIGGER_NO_ALLIES ) && pOther->IsPlayer() && pOther->pev->team == TEAM_ALLIES )
+		return;
+
+	if ( FBitSet( pev->spawnflags, SF_TRIGGER_NO_AXIS ) && pOther->IsPlayer() && pOther->pev->team == TEAM_AXIS )
+		return;
 
 	pentTarget = FIND_ENTITY_BY_TARGETNAME( pentTarget, STRING( pev->target ) );
 	if ( FNullEnt( pentTarget ) )
@@ -5709,7 +5719,7 @@ void CDodPointRelay::DodRelayUse( CBaseEntity *pA, CBaseEntity *pC, USE_TYPE u, 
 			return;
 		MESSAGE_BEGIN( MSG_ALL, gmsgCancelProgressBar );
 		WRITE_BYTE( p->m_iIndex );
-		WRITE_BYTE( m_nTeam );
+		WRITE_BYTE( p->m_iTeam );
 		MESSAGE_END();
 		return;
 	}
@@ -5719,14 +5729,11 @@ void CDodPointRelay::DodRelayUse( CBaseEntity *pA, CBaseEntity *pC, USE_TYPE u, 
 		p->SetBodygroup( 0, p->m_iResetModelBodygroup );
 		return;
 	}
-	int owner = 0;
+	// the point goes to the team of the relay, the activator only gets the credit for it
 	CBasePlayer *pPlayer = NULL;
 	if ( pA && pA->IsPlayer() )
-	{
-		owner = pA->pev->team;
 		pPlayer = (CBasePlayer *) pA;
-	}
-	p->SetOwner( owner, TRUE, pPlayer );
+	p->SetOwner( m_nTeam, TRUE, pPlayer );
 }
 
 void CDodPointRelay::KeyValue( KeyValueData *pkvd )
