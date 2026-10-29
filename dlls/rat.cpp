@@ -161,7 +161,7 @@ void CRat ::Precache()
 	PRECACHE_SOUND( "roach/rch_die.wav" );
 	PRECACHE_SOUND( "roach/rch_walk.wav" );
 	PRECACHE_SOUND( "roach/rch_smash.wav" );
-	PRECACHE_SOUND( "roach/rat_bite.wav" );
+	PRECACHE_SOUND( "rat_bite.wav" );
 }
 
 //=========================================================
