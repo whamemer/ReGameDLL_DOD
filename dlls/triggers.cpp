@@ -3025,6 +3025,7 @@ void CDoDCamera::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 			continue;
 		CBaseEntity *pEnt = m_hPlayer[i];
 		if ( !pEnt->IsPlayer() || ( m_teamBound != 3 && pEnt->pev->team != m_teamBound ) ||
+			 ( (CBasePlayer *) pEnt )->m_iNextClass == -1 ||
 			 SceneAlreadySeen( (CBasePlayer *) (CBaseEntity *) m_hPlayer[i], pev->iuser2 ) )
 		{
 			m_hPlayer[i] = NULL;
