@@ -996,7 +996,6 @@ int CBasePlayerWeapon::Classify( void )
 BOOL CBasePlayerWeapon ::DefaultDeploy( char *szViewModel, char *szWeaponModel, int iAnim, char *szAnimExt,
 										char *szAnimReloadExt, int skiplocal )
 {
-	(void)szAnimReloadExt;
 	if ( !CanDeploy() )
 		return FALSE;
 
@@ -1004,6 +1003,9 @@ BOOL CBasePlayerWeapon ::DefaultDeploy( char *szViewModel, char *szWeaponModel, 
 	m_pPlayer->pev->viewmodel = MAKE_STRING( szViewModel );
 	m_pPlayer->pev->weaponmodel = MAKE_STRING( szWeaponModel );
 	strcpy( m_pPlayer->m_szAnimExtention, szAnimExt );
+	strcpy( m_pPlayer->m_szAnimReloadExt, szAnimReloadExt );
+	m_pPlayer->m_iCurrentAnimationState = 0;
+	m_pPlayer->m_fGunDropTime = 0;
 	SendWeaponAnim( iAnim, skiplocal );
 	m_pPlayer->SetAnimation( PLAYER_IDLE );
 
@@ -1016,7 +1018,6 @@ BOOL CBasePlayerWeapon ::DefaultDeploy( char *szViewModel, char *szWeaponModel, 
 BOOL CBasePlayerWeapon::TimedDeploy( char *szViewModel, char *szWeaponModel, int iAnim, char *szAnimExt,
 									 char *szAnimReloadExt, float idleTime, float attackTime, int skiplocal )
 {
-	(void)szAnimReloadExt;
 	if ( !CanDeploy() )
 		return FALSE;
 
@@ -1024,6 +1025,9 @@ BOOL CBasePlayerWeapon::TimedDeploy( char *szViewModel, char *szWeaponModel, int
 	m_pPlayer->pev->viewmodel = MAKE_STRING( szViewModel );
 	m_pPlayer->pev->weaponmodel = MAKE_STRING( szWeaponModel );
 	strcpy( m_pPlayer->m_szAnimExtention, szAnimExt );
+	strcpy( m_pPlayer->m_szAnimReloadExt, szAnimReloadExt );
+	m_pPlayer->m_iCurrentAnimationState = 0;
+	m_pPlayer->m_fGunDropTime = 0;
 	SendWeaponAnim( iAnim, skiplocal );
 	m_pPlayer->SetAnimation( PLAYER_IDLE );
 
@@ -1103,6 +1107,7 @@ int CBasePlayerWeapon::SecondaryAmmoIndex( void )
 
 void CBasePlayerWeapon::Holster( int skiplocal /* = 0 */ )
 {
+	m_fInAttack = 0;
 	m_fInReload = FALSE;  // cancel any reload in progress.
 	m_pPlayer->pev->viewmodel = 0;
 	m_pPlayer->pev->weaponmodel = 0;
