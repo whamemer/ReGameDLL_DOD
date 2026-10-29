@@ -317,6 +317,7 @@ class CDodParaRoundTimer : public CBaseEntity
 	void StartTimer( void );
 	void StopTimer( void );
 	void ResetTimer( void );
+	void SendStatus( void );
 	void SendStatus( class CBasePlayer *p );
 	void EXPORT TimerThink( void );
 };

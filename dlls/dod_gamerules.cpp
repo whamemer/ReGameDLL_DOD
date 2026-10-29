@@ -4206,10 +4206,7 @@ void CDodParaRoundTimer::TimerThink( void )
 		if ( !m_bTimer )
 			return;
 		m_bTimer = false;
-		MESSAGE_BEGIN( MSG_BROADCAST, gmsgTimerStatus, NULL, (edict_t *)NULL );
-		WRITE_BYTE( (int)m_bTimer );
-		WRITE_COORD( m_fRoundTimer > 0.0f ? m_fRoundTimer : 0.0f );
-		MESSAGE_END();
+		SendStatus();
 		SetThink( NULL );
 	}
 
@@ -4221,10 +4218,7 @@ void CDodParaRoundTimer::TimerThink( void )
 			m_fUpdateTimer -= 0.1f;
 			if ( m_fUpdateTimer <= 0.0f )
 			{
-				MESSAGE_BEGIN( MSG_BROADCAST, gmsgTimerStatus, NULL, (edict_t *)NULL );
-				WRITE_BYTE( (int)m_bTimer );
-				WRITE_COORD( m_fRoundTimer > 0.0f ? m_fRoundTimer : 0.0f );
-				MESSAGE_END();
+				SendStatus();
 				m_fUpdateTimer = 30.0f;
 			}
 		}
@@ -4233,10 +4227,7 @@ void CDodParaRoundTimer::TimerThink( void )
 			if ( g_pGameRules != NULL )
 				((CDoDTeamPlay *)g_pGameRules)->TimerExpired();
 			m_bTimer = false;
-			MESSAGE_BEGIN( MSG_BROADCAST, gmsgTimerStatus, NULL, (edict_t *)NULL );
-			WRITE_BYTE( (int)m_bTimer );
-			WRITE_COORD( m_fRoundTimer > 0.0f ? m_fRoundTimer : 0.0f );
-			MESSAGE_END();
+			SendStatus();
 			SetThink( NULL );
 		}
 	}
@@ -4245,12 +4236,7 @@ void CDodParaRoundTimer::TimerThink( void )
 void CDodParaRoundTimer::StartTimer( void )
 {
 	m_bTimer = true;
-	float t = m_fRoundTimer;
-	if ( t <= 0.0f ) t = 0.0f;
-	MESSAGE_BEGIN( MSG_BROADCAST, gmsgTimerStatus, NULL, (edict_t *)NULL );
-	WRITE_BYTE( (int)m_bTimer );
-	WRITE_COORD( t );
-	MESSAGE_END();
+	SendStatus();
 	SetThink( &CDodParaRoundTimer::TimerThink );
 	pev->nextthink = gpGlobals->time + 0.1f;
 }
@@ -4258,12 +4244,7 @@ void CDodParaRoundTimer::StartTimer( void )
 void CDodParaRoundTimer::StopTimer( void )
 {
 	m_bTimer = false;
-	float t = m_fRoundTimer;
-	if ( t <= 0.0f ) t = 0.0f;
-	MESSAGE_BEGIN( MSG_BROADCAST, gmsgTimerStatus, NULL, (edict_t *)NULL );
-	WRITE_BYTE( (int)m_bTimer );
-	WRITE_COORD( t );
-	MESSAGE_END();
+	SendStatus();
 	SetThink( NULL );
 }
 
@@ -4272,12 +4253,19 @@ void CDodParaRoundTimer::ResetTimer( void )
 	m_fRoundTimer = 240.0f;
 	m_bTimer = true;
 	m_fUpdateTimer = 30.0f;
-	MESSAGE_BEGIN( MSG_BROADCAST, gmsgTimerStatus, NULL, (edict_t *)NULL );
-	WRITE_BYTE( (int)m_bTimer );
-	WRITE_COORD( 240.0f );
-	MESSAGE_END();
+	SendStatus();
 	SetThink( &CDodParaRoundTimer::TimerThink );
 	pev->nextthink = gpGlobals->time + 0.1f;
+}
+
+void CDodParaRoundTimer::SendStatus( void )
+{
+	float t = m_fRoundTimer;
+	MESSAGE_BEGIN( MSG_ALL, gmsgTimerStatus );
+	WRITE_BYTE( (int)m_bTimer );
+	if ( t <= 0.0f ) t = 0.0f;
+	WRITE_COORD( t );
+	MESSAGE_END();
 }
 
 void CDodParaRoundTimer::SendStatus( CBasePlayer *pPlayer )

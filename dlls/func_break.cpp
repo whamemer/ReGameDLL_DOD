@@ -1283,7 +1283,7 @@ void CBreakable::area_SetIndex( int index )
 	m_iAreaIndex = index;
 	if ( 0x80 < index )
 		return;
-	MESSAGE_BEGIN( MSG_BROADCAST, gmsgClientAreas, NULL, (edict_t *)NULL );
+	MESSAGE_BEGIN( MSG_ALL, gmsgClientAreas, NULL, (edict_t *)NULL );
 	WRITE_BYTE( m_iAreaIndex );
 	WRITE_BYTE( -1 );
 	WRITE_STRING( sz_HudIcon );
