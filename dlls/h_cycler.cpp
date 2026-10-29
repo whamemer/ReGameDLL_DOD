@@ -149,6 +149,7 @@ void CCycler ::Think( void )
 	{
 		StudioFrameAdvance();
 	}
+
 	if ( m_fSequenceFinished && !m_fSequenceLoops )
 	{
 		// ResetSequenceInfo();
@@ -192,6 +193,7 @@ int CCycler ::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float
 			pev->sequence = 0;
 			ResetSequenceInfo();
 		}
+
 		pev->frame = 0;
 	}
 	else
@@ -276,6 +278,7 @@ int CCyclerSprite::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, 
 	{
 		Animate( 1.0 );
 	}
+
 	return 1;
 }
 

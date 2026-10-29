@@ -186,6 +186,7 @@ void CGrenade::PickupUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 				UTIL_Remove( this );
 				break;
 			}
+
 			pWeapon = pWeapon->m_pNext;
 		}
 	}
@@ -261,11 +262,13 @@ void CGrenade::MortarShellExplodeTouch( CBaseEntity *pOther )
 				UTIL_Remove( this );
 				return;
 			}
+
 			pNewRocket->pev->velocity = pev->velocity;
 			UTIL_Remove( this );
 			return;
 		}
 	}
+
 	pev->enemy = pOther->edict();
 	Vector vecSpot = pev->origin - pev->velocity.Normalize() * 32;
 	TraceResult tr;
@@ -276,6 +279,7 @@ void CGrenade::MortarShellExplodeTouch( CBaseEntity *pOther )
 		UTIL_Remove( this );
 		return;
 	}
+
 	Explode( &tr, DMG_BLAST | DMG_SONIC | DMG_MORTAR );
 }
 void CGrenade::RocketExplodeTouch( CBaseEntity *pOther )
@@ -303,6 +307,7 @@ void CGrenade::RocketExplodeTouch( CBaseEntity *pOther )
 				UTIL_Remove( this );
 				return;
 			}
+
 			CBaseEntity *pOwnerEnt = pev->owner ? CBaseEntity::Instance( pev->owner ) : NULL;
 			CBaseEntity *pNewRocket = NULL;
 			if ( FClassnameIs( pev, "shell_bazooka" ) )
@@ -316,11 +321,13 @@ void CGrenade::RocketExplodeTouch( CBaseEntity *pOther )
 				UTIL_Remove( this );
 				return;
 			}
+
 			pNewRocket->pev->velocity = pev->velocity;
 			UTIL_Remove( this );
 			return;
 		}
 	}
+
 	pev->enemy = pOther->edict();
 	Vector vecSpot = pev->origin - pev->velocity.Normalize() * 32;
 	TraceResult tr;
@@ -331,6 +338,7 @@ void CGrenade::RocketExplodeTouch( CBaseEntity *pOther )
 		UTIL_Remove( this );
 		return;
 	}
+
 	Explode( &tr, DMG_BLAST | DMG_SONIC );
 }
 
@@ -393,6 +401,7 @@ void CGrenade::BounceTouch( CBaseEntity *pOther )
 			pOther->TraceAttack( pevOwner, 1, gpGlobals->v_forward, &tr, DMG_DOD_NOBLOOD );
 			ApplyMultiDamage( pev, pevOwner );
 		}
+
 		m_flNextAttack = gpGlobals->time + 1.0;	 // debounce
 	}
 
@@ -430,6 +439,7 @@ void CGrenade::BounceTouch( CBaseEntity *pOther )
 		// play bounce sound
 		BounceSound();
 	}
+
 	pev->framerate = pev->velocity.Length() / 200.0;
 	if ( pev->framerate > 1.0 )
 		pev->framerate = 1;
@@ -505,6 +515,7 @@ void CGrenade ::TumbleThink( void )
 			SetThink( &CGrenade::Detonate );
 		}
 	}
+
 	if ( pev->waterlevel != 0 )
 	{
 		pev->velocity = pev->velocity * 0.5;
@@ -617,6 +628,7 @@ CGrenade *CGrenade::ShootPickup( entvars_t *pevOwner, Vector vecStart, Vector ve
 		pGrenade->pev->nextthink = gpGlobals->time;
 		pGrenade->pev->velocity = Vector( 0, 0, 0 );
 	}
+
 	pGrenade->pev->sequence = RANDOM_LONG( 3, 6 );
 	pGrenade->pev->framerate = 1.0;
 	pGrenade->pev->avelocity.x = -400.0;
@@ -637,6 +649,7 @@ CGrenade *CGrenade::ShootPickup( entvars_t *pevOwner, Vector vecStart, Vector ve
 		SET_MODEL( ENT( pGrenade->pev ), "models/w_stick.mdl" );
 		pGrenade->pev->dmg = gSkillData.plrDmgStickGrenade;
 	}
+
 	return pGrenade;
 }
 
@@ -666,6 +679,7 @@ void CGrenade ::UseSatchelCharges( entvars_t *pevOwner, SATCHELCODE code )
 					pEnt->pev->owner = NULL;
 			}
 		}
+
 		pentFind = FIND_ENTITY_BY_CLASSNAME( pentFind, "grenade" );
 	}
 }

@@ -236,6 +236,7 @@ static pmtrace_t _pm_globalresult, _pm_globaltmp;
 		pmove->PM_PlayerTrace_real( &_pm_globalresult, start, end, traceFlags, ignore_pe );
 		return _pm_globalresult;
 	}
+
 	static inline pmtrace_t PM_PlayerTraceEx_wrap( float *start, float *end, int traceFlags, int (*pfnIgnore)( physent_t *pe ), playermove_t *pmove )
 	{
 		_pm_globaltmp = pmove->touchindex[MAX_PHYSENTS -1];

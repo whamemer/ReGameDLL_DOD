@@ -91,6 +91,7 @@ void CInfoAlias::Think()
 			ALERT( at_console, "DEBUG: info_alias %s turns on", STRING( pev->targetname ) );
 		pev->spawnflags &= ~SF_ALIAS_OFF;
 	}
+
 	int tmp = pev->netname;
 	pev->netname = pev->target;
 	pev->target = tmp;
@@ -132,6 +133,7 @@ void CInfoGroup::Think()
 			   STRING( pT->pev->targetname ), STRING( pT->pev->target ) );
 		return;
 	}
+
 	if ( pev->target != 0 )
 		ALERT( at_console, "info_group %s: alias %s was not found or not an alias!", STRING( pev->targetname ),
 			   STRING( pev->target ) );
@@ -144,11 +146,13 @@ int CInfoGroup::GetMember( const char *szMemberName )
 		ALERT( at_console, "info_group: GetMember called with null szMemberName!" );
 		return 0;
 	}
+
 	for ( int i = 0; i < m_cMembers; i++ )
 	{
 		if ( strcmp( szMemberName, STRING( m_iszMemberName[i] ) ) == 0 )
 			return m_iszMemberValue[i];
 	}
+
 	ALERT( at_console, "info_group %s has no member called %s.", STRING( pev->targetname ), szMemberName );
 	return 0;
 }

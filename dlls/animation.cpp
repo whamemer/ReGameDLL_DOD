@@ -337,6 +337,7 @@ int GetAnimationEvent( void *pmodel, entvars_t *pev, MonsterEvent_t *pMonsterEve
 			return index + 1;
 		}
 	}
+
 	return 0;
 }
 
@@ -358,6 +359,7 @@ float SetController( void *pmodel, entvars_t *pev, int iController, float flValu
 		if ( pbonecontroller->index == iController )
 			break;
 	}
+
 	if ( i >= pstudiohdr->numbonecontrollers )
 		return flValue;
 
@@ -496,6 +498,7 @@ int FindTransition( void *pmodel, int iEndingAnim, int iGoalAnim, int *piDir )
 			*piDir = 1;
 			return i;
 		}
+
 		if ( pseqdesc[i].nodeflags )
 		{
 			if ( pseqdesc[i].exitnode == iEndNode && pseqdesc[i].entrynode == iInternNode )
@@ -816,6 +819,7 @@ void StudioCalcBoneAdj(float dadt, float *adj, const byte *pcontroller1, const b
 
 			value = (1.0 - value) * pbonecontroller[j].start + value * pbonecontroller[j].end;
 		}
+
 		switch (pbonecontroller[j].type & STUDIO_TYPES)
 		{
 		case STUDIO_XR:
@@ -892,6 +896,7 @@ void StudioCalcBoneQuaterion(int frame, float s, mstudiobone_t *pbone, mstudioan
 					angle2[j] = panimvalue[panimvalue->num.valid + 2].value;
 				}
 			}
+
 			angle1[j] = pbone->value[j + 3] + angle1[j] * pbone->scale[j + 3];
 			angle2[j] = pbone->value[j + 3] + angle2[j] * pbone->scale[j + 3];
 		}

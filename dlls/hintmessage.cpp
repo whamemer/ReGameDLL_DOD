@@ -38,6 +38,7 @@ void CHintMessageQueue::Update( CBaseEntity &client )
 				tmp[499] = 0;
 				msg = tmp;
 			}
+
 			WRITE_STRING( msg );
 			WRITE_BYTE( 1 );
 			MESSAGE_END();
@@ -56,5 +57,6 @@ bool CHintMessageQueue::AddMessage( const char *message )
 		m_iLastMessage = ( last + 1 ) % 8;
 		m_iCount = cnt + 1;
 	}
+
 	return cnt < 8;
 }

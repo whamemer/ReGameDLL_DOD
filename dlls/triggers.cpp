@@ -204,6 +204,7 @@ void CAutoTrigger::KeyValue( KeyValueData *pkvd )
 			triggerType = USE_ON;
 			break;
 		}
+
 		pkvd->fHandled = TRUE;
 	}
 	else
@@ -314,6 +315,7 @@ void CTriggerRelay::KeyValue( KeyValueData *pkvd )
 			m_triggerType = USE_ON;
 			break;
 		}
+
 		pkvd->fHandled = TRUE;
 	}
 	else
@@ -953,6 +955,7 @@ void CStateWatcher::Think( void )
 				return;
 			}
 		}
+
 		SUB_UseTargets( this, USE_TOGGLE, 0 );
 	}
 }
@@ -970,6 +973,7 @@ BOOL CStateWatcher::EvalLogic()
 			return ( got == 0 );
 		return FALSE;
 	}
+
 	for ( int i = 0; i < m_cTargets; i++ )
 	{
 		CBaseEntity *pEnt = UTIL_FindEntityByTargetname( NULL, STRING( m_iTargetName[i] ) );
@@ -1021,6 +1025,7 @@ BOOL CStateWatcher::EvalLogic()
 				continue;
 			}
 		}
+
 		if ( m_fLogic == 3 )
 			return FALSE;
 		if ( m_fLogic == 1 )
@@ -1032,6 +1037,7 @@ BOOL CStateWatcher::EvalLogic()
 			got = 1;
 			continue;
 		}
+
 		if ( m_fLogic == 5 )
 		{
 			if ( got )
@@ -1040,6 +1046,7 @@ BOOL CStateWatcher::EvalLogic()
 			continue;
 		}
 	}
+
 	if ( m_fLogic == 3 || m_fLogic == 0 )
 		return TRUE;
 	if ( m_fLogic == 4 )
@@ -1728,6 +1735,7 @@ void CBaseTrigger ::ToggleUse( CBaseEntity *pActivator, CBaseEntity *pCaller, US
 	{  // turn the trigger off
 		pev->solid = SOLID_NOT;
 	}
+
 	UTIL_SetOrigin( pev, pev->origin );
 }
 
@@ -2085,6 +2093,7 @@ void CBaseTrigger::CounterUse( CBaseEntity *pActivator, CBaseEntity *pCaller, US
 				break;
 			}
 		}
+
 		return;
 	}
 
@@ -2258,6 +2267,7 @@ void CChangeLevel ::Spawn( void )
 	{
 		SetUse( &CChangeLevel::UseChangeLevel );
 	}
+
 	InitTrigger();
 	if ( !( pev->spawnflags & SF_CHANGELEVEL_USEONLY ) )
 		SetTouch( &CChangeLevel::TouchChangeLevel );
@@ -2291,6 +2301,7 @@ edict_t *CChangeLevel ::FindLandmark( const char *pLandmarkName )
 		else
 			pentLandmark = FIND_ENTITY_BY_STRING( pentLandmark, "targetname", pLandmarkName );
 	}
+
 	ALERT( at_error, "Can't find landmark %s\n", pLandmarkName );
 	return NULL;
 }
@@ -2388,6 +2399,7 @@ int CChangeLevel::AddTransitionToList( LEVELLIST *pLevelList, int listCount, con
 		if ( pLevelList[i].pentLandmark == pentLandmark && strcmp( pLevelList[i].mapName, pMapName ) == 0 )
 			return 0;
 	}
+
 	strcpy( pLevelList[listCount].mapName, pMapName );
 	strcpy( pLevelList[listCount].landmarkName, pLandmarkName );
 	pLevelList[listCount].pentLandmark = pentLandmark;
@@ -2430,6 +2442,7 @@ int CChangeLevel::InTransitionVolume( CBaseEntity *pEntity, char *pVolumeName )
 				inVolume =
 					0;	// Found a trigger_transition, but I don't intersect it -- if I don't find another, don't go!
 		}
+
 		pentVolume = FIND_ENTITY_BY_TARGETNAME( pentVolume, pVolumeName );
 	}
 
@@ -2475,6 +2488,7 @@ int CChangeLevel::ChangeList( LEVELLIST *pLevelList, int maxList )
 				}
 			}
 		}
+
 		pentChangelevel = FIND_ENTITY_BY_STRING( pentChangelevel, "classname", "trigger_changelevel" );
 	}
 
@@ -2522,6 +2536,7 @@ int CChangeLevel::ChangeList( LEVELLIST *pLevelList, int maxList )
 					//					else
 					//						ALERT( at_console, "DON'T SAVE %s\n", STRING(pEntity->pev->classname) );
 				}
+
 				pent = pent->v.chain;
 			}
 
@@ -2605,6 +2620,7 @@ void CLadder ::Precache( void )
 		pev->rendermode = kRenderTransTexture;
 		pev->renderamt = 0;
 	}
+
 	pev->effects &= ~EF_NODRAW;
 }
 
@@ -2864,6 +2880,7 @@ void CTriggerEndSection::EndSectionUse( CBaseEntity *pActivator, CBaseEntity *pC
 	{
 		g_engfuncs.pfnEndSection( STRING( pev->message ) );
 	}
+
 	UTIL_Remove( this );
 }
 
@@ -2895,6 +2912,7 @@ void CTriggerEndSection::EndSectionTouch( CBaseEntity *pOther )
 	{
 		g_engfuncs.pfnEndSection( STRING( pev->message ) );
 	}
+
 	UTIL_Remove( this );
 }
 
@@ -3139,6 +3157,7 @@ void CTriggerCamera::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 		m_flReturnTime = gpGlobals->time;
 		return;
 	}
+
 	if ( !pActivator || !pActivator->IsPlayer() )
 	{
 		pActivator = CBaseEntity::Instance( g_engfuncs.pfnPEntityOfEntIndex( 1 ) );
@@ -3226,6 +3245,7 @@ void CTriggerCamera::FollowTarget()
 			SET_VIEW( m_hPlayer->edict(), m_hPlayer->edict() );
 			( (CBasePlayer *) ( (CBaseEntity *) m_hPlayer ) )->EnableControl( TRUE );
 		}
+
 		SUB_UseTargets( this, USE_TOGGLE, 0 );
 		pev->avelocity = Vector( 0, 0, 0 );
 		m_state = 0;
@@ -3398,8 +3418,10 @@ void CObjectCapture::Touch( CBaseEntity *pOther )
 			pPlayer->m_flDisplayHistory |= HINT_AREA_REQUIRES_OBJECT;
 			pPlayer->HintMessage( "#Hint_area_requires_object", 0 );
 		}
+
 		return;
 	}
+
 	CObject *pObj = pPlayer->m_pObject;
 	if ( strcmp( sz_Group, pObj->sz_Group ) != 0 )
 		return;
@@ -3417,9 +3439,11 @@ void CObjectCapture::Touch( CBaseEntity *pOther )
 			if ( ( pEnt->pev->effects & EF_NODRAW ) == 0 )
 				NumObjects++;
 		}
+
 		pLast = pEnt;
 		pEnt = UTIL_FindEntityByClassname( pEnt, "dod_object" );
 	}
+
 	pPlayer->HasObject = FALSE;
 	CDoDTeamPlay *pRules = (CDoDTeamPlay *)g_pGameRules;
 	if ( pRules->m_RoundDoesCount )
@@ -3459,6 +3483,7 @@ void CObjectCapture::Touch( CBaseEntity *pOther )
 				pPlr->AddObjScore( pObj->m_iOtherPoints, TRUE );
 		}
 	}
+
 	const char *teamName = ( pOther->pev->team == TEAM_ALLIES ) ? "Allies" : "Axis";
 	UTIL_LogPrintf( "\"%s<%i><%s><%s>\" triggered a \"dod_object_goal\"\n", STRING( pOther->pev->netname ),
 		GETPLAYERUSERID( pOther->edict() ), GETPLAYERAUTHID( pOther->edict() ), teamName );
@@ -3543,6 +3568,7 @@ BOOL IsThisIndexUnique( CControlPoint *pThis )
 			return FALSE;
 		p = (CControlPoint *) UTIL_FindEntityByClassname( p, "dod_control_point" );
 	}
+
 	return TRUE;
 }
 
@@ -3603,6 +3629,7 @@ void CControlPoint::Spawn()
 		SET_MODEL( edict(), sz_ResetModel );
 		SetBodygroup( 0, m_iResetModelBodygroup );
 	}
+
 	RoundStore();
 }
 
@@ -4003,6 +4030,7 @@ void CControlPointMaster::RoundRespawn()
 		m_fGivePointsTime = gpGlobals->time + d;
 		return;
 	}
+
 	m_fGivePointsTime = (float) m_iGivePointsDelay + gpGlobals->time;
 }
 
@@ -4090,6 +4118,7 @@ void CControlPointMaster::CPMThink()
 				ControlPointArray[i]->m_bActive = false;
 				ControlPointArray[i]->pev->effects |= EF_NODRAW;
 			}
+
 			m_bActive = 0;
 		}
 		else if ( !m_bActive )
@@ -4108,6 +4137,7 @@ void CControlPointMaster::CPMThink()
 					ControlPointArray[i]->m_bActive = false;
 					ControlPointArray[i]->pev->effects |= EF_NODRAW;
 				}
+
 				m_bActive = 0;
 			}
 			else if ( !m_bActive )
@@ -4124,6 +4154,7 @@ void CControlPointMaster::CPMThink()
 			ALERT( at_aiconsole, "Error! No control points found in map!\n" );
 			return;
 		}
+
 		BOOL bUnique = TRUE;
 		int num = 0;
 		do
@@ -4138,6 +4169,7 @@ void CControlPointMaster::CPMThink()
 					if ( ControlPointArray[i]->m_iPointIndex == pPoint->m_iPointIndex )
 						bUnique = FALSE;
 				}
+
 				if ( g_pGameRules && pPoint->m_iAlliesIcon == 1 &&
 					 ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
 					pPoint->m_iAlliesIcon = 0x1b;
@@ -4149,6 +4181,7 @@ void CControlPointMaster::CPMThink()
 					pPoint->pev->effects |= EF_NODRAW;
 				num++;
 			}
+
 			pPoint = (CControlPoint *) UTIL_FindEntityByClassname( pPoint, "dod_control_point" );
 		} while ( num < 20 && pPoint );
 
@@ -4162,6 +4195,7 @@ void CControlPointMaster::CPMThink()
 					ALERT( at_aiconsole, "Error! No control points found in map!\n" );
 					return;
 				}
+
 				for ( int i = 0; i < num; i++ )
 				{
 					CControlPoint *p = ControlPointArray[i];
@@ -4198,6 +4232,7 @@ void CControlPointMaster::CPMThink()
 							selected = i;
 						}
 					}
+
 					CControlPoint *p = ControlPointArray[selected];
 					if ( g_pGameRules && p->m_iAlliesIcon == 1 &&
 						 ( (CDoDTeamPlay *) g_pGameRules )->IsAlliesBrit() )
@@ -4257,6 +4292,7 @@ void CControlPointMaster::CPMThink()
 					axisPoints += ControlPointArray[i]->m_iPointValue;
 			}
 		}
+
 		BOOL bAxisPoints = ( axisPoints > 0 );
 
 		BOOL bFoundAllies = FALSE;
@@ -4281,8 +4317,10 @@ void CControlPointMaster::CPMThink()
 				else
 					UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_score_allie_points", UTIL_dtos1( alliesPoints ), 0, 0, 0 );
 			}
+
 			pRules->AddToTeamScores( 1, alliesPoints );
 		}
+
 		if ( bAxisPoints && bFoundAxis && g_pGameRules->RoundState() == ROUNDSTATE_RUNNING && !g_fGameOver )
 		{
 			if ( bClanMatch )
@@ -4292,6 +4330,7 @@ void CControlPointMaster::CPMThink()
 				else
 					UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_score_axis_points", UTIL_dtos1( axisPoints ), 0, 0, 0 );
 			}
+
 			pRules->AddToTeamScores( 2, axisPoints );
 		}
 
@@ -4321,6 +4360,7 @@ void CControlPointMaster::CPMThink()
 			}
 		}
 	}
+
 	if ( allSame && team > 0 )
 	{
 		if ( team == TEAM_ALLIES )
@@ -4353,12 +4393,16 @@ void CControlPointMaster::CPMThink()
 			WRITE_COORD( p->pev->origin.x );
 			WRITE_COORD( p->pev->origin.y );
 		}
+
 		MESSAGE_END();
+
 		MESSAGE_BEGIN( MSG_SPEC, gmsgTimeLeft );
 		WRITE_SHORT( get_maptime_left() );
 		MESSAGE_END();
+
 		m_flNextSpectatorUpdateTime = gpGlobals->time + 20.0;
 	}
+
 	pev->nextthink = gpGlobals->time + 0.5;
 }
 
@@ -4374,6 +4418,7 @@ void CControlPointMaster::BecomeActive()
 		ControlPointArray[i]->m_bActive = true;
 		ControlPointArray[i]->pev->effects &= ~EF_NODRAW;
 	}
+
 	SendObjectiveStatus( NULL );
 	m_bActive = 1;
 }
@@ -4385,6 +4430,7 @@ void CControlPointMaster::BecomeInactive()
 		ControlPointArray[i]->m_bActive = false;
 		ControlPointArray[i]->pev->effects |= EF_NODRAW;
 	}
+
 	m_bActive = 0;
 }
 
@@ -4419,6 +4465,7 @@ void CControlPointMaster::SendObjectiveStatus( CBasePlayer *pPlayer )
 		WRITE_COORD( p->pev->origin.x );
 		WRITE_COORD( p->pev->origin.y );
 	}
+
 	MESSAGE_END();
 }
 
@@ -4439,6 +4486,7 @@ int CControlPointMaster::TeamOwnsAllPoints()
 		if ( !ControlPointArray[i] || ( (CControlPoint *)ControlPointArray[i] )->m_iTeam != team )
 			return 0;
 	}
+
 	return team;
 }
 
@@ -4546,6 +4594,7 @@ void CSandBag::SandBagTouch( CBaseEntity *pOther )
 			}
 		}
 	}
+
 	CBasePlayer *pPlayer = (CBasePlayer *) pOther;
 	*(int *) ( (char *) pPlayer + 0x76c ) |= 1;
 	int *pFlags = (int *) ( (char *) pPlayer + 0x7cc );
@@ -4655,6 +4704,7 @@ void CAreaCapture::area_SendStatus( CBasePlayer *p )
 		WRITE_BYTE( -1 );
 		WRITE_STRING( sz_HudIcon );
 	MESSAGE_END();
+
 	SendNumPlayers( p );
 }
 
@@ -4690,6 +4740,7 @@ void CAreaCapture::AreaTouch( CBaseEntity *pOther )
 			pPlayer->m_iCapAreaIconIndex = m_iAreaIndex;
 			goto presentState;
 		}
+
 		pPlayer->m_flDisplayHistory |= HINT_TOUCHED_AREA_CAPTURE;
 		pPlayer->HintMessage( "#Hint_touched_area_capture", 0 );
 		pPlayer->m_iCapAreaIconIndex = m_iAreaIndex;
@@ -4700,6 +4751,7 @@ void CAreaCapture::AreaTouch( CBaseEntity *pOther )
 		if ( !can )
 			goto presentState;
 	}
+
 	pPlayer->SetClientAreaIcon( m_iAreaIndex, true );
 presentState:
 	pPlayer->m_signals.Signal( SIGNAL_CAPTUREAREA );
@@ -4715,9 +4767,11 @@ presentState:
 			pPlayer->HintMessage( "#Hint_area_requires_object", 0 );
 			return;
 		}
+
 		if ( strcmp( sz_RequiredObjectGroup, pPlayer->m_pObject->sz_Group ) != 0 )
 			return;
 	}
+
 	pPlayer->m_iCapAreaIndex = m_iAreaIndex;
 }
 
@@ -4799,6 +4853,7 @@ void CAreaCapture::Think()
 				continue;
 			}
 		}
+
 		if ( plr->pev->team == TEAM_ALLIES )
 			numAllies++;
 		else if ( plr->pev->team == TEAM_AXIS )
@@ -4853,6 +4908,7 @@ void CAreaCapture::Think()
 				return;
 			}
 		}
+
 		if ( numAxis < 1 || numAllies > 0 )
 			return;
 		if ( !m_bAxisCanCap || m_nOwningTeam == TEAM_AXIS )
@@ -4881,6 +4937,7 @@ void CAreaCapture::Think()
 				EndCapture( m_nCapturingTeam );
 				return;
 			}
+
 			if ( (float)players == (float)m_iCappingPlayers )
 				return;
 			m_iCappingPlayers = players;
@@ -4891,8 +4948,10 @@ void CAreaCapture::Think()
 				WRITE_BYTE( m_pPoint->m_iIndex );
 				WRITE_COORD( (float)m_nCapTime * (float)( m_iCappingRequired / players ) );
 			MESSAGE_END();
+
 			return;
 		}
+
 		BreakCapture( m_nCapturingTeam );
 		return;
 	}
@@ -4904,11 +4963,13 @@ void CAreaCapture::Think()
 		BreakCapture( m_nCapturingTeam );
 		return;
 	}
+
 	if ( numAllies == 0 && numAxis == 0 )
 	{
 		BreakCapture( m_nCapturingTeam );
 		return;
 	}
+
 	if ( m_nCapturingTeam == TEAM_ALLIES )
 	{
 		if ( requiredAllies <= numAllies )
@@ -4918,6 +4979,7 @@ void CAreaCapture::Think()
 			m_iCapMode = 1;
 			goto timeCheck;
 		}
+
 		if ( m_bCapturing )
 		{
 			BreakCapture( m_nCapturingTeam );
@@ -4933,9 +4995,11 @@ void CAreaCapture::Think()
 			m_iCapMode = 1;
 			goto timeCheck;
 		}
+
 		if ( m_bCapturing )
 			BreakCapture( m_nCapturingTeam );
 	}
+
 	t = m_fTimeRemaining;
 timeCheck:
 	if ( t > 0.0f )
@@ -4952,6 +5016,7 @@ int CAreaCapture::GetNumAlive( int team )
 		if ( pEnt && pEnt->IsPlayer() && pEnt->pev->team == team && pEnt->pev->deadflag == DEAD_NO )
 			n++;
 	}
+
 	return n;
 }
 
@@ -4989,6 +5054,7 @@ void CAreaCapture::SendNumPlayers( CBasePlayer *pPlayer )
 		GetNumRequiredPlayers( &ra, &rx );
 		team = 0; num = 0; req = -1;
 	}
+
 	if ( req != -1 && num > req )
 		num = req;
 	if ( req != -1 && req < 2 )
@@ -5014,6 +5080,7 @@ void CAreaCapture::ReSendSwipeInfo()
 	if ( m_iCappingPlayers < 1 )
 		return;
 	float captime = (float)m_nCapTime * (float)( m_iCappingRequired / m_iCappingPlayers );
+
 	MESSAGE_BEGIN( MSG_ALL, gmsgProgBarUpdate );
 		WRITE_BYTE( m_pPoint->m_iIndex );
 		WRITE_COORD( captime );
@@ -5053,6 +5120,7 @@ void CAreaCapture::StartCapture( int team, int capmode )
 			MESSAGE_END();
 		}
 	}
+
 	UTIL_SendDirectorMessage( this, NULL, 12 );
 }
 
@@ -5079,6 +5147,7 @@ void CAreaCapture::EndCapture( int team )
 		else
 			UTIL_LogPrintf( "Team \"Axis\" triggered a \"dod_capture_area\" - \"%s\"\n", STRING( m_pPoint->pev->netname ) );
 	}
+
 	m_iCappingRequired = 0;
 	m_iCappingPlayers = 0;
 
@@ -5125,6 +5194,7 @@ void CAreaCapture::EndCapture( int team )
 			}
 		}
 	}
+
 	m_bCapturing = 0;
 	m_fTimeRemaining = 0.0;
 	m_nOwningTeam = team;
@@ -5138,6 +5208,7 @@ void CAreaCapture::EndCapture( int team )
 		else
 			m_pPoint->SetOwner( team, TRUE, pFirstCapper );
 	}
+
 	UTIL_SendDirectorMessage( this, NULL, 12 );
 }
 
@@ -5314,8 +5385,10 @@ void CDodPointRelay::DodRelayUse( CBaseEntity *pA, CBaseEntity *pC, USE_TYPE u, 
 		WRITE_BYTE( m_nTeam );
 		WRITE_SHORT( (int) v );
 		MESSAGE_END();
+
 		return;
 	}
+
 	if ( u == USE_BREAK )
 	{
 		if ( p->pev->spawnflags & SF_CONTROLPOINT_HIDDEN )
@@ -5324,8 +5397,10 @@ void CDodPointRelay::DodRelayUse( CBaseEntity *pA, CBaseEntity *pC, USE_TYPE u, 
 		WRITE_BYTE( p->m_iIndex );
 		WRITE_BYTE( p->m_iTeam );
 		MESSAGE_END();
+
 		return;
 	}
+
 	if ( !p->m_bActive )
 	{
 		SET_MODEL( p->edict(), p->sz_ResetModel );
@@ -5377,8 +5452,10 @@ void CDodRoundTimer::Think()
 			WRITE_COORD( m_fRoundTime );
 			MESSAGE_END();
 		}
+
 		m_fUpdateTimer = 30.0;
 	}
+
 	if ( m_fRoundTime <= 0.0f )
 	{
 		m_bTimer = false;
@@ -5389,6 +5466,7 @@ void CDodRoundTimer::Think()
 			WRITE_COORD( 0.0 );
 			MESSAGE_END();
 		}
+
 		if ( pev->target )
 			FireTargets( STRING( pev->target ), this, NULL, USE_TOGGLE, 0.0 );
 	}
@@ -5630,8 +5708,10 @@ void CDoDCamera::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 			m_hPlayer[i] = NULL;
 			continue;
 		}
+
 		bFound = TRUE;
 	}
+
 	if ( !bFound )
 		return;
 	m_state = !m_state;
@@ -5640,6 +5720,7 @@ void CDoDCamera::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 		m_flReturnTime = gpGlobals->time;
 		return;
 	}
+
 	m_flReturnTime = gpGlobals->time + m_flWait;
 	pev->speed = m_initialSpeed;
 	m_targetSpeed = m_initialSpeed;
@@ -5662,6 +5743,7 @@ void CDoDCamera::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 			m_flStopTime = gpGlobals->time + m_pentPath->GetDelay();
 		}
 	}
+
 	pev->velocity = g_vecZero;
 	pev->angles = m_angles;
 	pev->origin = m_origin;
@@ -5674,11 +5756,14 @@ void CDoDCamera::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 		UTIL_ScreenFade( pPlayer, g_vecZero, 1.0, 15.0, 0, 5 );
 		g_engfuncs.pfnSetView( pPlayer->pev->pContainingEntity, pev->pContainingEntity );
 		pPlayer->EnableControl( 0 );
+
 		MESSAGE_BEGIN( MSG_ONE, gmsgCameraView, NULL, pPlayer->pev );
 		WRITE_STRING( STRING( pev->targetname ) );
 		MESSAGE_END();
+
 		MarkSceneSeen( pPlayer, pev->iuser2 );	// sets the i_seen* flag above
 	}
+
 	FireTargets( STRING( m_sTrigrStart ), this, this, USE_TOGGLE, 0 );
 	( *(int *) ( (char *) g_pGameRules + 8 ) )++;
 	SetThink( &CDoDCamera::FollowTarget );
@@ -5722,10 +5807,12 @@ void CDoDCamera::FollowTarget()
 			if ( pev->velocity.Length() < 10.0 )
 				pev->velocity = g_vecZero;
 		}
+
 		pev->nextthink = gpGlobals->time;
 		Move();
 		return;
 	}
+
 	( *(int *) ( (char *) g_pGameRules + 8 ) )--;
 	for ( int i = 1; i <= 32; i++ )
 	{
@@ -5740,6 +5827,7 @@ void CDoDCamera::FollowTarget()
 			m_hPlayer[i] = NULL;
 		}
 	}
+
 	FireTargets( STRING( m_sTrigrEnd ), this, this, USE_TOGGLE, 0 );
 	SUB_UseTargets( this, USE_TOGGLE, 0 );
 	pev->avelocity = g_vecZero;
@@ -5825,6 +5913,7 @@ void CDoDCamera::Move()
 		ALERT( at_aiconsole, "**dod_camera** No Path_corner FOUND !!\n" );
 		return;
 	}
+
 	m_moveDistance = m_moveDistance - pev->speed * gpGlobals->frametime;
 	if ( m_moveDistance <= 0 )
 	{
@@ -5838,12 +5927,14 @@ void CDoDCamera::Move()
 			ALERT( at_aiconsole, "**dod_camera** type: %s  Reached %s: %s\n", CutSceneName( pev->iuser2 ),
 				   STRING( pPath->pev->classname ), STRING( pPath->pev->targetname ) );
 		}
+
 		if ( pPath->pev->message )
 		{
 			FireTargets( STRING( pPath->pev->message ), this, this, USE_TOGGLE, 0 );
 			if ( pPath->pev->spawnflags & SF_CORNER_FIREONCE )
 				pPath->pev->message = 0;
 		}
+
 		if ( !strcmp( STRING( pPath->pev->classname ), "path_corner" ) )
 			SetCameraMode( STRING( pPath->pev->targetname ), ( (CPathCorner *) pPath )->m_iCamFade );
 		pPath = pPath->GetNextTarget();
@@ -5866,6 +5957,7 @@ void CDoDCamera::Move()
 			m_flStopTime = gpGlobals->time + pPath->GetDelay();
 		}
 	}
+
 	if ( m_flStopTime <= gpGlobals->time )
 		pev->speed = UTIL_Approach( m_targetSpeed, pev->speed, m_acceleration * gpGlobals->frametime );
 	else
@@ -5949,8 +6041,10 @@ void CDoDCamera::SetCameraMode( const char *szTargetname, int nFade )
 				flags = 5;
 				break;
 			}
+
 			UTIL_ScreenFade( (CBaseEntity *) m_hPlayer[i], g_vecZero, fadeTime, 1.0, 0xff, flags );
 		}
+
 		MESSAGE_BEGIN( MSG_ONE, gmsgCameraView, NULL, pEnt->pev );
 		WRITE_STRING( szTargetname );
 		MESSAGE_END();

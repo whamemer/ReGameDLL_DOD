@@ -97,12 +97,14 @@ public:
 		pev->nextthink = pev->ltime + 0.1;
 		m_fireLast = 0;
 	}
+
 	inline void TankDeactivate( void )
 	{
 		pev->spawnflags &= ~SF_TANK_ACTIVE;
 		m_fireLast = 0;
 		StopRotSound();
 	}
+
 	inline BOOL CanFire( void ) { return ( gpGlobals->time - m_lastSightTime ) < m_persist; }
 	BOOL InRange( float range );
 
@@ -455,6 +457,7 @@ CBaseEntity *CFuncTank::BestVisibleEnemy( void )
 			iNearest = dist;
 		}
 	}
+
 	return pReturn;
 }
 
@@ -473,18 +476,21 @@ int CFuncTank::IRelationship( CBaseEntity *pTarget )
 			return ( pTarget->pev->team != TEAM_ALLIES ) ? 2 : -2;
 		return 2;
 	}
+
 	if ( c == 0xf )
 	{
 		if ( iOtherClass == CLASS_PLAYER )
 			return ( pTarget->pev->team != TEAM_AXIS ) ? 2 : -2;
 		return 2;
 	}
+
 	if ( c == 0xb )
 	{
 		if ( iOtherClass > 9 )
 			return 0;
 		return ( ( 1 << iOtherClass ) & 0x3b2 ) ? 2 : 0;
 	}
+
 	if ( c == 4 )
 	{
 		if ( iOtherClass > 0xb )
@@ -496,6 +502,7 @@ int CFuncTank::IRelationship( CBaseEntity *pTarget )
 			return 1;
 		return 0;
 	}
+
 	if ( c == 5 )
 	{
 		// the relationship to the classes 2 to 11: CLASS_PLAYER, CLASS_HUMAN_PASSIVE, CLASS_HUMAN_MILITARY, ..., CLASS_PLAYER_ALLY
@@ -506,6 +513,7 @@ int CFuncTank::IRelationship( CBaseEntity *pTarget )
 
 		return 0;
 	}
+
 	return 0;
 }
 
@@ -694,6 +702,7 @@ void CFuncTank::TrackTarget( void )
 
 			m_flNextAttack = gpGlobals->time + ( 1 / m_fireRate );
 		}
+
 		return;
 	}
 
@@ -739,6 +748,7 @@ void CFuncTank::AdjustAnglesForBarrel( Vector &angles, float distance )
 			r2 = m_barrelPos.y * m_barrelPos.y;
 			angles.y += ( 180.0 / M_PI ) * atan2( m_barrelPos.y, sqrt( d2 - r2 ) );
 		}
+
 		if ( m_barrelPos.z )
 		{
 			r2 = m_barrelPos.z * m_barrelPos.z;
@@ -761,6 +771,7 @@ void CFuncTank::Fire( const Vector &barrelEnd, const Vector &forward, entvars_t 
 			pSprite->pev->velocity.z = RANDOM_FLOAT( 40, 80 );
 			pSprite->SetScale( m_spriteScale );
 		}
+
 		if ( m_iszSpriteFlash )
 		{
 			CSprite *pSprite = CSprite::SpriteCreate( STRING( m_iszSpriteFlash ), barrelEnd, TRUE );
@@ -771,8 +782,10 @@ void CFuncTank::Fire( const Vector &barrelEnd, const Vector &forward, entvars_t 
 			// Hack Hack, make it stick around for at least 100 ms.
 			pSprite->pev->nextthink += 0.1;
 		}
+
 		SUB_UseTargets( this, USE_TOGGLE, 0 );
 	}
+
 	m_fireLast = gpGlobals->time;
 }
 
@@ -851,6 +864,7 @@ void CFuncTankGun::Fire( const Vector &barrelEnd, const Vector &forward, entvars
 					break;
 				}
 			}
+
 			CFuncTank::Fire( barrelEnd, forward, pevAttacker );
 		}
 	}
@@ -963,6 +977,7 @@ void CFuncTankLaser::Fire( const Vector &barrelEnd, const Vector &forward, entva
 				m_pLaser->FireAtPoint( tr );
 				m_pLaser->pev->nextthink = 0;
 			}
+
 			CFuncTank::Fire( barrelEnd, forward, pev );
 		}
 	}
@@ -999,6 +1014,7 @@ void CFuncTankRocket::Fire( const Vector &barrelEnd, const Vector &forward, entv
 			{
 				CBaseEntity *pRocket = CBaseEntity::Create( "rpg_rocket", barrelEnd, pev->angles, edict() );
 			}
+
 			CFuncTank::Fire( barrelEnd, forward, pev );
 		}
 	}

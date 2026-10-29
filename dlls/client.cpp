@@ -208,6 +208,7 @@ void ClientPutInServer( edict_t *pEntity )
 		pPlayer->Spawn();
 		return;
 	}
+
 	pPlayer->pev->iuser1 = pPlayer->pev->iuser2 = 0;
 	pPlayer->m_bIsObserver = false;
 	pPlayer->m_hObserverTarget = NULL;
@@ -300,6 +301,7 @@ void Host_Say( edict_t *pEntity, int teamonly )
 			// Just a one word command, use the first word...sigh
 			sprintf( szTemp, "%s", (char *) pcmd );
 		}
+
 		p = szTemp;
 	}
 
@@ -902,6 +904,7 @@ void ClientPrecache( void )
 		PRECACHE_SOUND( s_BRITVoiceFiles[i] );
 		PRECACHE_SOUND( s_GERVoiceFiles[i] );
 	}
+
 	PRECACHE_SOUND( s_GERVoiceFiles[28] );
 
 	PRECACHE_SOUND( "player/jump.wav" );
@@ -1273,6 +1276,7 @@ bool CheckPlayerPVSLeafChanged( edict_t *client, int clientnum )
 			if ( pvs->leafnums[i] != client->leafnums[i] )
 				return true;
 		}
+
 		return false;
 	}
 
@@ -1864,6 +1868,7 @@ int GetWeaponData( struct edict_s *player, struct weapon_data_s *info )
 						item->fuser1 = gun->m_flWeaponHeat;
 					}
 				}
+
 				pPlayerItem = pPlayerItem->m_pNext;
 			}
 		}

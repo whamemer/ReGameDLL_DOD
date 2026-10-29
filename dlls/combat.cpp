@@ -119,6 +119,7 @@ void CGib ::SpawnStickyGibs( entvars_t *pevVictim, Vector vecOrigin, int cGibs )
 			pGib->SetTouch( &CGib::StickyGibTouch );
 			pGib->SetThink( NULL );
 		}
+
 		pGib->LimitVelocity();
 	}
 }
@@ -135,6 +136,7 @@ void CGib::SpawnHeadGib( entvars_t *pevVictim, int allies )
 		pGib->Spawn( "models/allied_gibs.mdl" );
 		pGib->pev->body = 0;
 	}
+
 	if ( pevVictim )
 	{
 		pGib->pev->origin = pevVictim->origin + pevVictim->view_ofs;
@@ -158,6 +160,7 @@ void CGib::SpawnHeadGib( entvars_t *pevVictim, int allies )
 		else
 			pGib->pev->velocity = pGib->pev->velocity * 4;
 	}
+
 	pGib->LimitVelocity();
 }
 void CGib::SpawnRandomGibs( entvars_t *pevVictim, int cGibs, int allies )
@@ -219,6 +222,7 @@ Activity CBaseMonster::GetDeathActivity( void )
 			return DOD_PRONE1;
 		bDucking = ( (CBasePlayer *) this )->IsDucking();
 	}
+
 	(void) vecSrc;
 	if ( ( m_bitsDamageType & ( DMG_NERVEGAS | DMG_DOD_GIB6 ) ) ==
 		 0 )
@@ -257,6 +261,7 @@ Activity CBaseMonster::GetDeathActivity( void )
 		else
 			deathActivity = DOD_CROUCH_BACKWARD;
 	}
+
 	return deathActivity;
 }
 
@@ -275,6 +280,7 @@ Activity CBaseMonster::GetSmallFlinchActivity( void )
 		ACT_FLINCH_LEFTLEG,
 		ACT_FLINCH_RIGHTLEG,
 	};
+
 	Activity flinchActivity = ACT_SMALL_FLINCH;
 	UTIL_MakeVectors( pev->angles );
 	if ( (unsigned) ( m_LastHitGroup - 1 ) < 7 )
@@ -369,6 +375,7 @@ void CBaseMonster::Killed( entvars_t *pevAttacker, int iGib )
 		SetTouch( NULL );
 		Touch( NULL );
 	}
+
 	if ( pev->health < -99 )
 		pev->health = 0;
 	m_IdealMonsterState = MONSTERSTATE_DEAD;
@@ -657,6 +664,7 @@ int CBaseMonster::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, f
 				SetConditions( bits_COND_HEAVY_DAMAGE );
 		}
 	}
+
 	return 1;
 }
 
@@ -685,8 +693,10 @@ int CBaseMonster::DeadTakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacke
 			Killed( pevAttacker, 2 );  // GIB_ALWAYS
 			return 0;
 		}
+
 		pev->health -= flDamage * 0.1;
 	}
+
 	return 1;
 }
 
@@ -741,6 +751,7 @@ void RadiusDamage( Vector vecSrc, entvars_t *pevInflictor, entvars_t *pevAttacke
 				tr.vecEndPos = vecSrc;
 				tr.flFraction = 0.0;
 			}
+
 			flAdjustedDamage = ( vecSrc - tr.vecEndPos ).Length() * falloff;
 			flAdjustedDamage = flDamage - flAdjustedDamage;
 			if ( flAdjustedDamage < 0 )
@@ -1019,6 +1030,7 @@ float MapWallMaterialModFromTexture( char texture )
 		12.0, 5.5, 7.3, 5.5, 2.0, 2.0, 12.0, 12.0, 5.5, 5.5, 12.0, 5.5, 12.0,
 		2.0,  5.5, 5.5, 5.5, 7.3, 5.5, 2.0,	 5.5,  5.5, 2.0, 5.5,  2.0, 2.0,
 	};
+
 	float mod = 5.5;
 	if ( (unsigned char) ( texture - 'A' ) < 26 )
 		mod = wallmods[(unsigned char) ( texture - 'A' )];
@@ -1088,6 +1100,7 @@ void CBaseEntity::FireTWalls( float flDamage, int iBulletType, entvars_t *pevAtt
 		ALERT( at_aiconsole, "Bullet was stopped by wall\n" );
 		return;
 	}
+
 	ALERT( at_aiconsole, "Exiting surface  - damage %f\n", flDamage );
 	DecalGunshot( &beam_tr, iBulletType );
 	UTIL_TraceLine( beam_tr.vecEndPos, vecDest, dont_ignore_monsters, pentIgnore, &beam_tr );
@@ -1271,10 +1284,12 @@ void CBaseEntity::FireBullets( ULONG cShots, Vector vecSrc, Vector vecDirShootin
 			bPenetrate = TRUE;
 			break;
 		}
+
 		pEntity->TraceAttack( pevAttacker, flDmg, vecDir, &tr, bPenetrate ? ( DMG_BULLET | DMG_DOD_PENETRATE ) : DMG_BULLET );
 		if ( bPenetrate && g_pGameRules->RoundState() == ROUNDSTATE_RUNNING )
 			FireTWalls( flDmg, iBulletType, pevAttacker, vecDir, vecSrc, vecRight, vecUp, vecEnd );
 	}
+
 	ApplyMultiDamage( pev, pevAttacker );
 }
 
@@ -1447,6 +1462,7 @@ float MapMaterialModFromTexture( char texture )
 		7.3, 5.5, 7.3, 5.5, 1.3, 1.5, 15.0, 15.0, 5.5, 5.5, 7.3, 5.5, 15.0,
 		2.0, 5.5, 5.5, 5.5, 7.3, 5.5, 2.0,	5.5,  5.5, 2.0, 5.5, 2.0, 2.0,
 	};
+
 	float mod =
 		4.95;
 	if ( (unsigned char) ( texture - 'A' ) < 26 )

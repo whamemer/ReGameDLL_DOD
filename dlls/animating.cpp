@@ -51,6 +51,7 @@ float CBaseAnimating ::StudioFrameAdvance( float flInterval )
 			return 0.0;
 		}
 	}
+
 	if ( !pev->animtime )
 		flInterval = 0.0;
 
@@ -300,6 +301,7 @@ void CBaseAnimating ::SetSequenceBox( void )
 				}
 			}
 		}
+
 		rmin.z = 0;
 		rmax.z = rmin.z + 1;
 		UTIL_SetSize( pev, rmin, rmax );

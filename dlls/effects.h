@@ -45,6 +45,7 @@ public:
 			flags = FCAP_DONT_SAVE;
 		return ( CBaseEntity::ObjectCaps() & ~FCAP_ACROSS_TRANSITION ) | flags; 
 	}
+
 	STATE GetState( void ) { return ( pev->effects & EF_NODRAW ) ? STATE_OFF : STATE_ON; }
 	void EXPORT AnimateThink( void );
 	void EXPORT ExpandThink( void );
@@ -63,6 +64,7 @@ public:
 			pev->movetype = MOVETYPE_FOLLOW;
 		}
 	}
+
 	void TurnOff( void );
 	void TurnOn( void );
 	inline float Frames( void )

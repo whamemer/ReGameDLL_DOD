@@ -99,6 +99,7 @@ public:
 
 		return Vec2;
 	}
+
 	inline float Length2D( void ) const		{ return sqrt( x * x + y * y ); }
 
 	// Members

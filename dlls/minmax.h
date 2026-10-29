@@ -23,6 +23,7 @@ extern "C++"
 	{
 		return (x < y) ? x : y;
 	}
+
 	template <class T>
 	inline const T& max(const T& x, const T& y)
 	{

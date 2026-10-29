@@ -218,6 +218,7 @@ public:
 		if ( !HasConditions( bits_COND_TASK_FAILED ) )
 			m_iTaskStatus = TASKSTATUS_COMPLETE;
 	}
+
 	void MovementComplete( void );
 	inline void TaskFail( void ) { SetConditions( bits_COND_TASK_FAILED ); }
 	inline void TaskBegin( void ) { m_iTaskStatus = TASKSTATUS_RUNNING; }
@@ -256,6 +257,7 @@ public:
 			return TRUE;
 		return FALSE;
 	}
+
 	inline BOOL HasAllConditions( int iConditions )
 	{
 		if ( ( m_afConditions & iConditions ) == iConditions )
@@ -356,6 +358,7 @@ public:
 			return TRUE;
 		return FALSE;
 	}
+
 	inline BOOL HasAllMemories( int iMemory )
 	{
 		if ( ( m_afMemory & iMemory ) == iMemory )

@@ -163,6 +163,7 @@ void CAlliedBarney :: RunTask( Task_t *pTask )
 		{
 			pev->framerate = 1.5;
 		}
+
 		CTalkMonster::RunTask( pTask );
 		break;
 	default:
@@ -276,8 +277,10 @@ BOOL CAlliedBarney :: CheckRangeAttack1 ( float flDot, float flDist )
 				m_lastAttackCheck = FALSE;
 			m_checkAttackTime = gpGlobals->time + 1.5;
 		}
+
 		return m_lastAttackCheck;
 	}
+
 	return FALSE;
 }
 
@@ -419,6 +422,7 @@ void CAlliedBarney :: TalkInit( void )
 		m_szGrp[17] = "BA_WOUND";
 		m_szGrp[18] = "BA_MORTAL";
 	}
+
 	int b = pev->body % 3;
 	if ( b == 1 )
 		m_voicePitch = 90;
@@ -443,6 +447,7 @@ static BOOL IsFacing( entvars_t *pevTest, const Vector &reference )
 	{
 		return TRUE;
 	}
+
 	return FALSE;
 }
 
@@ -560,6 +565,7 @@ void CAlliedBarney :: Killed( entvars_t *pevAttacker, int iGib )
 		GetAttachment( 0, vecGunPos, vecGunAngles );
 		DropItem( "weapon_garand", vecGunPos, vecGunAngles );
 	}
+
 	SetUse( NULL );
 	CTalkMonster::Killed( pevAttacker, iGib );
 }
@@ -630,6 +636,7 @@ Schedule_t *CAlliedBarney :: GetSchedule ( void )
 		if ( pSound && (pSound->m_iType & bits_SOUND_DANGER) )
 			return GetScheduleOfType( SCHED_TAKE_COVER_FROM_BEST_SOUND );
 	}
+
 	if ( HasConditions( bits_COND_ENEMY_DEAD ) && FOkToSpeak() )
 	{
 		PlaySentence( "BA_KILL", 4, VOL_NORM, ATTN_NORM );
@@ -681,6 +688,7 @@ Schedule_t *CAlliedBarney :: GetSchedule ( void )
 				{
 					return GetScheduleOfType( SCHED_MOVE_AWAY_FOLLOW );
 				}
+
 				return GetScheduleOfType( SCHED_TARGET_FACE );
 			}
 		}

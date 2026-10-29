@@ -642,6 +642,7 @@ qboolean PM_AddToTouched( pmtrace_t tr, const Vector &impactvelocity )
 		if( pmove->touchindex[i].ent == tr.ent )
 			break;
 	}
+
 	if( i != pmove->numtouch )  // Already in list.
 		return false;
 
@@ -675,6 +676,7 @@ void PM_CheckVelocity( void )
 		{
 			pmove->velocity[i] = 0;
 		}
+
 		if( IS_NAN( pmove->origin[i] ) )
 		{
 			pmove->origin[i] = 0;
@@ -936,6 +938,7 @@ int PM_FlyMove( void )
 					//Con_DPrintf( "Trapped 4\n" );
 					break;
 				}
+
 				CrossProduct( planes[0], planes[1], dir );
 				d = DotProduct( dir, pmove->velocity );
 				VectorScale( dir, d, pmove->velocity );
@@ -1660,6 +1663,7 @@ int PM_CheckStuck( void )
 					VectorCopy( test, pmove->origin );
 					return 0;
 				}
+
 				nReps++;
 			} while( nReps < 54 );
 		}
@@ -1677,6 +1681,7 @@ int PM_CheckStuck( void )
 	{
 		return 1;
 	}
+
 	rgStuckCheckTime[pmove->player_index][idx] = fTime;
 
 	pmove->PM_StuckTouch( hitent, &traceresult );
@@ -1797,6 +1802,7 @@ void PM_SpectatorMove( void )
 		{
 			wishvel[i] = pmove->forward[i] * fmove + pmove->right[i] * smove;
 		}
+
 		wishvel[2] += pmove->cmd.upmove;
 
 		VectorCopy( wishvel, wishdir );
@@ -2441,6 +2447,7 @@ void PM_Physics_Toss( void )
 			VectorScale( pmove->velocity, ( 1.0f - trace.fraction) * pmove->frametime * 0.9f, move );
 			trace = PM_PushEntity( move );
 		}
+
 		VectorSubtract( pmove->velocity, base, pmove->velocity )
 	}
 
@@ -2472,6 +2479,7 @@ void PM_NoClip( void )
 	{
 		wishvel[i] = pmove->forward[i] * fmove + pmove->right[i] * smove;
 	}
+
 	wishvel[2] += pmove->cmd.upmove;
 
 	VectorMA (pmove->origin, pmove->frametime, wishvel, pmove->origin );
@@ -2553,6 +2561,7 @@ void PM_Jump( void )
 		{
 			pmove->waterjumptime = 0;
 		}
+
 		return;
 	}
 
@@ -2950,6 +2959,7 @@ void PM_ReduceTimers( void )
 			pmove->flTimeStepSound = 0;
 		}
 	}
+
 	if( pmove->flDuckTime > 0 )
 	{
 		pmove->flDuckTime -= pmove->cmd.msec;
@@ -2958,6 +2968,7 @@ void PM_ReduceTimers( void )
 			pmove->flDuckTime = 0;
 		}
 	}
+
 	if( pmove->flSwimTime > 0 )
 	{
 		pmove->flSwimTime -= pmove->cmd.msec;
@@ -2966,6 +2977,7 @@ void PM_ReduceTimers( void )
 			pmove->flSwimTime = 0;
 		}
 	}
+
 	if( flFallTime > 0 )
 	{
 		flFallTime -= pmove->cmd.msec;
@@ -3283,6 +3295,7 @@ void PM_CreateStuckTable( void )
 		rgv3tStuckTable[idx][2] = z;
 		idx++;
 	}
+
 	x = z = 0;
 	// Y moves
 	for( y = -0.125f; y <= 0.125f; y += 0.125f )
@@ -3292,6 +3305,7 @@ void PM_CreateStuckTable( void )
 		rgv3tStuckTable[idx][2] = z;
 		idx++;
 	}
+
 	y = z = 0;
 	// X moves
 	for( x = -0.125f; x <= 0.125f; x += 0.125f )
@@ -3343,6 +3357,7 @@ void PM_CreateStuckTable( void )
 		rgv3tStuckTable[idx][2] = z;
 		idx++;
 	}
+
 	y = z = 0;
 	// X moves
 	for( x = -2.0f; x <= 2.0f; x += 2.0f )
@@ -3410,6 +3425,7 @@ int PM_GetVisEntInfo( int ent )
 	{
 		return pmove->visents[ent].info;
 	}
+
 	return -1;
 }
 
@@ -3419,6 +3435,7 @@ int PM_GetPhysEntInfo( int ent )
 	{
 		return pmove->physents[ent].info;
 	}
+
 	return -1;
 }
 

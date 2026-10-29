@@ -54,6 +54,7 @@ private:
 	{
 		NUM_DWORDS = NUM_BITS / 32 + !!( NUM_BITS & 31 )
 	};
+
 	unsigned long m_DWords[NUM_DWORDS];
 };
 

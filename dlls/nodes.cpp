@@ -230,6 +230,7 @@ int CGraph ::HandleLinkEnt( int iNode, entvars_t *pevLinkEnt, int afCapMask, NOD
 		ALERT( at_aiconsole, "dead path ent!\n" );
 		return TRUE;
 	}
+
 	pentWorld = NULL;
 
 	// func_door
@@ -264,6 +265,7 @@ int CGraph ::HandleLinkEnt( int iNode, entvars_t *pevLinkEnt, int afCapMask, NOD
 			{
 				return TRUE;
 			}
+
 			if ( ( afCapMask & bits_CAP_OPEN_DOORS ) )
 			{
 				if ( !( pevLinkEnt->spawnflags & SF_DOOR_NOMONSTERS ) || queryType == NODEGRAPH_STATIC )
@@ -468,6 +470,7 @@ int CGraph::NodeType( const CBaseEntity *pEntity )
 			return bits_NODE_AIR;
 		}
 	}
+
 	return bits_NODE_LAND;
 }
 
@@ -504,6 +507,7 @@ float CGraph::PathLength( int iStart, int iDest, int iHull, int afCapMask )
 			ALERT( at_console, "HashLinks is broken from %d to %d.\n", iCurrentNode, iDest );
 			return 0;
 		}
+
 		CLink &link = Link( iLink );
 		distance += link.m_flWeight;
 
@@ -564,6 +568,7 @@ int CGraph::NextNodeInRoute( int iCurrentNode, int iDest, int iHull, int iCap )
 				//ALERT(at_aiconsole, "REP: nCount - ch+1 (%d - %d+1)\n", nCount, ch);
 				nCount = nCount - ch - 1;
 			}
+
 			pRoute++;
 		}
 	}
@@ -628,11 +633,13 @@ int CGraph ::FindShortestPath( int *piPath, int iStart, int iDest, int iHull, in
 				return 0;
 				break;
 			}
+
 			if ( iNumPathNodes >= MAX_PATH_SIZE )
 			{
 				//ALERT(at_aiconsole, "SVD: Don't return the entire path.\n");
 				break;
 			}
+
 			piPath[iNumPathNodes++] = iNext;
 			iCurrentNode = iNext;
 		}
@@ -703,6 +710,7 @@ int CGraph ::FindShortestPath( int *piPath, int iStart, int iDest, int iHull, in
 						continue;
 					}
 				}
+
 				float flOurDistance =
 					flCurrentDistance + m_pLinkPool[m_pNodes[iCurrentNode].m_iFirstLink + i].m_flWeight;
 				if ( m_pNodes[iVisitNode].m_flClosestSoFar < -0.5 ||
@@ -715,6 +723,7 @@ int CGraph ::FindShortestPath( int *piPath, int iStart, int iDest, int iHull, in
 				}
 			}
 		}
+
 		if ( m_pNodes[iDest].m_flClosestSoFar < -0.5 )
 		{  // Destination is unreachable, no path found.
 			return 0;
@@ -905,6 +914,7 @@ int CGraph ::FindNearestNode( const Vector &vecOrigin, int afNodeTypes )
 		{
 			m_di[i].m_CheckedEvent = 0;
 		}
+
 		m_CheckedCounter++;
 	}
 
@@ -1110,6 +1120,7 @@ int CGraph ::FindNearestNode( const Vector &vecOrigin, int afNodeTypes )
 			(m_iNearest == -1?0.0:m_pNodes[m_iNearest].m_vecOriginPeek.y),
 			(m_iNearest == -1?0.0:m_pNodes[m_iNearest].m_vecOriginPeek.z));
 	}
+
 	if (m_iNearest == -1)
 	{
 		ALERT(at_aiconsole, "All that work for nothing.\n");
@@ -1737,6 +1748,7 @@ void CTestHull ::BuildNodeGraph( void )
 		fprintf( file, "HintYaw:      %4f\n", WorldGraph.m_pNodes[i].m_flHintYaw );
 		fprintf( file, "-------------------------------------------------------------------------------\n" );
 	}
+
 	fprintf( file, "\n\n" );
 
 	// Automatically recognize WATER nodes and drop the LAND nodes to the floor.
@@ -1877,6 +1889,7 @@ void CTestHull ::BuildNodeGraph( void )
 					{  // close the file
 						fclose( file );
 					}
+
 					return;
 				}
 
@@ -1951,6 +1964,7 @@ void CTestHull ::BuildNodeGraph( void )
 							break;
 						}
 					}
+
 					pev->flags = SaveFlags;
 				}
 				else
@@ -1981,6 +1995,7 @@ void CTestHull ::BuildNodeGraph( void )
 			}
 		}
 	}
+
 	fprintf( file, "-------------------------------------------------------------------------------\n\n\n" );
 
 	cPoolLinks -= WorldGraph.RejectInlineLinks( pTempPool, file );
@@ -1995,6 +2010,7 @@ void CTestHull ::BuildNodeGraph( void )
 		{
 			free( pTempPool );
 		}
+
 		if ( file )
 		{  // close the file
 			fclose( file );
@@ -2002,6 +2018,7 @@ void CTestHull ::BuildNodeGraph( void )
 
 		return;
 	}
+
 	WorldGraph.m_cLinks = cPoolLinks;
 
 	//copy only the used portions of the TempPool into the graph's link pool
@@ -2174,6 +2191,7 @@ void CStack ::Push( int value )
 		printf( "Error!\n" );
 		return;
 	}
+
 	m_stack[m_level] = value;
 	m_level++;
 }
@@ -2324,6 +2342,7 @@ void CQueuePriority::Heap_SiftDown( int iSubRoot )
 				child = rightchild;
 			}
 		}
+
 		if ( Ref.Priority <= m_heap[child].Priority )
 			break;
 
@@ -2331,6 +2350,7 @@ void CQueuePriority::Heap_SiftDown( int iSubRoot )
 		parent = child;
 		child = HEAP_LEFT_CHILD( parent );
 	}
+
 	m_heap[parent] = Ref;
 }
 
@@ -2480,6 +2500,7 @@ int CGraph ::FLoadGraph( const char *szMapName )
 			ALERT( at_aiconsole, "***ERROR**\nCounldn't malloc %d route bytes!\n", m_nRouteInfo );
 			goto NoMemory;
 		}
+
 		m_CheckedCounter = 0;
 		for ( int i = 0; i < m_cNodes; i++ )
 		{
@@ -2598,6 +2619,7 @@ int CGraph ::FSaveGraph( char *szMapName )
 		{
 			fwrite( m_pHashLinks, sizeof( short ), m_nHashLinks, file );
 		}
+
 		fclose( file );
 		return TRUE;
 	}
@@ -2730,6 +2752,7 @@ void CGraph::HashInsert( int iSrcNode, int iDestNode, int iKey )
 		if ( i >= m_nHashLinks )
 			i -= m_nHashLinks;
 	}
+
 	m_pHashLinks[i] = iKey;
 }
 
@@ -2760,6 +2783,7 @@ void CGraph::HashSearch( int iSrcNode, int iDestNode, int &iKey )
 				i -= m_nHashLinks;
 		}
 	}
+
 	iKey = m_pHashLinks[i];
 }
 
@@ -2783,6 +2807,7 @@ void CGraph::HashChoosePrimes( int TableSize )
 	{
 		LargestPrime = Primes[NUMBER_OF_PRIMES - 2];
 	}
+
 	int Spacing = LargestPrime / 16;
 
 	// Pick a set primes that are evenly spaced from (0 to LargestPrime)
@@ -2816,6 +2841,7 @@ void CGraph::HashChoosePrimes( int TableSize )
 				}
 				break;
 			}
+
 			Lower = Upper;
 		}
 	}
@@ -2917,6 +2943,7 @@ void CGraph::BuildLinkLookups( void )
 		ALERT( at_aiconsole, "Couldn't allocated Link Lookup Table.\n" );
 		return;
 	}
+
 	int i;
 	for ( i = 0; i < m_nHashLinks; i++ )
 	{
@@ -2965,6 +2992,7 @@ void CGraph::BuildRegionTables( void )
 		m_RegionMin[i] = 999999999.0;	// just a big number out there;
 		m_RegionMax[i] = -999999999.0;	// just a big number out there;
 	}
+
 	for ( i = 0; i < m_cNodes; i++ )
 	{
 		if ( m_pNodes[i].m_vecOrigin.x < m_RegionMin[0] )
@@ -2981,6 +3009,7 @@ void CGraph::BuildRegionTables( void )
 		if ( m_pNodes[i].m_vecOrigin.z > m_RegionMax[2] )
 			m_RegionMax[2] = m_pNodes[i].m_vecOrigin.z;
 	}
+
 	for ( i = 0; i < m_cNodes; i++ )
 	{
 		m_pNodes[i].m_Region[0] = CALC_RANGE( m_pNodes[i].m_vecOrigin.x, m_RegionMin[0], m_RegionMax[0] );
@@ -2996,6 +3025,7 @@ void CGraph::BuildRegionTables( void )
 			m_RangeStart[i][j] = 255;
 			m_RangeEnd[i][j] = 0;
 		}
+
 		for ( j = 0; j < m_cNodes; j++ )
 		{
 			m_di[j].m_SortedBy[i] = j;
@@ -3065,22 +3095,27 @@ void CGraph::BuildRegionTables( void )
 		{
 			m_RangeStart[0][CodeX] = i;
 		}
+
 		if ( i < m_RangeStart[1][CodeY] )
 		{
 			m_RangeStart[1][CodeY] = i;
 		}
+
 		if ( i < m_RangeStart[2][CodeZ] )
 		{
 			m_RangeStart[2][CodeZ] = i;
 		}
+
 		if ( m_RangeEnd[0][CodeX] < i )
 		{
 			m_RangeEnd[0][CodeX] = i;
 		}
+
 		if ( m_RangeEnd[1][CodeY] < i )
 		{
 			m_RangeEnd[1][CodeY] = i;
 		}
+
 		if ( m_RangeEnd[2][CodeZ] < i )
 		{
 			m_RangeEnd[2][CodeZ] = i;
@@ -3231,6 +3266,7 @@ void CGraph ::ComputeStaticRoutingTables( void )
 								{
 									ALERT( at_aiconsole, "Nodes need sorting (%d,%d)!\n", iLastNode, iFrom );
 								}
+
 								cRepeats = 0;
 
 								if ( CanSequence )
@@ -3295,8 +3331,10 @@ void CGraph ::ComputeStaticRoutingTables( void )
 								cRepeats++;
 							}
 						}
+
 						iLastNode = BestNextNodes[i];
 					}
+
 					if ( cRepeats )
 					{
 						// Emit the repeat phrase.
@@ -3328,6 +3366,7 @@ void CGraph ::ComputeStaticRoutingTables( void )
 							ALERT( at_aiconsole, "Nodes need sorting (%d,%d)!\n", iLastNode, iFrom );
 						}
 					}
+
 					if ( cSequence )
 					{
 						// Emit the Sequence phrase.
@@ -3349,6 +3388,7 @@ void CGraph ::ComputeStaticRoutingTables( void )
 								break;
 							}
 						}
+
 						if ( i < m_nRouteInfo - nRoute )
 						{
 							m_pNodes[iFrom].m_pNextBestNode[iHull][iCap] = i;
@@ -3376,8 +3416,10 @@ void CGraph ::ComputeStaticRoutingTables( void )
 				}
 			}
 		}
+
 		ALERT( at_aiconsole, "Size of Routes = %d\n", nTotalCompressedSize );
 	}
+
 	if ( Routes )
 		delete Routes;
 	if ( BestNextNodes )
@@ -3458,6 +3500,7 @@ void CGraph ::TestRoutingTables( void )
 									break;
 								}
 							}
+
 							if ( !bFound )
 							{
 								ALERT( at_aiconsole, "No link.\n" );
@@ -3483,11 +3526,13 @@ void CGraph ::TestRoutingTables( void )
 									break;
 								}
 							}
+
 							if ( !bFound )
 							{
 								ALERT( at_aiconsole, "No link.\n" );
 							}
 						}
+
 						if ( fabs( flDistance1 - flDistance2 ) > 0.10 )
 						{
 #else
@@ -3500,11 +3545,13 @@ void CGraph ::TestRoutingTables( void )
 							{
 								ALERT( at_aiconsole, "%d ", pMyPath[i] );
 							}
+
 							ALERT( at_aiconsole, "\n(%d to %d |%d/%d)2:", iFrom, iTo, iHull, iCap );
 							for ( i = 0; i < cPathSize2; i++ )
 							{
 								ALERT( at_aiconsole, "%d ", pMyPath2[i] );
 							}
+
 							ALERT( at_aiconsole, "\n" );
 							m_fRoutingComplete = FALSE;
 							cPathSize1 = FindShortestPath( pMyPath, iFrom, iTo, iHull, iCapMask );
@@ -3657,6 +3704,7 @@ void CNodeViewer::AddNode( int iFrom, int iTo )
 			if ( m_aFrom[i] == iTo && m_aTo[i] == iFrom )
 				return;
 		}
+
 		m_aFrom[m_nVisited] = iFrom;
 		m_aTo[m_nVisited] = iTo;
 		m_nVisited++;
@@ -3676,6 +3724,7 @@ void CNodeViewer ::DrawThink( void )
 		}
 
 		extern short g_sModelIndexLaser;
+
 		MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
 		WRITE_BYTE( TE_BEAMPOINTS );
 		WRITE_COORD( WorldGraph.m_pNodes[m_aFrom[m_iDraw]].m_vecOrigin.x );

@@ -434,6 +434,7 @@ void CBaseTurret::EyeOn()
 		{
 			m_eyeBrightness = 255;
 		}
+
 		m_pEyeGlow->SetBrightness( m_eyeBrightness );
 	}
 }
@@ -512,6 +513,7 @@ void CBaseTurret::ActiveThink( void )
 				return;
 			}
 		}
+
 		fEnemyVisible = 0;
 	}
 	else
@@ -627,6 +629,7 @@ void CMiniTurret::Shoot( Vector &vecSrc, Vector &vecDirToEnemy )
 		EMIT_SOUND( ENT( pev ), CHAN_WEAPON, "weapons/hks3.wav", 1, ATTN_NORM );
 		break;
 	}
+
 	pev->effects = pev->effects | EF_MUZZLEFLASH;
 }
 
@@ -763,6 +766,7 @@ void CTurret::SpinDownCall( void )
 			EMIT_SOUND_DYN( ENT( pev ), CHAN_STATIC, "turret/tu_active2.wav", 0, 0, SND_STOP, 100 );
 			EMIT_SOUND( ENT( pev ), CHAN_ITEM, "turret/tu_spindown.wav", TURRET_MACHINE_VOLUME, ATTN_NORM );
 		}
+
 		pev->framerate -= 0.02;
 		if ( pev->framerate <= 0 )
 		{
@@ -1069,6 +1073,7 @@ int CBaseTurret::MoveTurret( void )
 			flDist = 360 - flDist;
 			flDir = -flDir;
 		}
+
 		if ( flDist > 30 )
 		{
 			if ( m_fTurnRate < m_iBaseTurnRate * 10 )
@@ -1181,6 +1186,7 @@ void CSentry::Shoot( Vector &vecSrc, Vector &vecDirToEnemy )
 		EMIT_SOUND( ENT( pev ), CHAN_WEAPON, "weapons/hks3.wav", 1, ATTN_NORM );
 		break;
 	}
+
 	pev->effects = pev->effects | EF_MUZZLEFLASH;
 }
 

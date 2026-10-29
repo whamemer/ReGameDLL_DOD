@@ -160,6 +160,7 @@ void CCineMonster ::Spawn( void )
 		if ( pev->targetname )
 			m_startTime = gpGlobals->time + 1E6;
 	}
+
 	if ( pev->spawnflags & SF_SCRIPT_NOINTERRUPT )
 		m_interruptable = FALSE;
 	else
@@ -289,8 +290,10 @@ int CCineMonster ::FindEntity( void )
 				m_hTargetEnt = pTarget;
 				return TRUE;
 			}
+
 			ALERT( at_console, "Found %s, but can't play!\n", STRING( m_iszEntity ) );
 		}
+
 		pentTarget = FIND_ENTITY_BY_TARGETNAME( pentTarget, STRING( m_iszEntity ) );
 		pTarget = NULL;
 	}
@@ -314,6 +317,7 @@ int CCineMonster ::FindEntity( void )
 			}
 		}
 	}
+
 	pTarget = NULL;
 	m_hTargetEnt = NULL;
 	return FALSE;
@@ -707,6 +711,7 @@ void CCineMonster::DoDReset( void )
 				pMon->m_pGoalEnt = NULL;
 			}
 		}
+
 		pent = FIND_ENTITY_BY_TARGETNAME( pent, STRING( m_iszEntity ) );
 	}
 }
@@ -752,6 +757,7 @@ void CCineMonster ::DelayStart( int state )
 					pTarget->m_startTime = gpGlobals->time + 0.05;
 			}
 		}
+
 		pentCine = FIND_ENTITY_BY_TARGETNAME( pentCine, STRING( pev->targetname ) );
 	}
 }
@@ -773,6 +779,7 @@ void CCineMonster ::Activate( void )
 		{
 			pTarget = GetMonsterPointer( pentTarget );
 		}
+
 		pentTarget = FIND_ENTITY_BY_TARGETNAME( pentTarget, STRING( m_iszEntity ) );
 	}
 
@@ -819,6 +826,7 @@ BOOL CBaseMonster ::CineCleanup()
 		pev->movetype = MOVETYPE_STEP;	// this is evil
 		pev->solid = SOLID_SLIDEBOX;
 	}
+
 	m_pCine = NULL;
 	m_hTargetEnt = NULL;
 	m_pGoalEnt = NULL;
@@ -1066,6 +1074,7 @@ void CScriptedSentence ::Spawn( void )
 		m_flAttenuation = ATTN_IDLE;
 		break;
 	}
+
 	pev->impulse = 0;
 
 	// No volume, use normal

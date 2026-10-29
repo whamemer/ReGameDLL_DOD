@@ -153,6 +153,7 @@ void UTIL_ParametricRocket( entvars_t *pev, Vector vecOrigin, Vector vecAngles, 
 	{
 		travelTime = vecTravel.Length() / pev->velocity.Length();
 	}
+
 	pev->starttime = gpGlobals->time;
 	pev->impacttime = gpGlobals->time + travelTime;
 }
@@ -372,6 +373,7 @@ float UTIL_AngleDiff( float destAngle, float srcAngle )
 		if ( delta <= -180 )
 			delta += 360;
 	}
+
 	return delta;
 }
 
@@ -546,6 +548,7 @@ CBaseEntity *UTIL_FindEntityByString( CBaseEntity *pStartEntity, const char *szK
 							last = item;
 							idx = item->pevIndex;
 						}
+
 						if ( idx <= startEntityIndex )
 						{
 							hash_item_t *cur = last;
@@ -558,6 +561,7 @@ CBaseEntity *UTIL_FindEntityByString( CBaseEntity *pStartEntity, const char *szK
 									break;
 								nxt = nxt->next;
 							}
+
 							item = cur;
 							if ( startEntityIndex == idx )
 							{
@@ -566,17 +570,21 @@ CBaseEntity *UTIL_FindEntityByString( CBaseEntity *pStartEntity, const char *szK
 							}
 						}
 					}
+
 					pentEntity = ENT( item->pev );
 					base[hash].lastHash = item;
 					goto found;
 				}
+
 				hash = ( hash + 1 ) % size;
 				item = base + hash;
 			} while ( item->pev );
 		}
+
 		item->lastHash = NULL;
 		return NULL;
 	}
+
 	pentEntity = FIND_ENTITY_BY_STRING( pentEntity, szKeyword, szValue );
 found:
 	if ( !FNullEnt( pentEntity ) )
@@ -627,8 +635,10 @@ CBaseEntity *UTIL_FollowAliasReference( CBaseEntity *pStartEntity, const char *s
 				}
 			}
 		}
+
 		pEnt = UTIL_FindEntityByString( pEnt, "targetname", szValue );
 	}
+
 	return pBest;
 }
 
@@ -661,6 +671,7 @@ CBaseEntity *UTIL_FollowGroupReference( CBaseEntity *pStartEntity, const char *s
 			}
 		}
 	}
+
 	CBaseEntity *pBest = 0;
 	int bestOff = -1;
 	CBaseEntity *pGrp = UTIL_FindEntityByString( 0, "targetname", szGroupName );
@@ -687,8 +698,10 @@ CBaseEntity *UTIL_FollowGroupReference( CBaseEntity *pStartEntity, const char *s
 				}
 			}
 		}
+
 		pGrp = UTIL_FindEntityByString( pGrp, "targetname", szGroupName );
 	}
+
 	return pBest;
 }
 
@@ -708,6 +721,7 @@ CBaseEntity *UTIL_FollowReference( CBaseEntity *pStartEntity, const char *szName
 		if ( szName[n] == 0 )
 			return 0;
 	}
+
 	char root[96];
 	strncpy( root, szName, n );
 	root[n] = 0;
@@ -744,6 +758,7 @@ CBaseEntity *UTIL_FindEntityGeneric( const char *szWhatever, Vector &vecSrc, flo
 			flMaxDist2 = flDist2;
 		}
 	}
+
 	return pEntity;
 }
 
@@ -871,6 +886,7 @@ void UTIL_ScreenShake( const Vector &center, float amplitude, float frequency, f
 			if ( distance < radius )
 				localAmplitude = amplitude;	 //radius - distance;
 		}
+
 		if ( localAmplitude )
 		{
 			shake.amplitude = FixedUnsigned16( localAmplitude, 1 << 12 );  // 4.12 fixed
@@ -984,6 +1000,7 @@ void UTIL_HudMessage( CBaseEntity *pEntity, const hudtextparms_t &textparms, con
 		tmp[511] = 0;
 		WRITE_STRING( tmp );
 	}
+
 	MESSAGE_END();
 }
 
@@ -1305,6 +1322,7 @@ BOOL UTIL_ShouldShowBlood( int color )
 				return violence_ablood->value != 0;
 		}
 	}
+
 	return FALSE;
 }
 
@@ -1534,6 +1552,7 @@ void UTIL_StringToVector( float *pVector, const char *pString )
 		pstr++;
 		pfront = pstr;
 	}
+
 	if ( j < 2 )
 	{
 		/*
@@ -1560,6 +1579,7 @@ void UTIL_StringToIntArray( int *pVector, int count, const char *pString )
 			break;
 		pstr++;
 	}
+
 	for ( int j = 0; j < count; j++ )
 	{
 	}
@@ -1617,6 +1637,7 @@ float UTIL_WaterLevel( const Vector &position, float minz, float maxz )
 		{
 			maxz = midUp.z;
 		}
+
 		diff = maxz - minz;
 	}
 
@@ -1737,6 +1758,7 @@ const char *GetStringForUseType( USE_TYPE useType )
 	default:
 		break;
 	}
+
 	if ( useType == USE_KILL )
 		return "USE_KILL";
 	if ( useType == USE_NOT )
@@ -1756,6 +1778,7 @@ void UTIL_StripToken( const char *pKey, char *pDest, int nLen )
 		pDest[i] = pKey[i];
 		i++;
 	}
+
 	pDest[i] = 0;
 }
 
@@ -1835,6 +1858,7 @@ int CSaveRestoreBuffer ::EntityIndex( edict_t *pentLookup )
 		if ( pTable->pent == pentLookup )
 			return i;
 	}
+
 	return -1;
 }
 
@@ -1852,6 +1876,7 @@ edict_t *CSaveRestoreBuffer ::EntityFromIndex( int entityIndex )
 		if ( pTable->id == entityIndex )
 			return pTable->pent;
 	}
+
 	return NULL;
 }
 
@@ -2123,6 +2148,7 @@ void EntvarsKeyvalue( entvars_t *pev, KeyValueData *pkvd )
 				ALERT( at_error, "Bad field in entity!!\n" );
 				break;
 			}
+
 			pkvd->fHandled = TRUE;
 			return;
 		}
@@ -2205,6 +2231,7 @@ int CSave ::WriteFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *pF
 					break;
 				}
 			}
+
 			WriteInt( pTest->fieldName, entityArray, pTest->fieldSize );
 			break;
 		case FIELD_POSITION_VECTOR:
@@ -2258,6 +2285,7 @@ int CSave ::DataEmpty( const char *pdata, int size )
 		if ( pdata[i] )
 			return 0;
 	}
+
 	return 1;
 }
 
@@ -2354,6 +2382,7 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 								pString++;
 							pString++;
 						}
+
 						pInputData = pString;
 						if ( strlen( (char *) pInputData ) == 0 )
 							*( (int *) pOutputData ) = 0;
@@ -2628,6 +2657,7 @@ int CRestore::BufferCheckZString( const char *string )
 		if ( !strncmp( string, m_pdata->pCurrentData, len ) )
 			return 1;
 	}
+
 	return 0;
 }
 

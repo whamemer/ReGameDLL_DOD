@@ -278,6 +278,7 @@ void CRat ::Killed( entvars_t *pevAttacker, int iGib )
 	{
 		pOwner->DeathNotice( pev );
 	}
+
 	UTIL_Remove( this );
 }
 
@@ -452,6 +453,7 @@ void CRat ::Look( int iDistance )
 			}
 		}
 	}
+
 	SetConditions( iSighted );
 }
 

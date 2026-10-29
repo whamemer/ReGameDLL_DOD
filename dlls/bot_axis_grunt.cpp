@@ -274,6 +274,7 @@ void CAxisGrunt :: GibMonster( void )
 			pGun->pev->avelocity = Vector( 0, RANDOM_FLOAT( 200, 400 ), 0 );
 		}
 	}
+
 	CBaseMonster::GibMonster();
 }
 
@@ -395,6 +396,7 @@ BOOL CAxisGrunt :: CheckMeleeAttack1 ( float flDot, float flDist )
 	{
 		return TRUE;
 	}
+
 	return FALSE;
 }
 
@@ -585,6 +587,7 @@ void CAxisGrunt :: TraceAttack( entvars_t *pevAttacker, float flDamage, Vector v
 		// it's head shot anyways
 		ptr->iHitgroup = HITGROUP_HEAD;
 	}
+
 	CSquadMonster::TraceAttack( pevAttacker, flDamage, vecDir, ptr, bitsDamageType );
 }
 
@@ -681,8 +684,10 @@ void CAxisGrunt :: IdleSound( void )
 				SENTENCEG_PlayRndSz(ENT(pev), "AXISG_ANSWER", AXISGRUNT_SENTENCE_VOLUME, ATTN_NORM, 0, m_voicePitch);
 				break;
 			}
+
 			g_fGruntQuestion = 0;
 		}
+
 		JustSpoke();
 	}
 }
@@ -711,6 +716,7 @@ int CAxisGrunt :: Classify( void )
 			return 11;
 		return 4;
 	}
+
 	return m_iClass;
 }
 
@@ -782,6 +788,7 @@ void CAxisGrunt :: Shoot( void )
 		EMIT_SOUND( ENT( pev ), CHAN_WEAPON, "weapons/mp44_shoot.wav", 1, ATTN_NORM );
 		ALERT( at_console, "Shoot MP44\n" );
 	}
+
 	pev->effects |= EF_MUZZLEFLASH;
 	m_cAmmoLoaded--;
 	Vector angDir = UTIL_VecToAngles( vecShootDir );
@@ -927,6 +934,7 @@ void CAxisGrunt::Spawn( void )
 		m_cClipSize = 30;
 		ALERT( at_console, "Spawn new heavy grunt with MP44" );
 	}
+
 	CTalkMonster::g_talkWaitTime = 0;
 	m_cAmmoLoaded = m_cClipSize;
 	MonsterInit();
@@ -973,6 +981,7 @@ void CAxisGrunt :: StartTask ( Task_t *pTask )
 		{
 			SetConditions( bits_COND_GRUNT_NOFIRE );
 		}
+
 		TaskComplete();
 		break;
 
@@ -1840,6 +1849,7 @@ void CAxisGrunt :: SetActivity ( Activity NewActivity )
 		{
 			NewActivity = ACT_IDLE_ANGRY;
 		}
+
 		iSequence = LookupActivity ( NewActivity );
 		break;
 	default:
@@ -1921,6 +1931,7 @@ Schedule_t *CAxisGrunt :: GetSchedule( void )
 					SENTENCEG_PlayRndSz( ENT(pev), "AXISG_GREN", AXISGRUNT_SENTENCE_VOLUME, AXISGRUNT_ATTN, 0, m_voicePitch);
 					JustSpoke();
 				}
+
 				return GetScheduleOfType( SCHED_TAKE_COVER_FROM_BEST_SOUND );
 			}
 			/*
@@ -1931,6 +1942,7 @@ Schedule_t *CAxisGrunt :: GetSchedule( void )
 			*/
 		}
 	}
+
 	switch	( m_MonsterState )
 	{
 	case MONSTERSTATE_COMBAT:
@@ -2017,6 +2029,7 @@ Schedule_t *CAxisGrunt :: GetSchedule( void )
 						m_iSentence = AXISGRUNT_SENT_COVER;
 						//JustSpoke();
 					}
+
 					return GetScheduleOfType( SCHED_TAKE_COVER_FROM_ENEMY );
 				}
 				else
@@ -2071,6 +2084,7 @@ Schedule_t *CAxisGrunt :: GetSchedule( void )
 						SENTENCEG_PlayRndSz( ENT(pev), "AXISG_THROW", AXISGRUNT_SENTENCE_VOLUME, AXISGRUNT_ATTN, 0, m_voicePitch);
 						JustSpoke();
 					}
+
 					return GetScheduleOfType( SCHED_RANGE_ATTACK2 );
 				}
 				else if ( OccupySlot( bits_SLOTS_HGRUNT_ENGAGE ) )
@@ -2096,6 +2110,7 @@ Schedule_t *CAxisGrunt :: GetSchedule( void )
 						SENTENCEG_PlayRndSz( ENT(pev), "AXISG_TAUNT", AXISGRUNT_SENTENCE_VOLUME, AXISGRUNT_ATTN, 0, m_voicePitch);
 						JustSpoke();
 					}
+
 					return GetScheduleOfType( SCHED_STANDOFF );
 				}
 			}
@@ -2128,6 +2143,7 @@ Schedule_t* CAxisGrunt :: GetScheduleOfType ( int Type )
 						SENTENCEG_PlayRndSz( ENT(pev), "AXISG_THROW", AXISGRUNT_SENTENCE_VOLUME, AXISGRUNT_ATTN, 0, m_voicePitch);
 						JustSpoke();
 					}
+
 					return slGruntTossGrenadeCover;
 				}
 				else

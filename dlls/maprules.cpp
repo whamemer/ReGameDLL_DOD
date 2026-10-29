@@ -553,6 +553,7 @@ void CGameTeamMaster::KeyValue( KeyValueData *pkvd )
 			triggerType = USE_ON;
 			break;
 		}
+
 		pkvd->fHandled = TRUE;
 	}
 	else

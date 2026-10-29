@@ -891,8 +891,10 @@ void CBasePlayer::RemoveAllItems( BOOL removeSuit )
 			m_pActiveItem->Drop();
 			m_pActiveItem = pPendingItem;
 		}
+
 		m_rgpPlayerItems[i] = NULL;
 	}
+
 	m_pActiveItem = NULL;
 
 	pev->viewmodel = 0;
@@ -936,17 +938,20 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 	if ( lastMenuSelected > 0 )
 	{
 		lastMenuSelected = -1;
+
 		MESSAGE_BEGIN( MSG_ONE, gmsgShowMenu, NULL, pev );
 		WRITE_SHORT( 0 );
 		WRITE_CHAR( 0 );
 		WRITE_BYTE( 0 );
 		MESSAGE_END();
 	}
+
 	if ( m_pTank )
 	{
 		m_pTank->Use( this, this, USE_OFF, 0 );
 		m_pTank = NULL;
 	}
+
 	CSound *pSound = CSoundEnt::SoundPointerForIndex( CSoundEnt::ClientSoundIndex( edict() ) );
 	if ( pSound )
 		pSound->Reset();
@@ -991,9 +996,11 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 		pev->iuser3 = ENTINDEX( ENT( pevAttacker ) );
 		m_hObserverTarget = UTIL_PlayerByIndex( pev->iuser3 );
 	}
+
 	MESSAGE_BEGIN( MSG_ONE, gmsgYouDied, NULL, pev );
 	WRITE_BYTE( 0 );
 	MESSAGE_END();
+
 	m_iClientFOV = 0;
 	m_iFOV = 0;
 	( (CDoDTeamPlay *) g_pGameRules )->CheckOneLifeRoundConditions();
@@ -1638,6 +1645,7 @@ void CBasePlayer::WaterMove()
 		{
 			ClearBits( pev->flags, FL_INWATER );
 		}
+
 		return;
 	}
 
@@ -1938,6 +1946,7 @@ void CBasePlayer::Jump()
 			f = 100.0f;
 		pev->fuser4 = f;
 	}
+
 	ForceZoomOut();
 	UTIL_MakeVectors( pev->angles );
 	SetAnimation( PLAYER_JUMP );
@@ -2423,6 +2432,7 @@ void CBasePlayer ::UpdatePlayerSound( void )
 		ALERT( at_console, "Client lost reserved sound!\n" );
 		return;
 	}
+
 	pSound->m_iType = bits_SOUND_NONE;
 	if ( FBitSet( pev->flags, FL_ONGROUND ) )
 	{
@@ -2430,6 +2440,7 @@ void CBasePlayer ::UpdatePlayerSound( void )
 		if ( iBodyVolume > 512 )
 			iBodyVolume = 512;
 	}
+
 	if ( pev->button & IN_JUMP )
 		iBodyVolume += 100;
 	if ( m_iWeaponVolume > iBodyVolume )
@@ -2441,6 +2452,7 @@ void CBasePlayer ::UpdatePlayerSound( void )
 	{
 		m_iTargetVolume = iBodyVolume;
 	}
+
 	m_iWeaponVolume = (int) ( (float) m_iWeaponVolume - gpGlobals->frametime * 250.0f );
 	iVolume = pSound->m_iVolume;
 	if ( m_iTargetVolume > iVolume )
@@ -2451,6 +2463,7 @@ void CBasePlayer ::UpdatePlayerSound( void )
 		if ( iVolume < m_iTargetVolume )
 			iVolume = 0;
 	}
+
 	if ( gpGlobals->time > m_flStopExtraSoundTime )
 		m_iExtraSoundTypes = 0;
 	pSound->m_vecOrigin = pev->origin;
@@ -2739,8 +2752,10 @@ edict_t *ReturnSpot( CBaseEntity *pSpot, CBasePlayer *cbPlayer, BOOL bJustChecki
 			g_pLastSpawn = pSpot;
 			pSpot->pev->fuser1 = gpGlobals->time + 0.5f;
 		}
+
 		return pSpot->pev->pContainingEntity;
 	}
+
 	ALERT( at_console, "PutClientInServer: ReturnSpot: passed a null pSpot" );
 	return NULL;
 }
@@ -2800,6 +2815,7 @@ void CBasePlayer::SpawnThink( void )
 		Spawn();
 		return;
 	}
+
 	pev->nextthink = gpGlobals->time + 1.0;
 }
 
@@ -2980,6 +2996,7 @@ void CBasePlayer ::Precache( void )
 		else
 			ALERT( at_console, "**Graph Pointers Set!\n" );
 	}
+
 	m_bitsDamageType = 0;
 	m_bitsHUDDamage = -1;
 	m_iTrain = TRAIN_NEW;
@@ -3020,6 +3037,7 @@ int CBasePlayer::Restore( CRestore &restore )
 		pev->origin = VARS( pentSpawnSpot )->origin + Vector( 0, 0, 1 );
 		pev->angles = VARS( pentSpawnSpot )->angles;
 	}
+
 	pev->v_angle.z = 0;	 // Clear out roll
 	pev->angles = pev->v_angle;
 
@@ -3276,6 +3294,7 @@ void CBloodSplat::Spray( void )
 
 		UTIL_BloodDecalTrace( &tr, BLOOD_COLOR_RED );
 	}
+
 	SetThink( &CBloodSplat::SUB_Remove );
 	pev->nextthink = gpGlobals->time + 0.1;
 }
@@ -3291,6 +3310,7 @@ edict_t *CBasePlayer ::GiveNamedItem( const char *pszName )
 		ALERT( at_console, "NULL Ent in GiveNamedItem!\n" );
 		return NULL;
 	}
+
 	VARS( pent )->origin = pev->origin;
 	pent->v.spawnflags |= SF_NORESPAWN;
 	DispatchSpawn( pent );
@@ -3312,6 +3332,7 @@ CBaseEntity *FindEntityForward( CBaseEntity *pMe )
 		CBaseEntity *pHit = CBaseEntity::Instance( tr.pHit );
 		return pHit;
 	}
+
 	return NULL;
 }
 
@@ -3486,8 +3507,10 @@ int CBasePlayer::AddPlayerItem( CBasePlayerItem *pItem )
 				// FIXME: remove anyway for deathmatch testing
 				pItem->Kill();
 			}
+
 			return FALSE;
 		}
+
 		pInsert = pInsert->m_pNext;
 	}
 
@@ -3513,6 +3536,7 @@ int CBasePlayer::AddPlayerItem( CBasePlayerItem *pItem )
 		// FIXME: remove anyway for deathmatch testing
 		pItem->Kill();
 	}
+
 	return FALSE;
 }
 
@@ -3527,6 +3551,7 @@ int CBasePlayer::RemovePlayerItem( CBasePlayerItem *pItem )
 		pev->viewmodel = 0;
 		pev->weaponmodel = 0;
 	}
+
 	if ( m_pLastItem == pItem )
 		m_pLastItem = NULL;
 
@@ -3543,12 +3568,14 @@ int CBasePlayer::RemovePlayerItem( CBasePlayerItem *pItem )
 		{
 			pPrev = pPrev->m_pNext;
 		}
+
 		if ( pPrev )
 		{
 			pPrev->m_pNext = pItem->m_pNext;
 			return TRUE;
 		}
 	}
+
 	return FALSE;
 }
 
@@ -4104,6 +4131,7 @@ BOOL CBasePlayer::HasPlayerItem( CBasePlayerItem *pCheckItem )
 		{
 			return TRUE;
 		}
+
 		pItem = pItem->m_pNext;
 	}
 
@@ -4128,6 +4156,7 @@ BOOL CBasePlayer::HasNamedPlayerItem( const char *pszItemName )
 			{
 				return TRUE;
 			}
+
 			pItem = pItem->m_pNext;
 		}
 	}
@@ -4156,6 +4185,7 @@ BOOL CBasePlayer ::SwitchWeapon( CBasePlayerItem *pWeapon, BOOL bJustSpawned )
 		pWeapon->SpawnDeploy();
 		return TRUE;
 	}
+
 	pWeapon->Deploy();
 	return TRUE;
 }
@@ -4466,6 +4496,7 @@ void CBasePlayer::Stamina( void )
 		if ( ( pev->button & IN_RUN ) && ( pev->flags & FL_ONGROUND ) )
 			delta = 5.0f;  // sprinting recovery
 	}
+
 	pev->fuser4 += delta;
 	if ( pev->fuser4 < 0.0f )
 		pev->fuser4 = 0.0f;
@@ -4541,6 +4572,7 @@ void CBasePlayer::VoiceCom( int command )
 		unsigned short evt = pRules->gerVoice();
 		PLAYBACK_EVENT_FULL( 0, ENT( pev ), evt, 0.0f, g_vecZero, g_vecZero, 0.0f, 0.0f, command, 0, 0, 0 );
 	}
+
 	m_handSignal = iVoiceToHandSignal[command];
 	SetAnimation( PLAYER_SIGNAL );
 	m_flNextVoice = gpGlobals->time + 1.0f;
@@ -4558,6 +4590,7 @@ void CBasePlayer::ShowMenu( int slots, int time, char *szText, int bitsvalid, in
 void CBasePlayer::ClearVoiceMenu()
 {
 	lastMenuSelected = -1;
+
 	MESSAGE_BEGIN( MSG_ONE, gmsgShowMenu, NULL, pev );
 	WRITE_SHORT( 0 );
 	WRITE_CHAR( 0 );
@@ -4815,6 +4848,7 @@ void CBasePlayer::PushPlayer( void )
 		if ( tr.flFraction >= 1.0f )
 			return;
 	}
+
 	CBaseEntity *pEnt = CBaseEntity::Instance( tr.pHit );
 	if ( pEnt && pEnt->Classify() == CLASS_PLAYER )
 	{
@@ -4908,6 +4942,7 @@ bool CBasePlayer::PlayerHasExplodingGrenades()
 				return true;
 		}
 	}
+
 	return false;
 }
 
@@ -4942,6 +4977,7 @@ Activity CBasePlayer::SetIdealActivity( Activity i_RequestedActivity )
 void CBasePlayer::VoteMenu( int kickplayer, int menu )
 {
 	lastMenuSelected = menu;
+
 	MESSAGE_BEGIN( MSG_ONE, gmsgShowMenu, NULL, pev );
 	WRITE_SHORT( 0x3ff );
 	WRITE_CHAR( 0x7f );
@@ -4969,6 +5005,7 @@ bool CBasePlayer::ShouldGunLower()
 	{
 		return true;
 	}
+
 	return m_fGunDropTime <= gpGlobals->time;
 }
 
@@ -4982,6 +5019,7 @@ void CBasePlayer::StudioEstimateGait()
 		m_flGaitMovement = 0;
 		return;
 	}
+
 	if ( dt > 1.0f )
 		dt = 1.0f;
 	if ( dt == 0.0f )
@@ -4989,6 +5027,7 @@ void CBasePlayer::StudioEstimateGait()
 		m_flGaitMovement = 0;
 		return;
 	}
+
 	vec3_t est_velocity = pev->origin - m_prevgaitorigin;
 	m_prevgaitorigin = pev->origin;
 	m_flGaitMovement = est_velocity.Length();
@@ -5227,9 +5266,11 @@ BOOL CBasePlayer::DropItemByClass( int weaponclass )
 				DropPlayerItem( wpnname, true );
 				bDropped = TRUE;
 			}
+
 			pItem = pItem->m_pNext;
 		}
 	}
+
 	return bDropped;
 }
 
@@ -5245,6 +5286,7 @@ void CBasePlayer::HandleSignals()
 		else if ( pev->vuser1.x != SANDBAG_DEPLOYED )
 			pev->vuser1.x = SANDBAG_ZONE;
 	}
+
 	if ( ( changed & SIGNAL_CAPTUREAREA ) && !( sig & SIGNAL_CAPTUREAREA ) )
 	{
 		if ( m_iCapAreaIconIndex < 0x81 )
@@ -5252,6 +5294,7 @@ void CBasePlayer::HandleSignals()
 		m_iCapAreaIndex = -1;
 		m_iCapAreaIconIndex = -1;
 	}
+
 	if ( ( changed & SIGNAL_OBJECTAREA ) && !( sig & SIGNAL_OBJECTAREA ) )
 	{
 		if ( m_iObjectAreaIndex < 0x81 )
@@ -5387,6 +5430,7 @@ void CBasePlayer::NextMapMarker()
 {
 	int m = m_iMapMarker + 1;
 	m_iMapMarker = ( m < 0xf ) ? m : 0;
+
 	MESSAGE_BEGIN( MSG_ONE, gmsgCurMarker, NULL, pev );
 	WRITE_BYTE( m_iMapMarker );
 	MESSAGE_END();
@@ -5395,6 +5439,7 @@ void CBasePlayer::PrevMapMarker()
 {
 	int m = m_iMapMarker - 1;
 	m_iMapMarker = ( m >= 0 ) ? m : 0xe;
+
 	MESSAGE_BEGIN( MSG_ONE, gmsgCurMarker, NULL, pev );
 	WRITE_BYTE( m_iMapMarker );
 	MESSAGE_END();
@@ -5409,6 +5454,7 @@ void CBasePlayer::SpawnClientSideCorpse()
 {
 	char *infobuffer = g_engfuncs.pfnGetInfoKeyBuffer( edict() );
 	char *pModel = g_engfuncs.pfnInfoKeyValue( infobuffer, "model" );
+
 	MESSAGE_BEGIN( MSG_ALL, gmsgSendCorpse );
 	WRITE_STRING( pModel );
 	WRITE_COORD( pev->origin.x );
@@ -5478,6 +5524,7 @@ bool CBasePlayer::CheckPlayerSpeed( void )
 			}
 		}
 	}
+
 	if ( m_iPlayerSpeed != speed )
 	{
 		ALERT( at_aiconsole, "Changing max speed to %d\n", speed );
@@ -5485,6 +5532,7 @@ bool CBasePlayer::CheckPlayerSpeed( void )
 		m_iPlayerSpeed = speed;
 		return true;
 	}
+
 	return false;
 }
 bool CBasePlayer::SetSpeed( int speed )
@@ -5553,6 +5601,7 @@ void CBasePlayer::MortarDeploy( void )
 		m_inextprone = gpGlobals->time + 1.0f;
 		ForceZoomOut();
 	}
+
 	pev->iuser3 = STANCE_MORTAR;
 	CheckPlayerSpeed();
 }

@@ -277,6 +277,7 @@ void CEnvState::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 			else
 				ALERT( at_console, "ignored trigger %s.\n", GetStringForUseType( useType ) );
 		}
+
 		return;
 	}
 
@@ -894,6 +895,7 @@ void CBaseButton::RoundRespawn( void )
 		SetThink( &CBaseButton::ButtonSpark );
 		pev->nextthink = gpGlobals->time + 0.5;
 	}
+
 	SetMovedir( pev );
 	m_flWait = m_rrWait;
 	if ( m_flWait == 0 )
@@ -1389,6 +1391,7 @@ public:
 			return flags;
 		return flags | FCAP_CONTINUOUS_USE;
 	}
+
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void EXPORT Off( void );
 	void EXPORT Return( void );
@@ -1484,6 +1487,7 @@ void CMomentaryRotButton::RoundRespawn( void )
 		m_flMoveDistance = -m_flMoveDistance;
 		m_direction = 1;
 	}
+
 	const char *pszSound = ButtonSound( m_sounds );
 	pev->noise = ALLOC_STRING( pszSound );
 	m_lastUsed = 0;
@@ -1560,6 +1564,7 @@ void CMomentaryRotButton::UpdateSelf( float value )
 		fplaysound = TRUE;
 		m_direction = -m_direction;
 	}
+
 	m_lastUsed = 1;
 
 	pev->nextthink = pev->ltime + 0.1;

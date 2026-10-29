@@ -302,6 +302,7 @@ void CTalkMonster ::StartTask( Task_t *pTask )
 				pev->ideal_yaw = max( yaw - 45.0f, 0.0f ) + pev->angles.y;
 			}
 		}
+
 		TaskComplete();
 		break;
 
@@ -492,6 +493,7 @@ void CTalkMonster ::RunTask( Task_t *pTask )
 		{
 			SetBoneController( 0, 0 );
 		}
+
 		CBaseMonster::RunTask( pTask );
 	}
 }
@@ -781,6 +783,7 @@ CBaseEntity *CTalkMonster ::FindNearestFriend( BOOL fPlayer )
 			}
 		}
 	}
+
 	return pNearest;
 }
 
@@ -912,6 +915,7 @@ int CTalkMonster ::FIdleHello( void )
 			}
 		}
 	}
+
 	return FALSE;
 }
 
@@ -1121,6 +1125,7 @@ int CTalkMonster ::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, 
 			}
 		}
 	}
+
 	return CBaseMonster::TakeDamage( pevInflictor, pevAttacker, flDamage, bitsDamageType );
 }
 

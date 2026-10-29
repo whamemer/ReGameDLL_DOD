@@ -212,6 +212,7 @@ void CSarge :: RunTask( Task_t *pTask )
 		{
 			pev->framerate = 1.5;
 		}
+
 		CTalkMonster::RunTask( pTask );
 		break;
 	default:
@@ -313,8 +314,10 @@ BOOL CSarge :: CheckRangeAttack1 ( float flDot, float flDist )
 				m_lastAttackCheck = FALSE;
 			m_checkAttackTime = gpGlobals->time + 1.5;
 		}
+
 		return m_lastAttackCheck;
 	}
+
 	return FALSE;
 }
 
@@ -450,6 +453,7 @@ static BOOL IsFacing( entvars_t *pevTest, const Vector &reference )
 	{
 		return TRUE;
 	}
+
 	return FALSE;
 }
 
@@ -599,6 +603,7 @@ Schedule_t *CSarge :: GetSchedule ( void )
 		if ( pSound && (pSound->m_iType & bits_SOUND_DANGER) )
 			return GetScheduleOfType( SCHED_TAKE_COVER_FROM_BEST_SOUND );
 	}
+
 	if ( HasConditions( bits_COND_ENEMY_DEAD ) && FOkToSpeak() )
 	{
 		PlaySentence( "BA_KILL", 4, VOL_NORM, ATTN_NORM );
@@ -650,6 +655,7 @@ Schedule_t *CSarge :: GetSchedule ( void )
 				{
 					return GetScheduleOfType( SCHED_MOVE_AWAY_FOLLOW );
 				}
+
 				return GetScheduleOfType( SCHED_TARGET_FACE );
 			}
 		}
@@ -806,8 +812,10 @@ CBaseEntity *CSarge :: BestVisibleEnemy( void )
 				}
 			}
 		}
+
 		pNextEnt = pNextEnt->m_pLink;
 	}
+
 	return pReturn;
 }
 

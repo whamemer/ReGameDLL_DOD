@@ -330,6 +330,7 @@ public:
 	{
 		return Center() + pev->view_ofs * RANDOM_FLOAT( 0.5, 1.1 );
 	};
+
 	virtual BOOL IsAlive( void ) { return ( pev->deadflag == DEAD_NO ) && pev->health > 0; }
 	virtual BOOL ShouldFadeOnDeath( void ) { return FALSE; }
 	virtual BOOL IsPlayer( void ) { return TRUE; }
@@ -345,6 +346,7 @@ public:
 		// return their team name
 		return m_szTeamName;
 	}
+
 	virtual int Save( CSave &save );
 	virtual int Restore( CRestore &restore );
 	CBasePlayerWeapon *GetPrimaryWeapon();

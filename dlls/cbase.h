@@ -240,6 +240,7 @@ public:
 			pev->mins = m_rrMins;
 			pev->maxs = m_rrMaxs;
 		}
+
 		pev->origin = m_rrOrigin;
 		pev->angles = m_rrAngles;
 		pev->movedir = m_rrMovedir;
@@ -275,6 +276,7 @@ public:
 			m_rrMins = pev->mins;
 			m_rrMaxs = pev->maxs;
 		}
+
 		m_rrAngles = pev->angles;
 		m_rrMovedir = pev->movedir;
 		m_rrSpawnflags = pev->spawnflags;
@@ -401,6 +403,7 @@ public:
 		FIRE_OFF,
 		FIRE_CHARGE
 	};
+
 	int m_fireState;
 	TraceResult m_trDecalTrace;
 
@@ -409,16 +412,19 @@ public:
 		if ( m_pfnThink )
 			( this->*m_pfnThink )();
 	};
+
 	virtual void Touch( CBaseEntity *pOther )
 	{
 		if ( m_pfnTouch )
 			( this->*m_pfnTouch )( pOther );
 	};
+
 	virtual void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 	{
 		if ( m_pfnUse )
 			( this->*m_pfnUse )( pActivator, pCaller, useType, value );
 	}
+
 	virtual void Blocked( CBaseEntity *pOther )
 	{
 		if ( m_pfnBlocked )
@@ -480,6 +486,7 @@ public:
 			return pEntity->MyMonsterPointer();
 		return NULL;
 	}
+
 	CBaseMonster *GetMonsterPointer( edict_t *pentMonster )
 	{
 		CBaseEntity *pEntity = Instance( pentMonster );
@@ -502,18 +509,21 @@ public:
 		FunctionCheck( (void *) *( (int *) ( (char *) this + ( offsetof( CBaseEntity, m_pfnThink ) ) ) ), name );
 		return func;
 	}
+
 	ENTITYFUNCPTR TouchSet( ENTITYFUNCPTR func, char *name )
 	{
 		m_pfnTouch = func;
 		FunctionCheck( (void *) *( (int *) ( (char *) this + ( offsetof( CBaseEntity, m_pfnTouch ) ) ) ), name );
 		return func;
 	}
+
 	USEPTR UseSet( USEPTR func, char *name )
 	{
 		m_pfnUse = func;
 		FunctionCheck( (void *) *( (int *) ( (char *) this + ( offsetof( CBaseEntity, m_pfnUse ) ) ) ), name );
 		return func;
 	}
+
 	ENTITYFUNCPTR BlockedSet( ENTITYFUNCPTR func, char *name )
 	{
 		m_pfnBlocked = func;
@@ -1013,6 +1023,7 @@ public:
 		BUTTON_ACTIVATE,
 		BUTTON_RETURN
 	};
+
 	BUTTON_CODE ButtonResponseToTouch( void );
 
 	static TYPEDESCRIPTION m_SaveData[];
@@ -1067,6 +1078,7 @@ template <class T> T *GetClassPtr( T *a )
 		a = new ( pev ) T;
 		a->pev = pev;
 	}
+
 	return a;
 }
 

@@ -443,6 +443,7 @@ CSound *CBaseMonster ::PBestSound( void )
 
 		iThisSound = pSound->m_iNextAudible;
 	}
+
 	if ( iBestSound >= 0 )
 	{
 		pSound = CSoundEnt::SoundPointerForIndex( iBestSound );
@@ -494,6 +495,7 @@ CSound *CBaseMonster ::PBestScent( void )
 
 		iThisScent = pSound->m_iNextAudible;
 	}
+
 	if ( iBestScent >= 0 )
 	{
 		pSound = CSoundEnt::SoundPointerForIndex( iBestScent );
@@ -537,6 +539,7 @@ void CBaseMonster ::MonsterThink( void )
 			// and should return to our heaviest weighted idle (the subtle one)
 			iSequence = LookupActivityHeaviest( m_Activity );
 		}
+
 		if ( iSequence != ACTIVITY_NOT_AVAILABLE )
 		{
 			pev->sequence = iSequence;	// Set to new anim (if it's there)
@@ -883,6 +886,7 @@ void CBaseMonster ::RouteSimplify( CBaseEntity *pTargetEnt )
 		vecStart = outRoute[outCount].vecLocation;
 		outCount++;
 	}
+
 	ASSERT( i < count );
 	outRoute[outCount] = m_Route[m_iRouteIndex + i];
 	outCount++;
@@ -936,6 +940,7 @@ BOOL CBaseMonster ::CheckRangeAttack1( float flDot, float flDist )
 	{
 		return TRUE;
 	}
+
 	return FALSE;
 }
 
@@ -948,6 +953,7 @@ BOOL CBaseMonster ::CheckRangeAttack2( float flDot, float flDist )
 	{
 		return TRUE;
 	}
+
 	return FALSE;
 }
 
@@ -961,6 +967,7 @@ BOOL CBaseMonster ::CheckMeleeAttack1( float flDot, float flDist )
 	{
 		return TRUE;
 	}
+
 	return FALSE;
 }
 
@@ -973,6 +980,7 @@ BOOL CBaseMonster ::CheckMeleeAttack2( float flDot, float flDist )
 	{
 		return TRUE;
 	}
+
 	return FALSE;
 }
 
@@ -1005,16 +1013,19 @@ void CBaseMonster ::CheckAttacks( CBaseEntity *pTarget, float flDist )
 		if ( CheckRangeAttack1( flDot, flDist ) )
 			SetConditions( bits_COND_CAN_RANGE_ATTACK1 );
 	}
+
 	if ( m_afCapability & bits_CAP_RANGE_ATTACK2 )
 	{
 		if ( CheckRangeAttack2( flDot, flDist ) )
 			SetConditions( bits_COND_CAN_RANGE_ATTACK2 );
 	}
+
 	if ( m_afCapability & bits_CAP_MELEE_ATTACK1 )
 	{
 		if ( CheckMeleeAttack1( flDot, flDist ) )
 			SetConditions( bits_COND_CAN_MELEE_ATTACK1 );
 	}
+
 	if ( m_afCapability & bits_CAP_MELEE_ATTACK2 )
 	{
 		if ( CheckMeleeAttack2( flDot, flDist ) )
@@ -1170,6 +1181,7 @@ void CBaseMonster ::PushEnemy( CBaseEntity *pEnemy, Vector &vecLastKnownPos )
 		if ( m_hOldEnemy[i] == NULL )  // someone died, reuse their slot
 			break;
 	}
+
 	if ( i >= MAX_OLD_ENEMIES )
 		return;
 
@@ -1200,6 +1212,7 @@ BOOL CBaseMonster ::PopEnemy()
 			}
 		}
 	}
+
 	return FALSE;
 }
 
@@ -1338,6 +1351,7 @@ int CBaseMonster ::CheckLocalMove( const Vector &vecStart, const Vector &vecEnd,
 			{
 				*pflDist = flStep;
 			}
+
 			if ( pTarget && pTarget->edict() == gpGlobals->trace_ent )
 			{
 				// if this step hits target ent, the move is legal.
@@ -1480,6 +1494,7 @@ void CBaseMonster ::AdvanceRoute( float distance )
 				}
 				//ALERT(at_aiconsole, "\n");
 			}
+
 			m_iRouteIndex++;
 		}
 		else  // At goal!!!
@@ -1717,6 +1732,7 @@ BOOL CBaseMonster ::FTriangulate( const Vector &vecStart, const Vector &vecEnd, 
 				return TRUE;
 			}
 		}
+
 		if ( CheckLocalMove( pev->origin, vecLeft, pTargetEnt, NULL ) == LOCALMOVE_VALID )
 		{
 			if ( CheckLocalMove( vecLeft, vecFarSide, pTargetEnt, NULL ) == LOCALMOVE_VALID )
@@ -1916,6 +1932,7 @@ void CBaseMonster ::Move( float flInterval )
 						   HasMemory( bits_MEMORY_MOVE_FAILED ) );
 					//ALERT( at_aiconsole, "%f, %f, %f\n", pev->origin.z, (pev->origin + (vecDir * flCheckDist)).z, m_Route[m_iRouteIndex].vecLocation.z );
 				}
+
 				return;
 			}
 		}
@@ -1941,6 +1958,7 @@ void CBaseMonster ::Move( float flInterval )
 		flInterval = flCheckDist / m_flGroundSpeed;
 		// ALERT( at_console, "%.02f\n", flInterval );
 	}
+
 	MoveExecute( pTargetEnt, vecDir, flInterval );
 
 	if ( MovementIsComplete() )
@@ -2062,6 +2080,7 @@ void CBaseMonster ::StartPatrol( CBaseEntity *path )
 		{
 			ALERT( at_aiconsole, "Can't Create Route!\n" );
 		}
+
 		SetState( MONSTERSTATE_IDLE );
 		ChangeSchedule( GetScheduleOfType( SCHED_IDLE_WALK ) );
 	}
@@ -2083,14 +2102,17 @@ void CBaseMonster ::StartMonster( void )
 	{
 		m_afCapability |= bits_CAP_RANGE_ATTACK1;
 	}
+
 	if ( LookupActivity( ACT_RANGE_ATTACK2 ) != ACTIVITY_NOT_AVAILABLE )
 	{
 		m_afCapability |= bits_CAP_RANGE_ATTACK2;
 	}
+
 	if ( LookupActivity( ACT_MELEE_ATTACK1 ) != ACTIVITY_NOT_AVAILABLE )
 	{
 		m_afCapability |= bits_CAP_MELEE_ATTACK1;
 	}
+
 	if ( LookupActivity( ACT_MELEE_ATTACK2 ) != ACTIVITY_NOT_AVAILABLE )
 	{
 		m_afCapability |= bits_CAP_MELEE_ATTACK2;
@@ -2163,6 +2185,7 @@ void CBaseMonster ::MovementComplete( void )
 	case TASKSTATUS_COMPLETE:
 		break;
 	}
+
 	m_movementGoal = MOVEGOAL_NONE;
 }
 
@@ -2209,6 +2232,7 @@ int CBaseMonster::IRelationship( CBaseEntity *pTarget )
 		{
 			iRel = ( m_afMemory == 0 ) ? R_AL : R_HT;
 		}
+
 		return iRel;
 	}
 
@@ -2267,6 +2291,7 @@ BOOL CBaseMonster ::FindCover( Vector vecThreat, Vector vecViewOffset, float flM
 		ALERT( at_aiconsole, "FindCover() - %s has no nearest node!\n", STRING( pev->classname ) );
 		return FALSE;
 	}
+
 	if ( iThreatNode == NO_NODE )
 	{
 		// ALERT ( at_aiconsole, "FindCover() - Threat has no nearest node!\n" );
@@ -2325,6 +2350,7 @@ BOOL CBaseMonster ::FindCover( Vector vecThreat, Vector vecViewOffset, float flM
 			}
 		}
 	}
+
 	return FALSE;
 }
 
@@ -2902,6 +2928,7 @@ void CBaseMonster::ReportAIState( void )
 			ALERT( level, "Activity %s, ", activity_map[i].name );
 			break;
 		}
+
 		i++;
 	}
 
@@ -3323,6 +3350,7 @@ BOOL CBaseMonster ::BBoxFlat( void )
 	{
 		return FALSE;
 	}
+
 	flLength = flLength2;
 
 	vecPoint.x = pev->origin.x - flXSize;
@@ -3333,6 +3361,7 @@ BOOL CBaseMonster ::BBoxFlat( void )
 	{
 		return FALSE;
 	}
+
 	flLength = flLength2;
 
 	vecPoint.x = pev->origin.x + flXSize;
@@ -3343,6 +3372,7 @@ BOOL CBaseMonster ::BBoxFlat( void )
 	{
 		return FALSE;
 	}
+
 	flLength = flLength2;
 
 	return TRUE;

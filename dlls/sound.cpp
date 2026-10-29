@@ -205,6 +205,7 @@ void CAmbientGeneric ::Precache( void )
 		if ( m_fLooping )
 			m_fActive = TRUE;
 	}
+
 	if ( m_fActive )
 	{
 		UTIL_EmitAmbientSound( ENT( pev ), pev->origin, szSoundFile, ( m_dpv.vol * 0.01 ), m_flAttenuation,
@@ -828,6 +829,7 @@ void CEnvSound ::KeyValue( KeyValueData *pkvd )
 		m_flRadius = atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
+
 	if ( FStrEq( pkvd->szKeyName, "roomtype" ) )
 	{
 		m_flRoomtype = atof( pkvd->szValue );
@@ -1131,6 +1133,7 @@ int USENTENCEG_Pick( int isentenceg, char *szfound )
 			return ipick;
 		}
 	}
+
 	return -1;
 }
 
@@ -1395,6 +1398,7 @@ int SENTENCEG_Lookup( const char *sample, char *sentencenum )
 				sprintf( sznum, "%d", i );
 				strcat( sentencenum, sznum );
 			}
+
 			return i;
 		}
 	// sentence name not found!
@@ -1640,6 +1644,7 @@ float TEXTURETYPE_PlaySound( TraceResult *ptr, Vector vecSrc, Vector vecEnd, int
 			goto defaultHit;  // weapons/bullet_hit1.wav + bullet_hit2.wav
 		pTextureName = TRACE_TEXTURE( pEntity ? ENT( pEntity->pev ) : ENT( 0 ), vecSrc, vecEnd );
 	}
+
 	if ( pTextureName )
 	{
 		if ( *pTextureName == '+' || *pTextureName == '-' )
@@ -1665,6 +1670,7 @@ float TEXTURETYPE_PlaySound( TraceResult *ptr, Vector vecSrc, Vector vecEnd, int
 				left = pivot + 1;
 		}
 	}
+
 	switch ( chTextureType )
 	{
 	case 'D':
@@ -1745,11 +1751,13 @@ float TEXTURETYPE_PlaySound( TraceResult *ptr, Vector vecSrc, Vector vecEnd, int
 		fvol = 0.2;
 		break;
 	}
+
 	if ( pEntity && FClassnameIs( pEntity->pev, "func_breakable" ) )
 	{
 		fattn = fattn / 1.5;
 		fvol = fvol * 0.5;
 	}
+
 	UTIL_EmitAmbientSound( NULL, ptr->vecEndPos, rgsz[RANDOM_LONG( 0, cnt )], fattn, ( fattn == 1.0 ? 1.0 : 0.8 ), 0,
 						   RANDOM_LONG( 0, 15 ) + 0x60 );
 	return fvol;
@@ -1800,6 +1808,7 @@ void CSpeaker ::Spawn( void )
 		SetThink( &CSpeaker::SUB_Remove );
 		return;
 	}
+
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NONE;
 

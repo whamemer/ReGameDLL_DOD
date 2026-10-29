@@ -87,18 +87,21 @@ void CBaseDMStart::KeyValue( KeyValueData *pkvd )
 		pkvd->fHandled = TRUE;
 		return;
 	}
+
 	if ( FStrEq( pkvd->szKeyName, "spawn_cp_neutral" ) )
 	{
 		m_bNeutral = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 		return;
 	}
+
 	if ( FStrEq( pkvd->szKeyName, "spawn_cp_incontrol" ) )
 	{
 		m_bInControl = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 		return;
 	}
+
 	if ( FStrEq( pkvd->szKeyName, "spawn_cp_notincontrol" ) )
 	{
 		m_bNotInControl = atoi( pkvd->szValue );
@@ -136,6 +139,7 @@ int CBaseDMStart::GetState( CBaseEntity *pEntity )
 			return m_bNotInControl ? 2 : 0;
 		return 2;
 	}
+
 	if ( owner == 2 )
 	{
 		if ( team == TEAM_AXIS )
@@ -144,6 +148,7 @@ int CBaseDMStart::GetState( CBaseEntity *pEntity )
 			return m_bNotInControl ? 2 : 0;
 		return 2;
 	}
+
 	return m_bNeutral ? 2 : 0;
 }
 
@@ -165,6 +170,7 @@ void CBaseEntity::UpdateOnRemove( void )
 			}
 		}
 	}
+
 	if ( pev->globalname )
 		gGlobalState.EntitySetState( pev->globalname, GLOBAL_DEAD );
 }
@@ -271,6 +277,7 @@ void FireTargets( const char *targetName, CBaseEntity *pActivator, CBaseEntity *
 					if ( cut >= 1 && cut <= 8 )
 						pTarget->pev->iuser2 = cut;
 				}
+
 				pTarget->Use( pActivator, pCaller, useType, value );
 			}
 		}
@@ -312,6 +319,7 @@ void FireDODCameraTargets( const char *targetName, CBaseEntity *pActivator, CBas
 			UTIL_Remove( pT );
 			continue;
 		}
+
 		ALERT( at_aiconsole, "Found: %s, firing (%s)\n", STRING( pT->pev->classname ), targetName );
 		pT->pev->iuser2 = 0;
 		for ( int i = 0; i < 9; i++ )
@@ -319,6 +327,7 @@ void FireDODCameraTargets( const char *targetName, CBaseEntity *pActivator, CBas
 			if ( strcmp( targetName, szCutsceneNames[i] ) == 0 )
 				pT->pev->iuser2 = i;
 		}
+
 		pT->Use( pActivator, pCaller, useType, value );
 	}
 }
@@ -574,6 +583,7 @@ STATE CBaseToggle::GetState( void )
 		case TS_GOING_DOWN:
 			return STATE_TURN_OFF;
 	}
+
 	return STATE_OFF;
 }
 

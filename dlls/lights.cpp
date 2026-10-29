@@ -184,6 +184,7 @@ void CLight::SetCorrectStyle( void )
 				LIGHT_STYLE( m_iStyle, STRING( m_iszPattern ) );
 				return;
 			}
+
 			style = m_iOnStyle;
 			if ( style == 0 )
 			{
@@ -214,6 +215,7 @@ void CLight::SetCorrectStyle( void )
 			return;
 		}
 	}
+
 	const char *pat = "m";
 	if ( (unsigned) ( style - 1 ) < 0x13 )
 		pat = GetStdLightStyle( style );
@@ -233,6 +235,7 @@ void CLight::Think( void )
 		m_iState = STATE_ON;
 		FireTargets( STRING( pev->target ), this, this, USE_ON, 0 );
 	}
+
 	if ( m_iStyle >= 32 )
 		SetCorrectStyle();
 }
@@ -267,11 +270,13 @@ void CLight::RoundRespawn( void )
 		LIGHT_STYLE( m_iStyle, "a" );
 		return;
 	}
+
 	if ( !m_iszPattern )
 	{
 		LIGHT_STYLE( m_iStyle, "m" );
 		return;
 	}
+
 	LIGHT_STYLE( m_iStyle, STRING( m_iszPattern ) );
 }
 
@@ -459,6 +464,7 @@ void CTriggerLightstyle::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE
 			const char *pat = ( m_iStyle - 1 < 19 ) ? GetStdLightStyle( m_iStyle ) : "m";
 			LIGHT_STYLE( pLight->m_iStyle, (char *) pat );
 		}
+
 		if ( m_iWait != -1 )
 			pev->nextthink = gpGlobals->time + m_iWait;
 	}

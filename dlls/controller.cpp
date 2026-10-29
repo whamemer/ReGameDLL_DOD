@@ -192,6 +192,7 @@ void CController::Killed( entvars_t *pevAttacker, int iGib )
 		m_pBall[0]->SUB_StartFadeOut();
 		m_pBall[0] = NULL;
 	}
+
 	if ( m_pBall[1] )
 	{
 		m_pBall[1]->SUB_StartFadeOut();
@@ -209,11 +210,13 @@ void CController::GibMonster( void )
 		UTIL_Remove( m_pBall[0] );
 		m_pBall[0] = NULL;
 	}
+
 	if ( m_pBall[1] )
 	{
 		UTIL_Remove( m_pBall[1] );
 		m_pBall[1] = NULL;
 	}
+
 	CSquadMonster::GibMonster();
 }
 
@@ -590,6 +593,7 @@ void CController ::RunTask( Task_t *pTask )
 				{
 					m_vecEstVelocity = m_vecEstVelocity * 0.8;
 				}
+
 				vecDir = Intersect( vecSrc, m_hEnemy->BodyTarget( pev->origin ), m_vecEstVelocity,
 									gSkillData.controllerSpeedBall );
 				float delta = 0.03490;	// +-2 degree
@@ -601,6 +605,7 @@ void CController ::RunTask( Task_t *pTask )
 				CBaseMonster *pBall = (CBaseMonster *) Create( "controller_energy_ball", vecSrc, pev->angles, edict() );
 				pBall->pev->velocity = vecDir;
 			}
+
 			m_flShootTime += 0.2;
 		}
 
@@ -689,6 +694,7 @@ Schedule_t *CController ::GetSchedule( void )
 		{
 			// m_iFrustration++;
 		}
+
 		if ( HasConditions( bits_COND_HEAVY_DAMAGE ) )
 		{
 			// m_iFrustration++;
@@ -733,6 +739,7 @@ BOOL CController ::CheckRangeAttack1( float flDot, float flDist )
 	{
 		return TRUE;
 	}
+
 	return FALSE;
 }
 
@@ -742,6 +749,7 @@ BOOL CController ::CheckRangeAttack2( float flDot, float flDist )
 	{
 		return TRUE;
 	}
+
 	return FALSE;
 }
 
@@ -918,6 +926,7 @@ void CController ::Move( float flInterval )
 			{
 				DispatchBlocked( edict(), pBlocker->edict() );
 			}
+
 			if ( pBlocker && m_moveWaitTime > 0 && pBlocker->IsMoving() && !pBlocker->IsPlayer() &&
 				 ( gpGlobals->time - m_flMoveWaitFinished ) > 3.0 )
 			{
@@ -953,6 +962,7 @@ void CController ::Move( float flInterval )
 						ALERT( at_aiconsole, "Failed to move!\n" );
 						//ALERT( at_aiconsole, "%f, %f, %f\n", pev->origin.z, (pev->origin + (vecDir * flCheckDist)).z, m_Route[m_iRouteIndex].vecLocation.z );
 					}
+
 					return;
 				}
 			}
@@ -975,6 +985,7 @@ void CController ::Move( float flInterval )
 			{
 				AdvanceRoute( flWaypointDist );
 			}
+
 			flMoveDist = 0;
 		}
 
@@ -1206,6 +1217,7 @@ void CControllerHeadBall ::MovetoTarget( Vector vecTarget )
 	{
 		m_vecIdeal = m_vecIdeal.Normalize() * 400;
 	}
+
 	m_vecIdeal = m_vecIdeal + ( vecTarget - pev->origin ).Normalize() * 100;
 	pev->velocity = m_vecIdeal;
 }

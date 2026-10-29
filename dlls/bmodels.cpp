@@ -134,6 +134,7 @@ void CFuncWallToggle ::RoundRespawn( void )
 		pev->solid = SOLID_NOT;
 		pev->effects |= EF_NODRAW;
 	}
+
 	UTIL_SetOrigin( pev, pev->origin );
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );
 }
@@ -515,10 +516,12 @@ void CFuncRotating ::RoundRespawn( void )
 		SetThink( &CBaseEntity::SUB_CallUseToggle );
 		pev->nextthink = pev->ltime + 1.5;
 	}
+
 	if ( FBitSet( pev->spawnflags, SF_BRUSH_HURT ) )
 	{
 		SetTouch( &CFuncRotating::HurtTouch );
 	}
+
 	if ( pev->avelocity != g_vecZero )
 	{
 		SetThink( &CFuncRotating::SpinUp );
@@ -903,6 +906,7 @@ void CPendulum ::Spawn( void )
 		SetThink( &CPendulum::SUB_CallUseToggle );
 		pev->nextthink = gpGlobals->time + 0.1;
 	}
+
 	pev->speed = 0;
 	SetUse( &CPendulum::PendulumUse );
 
@@ -926,6 +930,7 @@ void CPendulum ::RoundRespawn( void )
 		SetThink( &CBaseEntity::SUB_CallUseToggle );
 		pev->nextthink = gpGlobals->time + 0.1;
 	}
+
 	pev->speed = 0;
 	SetUse( &CPendulum::PendulumUse );
 	if ( FBitSet( pev->spawnflags, SF_PENDULUM_SWING ) )

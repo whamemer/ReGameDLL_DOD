@@ -69,6 +69,7 @@ BOOL FBoxVisible( entvars_t *pevLooker, entvars_t *pevTarget, Vector &vecTargetO
 			return TRUE;  // line of sight is valid.
 		}
 	}
+
 	return FALSE;  // Line of sight is not established
 }
 

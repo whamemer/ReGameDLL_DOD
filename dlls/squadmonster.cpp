@@ -199,6 +199,7 @@ BOOL CSquadMonster ::SquadAdd( CSquadMonster *pAdd )
 			return TRUE;
 		}
 	}
+
 	return FALSE;
 	// should complain here
 }
@@ -582,6 +583,7 @@ BOOL CSquadMonster ::SquadEnemySplit( void )
 			return TRUE;
 		}
 	}
+
 	return FALSE;
 }
 
@@ -603,6 +605,7 @@ BOOL CSquadMonster ::SquadMemberInRange( const Vector &vecLocation, float flDist
 		if ( pSquadMember && ( vecLocation - pSquadMember->pev->origin ).Length2D() <= flDist )
 			return TRUE;
 	}
+
 	return FALSE;
 }
 

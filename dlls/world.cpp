@@ -332,6 +332,7 @@ int CGlobalState::Restore( CRestore &restore )
 			return 0;
 		EntityAdd( MAKE_STRING( tmpEntity.name ), MAKE_STRING( tmpEntity.levelName ), tmpEntity.state );
 	}
+
 	return 1;
 }
 
@@ -352,6 +353,7 @@ void CGlobalState::ClearStates( void )
 		free( pFree );
 		pFree = pNext;
 	}
+
 	Reset();
 }
 
@@ -451,6 +453,7 @@ void CWorld::Precache( void )
 			pEntity->pev->spawnflags = SF_MESSAGE_ONCE;
 		}
 	}
+
 	if ( FBitSet( pev->spawnflags, SF_WORLD_DARK ) )
 		CVAR_SET_FLOAT( "v_dark", 1.0 );
 	else

@@ -153,6 +153,7 @@ void CFuncMortarField ::FieldUse( CBaseEntity *pActivator, CBaseEntity *pCaller,
 				vecStart.x = pev->mins.x + pController->pev->ideal_yaw * ( pev->size.x );
 			}
 		}
+
 		if ( !FStringNull( m_iszYController ) )
 		{
 			pController = UTIL_FindEntityByTargetname( NULL, STRING( m_iszYController ) );

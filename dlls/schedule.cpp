@@ -243,6 +243,7 @@ void CBaseMonster ::MaintainSchedule( void )
 					GetIdealState();
 				}
 			}
+
 			if ( HasConditions( bits_COND_TASK_FAILED ) && m_MonsterState == m_IdealMonsterState )
 			{
 				if ( m_failSchedule != SCHED_NONE )
@@ -331,6 +332,7 @@ void CBaseMonster ::RunTask( Task_t *pTask )
 			pev->ideal_yaw = UTIL_VecToYaw( pTarget->pev->origin - pev->origin );
 			ChangeYaw( pev->yaw_speed );
 		}
+
 		if ( m_fSequenceFinished )
 			TaskComplete();
 	}
@@ -906,6 +908,7 @@ void CBaseMonster ::StartTask( Task_t *pTask )
 				ALERT( at_aiconsole, "%s Failed to reach script!!!\n", STRING( pev->classname ) );
 				RouteClear();
 			}
+
 			TaskComplete();
 		}
 		break;
@@ -1145,6 +1148,7 @@ void CBaseMonster ::StartTask( Task_t *pTask )
 		{
 			m_movementActivity = ACT_WALK;
 		}
+
 		TaskComplete();
 		break;
 	}
@@ -1154,6 +1158,7 @@ void CBaseMonster ::StartTask( Task_t *pTask )
 		{
 			m_movementActivity = ACT_FLY;
 		}
+
 		if ( LookupActivity( ACT_WALK ) != ACTIVITY_NOT_AVAILABLE )
 		{
 			m_movementActivity = ACT_WALK;
@@ -1162,6 +1167,7 @@ void CBaseMonster ::StartTask( Task_t *pTask )
 		{
 			m_movementActivity = ACT_RUN;
 		}
+
 		TaskComplete();
 		break;
 	}
@@ -1186,6 +1192,7 @@ void CBaseMonster ::StartTask( Task_t *pTask )
 			// strafe left
 			m_movementActivity = ACT_STRAFE_LEFT;
 		}
+
 		TaskComplete();
 		break;
 	}
@@ -1465,18 +1472,22 @@ Schedule_t *CBaseMonster ::GetSchedule( void )
 			{
 				return GetScheduleOfType( SCHED_RANGE_ATTACK1 );
 			}
+
 			if ( HasConditions( bits_COND_CAN_RANGE_ATTACK2 ) )
 			{
 				return GetScheduleOfType( SCHED_RANGE_ATTACK2 );
 			}
+
 			if ( HasConditions( bits_COND_CAN_MELEE_ATTACK1 ) )
 			{
 				return GetScheduleOfType( SCHED_MELEE_ATTACK1 );
 			}
+
 			if ( HasConditions( bits_COND_CAN_MELEE_ATTACK2 ) )
 			{
 				return GetScheduleOfType( SCHED_MELEE_ATTACK2 );
 			}
+
 			if ( !HasConditions( bits_COND_CAN_RANGE_ATTACK1 | bits_COND_CAN_MELEE_ATTACK1 ) )
 			{
 				// if we can see enemy but can't use either attack type, we must need to get closer to enemy

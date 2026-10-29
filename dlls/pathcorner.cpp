@@ -319,6 +319,7 @@ CPathTrack *CPathTrack ::LookAhead( Vector *origin, float dist, int move )
 						Project( pcurrent->GetNext(), pcurrent, origin, dist );
 					return NULL;
 				}
+
 				pcurrent = pcurrent->GetPrevious();
 			}
 			else if ( length > dist )  // enough left in this path to move
@@ -351,6 +352,7 @@ CPathTrack *CPathTrack ::LookAhead( Vector *origin, float dist, int move )
 					Project( pcurrent->GetPrevious(), pcurrent, origin, dist );
 				return NULL;
 			}
+
 			Vector dir = pcurrent->GetNext()->pev->origin - currentPos;
 			float length = dir.Length();
 			if ( !length && !ValidPath( pcurrent->GetNext()->GetNext(), move ) )
@@ -359,6 +361,7 @@ CPathTrack *CPathTrack ::LookAhead( Vector *origin, float dist, int move )
 					return NULL;
 				return pcurrent;
 			}
+
 			if ( length > dist )  // enough left in this path to move
 			{
 				*origin = currentPos + ( dir * ( dist / length ) );
@@ -402,6 +405,7 @@ CPathTrack *CPathTrack ::Nearest( Vector origin )
 			ALERT( at_error, "Bad sequence of path_tracks from %s", STRING( pev->targetname ) );
 			return NULL;
 		}
+
 		delta = origin - ppath->pev->origin;
 		delta.z = 0;
 		dist = delta.Length();
@@ -410,8 +414,10 @@ CPathTrack *CPathTrack ::Nearest( Vector origin )
 			minDist = dist;
 			pnearest = ppath;
 		}
+
 		ppath = ppath->GetNext();
 	}
+
 	return pnearest;
 }
 

@@ -178,6 +178,7 @@ void CRoach ::Killed( entvars_t *pevAttacker, int iGib )
 	{
 		pOwner->DeathNotice( pev );
 	}
+
 	UTIL_Remove( this );
 }
 
@@ -452,6 +453,7 @@ void CRoach ::Look( int iDistance )
 			}
 		}
 	}
+
 	SetConditions( iSighted );
 }
 

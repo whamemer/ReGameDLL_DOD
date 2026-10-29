@@ -73,6 +73,7 @@ void CObject::ResetObject()
 		pev->nextthink = gpGlobals->time + 0.1;
 		m_flNextTouchTime = gpGlobals->time + 1.0;
 	}
+
 	UTIL_SetOrigin( pev, m_vStartOrigin );
 	m_bDropped = 0;
 	m_bCarried = 0;
@@ -91,6 +92,7 @@ void CObject::Drop()
 		pev->nextthink = gpGlobals->time + 0.1;
 		m_flNextTouchTime = gpGlobals->time + 1.0;
 	}
+
 	m_bDropped = 1;
 	m_flReset = gpGlobals->time + (float)m_iResetTime;
 }
@@ -161,6 +163,7 @@ void CObject::ObjectTouch( CBaseEntity *pOther )
 			( (CBasePlayer *) pOther )->m_flDisplayHistory |= HINT_PICKED_UP_OBJECT;
 			( (CBasePlayer *) pOther )->HintMessage( "#Hint_picked_up_object", 0 );
 		}
+
 		if ( pev->noise )
 			EMIT_SOUND_DYN( pOther->edict(), CHAN_ITEM, STRING( pev->noise ), 1.0, 0.8, 0, 100 );
 	}
@@ -175,6 +178,7 @@ void CObject::ObjectThink( void )
 		if ( m_iResetTime >= 1 && m_flReset <= gpGlobals->time )
 			ResetObject();
 	}
+
 	pev->nextthink = gpGlobals->time + 0.1f;
 }
 
@@ -193,6 +197,7 @@ void CObject::AbsentPlayerThink( void )
 			ResetObject();
 		}
 	}
+
 	pev->nextthink = gpGlobals->time + 0.1f;
 }
 
@@ -395,10 +400,13 @@ void CScoreEvent::ScoreThink()
 					pObj->m_flNextTouchTime = gpGlobals->time + 1.0;
 				}
 			}
+
 			pEnt = UTIL_FindEntityByClassname( pEnt, "dod_object" );
 		}
+
 		ResetItems = 0;
 	}
+
 	if ( bChangeLevel && ChangeLevelTime <= gpGlobals->time )
 	{
 		char buf[320];
@@ -406,6 +414,7 @@ void CScoreEvent::ScoreThink()
 		SERVER_COMMAND( buf );
 		ResetItems = 0;
 	}
+
 	pev->nextthink = gpGlobals->time + 0.1;
 }
 
@@ -418,6 +427,7 @@ void CScoreEvent::ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 		bChangeLevel = 1;
 		ChangeLevelTime = (float)m_iChangeLevelDelay + gpGlobals->time;
 	}
+
 	if ( m_iResetPlayersTime )
 	{
 		int team = pev->team;
@@ -430,6 +440,7 @@ void CScoreEvent::ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 
 		g_pGameRules->SetRestartTime( (float)m_iResetPlayersTime + gpGlobals->time );
 	}
+
 	string_t msg = 0;
 	if ( !m_iResetItemsTime )
 		msg = pev->message;
@@ -439,6 +450,7 @@ void CScoreEvent::ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 		ResetItemsTime = (float)m_iResetItemsTime + gpGlobals->time;
 		msg = pev->message;
 	}
+
 	if ( msg )
 		UTIL_ShowMessageAll( STRING( msg ), FALSE );
 	// the clan scoring replaces the points of the entity
@@ -473,6 +485,7 @@ void CScoreEvent::ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 			}
 		}
 	}
+
 	if ( m_iTeamPoints && bGiveRegular )
 	{
 		if ( team < 2 )
@@ -481,17 +494,20 @@ void CScoreEvent::ScoreEventUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 			pRules->AddToTeamScores( 2, m_iTeamPoints );
 		team = pev->team;
 	}
+
 	if ( team < 2 )
 	{
 		FireDODCamera( "allies_win_cut", NULL, NULL, USE_TOGGLE, 0.0 );
 		FireDODCamera( "axis_loose_cut", NULL, NULL, USE_TOGGLE, 0.0 );
 		team = pev->team;
 	}
+
 	if ( team == 0 || team == TEAM_AXIS )
 	{
 		FireDODCamera( "axis_win_cut", NULL, NULL, USE_TOGGLE, 0.0 );
 		FireDODCamera( "allies_loose_cut", NULL, NULL, USE_TOGGLE, 0.0 );
 	}
+
 	pRules->ResetForDoDCamera();
 	if ( pev->noise2 )
 		g_pGameRules->EndMultiplayerGame();
@@ -533,6 +549,7 @@ void CParticleShooter::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 		else
 			newState = 1;
 	}
+
 	if ( newState != m_iState )
 	{
 		m_iState = newState;
@@ -564,6 +581,7 @@ void CParticleShooter::RoundRespawn()
 			m_iState = 0;
 		return;
 	}
+
 	m_iState = 0;
 	SendUpdate( NULL );
 }
@@ -576,6 +594,7 @@ void CParticleShooter::FindTargetEntity()
 		m_vShootDir = pev->velocity;
 		return;
 	}
+
 	Vector vecDir = pTarget->pev->origin - pev->origin;
 	float flLen = vecDir.Length();
 	if ( flLen == 0.0 )
@@ -603,6 +622,7 @@ void CParticleShooter::SendUpdate( CBasePlayer *pPlayer )
 		WRITE_COORD( m_vShootDir.y );
 		WRITE_COORD( m_vShootDir.z );
 	}
+
 	MESSAGE_END();
 }
 

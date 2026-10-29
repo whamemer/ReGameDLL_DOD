@@ -354,11 +354,13 @@ void CPlatTrigger ::SpawnInsideTrigger( CFuncPlat *pPlatform )
 		vecTMin.x = ( m_pPlatform->pev->mins.x + m_pPlatform->pev->maxs.x ) / 2;
 		vecTMax.x = vecTMin.x + 1;
 	}
+
 	if ( m_pPlatform->pev->size.y <= 50 )
 	{
 		vecTMin.y = ( m_pPlatform->pev->mins.y + m_pPlatform->pev->maxs.y ) / 2;
 		vecTMax.y = vecTMin.y + 1;
 	}
+
 	UTIL_SetSize( pev, vecTMin, vecTMax );
 }
 
@@ -546,6 +548,7 @@ void CFuncPlatRot ::SetupRotation( void )
 		m_start = g_vecZero;
 		m_end = g_vecZero;
 	}
+
 	if ( !FStringNull( pev->targetname ) )	// Start at top
 	{
 		pev->angles = m_end;
@@ -779,6 +782,7 @@ void CFuncTrain ::Next( void )
 		pev->speed = m_pevCurrentTarget->speed;
 		ALERT( at_aiconsole, "Train %s speed to %4.2f\n", STRING( pev->targetname ), pev->speed );
 	}
+
 	m_pevCurrentTarget = pTarg->pev;  // keep track of this since path corners change our target for us.
 
 	pev->enemy = pTarg->edict();  //hack
@@ -946,6 +950,7 @@ void CFuncTrain::RoundRespawn( void )
 		pev->spawnflags |= SF_TRAIN_WAIT_RETRIGGER;
 		return;
 	}
+
 	pev->nextthink = pev->ltime + 0.1;
 	SetThink( &CFuncTrain::Next );
 }
@@ -1062,6 +1067,7 @@ void CFuncTrackTrain ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 			if ( delta < 0 )
 				delta = 0;
 		}
+
 		pev->speed = m_speed * delta;
 		Next();
 		ALERT( at_aiconsole, "TRAIN(%s), speed to %.2f\n", STRING( pev->targetname ), pev->speed );
@@ -1280,6 +1286,7 @@ void CFuncTrackTrain ::Next( void )
 				}
 			}
 		}
+
 		SetThink( &CFuncTrackTrain::Next );
 		NextThink( pev->ltime + time, TRUE );
 	}
@@ -1556,6 +1563,7 @@ void CFuncTrackTrain::RoundRespawn( void )
 		else
 			ALERT( at_console, "func_tracktrain %s has no target\n", STRING( pev->targetname ) );
 	}
+
 	UTIL_SetSize( pev, pev->mins, pev->maxs );
 	UTIL_SetOrigin( pev, pev->origin );
 	pev->oldorigin = pev->origin;
@@ -1800,6 +1808,7 @@ void CFuncTrackChange::RoundRespawn( void )
 		pev->angles = m_start;
 		m_targetState = TS_AT_TOP;
 	}
+
 	m_use = 1;
 	pev->nextthink = pev->ltime + 2.0;
 	SetThink( &CFuncTrackChange::Find );
@@ -1873,6 +1882,7 @@ void CFuncTrackChange ::Find( void )
 					ALERT( at_error, "Can't find train for track change! %s\n", STRING( m_trainName ) );
 					return;
 				}
+
 				Vector center = ( pev->absmin + pev->absmax ) * 0.5;
 				m_trackBottom = m_trackBottom->Nearest( center );
 				m_trackTop = m_trackTop->Nearest( center );
@@ -2069,6 +2079,7 @@ void CFuncTrackChange ::HitBottom( void )
 		//		UpdateTrain();
 		m_train->SetTrack( m_trackBottom );
 	}
+
 	SetThink( NULL );
 	pev->nextthink = -1;
 
@@ -2123,6 +2134,7 @@ void CFuncTrackAuto ::UpdateAutoTargets( int toggleState )
 		pTarget = m_trackBottom->GetNext();
 		pNextTarget = m_trackTop->GetNext();
 	}
+
 	if ( pTarget )
 	{
 		ClearBits( pTarget->pev->spawnflags, SF_PATH_DISABLED );
@@ -2275,6 +2287,7 @@ void CGunTarget::Next( void )
 		Stop();
 		return;
 	}
+
 	SetMoveDone( &CGunTarget::Wait );
 	LinearMove( pTarget->pev->origin - ( pev->mins + pev->maxs ) * 0.5, pev->speed );
 }
@@ -2331,6 +2344,7 @@ int CGunTarget::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, flo
 				FireTargets( STRING( pev->message ), this, this, USE_TOGGLE, 0 );
 		}
 	}
+
 	return 0;
 }
 

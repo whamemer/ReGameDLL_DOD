@@ -222,6 +222,7 @@ const Vector &CBeam::GetStartPos( void )
 		edict_t *pent = g_engfuncs.pfnPEntityOfEntIndex( GetStartEntity() );
 		return pent->v.origin;
 	}
+
 	return pev->origin;
 }
 
@@ -346,6 +347,7 @@ void CBeam::TriggerTouch( CBaseEntity *pOther )
 			CBaseEntity *pOwner = CBaseEntity::Instance( pev->owner );
 			pOwner->Use( pOther, this, USE_TOGGLE, 0 );
 		}
+
 		ALERT( at_console, "Firing targets!!!\n" );
 	}
 }
@@ -362,6 +364,7 @@ CBaseEntity *CBeam::RandomTargetname( const char *szName )
 		if ( RANDOM_LONG( 0, total - 1 ) < 1 )
 			pEntity = pNewEntity;
 	}
+
 	return pEntity;
 }
 
@@ -373,6 +376,7 @@ void CBeam::DoSparks( const Vector &start, const Vector &end )
 		{
 			UTIL_Sparks( start );
 		}
+
 		if ( pev->spawnflags & SF_BEAM_SPARKEND )
 		{
 			UTIL_Sparks( end );
@@ -478,6 +482,7 @@ void CLightning::Spawn( void )
 		SetThink( &CLightning::SUB_Remove );
 		return;
 	}
+
 	pev->solid = SOLID_NOT;	 // Remove model & collisions
 	Precache();
 
@@ -491,6 +496,7 @@ void CLightning::Spawn( void )
 			SetThink( &CLightning::DamageThink );
 			pev->nextthink = gpGlobals->time + 0.1;
 		}
+
 		if ( pev->targetname )
 		{
 			if ( !( pev->spawnflags & SF_BEAM_STARTON ) )
@@ -512,6 +518,7 @@ void CLightning::Spawn( void )
 		{
 			SetUse( &CLightning::StrikeUse );
 		}
+
 		if ( FStringNull( pev->targetname ) || FBitSet( pev->spawnflags, SF_BEAM_STARTON ) )
 		{
 			SetThink( &CLightning::StrikeThink );
@@ -659,6 +666,7 @@ void CLightning::StrikeThink( void )
 		else
 			pev->nextthink = gpGlobals->time + m_life + m_restrike;
 	}
+
 	m_active = 1;
 
 	if ( FStringNull( m_iszEndEntity ) )
@@ -675,6 +683,7 @@ void CLightning::StrikeThink( void )
 			else
 				ALERT( at_console, "env_beam: unknown entity \"%s\"\n", STRING( m_iszStartEntity ) );
 		}
+
 		return;
 	}
 
@@ -702,6 +711,7 @@ void CLightning::StrikeThink( void )
 				pStart = pEnd;
 				pEnd = pTemp;
 			}
+
 			if ( !IsPointEntity( pStart ) )	 // One sided
 			{
 				WRITE_BYTE( TE_BEAMENTPOINT );
@@ -743,6 +753,7 @@ void CLightning::StrikeThink( void )
 		WRITE_BYTE( pev->renderamt );			 // brightness
 		WRITE_BYTE( m_speed );					 // speed
 		MESSAGE_END();
+
 		DoSparks( pStart->pev->origin, pEnd->pev->origin );
 		if ( pev->dmg > 0 )
 		{
@@ -772,6 +783,7 @@ void CBeam::BeamDamage( TraceResult *ptr )
 			}
 		}
 	}
+
 	pev->dmgtime = gpGlobals->time;
 }
 
@@ -920,9 +932,11 @@ void CLightning::BeamUpdatePoints( void )
 			pointStart = pointEnd;
 			pointEnd = s;
 		}
+
 		pev->rendermode = ( pev->rendermode & 0xF0 ) | BEAM_ENTPOINT;
 		pev->origin = pStart->pev->origin;
 	}
+
 	unsigned short idx = ENTINDEX( pEnd->edict() );
 	pev->skin = ( idx & 0xFFF ) | ( ( pev->skin & 0xF000 ) << 12 );
 	pev->aiment = pEnd->edict();
@@ -970,6 +984,7 @@ void CLaser::Spawn( void )
 		SetThink( &CLaser::SUB_Remove );
 		return;
 	}
+
 	pev->solid = SOLID_NOT;	 // Remove model & collisions
 	Precache();
 
@@ -1227,6 +1242,7 @@ void CSprite::RoundRespawn( void )
 		pev->nextthink = 0;
 		return;
 	}
+
 	pev->effects &= ~EF_NODRAW;
 	if ( m_maxFrame > 1.0 && pev->framerate != 0 )
 	{
@@ -1234,6 +1250,7 @@ void CSprite::RoundRespawn( void )
 		pev->nextthink = gpGlobals->time;
 		m_lastTime = gpGlobals->time;
 	}
+
 	pev->frame = 0;
 }
 
@@ -1335,6 +1352,7 @@ void CSprite::TurnOn( void )
 		pev->nextthink = gpGlobals->time;
 		m_lastTime = gpGlobals->time;
 	}
+
 	pev->frame = 0;
 }
 
@@ -1669,6 +1687,7 @@ void CTestEffect::TestThink( void )
 
 #if 0
 		Vector vecMid = (vecSrc + tr.vecEndPos) * 0.5;
+
 		MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
 			WRITE_BYTE(TE_DLIGHT);
 			WRITE_COORD(vecMid.x);	// X
@@ -1692,6 +1711,7 @@ void CTestEffect::TestThink( void )
 			m_pBeam[i]->SetBrightness( 255 * t );
 			// m_pBeam[i]->SetScrollRate( 20 * t );
 		}
+
 		pev->nextthink = gpGlobals->time + 0.1;
 	}
 	else
@@ -1700,6 +1720,7 @@ void CTestEffect::TestThink( void )
 		{
 			UTIL_Remove( m_pBeam[i] );
 		}
+
 		m_flStartTime = gpGlobals->time;
 		m_iBeam = 0;
 		// pev->nextthink = gpGlobals->time;
@@ -2012,6 +2033,7 @@ void CFade::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType
 	{
 		UTIL_ScreenFadeAll( pev->rendercolor, Duration(), HoldTime(), pev->renderamt, fadeFlags );
 	}
+
 	SUB_UseTargets( this, USE_TOGGLE, 0 );
 }
 
@@ -2086,6 +2108,7 @@ void CMessage::Spawn( void )
 		pev->speed = ATTN_IDLE;
 		break;
 	}
+
 	pev->impulse = 0;
 
 	// No volume, use normal
@@ -2182,10 +2205,12 @@ void CMessage::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useT
 		if ( pActivator && pActivator->IsNetClient() )
 			UTIL_ShowMessage( STRING( pev->message ), pActivator, m_bHintMsg );
 	}
+
 	if ( pev->noise )
 	{
 		EMIT_SOUND_DYN( ENT( pev ), CHAN_BODY, STRING( pev->noise ), pev->scale, pev->speed, 0, 100 );
 	}
+
 	if ( FBitSet( pev->spawnflags, SF_MESSAGE_ONCE ) )
 		m_iMsgEnabled = 0;
 	SUB_UseTargets( this, USE_TOGGLE, 0 );

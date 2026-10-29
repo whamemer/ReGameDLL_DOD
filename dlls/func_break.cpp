@@ -224,6 +224,7 @@ void CBreakable::RoundRespawn( void )
 		SetTouch( NULL );
 		pev->takedamage = DAMAGE_NO;
 	}
+
 	pev->angles.y = 0;
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );
 }
@@ -381,6 +382,7 @@ void CBreakable::Precache( void )
 		PRECACHE_SOUND( "debris/bustceiling.wav" );
 		break;
 	}
+
 	MaterialSoundPrecache( m_Material );
 	if ( m_iszGibModel )
 		pGibName = STRING( m_iszGibModel );
@@ -1013,6 +1015,7 @@ void CBreakable::Die( void )
 			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustglass2.wav", fvol, ATTN_NORM, 0, pitch );
 			break;
 		}
+
 		cFlag = BREAK_GLASS;
 		break;
 
@@ -1026,6 +1029,7 @@ void CBreakable::Die( void )
 			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustcrate2.wav", fvol, ATTN_NORM, 0, pitch );
 			break;
 		}
+
 		cFlag = BREAK_WOOD;
 		break;
 
@@ -1040,6 +1044,7 @@ void CBreakable::Die( void )
 			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustmetal2.wav", fvol, ATTN_NORM, 0, pitch );
 			break;
 		}
+
 		cFlag = BREAK_METAL;
 		break;
 
@@ -1053,6 +1058,7 @@ void CBreakable::Die( void )
 			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustflesh2.wav", fvol, ATTN_NORM, 0, pitch );
 			break;
 		}
+
 		cFlag = BREAK_FLESH;
 		break;
 
@@ -1067,6 +1073,7 @@ void CBreakable::Die( void )
 			EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "debris/bustconcrete2.wav", fvol, ATTN_NORM, 0, pitch );
 			break;
 		}
+
 		cFlag = BREAK_CONCRETE;
 		break;
 
@@ -1085,6 +1092,7 @@ void CBreakable::Die( void )
 	}
 
 	vecSpot = pev->origin + ( pev->mins + pev->maxs ) * 0.5;
+
 	MESSAGE_BEGIN( MSG_PVS, SVC_TEMPENTITY, vecSpot );
 	WRITE_BYTE( TE_BREAKMODEL );
 
@@ -1216,6 +1224,7 @@ public:
 	{
 		return ( CBaseEntity ::ObjectCaps() & ~FCAP_ACROSS_TRANSITION ) | FCAP_CONTINUOUS_USE;
 	}
+
 	virtual int Save( CSave &save );
 	virtual int Restore( CRestore &restore );
 
@@ -1401,6 +1410,7 @@ void CPushable ::Move( CBaseEntity *pOther, int push )
 		pev->velocity.x = ( pev->velocity.x * MaxSpeed() / length );
 		pev->velocity.y = ( pev->velocity.y * MaxSpeed() / length );
 	}
+
 	if ( playerTouch )
 	{
 		pevToucher->velocity.x = pev->velocity.x;

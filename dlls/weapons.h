@@ -1162,6 +1162,7 @@ public:
 		return FALSE;
 #endif
 	}
+
 	BOOL IsDeployed( void );
 };
 
@@ -1401,6 +1402,7 @@ public:
 			EMIT_SOUND_DYN( ENT( pev ), CHAN_ITEM, "items/ammopickup.wav", 1.0, 0.8, 0, 100 );
 			return TRUE;
 		}
+
 		return FALSE;
 	}
 

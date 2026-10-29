@@ -46,6 +46,7 @@ public:
 		else
 			return ( CBaseToggle::ObjectCaps() & ~FCAP_ACROSS_TRANSITION );
 	};
+
 	virtual int Save( CSave &save );
 	virtual int Restore( CRestore &restore );
 
@@ -347,6 +348,7 @@ void CBaseDoor::RoundRespawn( void )
 		m_vecPosition2 = m_vecPosition1;
 		m_vecPosition1 = vecTemp;
 	}
+
 	m_toggle_state = TS_AT_BOTTOM;
 	if ( ( pev->spawnflags & ( SF_DOOR_USE_ONLY | SF_DOOR_TOUCH_ONLY_CLIENTS ) ) != SF_DOOR_USE_ONLY )
 		SetTouch( &CBaseDoor::DoorTouch );
@@ -380,6 +382,7 @@ void CBaseDoor::Precache( void )
 		PRECACHE_SOUND( pszSound );
 		m_ls.sLockedSound = ALLOC_STRING( pszSound );
 	}
+
 	if ( m_bUnlockedSound )
 	{
 		pszSound = ButtonSound( (int) m_bUnlockedSound );
@@ -422,6 +425,7 @@ void CBaseDoor::Precache( void )
 		m_ls.sLockedSentence = 0;
 		break;
 	}
+
 	switch ( m_bUnlockedSentence )
 	{
 	case 1:
@@ -517,6 +521,7 @@ void CBaseDoor::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE use
 				PlayLockSounds( pev, &m_ls, FALSE, FALSE );
 				DoorGoUp();
 			}
+
 			return;
 		}
 
@@ -628,6 +633,7 @@ void CBaseDoor::DoorGoUp( void )
 					sign = flOpposite;
 			}
 		}
+
 		AngularMove( m_vecAngle2 * sign, pev->speed );
 	}
 	else
@@ -939,6 +945,7 @@ void CRotDoor::RoundRespawn( void )
 		m_vecAngle1 = vecSav;
 		pev->movedir = pev->movedir * -1;
 	}
+
 	m_toggle_state = TS_AT_BOTTOM;
 	if ( ( pev->spawnflags & ( SF_DOOR_USE_ONLY | SF_DOOR_TOUCH_ONLY_CLIENTS ) ) != SF_DOOR_USE_ONLY )
 		SetTouch( &CBaseDoor::DoorTouch );
@@ -1007,6 +1014,7 @@ void CMomentaryDoor::Spawn( void )
 		m_vecPosition2 = m_vecPosition1;
 		m_vecPosition1 = pev->origin;
 	}
+
 	SetTouch( NULL );
 
 	Precache();
@@ -1093,6 +1101,7 @@ void CMomentaryDoor::MomentaryMove( void )
 		MomentaryMoveDone();
 		return;
 	}
+
 	Vector vecDestDelta = vecDest - pev->origin;
 	float flTravelTime = vecDestDelta.Length() / m_flLinearMoveSpeed;
 	pev->nextthink = pev->ltime + flTravelTime;

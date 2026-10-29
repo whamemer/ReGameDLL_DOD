@@ -72,6 +72,7 @@ int MaxAmmoCarry( int iszName )
 			 !strcmp( STRING( iszName ), CBasePlayerItem::ItemInfoArray[i].pszAmmo2 ) )
 			return CBasePlayerItem::ItemInfoArray[i].iMaxAmmo2;
 	}
+
 	ALERT( at_console, "MaxAmmoCarry() doesn't recognize '%s'!\n", STRING( iszName ) );
 	return -1;
 }
@@ -363,6 +364,7 @@ void W_Precache( void )
 	{
 		UTIL_PrecacheOther( "weaponbox" );
 	}
+
 	g_sModelIndexFireball = PRECACHE_MODEL( "sprites/zerogxplode.spr" );
 	g_sModelIndexSmoke = PRECACHE_MODEL( "sprites/steam1.spr" );
 	g_sModelIndexBubbles = PRECACHE_MODEL( "sprites/bubble.spr" );
@@ -1365,6 +1367,7 @@ bool CBasePlayerAmmo::GiveGenericAmmo( CBaseEntity *pOther )
 			}
 		}
 	}
+
 	return false;
 }
 
@@ -1731,9 +1734,11 @@ int CWeaponBox::GiveAmmo( int iCount, const char *szName, int iMax, int *pIndex 
 
 				return i;
 			}
+
 			return -1;
 		}
 	}
+
 	if ( i < MAX_AMMO_SLOTS )
 	{
 		if ( pIndex )
@@ -1744,6 +1749,7 @@ int CWeaponBox::GiveAmmo( int iCount, const char *szName, int iMax, int *pIndex 
 
 		return i;
 	}
+
 	ALERT( at_console, "out of named ammo slots\n" );
 	return i;
 }
@@ -1762,6 +1768,7 @@ BOOL CWeaponBox::HasWeapon( CBasePlayerItem *pCheckItem )
 		{
 			return TRUE;
 		}
+
 		pItem = pItem->m_pNext;
 	}
 

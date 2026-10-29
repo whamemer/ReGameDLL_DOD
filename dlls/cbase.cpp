@@ -122,6 +122,7 @@ CBaseEntity *CBaseEntity::Create( const char *szName, const Vector &vecOrigin, c
 		ALERT( at_console, "NULL Ent in Create!\n" );
 		return NULL;
 	}
+
 	pEntity = Instance( pent );
 	AddEntityHashValue( &pent->v, szName, CLASSNAME );
 	pEntity->pev->owner = pentOwner;
@@ -238,6 +239,7 @@ int CaseInsensitiveHash( const char *s, int size )
 		} while ( c );
 		hash = hash % ( size + 1 );
 	}
+
 	return hash;
 }
 
@@ -319,6 +321,7 @@ void AddEntityHashValue( entvars_t *pev, const char *value, hash_types_e fieldTy
 				candPev = last->pev;
 				candIndex = last->pevIndex;
 			}
+
 			if ( pevIndex < candIndex )
 			{
 				// new entity sorts before the candidate: swap it into the head node
@@ -328,6 +331,7 @@ void AddEntityHashValue( entvars_t *pev, const char *value, hash_types_e fieldTy
 				pevIndex = ENTINDEX( candPev->pContainingEntity );
 				pev = candPev;
 			}
+
 			if ( pev == last->pev )
 				return;	 // duplicate
 			hash_item_t *next = last->next;
@@ -338,15 +342,18 @@ void AddEntityHashValue( entvars_t *pev, const char *value, hash_types_e fieldTy
 				ALERT( at_warning, "ERROR - AddEntityHashValue exhausted memory in hashItemMemPool\n" );
 				return;
 			}
+
 			node->pev = pev;
 			node->lastHash = NULL;
 			node->next = next;
 			node->pevIndex = pevIndex;
 			return;
 		}
+
 		hash = ( hash + 1 ) % size;
 		item = base + hash;
 	}
+
 	item->pev = pev;
 	item->lastHash = NULL;
 	item->pevIndex = ENTINDEX( pev->pContainingEntity );
@@ -389,6 +396,7 @@ void RemoveEntityHashValue( entvars_t *pev, const char *value, hash_types_e fiel
 					base[hash].lastHash = NULL;
 					next = cur->next;
 				}
+
 				prev->next = next;
 				hashItemMemPool.Free( cur );
 				return;
@@ -408,8 +416,10 @@ void RemoveEntityHashValue( entvars_t *pev, const char *value, hash_types_e fiel
 				cur->lastHash = NULL;
 				cur->pevIndex = 0;
 			}
+
 			return;
 		}
+
 		if ( !next )
 			return;
 		prev = cur;
@@ -842,6 +852,7 @@ int DispatchRestore( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity
 			}
 		}
 	}
+
 	return 0;
 }
 
@@ -879,6 +890,7 @@ edict_t *EHANDLE::Get( void )
 		else
 			return NULL;
 	}
+
 	return NULL;
 };
 
@@ -908,6 +920,7 @@ CBaseEntity *EHANDLE ::operator=( CBaseEntity *pEntity )
 		m_pent = NULL;
 		m_serialnumber = 0;
 	}
+
 	return pEntity;
 }
 
@@ -1048,6 +1061,7 @@ void SetObjectCollisionBox( entvars_t *pev )
 			if ( v > max )
 				max = v;
 		}
+
 		for ( i = 0; i < 3; i++ )
 		{
 			( (float *) pev->absmin )[i] = ( (float *) pev->origin )[i] - max;
@@ -1142,6 +1156,7 @@ int CBaseEntity::ShouldToggle( USE_TYPE useType, BOOL currentState )
 		if ( ( currentState && useType == USE_ON ) || ( !currentState && useType == USE_OFF ) )
 			return 0;
 	}
+
 	return 1;
 }
 

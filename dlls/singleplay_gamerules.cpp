@@ -283,6 +283,7 @@ BOOL CSPDoDRules::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pWea
 					return FALSE;
 			}
 		}
+
 		int myfl = CBasePlayerItem::ItemInfoArray[wid].iFlags;
 		if ( ( myfl & 0x20 ) && hasKnife )
 			return FALSE;
@@ -292,6 +293,7 @@ BOOL CSPDoDRules::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pWea
 			return FALSE;
 		return TRUE;
 	}
+
 	return FALSE;
 }
 

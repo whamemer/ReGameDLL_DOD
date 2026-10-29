@@ -96,6 +96,7 @@ void CGameRules::GetInitialSpawnSpot( CBasePlayer *pPlayer )
 		pPlayer->pev->fixangle = TRUE;
 		return;
 	}
+
 	pPlayer->pev->origin = pSpot->pev->origin + Vector( 0, 0, 1 );
 	pPlayer->pev->v_angle = g_vecZero;
 	pPlayer->pev->velocity = g_vecZero;
