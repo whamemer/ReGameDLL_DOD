@@ -612,6 +612,9 @@ void CFuncPlatRot ::RotMove( Vector &destAngle, float time )
 //====================== TRAIN code ==================================================
 //
 
+// The train ignores the use while it is moving (a toggle button triggers it again after its wait)
+#define SF_TRAIN_NOT_INTERRUPTIBLE 0x10
+
 class CFuncTrain : public CBasePlatTrain
 {
   public:
@@ -668,15 +671,21 @@ void CFuncTrain ::Blocked( CBaseEntity *pOther )
 
 	m_flActivateFinished = gpGlobals->time + 0.5;
 
-	pOther->TakeDamage( pev, pev, pev->dmg, DMG_CRUSH );
+	if ( pev->dmg != 0 )
+		pOther->TakeDamage( pev, pev, pev->dmg, DMG_CRUSH );
 }
 
 void CFuncTrain ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
+	if ( ( pev->spawnflags & SF_TRAIN_NOT_INTERRUPTIBLE ) && m_bMoving )
+		return;
+
 	if ( pev->spawnflags & SF_TRAIN_WAIT_RETRIGGER )
 	{
 		// Move toward my target
 		pev->spawnflags &= ~SF_TRAIN_WAIT_RETRIGGER;
+		if ( pev->spawnflags & SF_TRAIN_NOT_INTERRUPTIBLE )
+			m_bMoving = TRUE;
 		Next();
 	}
 	else
@@ -687,6 +696,9 @@ void CFuncTrain ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE u
 			pev->target = pev->enemy->v.targetname;
 		pev->nextthink = 0;
 		pev->velocity = g_vecZero;
+		m_iState = STATE_OFF;
+		if ( pev->noiseMovement )
+			STOP_SOUND( edict(), CHAN_STATIC, (char *) STRING( pev->noiseMovement ) );
 		if ( pev->noiseStopMoving )
 			EMIT_SOUND( ENT( pev ), CHAN_VOICE, (char *) STRING( pev->noiseStopMoving ), m_volume, ATTN_NORM );
 	}
@@ -701,6 +713,9 @@ void CFuncTrain ::Wait( void )
 		if ( FBitSet( m_pevCurrentTarget->spawnflags, SF_CORNER_FIREONCE ) )
 			m_pevCurrentTarget->message = 0;
 	}
+
+	if ( pev->spawnflags & SF_TRAIN_NOT_INTERRUPTIBLE )
+		m_bMoving = FALSE;
 
 	// need pointer to LAST target.
 	if ( FBitSet( m_pevCurrentTarget->spawnflags, SF_TRAIN_WAIT_RETRIGGER ) ||
@@ -805,7 +820,7 @@ void CFuncTrain ::Activate( void )
 
 		UTIL_SetOrigin( pev, pevTarg->origin - ( pev->mins + pev->maxs ) * 0.5 );
 
-		if ( FStringNull( pev->targetname ) )
+		if ( FStringNull( pev->targetname ) || ( pev->spawnflags & SF_TRAIN_START_ON ) )
 		{  // not triggered, so start immediately
 			pev->nextthink = pev->ltime + 0.1;
 			SetThink( &CFuncTrain::Next );
@@ -899,7 +914,7 @@ void CFuncTrain::OverrideReset( void )
 	CBaseEntity *pTarg;
 
 	// Are we moving?
-	if ( pev->velocity != g_vecZero && pev->nextthink != 0 )
+	if ( m_iState == STATE_ON )
 	{
 		pev->target = pev->message;
 		// now find our next target
