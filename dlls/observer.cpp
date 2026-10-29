@@ -387,7 +387,7 @@ void CBasePlayer::StartObserver( Vector vecPosition, Vector vecViewAngle )
 	pev->movetype = MOVETYPE_NONE;
 	UTIL_SetOrigin( pev, vecPosition );
 	m_afPhysicsFlags &= ~PFLAG_DUCKING;
-	pev->flags &= ~FL_ONGROUND;
+	pev->flags &= ~FL_DUCKING;
 	pev->deadflag = DEAD_DEAD;
 	pev->health = 1.0;
 	m_bIsObserver = TRUE;
