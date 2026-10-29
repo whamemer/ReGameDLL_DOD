@@ -506,11 +506,11 @@ void CGrenade::MortarShellExplodeTouch( CBaseEntity *pOther )
 			CBaseEntity *pOwnerEnt = pev->owner ? CBaseEntity::Instance( pev->owner ) : NULL;
 			CBaseEntity *pNewRocket = NULL;
 			if ( FClassnameIs( pev, "shell_bazooka" ) )
-				pNewRocket = CBazookaShell::CreateRocket( pev->origin, gpGlobals->v_forward, pOwnerEnt );
+				pNewRocket = CBazookaShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
 			else if ( FClassnameIs( pev, "shell_piat" ) )
-				pNewRocket = CPIATShell::CreateRocket( pev->origin, gpGlobals->v_forward, pOwnerEnt );
+				pNewRocket = CPIATShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
 			else if ( FClassnameIs( pev, "shell_pschreck" ) )
-				pNewRocket = CPschreckShell::CreateRocket( pev->origin, gpGlobals->v_forward, pOwnerEnt );
+				pNewRocket = CPschreckShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
 			else
 			{
 				UTIL_Remove( this );
@@ -561,11 +561,11 @@ void CGrenade::RocketExplodeTouch( CBaseEntity *pOther )
 			CBaseEntity *pOwnerEnt = pev->owner ? CBaseEntity::Instance( pev->owner ) : NULL;
 			CBaseEntity *pNewRocket = NULL;
 			if ( FClassnameIs( pev, "shell_bazooka" ) )
-				pNewRocket = CBazookaShell::CreateRocket( pev->origin, gpGlobals->v_forward, pOwnerEnt );
+				pNewRocket = CBazookaShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
 			else if ( FClassnameIs( pev, "shell_piat" ) )
-				pNewRocket = CPIATShell::CreateRocket( pev->origin, gpGlobals->v_forward, pOwnerEnt );
+				pNewRocket = CPIATShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
 			else if ( FClassnameIs( pev, "shell_pschreck" ) )
-				pNewRocket = CPschreckShell::CreateRocket( pev->origin, gpGlobals->v_forward, pOwnerEnt );
+				pNewRocket = CPschreckShell::CreateRocket( pev->origin, pev->angles, pOwnerEnt );
 			else
 			{
 				UTIL_Remove( this );
