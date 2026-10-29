@@ -81,7 +81,7 @@ class CGameRules
 	virtual BOOL IsDeathmatch( void ) = 0;						// vtbl+0x28
 	virtual BOOL IsTeamplay( void ) { return FALSE; };			// vtbl+0x2c
 	virtual BOOL IsCoOp( void ) = 0;							// vtbl+0x30
-	virtual const char *GetGameDescription( void ) { return "Half-Life"; }	// vtbl+0x34
+	virtual const char *GetGameDescription( void ) { return "Day of Defeat"; }	// vtbl+0x34
 	virtual BOOL ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress,
 								  char *szRejectReason ) = 0;	// vtbl+0x38
 	virtual void InitHUD( CBasePlayer *pl ) = 0;				// vtbl+0x3c
