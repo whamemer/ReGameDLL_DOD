@@ -39,14 +39,6 @@
 #define PFLAG_USING ( 1 << 4 )	   // Using a continuous entity
 #define PFLAG_OBSERVER ( 1 << 5 )  // player is locked in stationary cam mode. Spectators can move, observers can't.
 
-// DoD DWARF: enum JoinState { JUSTJOINED, READYTOGO, JOINED }
-enum JoinState
-{
-	JUSTJOINED = 0,
-	READYTOGO = 1,
-	JOINED = 2,
-};
-
 //
 // generic player
 //
@@ -96,6 +88,14 @@ typedef enum
 
 #define MAX_ID_RANGE 2048
 #define SBAR_STRING_SIZE 128
+
+// DoD DWARF: enum JoinState { JUSTJOINED, READYTOGO, JOINED }
+enum JoinState
+{
+	JUSTJOINED = 0,
+	READYTOGO = 1,
+	JOINED = 2,
+};
 
 enum sbar_data
 {

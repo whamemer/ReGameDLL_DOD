@@ -33,29 +33,6 @@
 #define SF_CORNER_TELEPORT 0x002
 #define SF_CORNER_FIREONCE 0x004
 
-class CPathCorner : public CPointEntity
-{
-  public:
-	void Spawn();
-	void KeyValue( KeyValueData *pkvd );
-	float GetDelay( void ) { return m_flWait; }
-	//	void Touch( CBaseEntity *pOther );
-	virtual int Save( CSave &save );
-	virtual int Restore( CRestore &restore );
-
-	static TYPEDESCRIPTION m_SaveData[];
-
-	// dod_camera reads these from the path of the camera
-	int m_iPathFOV;
-	int m_iOverlay;
-	int m_iSubtitle;
-	int m_iCamFade;
-
-  private:
-	float m_flWait;
-	virtual void RoundRespawn( void ) {}
-};
-
 //#define PATH_SPARKLE_DEBUG		1	// This makes a particle effect around path_track entities for debugging
 class CPathTrack : public CPointEntity
 {
@@ -154,6 +131,29 @@ class CFuncTrackTrain : public CBaseEntity
 
   private:
 	unsigned short m_usAdjustPitch;
+};
+
+class CPathCorner : public CPointEntity
+{
+  public:
+	void Spawn();
+	void KeyValue( KeyValueData *pkvd );
+	float GetDelay( void ) { return m_flWait; }
+	//	void Touch( CBaseEntity *pOther );
+	virtual int Save( CSave &save );
+	virtual int Restore( CRestore &restore );
+
+	static TYPEDESCRIPTION m_SaveData[];
+
+	// dod_camera reads these from the path of the camera
+	int m_iPathFOV;
+	int m_iOverlay;
+	int m_iSubtitle;
+	int m_iCamFade;
+
+  private:
+	float m_flWait;
+	virtual void RoundRespawn( void ) {}
 };
 
 #endif

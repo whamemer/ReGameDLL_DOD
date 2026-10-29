@@ -38,35 +38,6 @@ typedef struct
 } gameplay_rules_t;
 // info_doddetect (dod_gamerules.cpp) - DWARF-canonical (gdb ptype /o CDoDDetect)
 // legacy trailing ints kept for exact layout parity (unused by the binary body)
-class CDoDDetect : public CBaseEntity
-{
-  public:
-	gameplay_rules_t m_GamePlayRules;   // 344 (48)
-	int m_iAlliesInfiniteLives;			// 392
-	int m_iAxisInfiniteLives;			// 396
-	int m_iAlliesPara;					// 400
-	int m_iAxisPara;					// 404
-	int m_iAlliesElimPoints;			// 408
-	int m_iAxisElimPoints;				// 412
-	string_t m_sMaster;					// 416
-	bool IsMasteredOn( void );
-	CDoDDetect( void );
-	void Spawn( void );
-	virtual void KeyValue( KeyValueData *pkvd );
-};
-
-class CDoDPreRound : public CPointEntity
-{
-  public:
-	void Launch( int state );
-	void KeyValue( KeyValueData *pkvd );
-	int m_roundstate;
-	string_t m_allieswin;
-	string_t m_alliesloose;
-	string_t m_axiswin;
-	string_t m_axisloose;
-	string_t m_draw;
-};
 class CDoDTeamPlay : public CGameRules
 {
   public:
@@ -314,4 +285,34 @@ class CDoDTeamPlay : public CGameRules
 };
 
 static const char g_szTeamNames[4][128] = { "", "Allies", "Axis", "Spectators" };
+
+class CDoDDetect : public CBaseEntity
+{
+  public:
+	gameplay_rules_t m_GamePlayRules;   // 344 (48)
+	int m_iAlliesInfiniteLives;			// 392
+	int m_iAxisInfiniteLives;			// 396
+	int m_iAlliesPara;					// 400
+	int m_iAxisPara;					// 404
+	int m_iAlliesElimPoints;			// 408
+	int m_iAxisElimPoints;				// 412
+	string_t m_sMaster;					// 416
+	bool IsMasteredOn( void );
+	CDoDDetect( void );
+	void Spawn( void );
+	virtual void KeyValue( KeyValueData *pkvd );
+};
+
+class CDoDPreRound : public CPointEntity
+{
+  public:
+	void Launch( int state );
+	void KeyValue( KeyValueData *pkvd );
+	int m_roundstate;
+	string_t m_allieswin;
+	string_t m_alliesloose;
+	string_t m_axiswin;
+	string_t m_axisloose;
+	string_t m_draw;
+};
 #endif

@@ -280,6 +280,123 @@ public:
 	static bool GiveGenericAmmo( CBaseEntity *pOther );
 };
 
+#if !CLIENT_DLL
+
+// the parts of the SDK weapons.h that only the server needs
+// constant items
+#define ITEM_HEALTHKIT 1
+#define ITEM_ANTIDOTE 2
+#define ITEM_SECURITY 3
+#define ITEM_BATTERY 4
+
+#define MAX_NORMAL_BATTERY 100
+extern DLL_GLOBAL short g_sModelIndexLaser;	 // holds the index for the laser beam
+
+extern DLL_GLOBAL short g_sModelIndexLaserDot;	  // holds the index for the laser beam dot
+extern DLL_GLOBAL short g_sModelIndexFireball;	  // holds the index for the fireball
+extern DLL_GLOBAL short g_sModelIndexSmoke;		  // holds the index for the smoke cloud
+extern DLL_GLOBAL short g_sModelIndexBubbles;	  // holds the index for the bubbles model
+extern DLL_GLOBAL short g_sModelIndexBloodDrop;	  // holds the sprite index for blood drops
+extern DLL_GLOBAL short g_sModelIndexBloodSpray;  // holds the sprite index for blood spray (bigger)
+
+extern void ClearMultiDamage( void );
+extern void ApplyMultiDamage( entvars_t *pevInflictor, entvars_t *pevAttacker );
+extern void AddMultiDamage( entvars_t *pevInflictor, CBaseEntity *pEntity, float flDamage, int bitsDamageType );
+
+extern void DecalGunshot( TraceResult *pTrace, int iBulletType );
+extern void SpawnBlood( Vector vecSpot, int bloodColor, float flDamage );
+extern int DamageDecal( CBaseEntity *pEntity, int bitsDamageType );
+extern void RadiusDamage( Vector vecSrc, entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage,
+						  float flRadius, int iClassIgnore, int bitsDamageType );
+
+typedef struct
+{
+	CBaseEntity *pEntity;
+	float amount;
+	int type;
+} MULTIDAMAGE;
+
+extern MULTIDAMAGE gMultiDamage;
+
+extern p_wpninfo_s P_WpnInfo[];	// defined in dod_shared.cpp
+
+#define LOUD_GUN_VOLUME 1000
+#define NORMAL_GUN_VOLUME 600
+#define QUIET_GUN_VOLUME 200
+
+#define BRIGHT_GUN_FLASH 512
+#define NORMAL_GUN_FLASH 256
+#define DIM_GUN_FLASH 128
+
+#define BIG_EXPLOSION_VOLUME 2048
+#define NORMAL_EXPLOSION_VOLUME 1024
+#define SMALL_EXPLOSION_VOLUME 512
+
+#define WEAPON_ACTIVITY_VOLUME 64
+
+#define VECTOR_CONE_1DEGREES Vector( 0.00873, 0.00873, 0.00873 )
+#define VECTOR_CONE_2DEGREES Vector( 0.01745, 0.01745, 0.01745 )
+#define VECTOR_CONE_3DEGREES Vector( 0.02618, 0.02618, 0.02618 )
+#define VECTOR_CONE_4DEGREES Vector( 0.03490, 0.03490, 0.03490 )
+#define VECTOR_CONE_5DEGREES Vector( 0.04362, 0.04362, 0.04362 )
+#define VECTOR_CONE_6DEGREES Vector( 0.05234, 0.05234, 0.05234 )
+#define VECTOR_CONE_7DEGREES Vector( 0.06105, 0.06105, 0.06105 )
+#define VECTOR_CONE_8DEGREES Vector( 0.06976, 0.06976, 0.06976 )
+#define VECTOR_CONE_9DEGREES Vector( 0.07846, 0.07846, 0.07846 )
+#define VECTOR_CONE_10DEGREES Vector( 0.08716, 0.08716, 0.08716 )
+#define VECTOR_CONE_15DEGREES Vector( 0.13053, 0.13053, 0.13053 )
+#define VECTOR_CONE_20DEGREES Vector( 0.17365, 0.17365, 0.17365 )
+
+// the classes below exist only in the server dll
+
+class CDodAmmoBox : public CBaseEntity
+{
+	EHANDLE m_hOwner;
+
+  public:
+	virtual void Precache();
+	virtual void Spawn();
+	virtual void Touch( CBaseEntity *pOther );
+	void SetOwner( CBaseEntity *pOwner );
+	void EXPORT KillThink();
+};
+
+class CWeaponBox : public CBaseEntity
+{
+	void Precache( void );
+	void Spawn( void );
+	void Touch( CBaseEntity *pOther );
+	void KeyValue( KeyValueData *pkvd );
+	BOOL IsEmpty( void );
+	int GiveAmmo( int iCount, const char *szName, int iMax, int *pIndex = NULL );
+	void SetObjectCollisionBox( void );
+
+  public:
+	void EXPORT ActivateThink( void );
+	void EXPORT Kill( void );
+	int Save( CSave &save );
+	int Restore( CRestore &restore );
+	static TYPEDESCRIPTION m_SaveData[];
+
+	BOOL HasWeapon( CBasePlayerItem *pCheckItem );
+	BOOL PackWeapon( CBasePlayerItem *pWeapon );
+	BOOL PackAmmo( int iszName, int iCount );
+
+	CBasePlayerItem *m_rgpPlayerItems[MAX_ITEM_TYPES];	// one slot for each
+
+	int m_rgiszAmmo[MAX_AMMO_SLOTS];  // ammo names
+	int m_rgAmmo[MAX_AMMO_SLOTS];	  // ammo quantities
+
+	int m_cAmmoTypes;  // how many ammo types packed into this box (if packed by a level designer)
+	BOOL m_bDontTouch;
+	BOOL m_bAmmoBox;
+	BOOL m_bMGAmmoBoxTeam;
+	BOOL m_bTouch;
+	void RoundRespawn( void );
+};
+
+#endif // !CLIENT_DLL
+
 /*
 Guns Class Hierachy
 
@@ -1231,119 +1348,6 @@ public:
 
 #if !CLIENT_DLL
 
-// the parts of the SDK weapons.h that only the server needs
-// constant items
-#define ITEM_HEALTHKIT 1
-#define ITEM_ANTIDOTE 2
-#define ITEM_SECURITY 3
-#define ITEM_BATTERY 4
-
-#define MAX_NORMAL_BATTERY 100
-extern DLL_GLOBAL short g_sModelIndexLaser;	 // holds the index for the laser beam
-
-extern DLL_GLOBAL short g_sModelIndexLaserDot;	  // holds the index for the laser beam dot
-extern DLL_GLOBAL short g_sModelIndexFireball;	  // holds the index for the fireball
-extern DLL_GLOBAL short g_sModelIndexSmoke;		  // holds the index for the smoke cloud
-extern DLL_GLOBAL short g_sModelIndexBubbles;	  // holds the index for the bubbles model
-extern DLL_GLOBAL short g_sModelIndexBloodDrop;	  // holds the sprite index for blood drops
-extern DLL_GLOBAL short g_sModelIndexBloodSpray;  // holds the sprite index for blood spray (bigger)
-
-extern void ClearMultiDamage( void );
-extern void ApplyMultiDamage( entvars_t *pevInflictor, entvars_t *pevAttacker );
-extern void AddMultiDamage( entvars_t *pevInflictor, CBaseEntity *pEntity, float flDamage, int bitsDamageType );
-
-extern void DecalGunshot( TraceResult *pTrace, int iBulletType );
-extern void SpawnBlood( Vector vecSpot, int bloodColor, float flDamage );
-extern int DamageDecal( CBaseEntity *pEntity, int bitsDamageType );
-extern void RadiusDamage( Vector vecSrc, entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage,
-						  float flRadius, int iClassIgnore, int bitsDamageType );
-
-typedef struct
-{
-	CBaseEntity *pEntity;
-	float amount;
-	int type;
-} MULTIDAMAGE;
-
-extern MULTIDAMAGE gMultiDamage;
-
-extern p_wpninfo_s P_WpnInfo[];	// defined in dod_shared.cpp
-
-#define LOUD_GUN_VOLUME 1000
-#define NORMAL_GUN_VOLUME 600
-#define QUIET_GUN_VOLUME 200
-
-#define BRIGHT_GUN_FLASH 512
-#define NORMAL_GUN_FLASH 256
-#define DIM_GUN_FLASH 128
-
-#define BIG_EXPLOSION_VOLUME 2048
-#define NORMAL_EXPLOSION_VOLUME 1024
-#define SMALL_EXPLOSION_VOLUME 512
-
-#define WEAPON_ACTIVITY_VOLUME 64
-
-#define VECTOR_CONE_1DEGREES Vector( 0.00873, 0.00873, 0.00873 )
-#define VECTOR_CONE_2DEGREES Vector( 0.01745, 0.01745, 0.01745 )
-#define VECTOR_CONE_3DEGREES Vector( 0.02618, 0.02618, 0.02618 )
-#define VECTOR_CONE_4DEGREES Vector( 0.03490, 0.03490, 0.03490 )
-#define VECTOR_CONE_5DEGREES Vector( 0.04362, 0.04362, 0.04362 )
-#define VECTOR_CONE_6DEGREES Vector( 0.05234, 0.05234, 0.05234 )
-#define VECTOR_CONE_7DEGREES Vector( 0.06105, 0.06105, 0.06105 )
-#define VECTOR_CONE_8DEGREES Vector( 0.06976, 0.06976, 0.06976 )
-#define VECTOR_CONE_9DEGREES Vector( 0.07846, 0.07846, 0.07846 )
-#define VECTOR_CONE_10DEGREES Vector( 0.08716, 0.08716, 0.08716 )
-#define VECTOR_CONE_15DEGREES Vector( 0.13053, 0.13053, 0.13053 )
-#define VECTOR_CONE_20DEGREES Vector( 0.17365, 0.17365, 0.17365 )
-
-// the classes below exist only in the server dll
-
-class CWeaponBox : public CBaseEntity
-{
-	void Precache( void );
-	void Spawn( void );
-	void Touch( CBaseEntity *pOther );
-	void KeyValue( KeyValueData *pkvd );
-	BOOL IsEmpty( void );
-	int GiveAmmo( int iCount, const char *szName, int iMax, int *pIndex = NULL );
-	void SetObjectCollisionBox( void );
-
-  public:
-	void EXPORT ActivateThink( void );
-	void EXPORT Kill( void );
-	int Save( CSave &save );
-	int Restore( CRestore &restore );
-	static TYPEDESCRIPTION m_SaveData[];
-
-	BOOL HasWeapon( CBasePlayerItem *pCheckItem );
-	BOOL PackWeapon( CBasePlayerItem *pWeapon );
-	BOOL PackAmmo( int iszName, int iCount );
-
-	CBasePlayerItem *m_rgpPlayerItems[MAX_ITEM_TYPES];	// one slot for each
-
-	int m_rgiszAmmo[MAX_AMMO_SLOTS];  // ammo names
-	int m_rgAmmo[MAX_AMMO_SLOTS];	  // ammo quantities
-
-	int m_cAmmoTypes;  // how many ammo types packed into this box (if packed by a level designer)
-	BOOL m_bDontTouch;
-	BOOL m_bAmmoBox;
-	BOOL m_bMGAmmoBoxTeam;
-	BOOL m_bTouch;
-	void RoundRespawn( void );
-};
-
-class CDodAmmoBox : public CBaseEntity
-{
-	EHANDLE m_hOwner;
-
-  public:
-	virtual void Precache();
-	virtual void Spawn();
-	virtual void Touch( CBaseEntity *pOther );
-	void SetOwner( CBaseEntity *pOwner );
-	void EXPORT KillThink();
-};
-
 class CBazookaShell : public CGrenade
 {
   public:
@@ -1353,15 +1357,6 @@ class CBazookaShell : public CGrenade
 	static CBazookaShell *CreateRocket( Vector vecSrc, Vector vecDir, CBaseEntity *pOwner );
 };
 
-class CPIATShell : public CGrenade
-{
-  public:
-	virtual void Spawn();
-	virtual void Precache();
-	void EXPORT RocketTouch( CBaseEntity *pOther );
-	static CPIATShell *CreateRocket( Vector vecSrc, Vector vecDir, CBaseEntity *pOwner );
-};
-
 class CPschreckShell : public CGrenade
 {
   public:
@@ -1369,6 +1364,15 @@ class CPschreckShell : public CGrenade
 	virtual void Precache();
 	void EXPORT RocketTouch( CBaseEntity *pOther );
 	static CPschreckShell *CreateRocket( Vector vecSrc, Vector vecDir, CBaseEntity *pOwner );
+};
+
+class CPIATShell : public CGrenade
+{
+  public:
+	virtual void Spawn();
+	virtual void Precache();
+	void EXPORT RocketTouch( CBaseEntity *pOther );
+	static CPIATShell *CreateRocket( Vector vecSrc, Vector vecDir, CBaseEntity *pOwner );
 };
 
 // Generic team ammo box. German extends American; British extends American.

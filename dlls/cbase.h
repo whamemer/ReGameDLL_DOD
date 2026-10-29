@@ -640,21 +640,6 @@ class CPointEntity : public CBaseEntity
   private:
 };
 
-class CBaseDMStart : public CPointEntity
-{
-  public:
-	void KeyValue( KeyValueData *pkvd );
-	int GetState( CBaseEntity *pEntity );
-	int IsMasteredOn( void ) { return UTIL_IsMasterTriggered( m_sMaster, this ); }
-
-  private:
-	string_t m_sMaster;
-	string_t m_sCPMaster;
-	int m_bNeutral;
-	int m_bInControl;
-	int m_bNotInControl;
-};
-
 typedef struct locksounds  // sounds that doors and buttons make when locked/unlocked
 {
 	string_t sLockedSound;		 // sound a door makes when it's locked
@@ -1179,5 +1164,20 @@ class CMultiAlias : public CBaseEntity
 	static TYPEDESCRIPTION m_SaveData[];
 	int m_cTargets;
 	int m_iszTargets[16];
+};
+
+class CBaseDMStart : public CPointEntity
+{
+  public:
+	void KeyValue( KeyValueData *pkvd );
+	int GetState( CBaseEntity *pEntity );
+	int IsMasteredOn( void ) { return UTIL_IsMasterTriggered( m_sMaster, this ); }
+
+  private:
+	string_t m_sMaster;
+	string_t m_sCPMaster;
+	int m_bNeutral;
+	int m_bInControl;
+	int m_bNotInControl;
 };
 
