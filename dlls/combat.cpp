@@ -31,7 +31,6 @@
 #include "func_break.h"
 #include "player.h"
 #include "gamerules.h"
-#include "combat.h"
 
 extern DLL_GLOBAL Vector g_vecAttackDir;
 extern DLL_GLOBAL int g_iSkillLevel;

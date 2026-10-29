@@ -29,7 +29,6 @@
 #include "gamerules.h"
 #include "player.h"
 #include "func_break.h"
-#include "combat.h"
 
 //===================grenade
 
@@ -481,7 +480,6 @@ void CGrenade::RemoveMe( void )
 // DoD grenade touches (restore/weapons/ggrenade.cpp: MortarShell/Rocket/ShootPickup PORTED)
 // SDK base (Bounce/Slide/Explode/Smoke/Tumble/Danger) untouched above.
 #include "func_break.h"
-#include "combat.h"
 #include "enginecallback.h"
 void CGrenade::MortarShellExplodeTouch( CBaseEntity *pOther )
 {

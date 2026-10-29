@@ -22,7 +22,6 @@
 #include "player.h"
 #include "weapons.h"
 #include "gamerules.h"
-#include "teamplay_gamerules.h"
 #include "skill.h"
 #include "game.h"
 #include <dod_gamerules.h>

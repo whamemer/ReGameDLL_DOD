@@ -41,7 +41,6 @@
 #include "objective.h"
 #include "mapmarker.h"
 #include "dod_shared.h"
-#include "combat.h"
 #include "studio.h"
 
 extern DodClassInfo_t g_ClassInfo[];

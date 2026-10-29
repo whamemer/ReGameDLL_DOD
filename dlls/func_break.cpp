@@ -30,7 +30,6 @@
 #include "player.h"
 #include "objective.h"
 #include "dod_gamerules.h"
-#include "combat.h"
 
 extern DLL_GLOBAL Vector g_vecAttackDir;
 extern DLL_GLOBAL BOOL g_fGameOver;

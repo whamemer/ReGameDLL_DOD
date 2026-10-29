@@ -32,7 +32,6 @@
 #include "player.h"
 #include "weapons.h"
 #include "gamerules.h"
-#include "teamplay_gamerules.h"
 extern const char *GetStdLightStyle( int iStyle );
 
 extern CGraph WorldGraph;
