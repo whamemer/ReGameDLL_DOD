@@ -3254,12 +3254,16 @@ void CDoDTeamPlay::ClassSelect( CBasePlayer *pPlayer, int iClassSelect )
 		return;
 	pPlayer->DelayedSpawn();
 }
-// NOTE: binary also sets pWeapon->m_bTriggerSpawnOnDie (member absent from this tree's CBasePlayerItem)
 void CDoDTeamPlay::PlayerGotWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon )
 {
 	ItemInfo ii;
 	memset( &ii, 0, sizeof( ii ) );
 	pWeapon->GetItemInfo( &ii );
+
+	// a launcher that dies makes its spawn point materialize again
+	pWeapon->m_bTriggerSpawnOnDie = FALSE;
+	if ( !( pWeapon->pev->flags & FL_IMMUNE_LAVA ) && ( ii.iFlags & ITEM_FLAG_LAUNCHER ) )
+		pWeapon->m_bTriggerSpawnOnDie = TRUE;
 }
 void CDoDTeamPlay::VoteKick( CBasePlayer *pPlayer, int vote, bool bAdmin )
 {
