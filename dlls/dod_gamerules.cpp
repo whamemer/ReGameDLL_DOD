@@ -1,5 +1,6 @@
 // DoD GAMERULES restore - dod/dlls/dod_gamerules.cpp
 // GhidraAddr = link + 0x10000. Compared against SDK ~/rev/halflife
+#include <ctype.h>
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
@@ -2711,8 +2712,18 @@ char *COM_Parse( char *data )
 }
 BOOL COM_TokenWaiting( char *buffer )
 {
-	char *p = COM_Parse( buffer );
-	return ( p && com_token[0] );
+	// is there something but spaces before the end of the line
+	char *p = buffer;
+
+	while ( *p && *p != '\n' )
+	{
+		if ( !isspace( *p ) || isalnum( *p ) )
+			return 1;
+
+		p++;
+	}
+
+	return 0;
 }
 char *CDoDTeamPlay::COM_Parse( char *data )
 {
@@ -2753,8 +2764,17 @@ char *CDoDTeamPlay::COM_Parse( char *data )
 }
 BOOL CDoDTeamPlay::COM_TokenWaiting( char *buffer )
 {
-	char *p = COM_Parse( buffer );
-	return ( p && com_token[0] );
+	char *p = buffer;
+
+	while ( *p && *p != '\n' )
+	{
+		if ( !isspace( *p ) || isalnum( *p ) )
+			return 1;
+
+		p++;
+	}
+
+	return 0;
 }
 void ExtractCommandString( char *s, char *szCommand )
 {

@@ -2609,7 +2609,7 @@ void CEnvWarpBall::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 
 			if ( tr.flFraction != 1.0 )
 			{
-				CBeam *pBeam = CBeam::BeamCreate( "sprites/lgtning.spr", 0 );
+				CBeam *pBeam = CBeam::BeamCreate( "sprites/lgtning.spr", 200 );
 				pBeam->pev->origin = pev->origin;
 				pBeam->pev->angles = tr.vecEndPos;
 				pBeam->pev->sequence &= 0xFFF;
@@ -2636,7 +2636,7 @@ void CEnvWarpBall::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 	pSpr->SetThink( &CSprite::AnimateUntilDead );
 	pSpr->pev->dmgtime = pSpr->Frames() / 10.0 + gpGlobals->time;
 	pSpr->pev->nextthink = gpGlobals->time;
-	pSpr->pev->rendermode = kRenderTransAdd;
+	pSpr->pev->rendermode = kRenderGlow;
 	pSpr->pev->rendercolor = Vector( 77, 210, 130 );
 	pSpr->pev->renderamt = 255;
 	pSpr->pev->renderfx = kRenderFxNoDissipation;
@@ -2646,7 +2646,7 @@ void CEnvWarpBall::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 	pSpr->SetThink( &CSprite::AnimateUntilDead );
 	pSpr->pev->dmgtime = pSpr->Frames() / 10.0 + gpGlobals->time;
 	pSpr->pev->nextthink = gpGlobals->time;
-	pSpr->pev->rendermode = kRenderTransAdd;
+	pSpr->pev->rendermode = kRenderGlow;
 	pSpr->pev->rendercolor = Vector( 184, 250, 214 );
 	pSpr->pev->renderamt = 255;
 	pSpr->pev->renderfx = kRenderFxNoDissipation;
