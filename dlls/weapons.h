@@ -1378,21 +1378,67 @@ class CPschreckShell : public CGrenade
 class GenericAmmoAmerican : public CBasePlayerAmmo
 {
   public:
-	void Spawn();
-	void Precache();
-	BOOL AddAmmo( CBaseEntity *pOther );
+	void Spawn()
+	{
+		Precache();
+		SET_MODEL( ENT( pev ), "models/allied_ammo.mdl" );
+		pev->movetype = MOVETYPE_TOSS;
+		pev->solid = SOLID_TRIGGER;
+		UTIL_SetSize( pev, Vector( -16, -16, 0 ), Vector( 16, 16, 16 ) );
+		UTIL_SetOrigin( pev, pev->origin );
+		SetTouch( &CBasePlayerAmmo::DefaultTouch );
+		pev->team = TEAM_ALLIES;
+	}
+
+	BOOL AddAmmo( CBaseEntity *pOther )
+	{
+		if ( CBasePlayerAmmo::GiveGenericAmmo( pOther ) )
+		{
+			EMIT_SOUND_DYN( ENT( pev ), CHAN_ITEM, "items/ammopickup.wav", 1.0, 0.8, 0, 100 );
+			return TRUE;
+		}
+		return FALSE;
+	}
+
+	void Precache()
+	{
+		PRECACHE_MODEL( "models/allied_ammo.mdl" );
+		PRECACHE_MODEL( "models/axis_ammo.mdl" );
+		PRECACHE_SOUND( "items/ammopickup.wav" );
+	}
 };
 
 class GenericAmmoGerman : public GenericAmmoAmerican
 {
   public:
-	void Spawn();
+	void Spawn()
+	{
+		Precache();
+		SET_MODEL( ENT( pev ), "models/axis_ammo.mdl" );
+		pev->movetype = MOVETYPE_TOSS;
+		pev->solid = SOLID_TRIGGER;
+		UTIL_SetSize( pev, Vector( -16, -16, 0 ), Vector( 16, 16, 16 ) );
+		UTIL_SetOrigin( pev, pev->origin );
+		SetTouch( &CBasePlayerAmmo::DefaultTouch );
+		pev->team = TEAM_AXIS;
+	}
 };
 
+// the British box uses the Allied model and the Allied team, like the American one
 class GenericAmmoBritish : public GenericAmmoAmerican
 {
   public:
-	void Spawn();
+	void Spawn()
+	{
+		Precache();
+		SET_MODEL( ENT( pev ), "models/allied_ammo.mdl" );
+		pev->movetype = MOVETYPE_TOSS;
+		pev->solid = SOLID_TRIGGER;
+		UTIL_SetSize( pev, Vector( -16, -16, 0 ), Vector( 16, 16, 16 ) );
+		UTIL_SetOrigin( pev, pev->origin );
+		SetTouch( &CBasePlayerAmmo::DefaultTouch );
+		pev->team = TEAM_ALLIES;
+	}
 };
 
 #endif // !CLIENT_DLL
