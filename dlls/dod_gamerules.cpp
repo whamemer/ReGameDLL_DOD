@@ -1711,7 +1711,7 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		pPlayer->UTIL_EdictScreenFade( pPlayer->edict(), color, 1.0f, 15.0f, 0, 5 );
 
 		pPlayer->pev->deadflag = DEAD_DEAD;
-		pPlayer->pev->effects |= EF_NODRAW;
+		pPlayer->pev->effects |= EF_NOINTERP;
 		pPlayer->m_bIsObserver = 1;
 		pPlayer->StartObserver( pPlayer->pev->origin, pPlayer->pev->angles );
 
@@ -2019,7 +2019,7 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		if ( pPlayer->pev->button & IN_ATTACK )
 			return TRUE;
 
-		if ( pPlayer->pev->movetype == MOVETYPE_NOCLIP )
+		if ( pPlayer->pev->movetype == MOVETYPE_FLY )
 			return TRUE;
 
 		if ( !pPlayer->IsProne() && pPlayer->pev->waterlevel > 1 && pPlayer->pev->watertype != -19 )
@@ -3165,11 +3165,11 @@ void CDoDTeamPlay::ClassSelect( CBasePlayer *pPlayer, int iClassSelect )
 	}
 	else
 	{
-		if ( bIsAlly && bIsBrit && ( iClassSelect - 0x15 ) > 5 )
+		if ( bIsAlly && bIsBrit && (unsigned) ( iClassSelect - 0x15 ) > 5 )
 			return;
 		if ( !bIsBrit && bIsAlly )
 		{
-			if ( ( iClassSelect - 1 ) > 8 )
+			if ( (unsigned) ( iClassSelect - 1 ) > 8 )
 				return;
 			if ( (unsigned) ( iClassSelect - 10 ) < 0xb )
 				pClassInfo = m_GamePlayRules.m_bAxisArePara ? g_ParaClassInfo : g_ClassInfo;
@@ -3187,7 +3187,7 @@ void CDoDTeamPlay::ClassSelect( CBasePlayer *pPlayer, int iClassSelect )
 		}
 		else
 		{
-			if ( ( iClassSelect - 10 ) > 10 )
+			if ( (unsigned) ( iClassSelect - 10 ) > 10 )
 				return;
 			pClassInfo = m_GamePlayRules.m_bAxisArePara ? g_ParaClassInfo : g_ClassInfo;
 		}

@@ -196,7 +196,6 @@ class CGameRules
 	virtual void SetMapChangeFromTime( int iTime ) {}			// vtbl+0x1ec
 
 	// ---- extras kept for this restoration (non-virtual: absent from the binary vtable) ----
-	void Precache() {}
 	void UpdateGameMode( CBasePlayer *pPlayer ) {}
 	BOOL IsAlliesBrit( void ) { return FALSE; }
 };

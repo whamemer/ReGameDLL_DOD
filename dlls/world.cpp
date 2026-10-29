@@ -403,7 +403,7 @@ void CWorld::Precache( void )
 	if ( g_pGameRules )
 		::operator delete( g_pGameRules );
 	g_pGameRules = InstallGameRules();
-	g_pGameRules->Precache();
+	g_pGameRules->Init();
 	CSoundEnt *pSoundEnt = GetClassPtr( (CSoundEnt *) NULL );
 	::pSoundEnt = pSoundEnt;
 	pSoundEnt->Spawn();
