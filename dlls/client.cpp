@@ -1822,7 +1822,7 @@ int GetWeaponData( struct edict_s *player, struct weapon_data_s *info )
 	int i;
 	weapon_data_t *item;
 	entvars_t *pev = &player->v;
-	CBasePlayer *pl = dynamic_cast<CBasePlayer *>( CBasePlayer::Instance( pev ) );
+	CBasePlayer *pl = (CBasePlayer *)CBasePlayer::Instance( pev );
 	CBasePlayerWeapon *gun;
 
 	ItemInfo II;
@@ -1842,7 +1842,7 @@ int GetWeaponData( struct edict_s *player, struct weapon_data_s *info )
 
 			while ( pPlayerItem )
 			{
-				gun = dynamic_cast<CBasePlayerWeapon *>( pPlayerItem->GetWeaponPtr() );
+				gun = (CBasePlayerWeapon *)pPlayerItem->GetWeaponPtr();
 				if ( gun && gun->UseDecrement() )
 				{
 					// Get The ID.
@@ -1860,15 +1860,8 @@ int GetWeaponData( struct edict_s *player, struct weapon_data_s *info )
 						item->m_flNextPrimaryAttack = max( gun->m_flNextPrimaryAttack, -0.001f );
 						item->m_flNextSecondaryAttack = max( gun->m_flNextSecondaryAttack, -0.001f );
 						item->m_fInReload = gun->m_fInReload;
-						item->m_fInSpecialReload = gun->m_fInSpecialReload;
-						item->fuser1 = max( gun->pev->fuser1, -0.001f );
-						item->fuser2 = gun->m_flStartThrow;
-						item->fuser3 = gun->m_flReleaseThrow;
-						item->iuser1 = gun->m_chargeReady;
-						item->iuser2 = gun->m_fInAttack;
-						item->iuser3 = gun->m_fireState;
-
-						//						item->m_flPumpTime				= max( gun->m_flPumpTime, -0.001f );
+						item->m_iWeaponState = gun->m_iWeaponState;
+						item->fuser1 = gun->m_flWeaponHeat;
 					}
 				}
 				pPlayerItem = pPlayerItem->m_pNext;
