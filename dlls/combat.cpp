@@ -1432,6 +1432,7 @@ void CBaseEntity::FireTWalls( float flDamage, int iBulletType, entvars_t *pevAtt
 				pTextureName++;	 // binary: skip !{~ space prefix
 			char szbuffer[64];
 			strcpy( szbuffer, pTextureName );
+			szbuffer[CBTEXTURENAMEMAX - 1] = 0;
 			chTextureType = TEXTURETYPE_Find( szbuffer );
 		}
 	}
@@ -1467,8 +1468,8 @@ void CBaseEntity::FireTWalls( float flDamage, int iBulletType, entvars_t *pevAtt
 		if ( pEnt && pEnt->pev->takedamage != DAMAGE_NO )
 		{
 			ClearMultiDamage();
-			pEnt->TraceAttack( pevAttacker, flDamage, vecDir, &beam_tr, DMG_BULLET );
-			ApplyMultiDamage( pevAttacker, pevAttacker );
+			pEnt->TraceAttack( pev, flDamage, vecDir, &beam_tr, DMG_BULLET );
+			ApplyMultiDamage( pev, pev );
 		}
 	}
 }
