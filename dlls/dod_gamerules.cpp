@@ -3486,34 +3486,21 @@ void CDoDTeamPlay::PlayerDeathThink( CBasePlayer *pPlayer )
 	}
 
 	pPlayer->m_bIsObserver = TRUE;
-	int team = pPlayer->pev->team;
-	BOOL infinite;
-	if ( team == TEAM_ALLIES )
-		infinite = m_GamePlayRules.m_bAlliesInfiniteLives;
-	else if ( team == TEAM_AXIS )
-		infinite = m_GamePlayRules.m_bAxisInfiniteLives;
-	else
-		infinite = FALSE;
 
-	if ( infinite )
+	if ( IsTeamInfinite( pPlayer->pev->team ) )
 	{
-		if ( GetMaxWaveTime( pPlayer->pev->team ) <= 0.0f )
+		// no wave is on its way: the next one comes after the maximal wave time, at least 3 seconds
+		if ( getWaveTime( pPlayer->pev->team ) <= 0.0f )
 		{
-			float waveTime = getWaveTime( pPlayer->pev->team );
+			float tempTime = GetMaxWaveTime( pPlayer->pev->team );
 			if ( pcvar_mp_clan_match && pcvar_mp_clan_match->value > 0.0f && pcvar_mp_clan_respawntime &&
 				 pcvar_mp_clan_respawntime->value > 0.0f )
-				waveTime = pcvar_mp_clan_respawntime->value;
-			float t = waveTime;
-			if ( 3.0f > t )
-				t = 3.0f;
-			setWaveTime( pPlayer->pev->team, t );
+				tempTime = pcvar_mp_clan_respawntime->value;
+			if ( tempTime < 3.0f )
+				tempTime = 3.0f;
+			setWaveTime( pPlayer->pev->team, tempTime );
 		}
-		if ( IsTeamInfinite( pPlayer->pev->team ) )
-		{
-			MESSAGE_BEGIN( MSG_ONE, gmsgWaveStatus, NULL, pPlayer->pev );
-			WRITE_BYTE( 1 );
-			MESSAGE_END();
-		}
+		SendWaveStatus( pPlayer, 1 );
 	}
 	pPlayer->StartObserver( pPlayer->pev->origin, pPlayer->pev->angles );
 }
