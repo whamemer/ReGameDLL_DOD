@@ -306,6 +306,34 @@ extern void UTIL_MakeVectors( const Vector &vecAngles );
 extern int UTIL_MonstersInSphere( CBaseEntity **pList, int listMax, const Vector &center, float radius );
 extern int UTIL_EntitiesInBox( CBaseEntity **pList, int listMax, const Vector &mins, const Vector &maxs, int flagMask );
 
+typedef enum
+{
+	BLUE = 0,
+	RED = 1,
+	GREEN = 2,
+	YELLOW = 3,
+	DOD_GREEN = 4,
+} printcolor_t;
+
+typedef enum
+{
+	F_IN_OUT = 0,
+	CREDITS = 1,
+	SCANOUT = 2,
+} printeffect_t;
+
+typedef enum
+{
+	WIN_MSG = 0,
+	CRITICAL = 1,
+	INFO = 2,
+	LEADER_HIT = 3,
+	MISC_SHIT = 4,
+	CHASECAM = 5,
+	CHASECAM_TARGET = 6,
+	NOTIFY = 7,
+} effectchannel_t;
+
 inline void UTIL_MakeVectorsPrivate( const Vector &vecAngles, float *p_vForward, float *p_vRight, float *p_vUp )
 {
 	g_engfuncs.pfnAngleVectors( vecAngles, p_vForward, p_vRight, p_vUp );

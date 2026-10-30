@@ -2672,41 +2672,41 @@ void UTIL_EffectPrint( CBasePlayer *pPlayer, int color, int effect, int channel,
 	hudtextparms_t parms;
 	memset( &parms, 0, sizeof( parms ) );
 
-	if( channel == 0 )
+	if( channel == WIN_MSG )
 	{
 		parms.x = -1;
 		parms.y = -1;
 	}
-	else if( channel == 7 )
+	else if( channel == NOTIFY )
 	{
 		parms.x = -1;
 		parms.y = 0.9;
 	}
-	else if( channel == 2 )
+	else if( channel == INFO )
 	{
 		parms.y = 0.85;
 	}
-	else if( channel == 3 )
+	else if( channel == LEADER_HIT )
 	{
 		parms.x = -1;
 		parms.y = 1.0;
 	}
-	else if( channel == 1 )
+	else if( channel == CRITICAL )
 	{
 		parms.x = 1;
 		parms.y = 0.7;
 	}
-	else if( channel == 4 )
+	else if( channel == MISC_SHIT )
 	{
 		parms.x = -1;
 		parms.y = 0.25;
 	}
-	else if( channel == 5 )
+	else if( channel == CHASECAM )
 	{
 		parms.x = 0;
 		parms.y = 0.3;
 	}
-	else if( channel == 6 )
+	else if( channel == CHASECAM_TARGET )
 	{
 		parms.x = 0.09;
 		parms.y = 0.3;
@@ -2714,33 +2714,33 @@ void UTIL_EffectPrint( CBasePlayer *pPlayer, int color, int effect, int channel,
 
 	parms.channel = channel;
 
-	if( color == 0 )
+	if( color == BLUE )
 	{
 		parms.r1 = 0;
 		parms.g1 = 0;
 		parms.b1 = 255;
 		parms.a1 = 0;
 	}
-	else if( color == 1 )
+	else if( color == RED )
 	{
 		parms.r1 = 255;
 		parms.g1 = 0;
 		parms.b1 = 0;
 		parms.a1 = 0;
 	}
-	else if( color == 2 )
+	else if( color == GREEN )
 	{
 		parms.r1 = 150;
 		parms.g1 = 255;
 		parms.b1 = 150;
 	}
-	else if( color == 3 )
+	else if( color == YELLOW )
 	{
 		parms.r1 = 198;
 		parms.g1 = 221;
 		parms.b1 = 66;
 	}
-	else if( color == 4 )
+	else if( color == DOD_GREEN )
 	{
 		parms.r1 = 66;
 		parms.g1 = 109;
@@ -2752,11 +2752,11 @@ void UTIL_EffectPrint( CBasePlayer *pPlayer, int color, int effect, int channel,
 	parms.g2 = 255;
 	parms.b2 = 255;
 	parms.a2 = 0;
-	if( effect == 2 )
+	if( effect == SCANOUT )
 		parms.fadeinTime = 0.05;
 	else
 		parms.fadeinTime = 0.3;
-	if( effect == 0 )
+	if( effect == F_IN_OUT )
 		parms.holdTime = 1.5;
 	else
 		parms.holdTime = 3.5;
