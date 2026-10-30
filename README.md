@@ -34,6 +34,9 @@ Builds are published on the [Releases](https://github.com/whamemer/ReGameDLL_DOD
 that goes next to the engine, with the server library (`dod/dlls/dod.dll`, `dod_amd64.dll`, `dod.so`, `dod_arm64.dylib` or
 `dod_amd64.dylib`, see [Library names](#library-names)).
 
+The build of the latest commit of `master` is in the pre-release
+[continuous](https://github.com/whamemer/ReGameDLL_DOD/releases/tag/continuous), the CI replaces it after every push.
+
 ## Installation
 1. Get the [latest developer build of Xash3D FWGS](https://github.com/FWGS/xash3d-fwgs/releases/tag/continuous) and unpack it.
 2. You have to own [Day of Defeat on Steam](https://store.steampowered.com/app/30/Day_of_Defeat/). Copy the `valve` and `dod`
@@ -179,6 +182,9 @@ contains no assets of the game, you need the original game to play.
 `windows_x64`, `linux` (i386) и, если их сборка прошла, `macos_arm64` и `macos_x64`. В каждом архиве лежит папка `dod`, которая
 кладётся рядом с движком, с серверной библиотекой (`dod/dlls/dod.dll`, `dod_amd64.dll`, `dod.so`, `dod_arm64.dylib` или
 `dod_amd64.dylib`, см. [Имена библиотек](#имена-библиотек)).
+
+Сборка последнего коммита ветки `master` лежит в пре-релизе
+[continuous](https://github.com/whamemer/ReGameDLL_DOD/releases/tag/continuous), CI заменяет её после каждого пуша.
 
 ## Установка
 1. Скачайте [последнюю developer-сборку Xash3D FWGS](https://github.com/FWGS/xash3d-fwgs/releases/tag/continuous) и распакуйте её.

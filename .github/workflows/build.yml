@@ -181,9 +181,13 @@ jobs:
 
   release:
     # the macOS build may fail without stopping the release, it takes what was built
-    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v') && needs.build.result == 'success' }}
+    # a tag v* makes a release, a push to master replaces the pre-release "continuous" with the latest build
+    if: ${{ !cancelled() && github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/master') && needs.build.result == 'success' }}
     needs: [build, macos]
     runs-on: ubuntu-latest
+    concurrency:
+      group: release-${{ github.ref }}
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:
@@ -202,16 +206,21 @@ jobs:
           (cd "pack/$name" && zip -qr "$GITHUB_WORKSPACE/$name.zip" dod)
         done
         ls -l
-    - name: Create the release
-      env:
-        GH_TOKEN: ${{ github.token }}
+    - name: Compose the notes
       run: |
-        # the list of the changes of a release is in .github/release-notes/<tag>.md
         {
           echo "Server library of Day of Defeat 1.3 for Xash3D FWGS."
           echo
-          if [ -f ".github/release-notes/$GITHUB_REF_NAME.md" ]; then
-            cat ".github/release-notes/$GITHUB_REF_NAME.md"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            # the list of the changes of a release is in .github/release-notes/<tag>.md
+            if [ -f ".github/release-notes/$GITHUB_REF_NAME.md" ]; then
+              cat ".github/release-notes/$GITHUB_REF_NAME.md"
+              echo
+            fi
+          else
+            echo "**Continuous build** of the commit [\`${GITHUB_SHA:0:7}\`](https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA) of the \`master\` branch: $(git log -1 --format=%s)"
+            echo
+            echo "This pre-release is replaced after every push to \`master\`, so it can be unstable. Releases with versions are in the list below it."
             echo
           fi
         } > notes.md
@@ -225,6 +234,28 @@ jobs:
         * `macos_arm64` and `macos_x64` (Apple Silicon and Intel) are built by the CI and not tested yet; a macOS archive is here only
           if its build passed.
         NOTES
+    - name: Create the release
+      if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
         shopt -s nullglob
         gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
           --title "ReGameDLL_DOD ${GITHUB_REF_NAME#v}" --notes-file notes.md *.zip
+    - name: Update the continuous pre-release
+      if: ${{ github.ref == 'refs/heads/master' }}
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        # a slower run of an older commit must not replace the build of a newer one
+        head=$(gh api "repos/$GITHUB_REPOSITORY/commits/master" --jq .sha)
+        if [ "$head" != "$GITHUB_SHA" ]; then
+          echo "master moved on to $head, the run of that commit publishes the build"
+          exit 0
+        fi
+        shopt -s nullglob
+        # the pre-release is made again, so no archive of a previous build stays in it (a macOS build that failed would leave one)
+        gh release delete continuous --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag || true
+        gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/continuous" || true
+        gh release create continuous --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --prerelease \
+          --title "ReGameDLL_DOD continuous build" --notes-file notes.md *.zip
