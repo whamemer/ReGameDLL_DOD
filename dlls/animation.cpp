@@ -1274,7 +1274,7 @@ void SV_StudioSetupBones(model_t *pModel, float frame, int sequence, const vec_t
 
 	if (pEdict)
 	{
-		if (!stricmp("player", gpGlobals->pStringBase + pEdict->v.classname))
+		if (!stricmp("player", gpGlobals->pStringBase + (int)pEdict->v.classname))
 		{
 			temp_angles[0] = 0;
 			temp_angles[1] = GetPlayerGaitYaw(pEdict);
