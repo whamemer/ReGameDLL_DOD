@@ -244,10 +244,14 @@ int CaseInsensitiveHash( const char *s, int size )
 }
 
 // The hash of a classname is in 0..Count() (CaseInsensitiveHash takes the remainder of size + 1), the original has no element
-// for the last value and writes behind the end of the table
+// for the last value and writes behind the end of the table. A table that is not created yet (CWorld::Spawn empties it before the
+// first classname is added) has no slots at all
 static int GetEntityHashSlots( void )
 {
 #if defined( FIX_ENTITY_HASH_OVERFLOW )
+	if( stringsHashTable.Count() < 1 )
+		return 0;
+
 	return stringsHashTable.Count() + 1;
 #else
 	return stringsHashTable.Count();
