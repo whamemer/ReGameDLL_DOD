@@ -3027,14 +3027,13 @@ void CDoDTeamPlay::TeamWon( int iTeamWon )
 			axis++;
 	}
 
+	// the engine ends a search with the world entity, not with NULL
 	edict_t *ed = NULL;
-	while( ( ed = FIND_ENTITY_BY_STRING( ed, "classname", "grenade" ) ) != NULL )
-		if( OFFSET( ed ) != 0 )
-			VARS( ed )->iuser1 = 1;
+	while( !FNullEnt( ed = FIND_ENTITY_BY_STRING( ed, "classname", "grenade" ) ) )
+		VARS( ed )->iuser1 = 1;
 	ed = NULL;
-	while( ( ed = FIND_ENTITY_BY_STRING( ed, "classname", "grenade2" ) ) != NULL )
-		if( OFFSET( ed ) != 0 )
-			VARS( ed )->iuser1 = 1;
+	while( !FNullEnt( ed = FIND_ENTITY_BY_STRING( ed, "classname", "grenade2" ) ) )
+		VARS( ed )->iuser1 = 1;
 	UTIL_LogPrintf( "\"%s\" scored \"%i\" with \"%i\" players\n", "Allies", m_iTeamScores[1], allies );
 	UTIL_LogPrintf( "\"%s\" scored \"%i\" with \"%i\" players\n", "Axis", m_iTeamScores[2], axis );
 	SetRoundState( ROUNDSTATE_PREROUND );
