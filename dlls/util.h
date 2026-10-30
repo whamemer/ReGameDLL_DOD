@@ -30,8 +30,21 @@ inline void MESSAGE_BEGIN( int msg_dest, int msg_type, const float *pOrigin,
 extern globalvars_t *gpGlobals;
 
 // Use this instead of ALLOC_STRING on constant strings
-#define STRING( offset ) ( (const char *) ( gpGlobals->pStringBase + (unsigned int) ( offset ) ) )
+#define STRING( offset ) ( (const char *) ( gpGlobals->pStringBase + (int) ( offset ) ) )
+
+#if !XASH_64BIT
 #define MAKE_STRING( str ) ( (uint64) ( str ) - (uint64) ( STRING( 0 ) ) )
+#else
+static inline int MAKE_STRING( const char *szValue )
+{
+	long long ptrdiff = szValue - STRING( 0 );
+
+	if ( ptrdiff > INT_MAX || ptrdiff < INT_MIN )
+		return ALLOC_STRING( szValue );
+
+	return (int) ptrdiff;
+}
+#endif
 
 enum hash_types_e
 {

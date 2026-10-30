@@ -29,7 +29,7 @@ if(NOT ${CMAKE_VERSION} VERSION_LESS "3.15.0")
 	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
-# the C sources (game_shared/vcs_info.c, public/safe_snprintf.c) are written in C99
+# the C sources (public/safe_snprintf.c) are written in C99
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
@@ -192,8 +192,6 @@ check_cxx_source_compiles("#include <cmath>
 if(HAVE_CMATH)
 	add_definitions(-DHAVE_CMATH)
 endif()
-
-add_subdirectory(game_shared)
 
 if(BUILD_SERVER)
 	message(STATUS "Building server enabled")

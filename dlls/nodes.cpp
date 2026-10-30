@@ -2080,7 +2080,7 @@ void CTestHull ::BuildNodeGraph( void )
 	fprintf( file, "\n\n-------------------------------------------------------------------------------\n" );
 	fprintf( file, "Total Number of Connections in Pool: %d\n", cPoolLinks );
 	fprintf( file, "-------------------------------------------------------------------------------\n" );
-	fprintf( file, "Connection Pool: %d bytes\n", sizeof( CLink ) * cPoolLinks );
+	fprintf( file, "Connection Pool: %d bytes\n", (int) ( sizeof( CLink ) * cPoolLinks ) );
 	fprintf( file, "-------------------------------------------------------------------------------\n" );
 
 	ALERT( at_aiconsole, "%d Nodes, %d Connections\n", WorldGraph.m_cNodes, cPoolLinks );

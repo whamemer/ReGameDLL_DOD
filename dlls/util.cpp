@@ -1787,10 +1787,10 @@ static int gSizes[FIELD_TYPECOUNT] = {
 	sizeof( float ),	  // FIELD_FLOAT
 	sizeof( int ),		  // FIELD_STRING
 	sizeof( int ),		  // FIELD_ENTITY
-	sizeof( int ),		  // FIELD_CLASSPTR
+	sizeof( void * ),	  // FIELD_CLASSPTR
 	sizeof( int ),		  // FIELD_EHANDLE
-	sizeof( int ),		  // FIELD_entvars_t
-	sizeof( int ),		  // FIELD_EDICT
+	sizeof( void * ),	  // FIELD_entvars_t
+	sizeof( void * ),	  // FIELD_EDICT
 	sizeof( float ) * 3,  // FIELD_VECTOR
 	sizeof( float ) * 3,  // FIELD_POSITION_VECTOR
 	sizeof( int * ),	  // FIELD_POINTER
@@ -1807,6 +1807,20 @@ static int gSizes[FIELD_TYPECOUNT] = {
 	sizeof( int ),	  // FIELD_MODELNAME
 	sizeof( int ),	  // FIELD_SOUNDNAME
 };
+
+// the size of an element of the field in the save file: an entity is written as the index, a pointer to it is bigger in the memory
+static int FileElementSize( int fieldType )
+{
+	switch ( fieldType )
+	{
+	case FIELD_CLASSPTR:
+	case FIELD_EVARS:
+	case FIELD_EDICT:
+		return sizeof( int );
+	}
+
+	return gSizes[fieldType];
+}
 
 // Base class includes common SAVERESTOREDATA pointer, and manages the entity table
 CSaveRestoreBuffer ::CSaveRestoreBuffer( void )
@@ -2354,7 +2368,7 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 				for ( j = 0; j < pTest->fieldSize; j++ )
 				{
 					void *pOutputData = ( (char *) pBaseData + pTest->fieldOffset + ( j * gSizes[pTest->fieldType] ) );
-					void *pInputData = (char *) pData + j * gSizes[pTest->fieldType];
+					void *pInputData = (char *) pData + j * FileElementSize( pTest->fieldType );
 
 					switch ( pTest->fieldType )
 					{
@@ -2467,9 +2481,9 @@ int CRestore::ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCou
 						break;
 					case FIELD_FUNCTION:
 						if ( strlen( (char *) pInputData ) == 0 )
-							*( (int *) pOutputData ) = 0;
+							*( (void **) pOutputData ) = NULL;
 						else
-							*( (int *) pOutputData ) = (int) (intptr_t) FUNCTION_FROM_NAME( (char *) pInputData ); // engine callback returns void*
+							*( (void **) pOutputData ) = (void *) FUNCTION_FROM_NAME( (char *) pInputData );
 						break;
 
 					default:

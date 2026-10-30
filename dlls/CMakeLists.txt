@@ -173,7 +173,6 @@ if(MSVC)
 		dod.def)
 endif()
 add_library (${SVDLL_LIBRARY} SHARED ${SVDLL_SOURCES})
-target_link_libraries(${SVDLL_LIBRARY} dod_vcs_info)
 
 set_target_properties (${SVDLL_LIBRARY} PROPERTIES POSITION_INDEPENDENT_CODE 1)
 

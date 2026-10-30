@@ -126,7 +126,7 @@ def configure(conf):
 	cflags, linkflags = conf.get_optimization_flags()
 	cxxflags = list(cflags) # optimization flags are common between C and C++ but we need a copy
 
-	# the C sources (game_shared/vcs_info.c, public/safe_snprintf.c) are written in C99
+	# the C sources (public/safe_snprintf.c) are written in C99
 	if conf.env.COMPILER_CC != 'msvc':
 		cflags.append('-std=gnu99')
 
@@ -295,7 +295,7 @@ def configure(conf):
 			conf.env.cxxshlib_PATTERN = conf.env.cxxshlib_PATTERN[3:]
 
 	conf.load('library_naming')
-	conf.add_subproject(get_subprojects(conf, 'game_shared dlls'))
+	conf.add_subproject(get_subprojects(conf, 'dlls'))
 
 def build(bld):
 	if bld.env.WAFCACHE:
@@ -309,4 +309,4 @@ def build(bld):
 		excl='*.user configuration.py .lock* *conf_check_*/** config.log %s/*' % Build.CACHE_DIR,
 		quiet=True, generator=True)
 
-	bld.add_subproject(get_subprojects(bld, 'game_shared dlls'))
+	bld.add_subproject(get_subprojects(bld, 'dlls'))
