@@ -1022,7 +1022,7 @@ void CDoDTeamPlay::Think( void )
 		{
 			GoodToGo();
 		}
-		else if( gpGlobals->time >= m_rRoundStartCount )
+		else if( !g_fGameOver && gpGlobals->time >= m_rRoundStartCount )
 		{
 			if( m_rReadyToUnFreeze == 2 )
 				RoundFreeze();
