@@ -3303,7 +3303,7 @@ void CDoDTeamPlay::RoundUnfreeze( void )
 	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBasePlayer *p = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
-		if( !p || p->Classify() != 2 || p->pev->team == TEAM_SPECTATOR )
+		if( !p || p->Classify() != CLASS_PLAYER || p->pev->team == TEAM_SPECTATOR )
 			continue;
 		p->CheckPlayerSpeed();
 		int r = RANDOM_LONG( 0, 3 );

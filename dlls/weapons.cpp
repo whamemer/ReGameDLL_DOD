@@ -934,9 +934,6 @@ int CBasePlayerWeapon::UpdateClientData( CBasePlayer *pPlayer )
 
 void CBasePlayerWeapon::SendWeaponAnim( int iAnim, int skiplocal )
 {
-	if( !m_pPlayer )
-		return;
-
 	m_pPlayer->pev->weaponanim = iAnim;
 
 	if( skiplocal && ENGINE_CANSKIP( m_pPlayer->edict() ) )
@@ -1122,7 +1119,7 @@ int CBasePlayerWeapon::ChangeFOV( int fov )
 
 int CBasePlayerWeapon::ZoomIn( void )
 {
-	if( Classify() == CLASS_SCOPED_RIFLE || Classify() == 0x400 )
+	if( Classify() == CLASS_SCOPED_RIFLE || Classify() == CLASS_UNUSED_1024 )
 	{
 		m_pPlayer->UpdateScope( m_iId );
 		return 20;
@@ -1145,9 +1142,7 @@ int CBasePlayerWeapon::ZoomOut( void )
 // DoD zoom/stamina/mortar/water-sniping impls
 void CBasePlayerWeapon::UpdateZoomSpeed( void )
 {
-	if( !m_pPlayer )
-		return;
-	if( Classify() != 0x20 )
+	if( Classify() != CLASS_SCOPED_RIFLE )
 		return;
 	m_pPlayer->CheckPlayerSpeed();
 }
@@ -1159,8 +1154,6 @@ int CBasePlayerWeapon::GetFOV( void )
 
 bool CBasePlayerWeapon::PlayerIsWaterSniping( void )
 {
-	if( !m_pPlayer )
-		return false;
 	int wl = m_pPlayer->pev->waterlevel;
 	if( wl == 3 )
 		return true;
@@ -1349,7 +1342,7 @@ bool CBasePlayerAmmo::GiveGenericAmmo( CBaseEntity *pOther )
 	{
 		for( CBasePlayerItem *pItem = pPlayer->m_rgpPlayerItems[i]; pItem != NULL; pItem = pItem->m_pNext )
 		{
-			if( pItem->Classify() & 0x3f0 )
+			if( pItem->Classify() & ( CLASS_RIFLE | CLASS_SCOPED_RIFLE | CLASS_SMG | CLASS_UNUSED_128 | CLASS_MACHINEGUN | CLASS_ROCKET ) )
 			{
 				ItemInfo ii;
 				memset( &ii, 0, sizeof( ii ) );

@@ -3426,7 +3426,7 @@ void CObjectCapture::Touch( CBaseEntity *pOther )
 	pPlayer->m_iObjectAreaIndex = m_iAreaIndex;
 	pPlayer->SetClientAreaIcon( m_iAreaIndex, true );
 
-	if( !pPlayer->HasObject || !pPlayer->m_pObject )
+	if( !pPlayer->HasObject )
 	{
 		if( ( pPlayer->m_flDisplayHistory & HINT_AREA_REQUIRES_OBJECT ) == 0 )
 		{
@@ -4516,12 +4516,10 @@ bool CControlPointMaster::IsMasteredOn()
 
 int CControlPointMaster::TeamOwnsAllPoints()
 {
-	if( m_iNumPoints < 1 || !ControlPointArray[0] )
-		return 0;
 	int team = ( ( CControlPoint * ) ControlPointArray[0] )->m_iTeam;
 	for( int i = 1; i < m_iNumPoints; i++ )
 	{
-		if( !ControlPointArray[i] || ( ( CControlPoint * ) ControlPointArray[i] )->m_iTeam != team )
+		if( ( ( CControlPoint * ) ControlPointArray[i] )->m_iTeam != team )
 			return 0;
 	}
 
@@ -4955,13 +4953,18 @@ void CAreaCapture::Think()
 			if( ( float ) players == ( float ) m_iCappingPlayers )
 				return;
 			m_iCappingPlayers = players;
-			// the capturing team can be gone while the other one stands in the area, don't divide by nobody
-			if( !m_pPoint || ( m_pPoint->pev->spawnflags & SF_CONTROLPOINT_HIDDEN ) || players < 1 )
-				return;
-			MESSAGE_BEGIN( MSG_ALL, gmsgProgBarUpdate );
-			WRITE_BYTE( m_pPoint->m_iIndex );
-			WRITE_COORD( ( float ) m_nCapTime * ( float ) ( m_iCappingRequired / players ) );
-			MESSAGE_END();
+
+			if( m_pPoint && !( m_pPoint->pev->spawnflags & SF_CONTROLPOINT_HIDDEN ) )
+			{
+#if defined( FIX_CAPTURE_AREA_DIVIDE_BY_ZERO )
+				if( players < 1 )
+					return;
+#endif
+				MESSAGE_BEGIN( MSG_ALL, gmsgProgBarUpdate );
+				WRITE_BYTE( m_pPoint->m_iIndex );
+				WRITE_COORD( ( float ) m_nCapTime * ( float ) ( m_iCappingRequired / players ) );
+				MESSAGE_END();
+			}
 
 			return;
 		}
@@ -5090,9 +5093,10 @@ void CAreaCapture::ReSendSwipeInfo()
 		return;
 	if( m_pPoint->pev->spawnflags & SF_CONTROLPOINT_HIDDEN )
 		return;
-	// nobody is capturing, nothing to divide by
+#if defined( FIX_CAPTURE_AREA_DIVIDE_BY_ZERO )
 	if( m_iCappingPlayers < 1 )
 		return;
+#endif
 	float captime = ( float ) m_nCapTime * ( float ) ( m_iCappingRequired / m_iCappingPlayers );
 
 	MESSAGE_BEGIN( MSG_ALL, gmsgProgBarUpdate );

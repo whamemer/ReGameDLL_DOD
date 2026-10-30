@@ -24,7 +24,7 @@
 #include "gamerules.h"
 #include "skill.h"
 #include "game.h"
-#include <dod_gamerules.h>
+#include "dod_gamerules.h"
 
 extern edict_t *EntSelectSpawnPoint( CBaseEntity *pPlayer, BOOL bJustChecking );
 extern DLL_GLOBAL BOOL g_fGameOver;

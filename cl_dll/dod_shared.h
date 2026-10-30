@@ -30,6 +30,7 @@
 #define CLASS_UNUSED_128		128	// no weapon returns it, CBasePlayer::ShouldGunLower still accepts it
 #define CLASS_MACHINEGUN		256	// the weapons with a bipod: CBAR, CMG42, CMG34, C30CAL, CBREN, CFG42
 #define CLASS_ROCKET			512
+#define CLASS_UNUSED_1024		1024	// no weapon returns it, CBasePlayerWeapon::ZoomIn still accepts it
 
 #define ITEM_FLAG_GRENADE			24
 #define ITEM_FLAG_PISTOL			64
