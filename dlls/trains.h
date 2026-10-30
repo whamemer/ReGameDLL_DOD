@@ -153,7 +153,10 @@ public:
 
 private:
 	float m_flWait;
-	virtual void RoundRespawn( void ) {}
+	virtual void RoundRespawn( void )
+	{
+		/* Nothing. */
+	}
 };
 
 #endif

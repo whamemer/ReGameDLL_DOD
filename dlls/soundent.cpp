@@ -130,7 +130,10 @@ void CSoundEnt::Think( void )
 //=========================================================
 // Precache - dummy function
 //=========================================================
-void CSoundEnt::Precache( void ) {}
+void CSoundEnt::Precache( void )
+{
+	/* Nothing. */
+}
 
 //=========================================================
 // FreeSound - clears the passed active sound and moves it

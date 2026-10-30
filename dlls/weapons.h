@@ -153,13 +153,28 @@ public:
 	virtual BOOL Deploy( void ) { return TRUE; }
 	virtual BOOL SpawnDeploy( void ) { return TRUE; }
 	virtual BOOL CanDrop( void ) { return CanHolster(); }
-	virtual void SetDmgTime( float time ) { }
-	virtual void DropGren( void ) { }
+	virtual void SetDmgTime( float time )
+	{
+		/* Nothing. */
+	}
+	virtual void DropGren( void )
+	{
+		/* Nothing. */
+	}
 	virtual BOOL CanHolster( void ) { return TRUE; }
 	virtual void Holster( int skiplocal = 0 );
-	virtual void UpdateItemInfo( void ) { }
-	virtual void ItemPreFrame( void ) { }
-	virtual void ItemPostFrame( void ) { }
+	virtual void UpdateItemInfo( void )
+	{
+		/* Nothing. */
+	}
+	virtual void ItemPreFrame( void )
+	{
+		/* Nothing. */
+	}
+	virtual void ItemPostFrame( void )
+	{
+		/* Nothing. */
+	}
 	virtual void Drop( void );
 	virtual void Kill( void );
 	virtual void AttachToPlayer( CBasePlayer *pPlayer );
@@ -218,7 +233,10 @@ public:
 	virtual int Restore( CRestore &restore );
 	virtual int AddToPlayer( CBasePlayer *pPlayer );
 	virtual int AddDuplicate( CBasePlayerItem *pOriginal );
-	virtual void UpdateItemInfo( void ) { }
+	virtual void UpdateItemInfo( void )
+	{
+		/* Nothing. */
+	}
 	virtual BOOL CanDeploy( void );
 	virtual void ItemPostFrame( void );
 	virtual void Holster( int skiplocal );
@@ -246,11 +264,26 @@ public:
 	virtual bool PlayerIsWaterSniping( void );
 	virtual void UpdateZoomSpeed( void );
 
-	virtual void PrimaryAttack( void ) { }
-	virtual void SecondaryAttack( void ) { }
-	virtual void Reload( void ) { }
-	virtual void Special( void ) { }
-	virtual void WeaponIdle( void ) { }
+	virtual void PrimaryAttack( void )
+	{
+		/* Nothing. */
+	}
+	virtual void SecondaryAttack( void )
+	{
+		/* Nothing. */
+	}
+	virtual void Reload( void )
+	{
+		/* Nothing. */
+	}
+	virtual void Special( void )
+	{
+		/* Nothing. */
+	}
+	virtual void WeaponIdle( void )
+	{
+		/* Nothing. */
+	}
 	virtual void RetireWeapon( void );
 	virtual BOOL ShouldWeaponIdle( void ) { return TRUE; }
 	virtual BOOL UseDecrement( void ) { return FALSE; }
@@ -453,7 +486,10 @@ public:
 	virtual int iItemSlot( void ) { return 0; }
 
 	virtual void PrimaryAttack( void );
-	virtual void SecondaryAttack( void ) { }
+	virtual void SecondaryAttack( void )
+	{
+		/* Nothing. */
+	}
 	virtual BOOL Deploy( void );
 	virtual void Holster( int skiplocal );
 	virtual void WeaponIdle( void );
@@ -485,7 +521,10 @@ public:
 	virtual int iItemSlot( void ) { return 1; }
 
 	virtual void PrimaryAttack( void );
-	virtual void SecondaryAttack( void ) { }
+	virtual void SecondaryAttack( void )
+	{
+		/* Nothing. */
+	}
 	virtual BOOL Deploy( void );
 	virtual BOOL CanHolster( void );
 	virtual void Reload( void );
@@ -551,7 +590,10 @@ public:
 		return TRUE;
 	}
 
-	virtual void ReSlow( void ) { }
+	virtual void ReSlow( void )
+	{
+		/* Nothing. */
+	}
 };
 
 class CDoDGrenade : public CBasePlayerWeapon

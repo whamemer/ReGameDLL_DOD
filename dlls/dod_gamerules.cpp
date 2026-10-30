@@ -610,6 +610,7 @@ BOOL CDoDTeamPlay::CanHaveItem( CBasePlayer *pPlayer, CItem *pItem )
 
 void CDoDTeamPlay::PlayerGotItem( CBasePlayer *pPlayer, CItem *pItem )
 {
+	/* Nothing. */
 }
 
 int CDoDTeamPlay::DeadPlayerAmmo( CBasePlayer *pPlayer )
@@ -713,6 +714,7 @@ BOOL CDoDTeamPlay::FPlayerCanRespawn( CBasePlayer *pPlayer )
 
 void CDoDTeamPlay::PlayerGotAmmo( CBasePlayer *pPlayer, char *szName, int iCount )
 {
+	/* Nothing. */
 }
 
 float CDoDTeamPlay::FlPlayerSpawnTime( CBasePlayer *pPlayer )
@@ -3778,6 +3780,7 @@ void CDoDTeamPlay::setMapTime( void )
 
 void CDoDTeamPlay::ReadInClassInfo( void )
 {
+	/* Nothing. */
 }
 
 void CDoDTeamPlay::PlayerDeathThink( CBasePlayer *pPlayer )

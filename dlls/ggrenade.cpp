@@ -136,6 +136,7 @@ void CGrenade::Explode( TraceResult *pTrace, int bitsDamageType )
 
 void CGrenade::Smoke( void )
 {
+	/* Nothing. */
 }
 
 void CGrenade::Killed( entvars_t *pevAttacker, int iGib )

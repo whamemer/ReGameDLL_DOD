@@ -334,6 +334,7 @@ void CBaseDoor::Spawn()
 
 void CBaseDoor::Activate( void )
 {
+	/* Nothing. */
 }
 
 void CBaseDoor::RoundRespawn( void )
@@ -917,6 +918,7 @@ void CRotDoor::Spawn( void )
 
 void CRotDoor::Activate( void )
 {
+	/* Nothing. */
 }
 
 void CRotDoor::SetToggleState( TOGGLE_STATE state )
@@ -1022,6 +1024,7 @@ void CMomentaryDoor::Spawn( void )
 
 void CMomentaryDoor::Activate( void )
 {
+	/* Nothing. */
 }
 
 void CMomentaryDoor::Precache( void )

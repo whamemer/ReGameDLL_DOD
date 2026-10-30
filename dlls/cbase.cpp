@@ -486,22 +486,30 @@ void loopPerformance( void )
 		CBaseEntity *pSpot = NULL;
 
 		while( ( pSpot = UTIL_FindEntityByString_Old( pSpot, "classname", "info_player_allies" ) ) != NULL )
-			;
+		{
+			/* Nothing. */
+		}
 
 		pSpot = NULL;
 
 		while( ( pSpot = UTIL_FindEntityByString_Old( pSpot, "classname", "info_player_axis" ) ) != NULL )
-			;
+		{
+			/* Nothing. */
+		}
 
 		pSpot = NULL;
 
 		while( ( pSpot = UTIL_FindEntityByString_Old( pSpot, "classname", "player" ) ) != NULL )
-			;
+		{
+			/* Nothing. */
+		}
 
 		pSpot = NULL;
 
 		while( ( pSpot = UTIL_FindEntityByString_Old( pSpot, "classname", "dod_control_point" ) ) != NULL )
-			;
+		{
+			/* Nothing. */
+		}
 	}
 
 	double end = loopCounter.GetCurTime();
@@ -515,22 +523,30 @@ void loopPerformance( void )
 		CBaseEntity *pSpot = NULL;
 
 		while( ( pSpot = UTIL_FindEntityByString( pSpot, "classname", "info_player_allies" ) ) != NULL )
-			;
+		{
+			/* Nothing. */
+		}
 
 		pSpot = NULL;
 
 		while( ( pSpot = UTIL_FindEntityByString( pSpot, "classname", "info_player_axis" ) ) != NULL )
-			;
+		{
+			/* Nothing. */
+		}
 
 		pSpot = NULL;
 
 		while( ( pSpot = UTIL_FindEntityByString( pSpot, "classname", "player" ) ) != NULL )
-			;
+		{
+			/* Nothing. */
+		}
 
 		pSpot = NULL;
 
 		while( ( pSpot = UTIL_FindEntityByString( pSpot, "classname", "dod_control_point" ) ) != NULL )
-			;
+		{
+			/* Nothing. */
+		}
 	}
 
 	end = loopCounter.GetCurTime();
@@ -1201,7 +1217,10 @@ void OnFreeEntPrivateData( edict_t *pEnt )
 	}
 }
 
-void GameShutdown( void ) {}
+void GameShutdown( void )
+{
+	/* Nothing. */
+}
 
 int ShouldCollide( edict_t *pentTouched, edict_t *pentOther )
 {

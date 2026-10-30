@@ -226,7 +226,10 @@ int CBaseAnimating::FindTransition( int iEndingSequence, int iGoalSequence, int 
 
 //=========================================================
 //=========================================================
-void CBaseAnimating::GetAutomovement( Vector &origin, Vector &angles, float flInterval ) {}
+void CBaseAnimating::GetAutomovement( Vector &origin, Vector &angles, float flInterval )
+{
+	/* Nothing. */
+}
 
 void CBaseAnimating::SetBodygroup( int iGroup, int iValue )
 {

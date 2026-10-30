@@ -2623,7 +2623,10 @@ public:
 	void EXPORT CanTouch( CBaseEntity *pOther );
 };
 
-void CItemSoda::Precache( void ) {}
+void CItemSoda::Precache( void )
+{
+	/* Nothing. */
+}
 
 LINK_ENTITY_TO_CLASS( item_sodacan, CItemSoda );
 

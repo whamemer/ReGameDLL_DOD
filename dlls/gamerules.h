@@ -94,7 +94,10 @@ public:
 	void GetInitialSpawnSpot( CBasePlayer *pPlayer );			// non-virtual
 	virtual BOOL AllowAutoTargetCrosshair( void ) { return TRUE; };
 	virtual BOOL ClientCommand( CBasePlayer *pPlayer, const char *pcmd ) { return FALSE; };
-	virtual void ClientUserInfoChanged( CBasePlayer *pPlayer, char *infobuffer ) {}
+	virtual void ClientUserInfoChanged( CBasePlayer *pPlayer, char *infobuffer )
+	{
+		/* Nothing. */
+	}
 	virtual void PlayerDeathThink( CBasePlayer *pPlayer ) = 0;
 	virtual int IPointsForKill( CBasePlayer *pAttacker, CBasePlayer *pKilled ) = 0;
 	virtual void PlayerKilled( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags = 0 ) = 0;
@@ -124,29 +127,65 @@ public:
 	virtual int GetTeamIndex( const char *pTeamName ) { return -1; }
 	virtual const char *GetIndexedTeamName( int teamIndex ) { return ""; }
 	virtual BOOL IsValidTeam( const char *pTeamName ) { return TRUE; }
-	virtual void ChangePlayerTeam( CBasePlayer *pPlayer, const char *pTeamName, BOOL bKill, BOOL bGib ) {}
+	virtual void ChangePlayerTeam( CBasePlayer *pPlayer, const char *pTeamName, BOOL bKill, BOOL bGib )
+	{
+		/* Nothing. */
+	}
 	virtual const char *SetDefaultPlayerTeam( CBasePlayer *pPlayer ) { return ""; }
 	virtual BOOL PlayTextureSounds( void ) { return TRUE; }
 	virtual BOOL PlayFootstepSounds( CBasePlayer *pl, float fvol ) { return TRUE; }
 	virtual BOOL FAllowMonsters( void ) = 0;
-	virtual void EndMultiplayerGame( void ) {}
+	virtual void EndMultiplayerGame( void )
+	{
+		/* Nothing. */
+	}
 	virtual int RoundState( void ) = 0;
-	virtual void VoteKick( CBasePlayer *pPlayer, int vote, bool bAdmin ) {}
-	virtual void SetRoundState( int state ) {}
+	virtual void VoteKick( CBasePlayer *pPlayer, int vote, bool bAdmin )
+	{
+		/* Nothing. */
+	}
+	virtual void SetRoundState( int state )
+	{
+		/* Nothing. */
+	}
 	virtual int SetRoundState( void ) { return 0; }
-	virtual void SetRestartTime( float f_Time ) {}
-	virtual void SendTeamScores( int iTeam ) {}
+	virtual void SetRestartTime( float f_Time )
+	{
+		/* Nothing. */
+	}
+	virtual void SendTeamScores( int iTeam )
+	{
+		/* Nothing. */
+	}
 	virtual float GetMaxWaveTime( int nTeam ) = 0;
 	virtual float getWaveTime( int iTeam ) = 0;
-	virtual void setWaveTime( int iTeam, float fTime ) {}
+	virtual void setWaveTime( int iTeam, float fTime )
+	{
+		/* Nothing. */
+	}
 	virtual int TeamScores( int team ) = 0;
-	virtual void SetTeamScores( int iTeam, int iScore ) {}
-	virtual void AddToTeamScores( int team, int points ) {}
-	virtual void setMapTime( void ) {}
-	virtual void RestartRound( void ) {}
+	virtual void SetTeamScores( int iTeam, int iScore )
+	{
+		/* Nothing. */
+	}
+	virtual void AddToTeamScores( int team, int points )
+	{
+		/* Nothing. */
+	}
+	virtual void setMapTime( void )
+	{
+		/* Nothing. */
+	}
+	virtual void RestartRound( void )
+	{
+		/* Nothing. */
+	}
 	virtual float getMapTime( void ) = 0;
 	virtual bool IsRoundFrozen( void ) { return false; }
-	virtual void SetClanMatch( bool b ) {}
+	virtual void SetClanMatch( bool b )
+	{
+		/* Nothing. */
+	}
 	virtual bool IsClanMatch( void ) { return false; }
 	virtual bool IsClanMatchActive( void ) { return false; }
 	virtual unsigned short Camera( void ) = 0;
@@ -169,28 +208,91 @@ public:
 	virtual unsigned short PopHelmet( void ) = 0;
 	virtual unsigned short RoundReset( void ) = 0;
 	virtual unsigned short StartTrail( void ) = 0;
-	virtual void SetCamera( short s ) {}
-	virtual void SetusVoice( short s ) {}
-	virtual void SetbodyDamage( short s ) {}
-	virtual void SetroundRestartSound( short s ) {}
-	virtual void SetgerVoice( short s ) {}
-	virtual void SetPain( short s ) {}
-	virtual void SetSmoke( short s ) {}
-	virtual void SetProne( short s ) {}
-	virtual void SetBloodSprite( short s ) {}
-	virtual void SetBloodStream( short s ) {}
-	virtual void SetBulletTracers( short s ) {}
-	virtual void SetSparkShower( short s ) {}
-	virtual void SetScreenFades( short s ) {}
-	virtual void SetBubbleTrails( short s ) {}
-	virtual void SetBubbles( short s ) {}
-	virtual void SetShards( short s ) {}
-	virtual void SetExplosion( short s ) {}
-	virtual void SetPopHelmet( short s ) {}
-	virtual void SetRoundReset( short s ) {}
-	virtual void SetRocketTrail( short s ) {}
+	virtual void SetCamera( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetusVoice( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetbodyDamage( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetroundRestartSound( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetgerVoice( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetPain( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetSmoke( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetProne( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetBloodSprite( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetBloodStream( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetBulletTracers( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetSparkShower( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetScreenFades( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetBubbleTrails( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetBubbles( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetShards( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetExplosion( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetPopHelmet( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetRoundReset( short s )
+	{
+		/* Nothing. */
+	}
+	virtual void SetRocketTrail( short s )
+	{
+		/* Nothing. */
+	}
 	virtual int ReturnGameRules( void ) = 0;
-	virtual void SetMapChangeFromTime( int iTime ) {}
+	virtual void SetMapChangeFromTime( int iTime )
+	{
+		/* Nothing. */
+	}
 };
 
 extern CGameRules *InstallGameRules( void );
@@ -295,7 +397,10 @@ public:
 	void setMapTime( void );
 	float getMapTime( void ) { return 0.0f; }
 	bool IsRoundFrozen( void ) { return false; }
-	void SetClanMatch( bool bMatchOn ) {}
+	void SetClanMatch( bool bMatchOn )
+	{
+		/* Nothing. */
+	}
 	bool IsClanMatch( void ) { return false; }
 	bool IsClanMatchActive( void ) { return false; }
 	void SetRoundState( int iState );

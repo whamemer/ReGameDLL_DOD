@@ -2991,7 +2991,10 @@ TYPEDESCRIPTION CTriggerSetPatrol::m_SaveData[] = {
 };
 IMPLEMENT_SAVERESTORE( CTriggerSetPatrol, CBaseDelay );
 
-void CTriggerSetPatrol::Spawn( void ) {}
+void CTriggerSetPatrol::Spawn( void )
+{
+	/* Nothing. */
+}
 
 void CTriggerSetPatrol::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
@@ -3038,7 +3041,10 @@ void CTriggerChangeTarget::KeyValue( KeyValueData *pkvd )
 		CBaseDelay::KeyValue( pkvd );
 }
 
-void CTriggerChangeTarget::Spawn( void ) {}
+void CTriggerChangeTarget::Spawn( void )
+{
+	/* Nothing. */
+}
 
 void CTriggerChangeTarget::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {

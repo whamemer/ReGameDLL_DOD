@@ -47,7 +47,10 @@ SpectatorDisconnect
 called when a spectator disconnects from a server
 ============
 */
-void CBaseSpectator::SpectatorDisconnect( void ) {}
+void CBaseSpectator::SpectatorDisconnect( void )
+{
+	/* Nothing. */
+}
 
 /*
 ================

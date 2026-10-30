@@ -65,7 +65,10 @@ public:
 	virtual int Classify( void );
 
 	int BloodColor( void ) { return DONT_BLEED; }
-	void GibMonster( void ) {}	// UNDONE: Throw turret gibs?
+	void GibMonster( void )
+	{
+		/* Nothing. */
+	}	// UNDONE: Throw turret gibs?
 
 	// Think functions
 
@@ -100,7 +103,10 @@ public:
 	// other functions
 	void SetTurretAnim( TURRET_ANIM anim );
 	int MoveTurret( void );
-	virtual void Shoot( Vector &vecSrc, Vector &vecDirToEnemy ) {};
+	virtual void Shoot( Vector &vecSrc, Vector &vecDirToEnemy )
+	{
+		/* Nothing. */
+	};
 	virtual STATE getState( void );
 
 	float m_flMaxSpin;	// Max time to spin the barrel w/o a target

@@ -929,6 +929,7 @@ void CBaseButton::RoundRespawn( void )
 
 void CBaseButton::Activate( void )
 {
+	/* Nothing. */
 }
 
 // Button sound table.
@@ -1371,6 +1372,7 @@ void CRotButton::RoundRespawn( void )
 
 void CRotButton::Activate( void )
 {
+	/* Nothing. */
 }
 
 // Make this button behave like a door (HACKHACK)

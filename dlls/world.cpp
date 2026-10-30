@@ -457,9 +457,7 @@ void CWorld::Precache( void )
 	}
 	else
 		CVAR_SET_FLOAT( "sv_zmax", pev->speed );
-	if( FStringNull( pev->netname ) )
-		;
-	else
+	if( !FStringNull( pev->netname ) )
 	{
 		ALERT( at_aiconsole, "Chapter title: %s\n", STRING( pev->netname ) );
 		CBaseEntity *pEntity = CBaseEntity::Create( "env_message", g_vecZero, g_vecZero, NULL );

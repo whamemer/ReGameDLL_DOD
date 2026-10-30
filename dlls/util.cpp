@@ -1826,7 +1826,10 @@ CSaveRestoreBuffer::CSaveRestoreBuffer( SAVERESTOREDATA *pdata )
 	m_pdata = pdata;
 }
 
-CSaveRestoreBuffer ::~CSaveRestoreBuffer( void ) {}
+CSaveRestoreBuffer ::~CSaveRestoreBuffer( void )
+{
+	/* Nothing. */
+}
 
 int CSaveRestoreBuffer::EntityIndex( CBaseEntity *pEntity )
 {

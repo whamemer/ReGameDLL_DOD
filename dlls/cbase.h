@@ -223,7 +223,10 @@ public:
 	float m_rrGravity;
 
 	// initialization functions
-	virtual void RoundRespawn( void ) {}
+	virtual void RoundRespawn( void )
+	{
+		/* Nothing. */
+	}
 
 	// clear pending think/touch/use/blocked callbacks, then restore the vars captured by RoundStore()
 	// and run the per-entity RoundRespawn()
@@ -306,9 +309,18 @@ public:
 	virtual int Save( CSave &save );
 	virtual int Restore( CRestore &restore );
 	virtual int ObjectCaps( void ) { return FCAP_ACROSS_TRANSITION; }
-	virtual void Activate( void ) {}
-	virtual void area_SetIndex( int i ) {}
-	virtual void area_SendStatus( CBasePlayer *pPlayer ) {}
+	virtual void Activate( void )
+	{
+		/* Nothing. */
+	}
+	virtual void area_SetIndex( int i )
+	{
+		/* Nothing. */
+	}
+	virtual void area_SendStatus( CBasePlayer *pPlayer )
+	{
+		/* Nothing. */
+	}
 
 	// Setup the object->object collision box (pev->mins / pev->maxs is the object->world collision box)
 	virtual void SetObjectCollisionBox( void );
@@ -316,7 +328,9 @@ public:
 	// Classify - returns the type of group (i.e, "houndeye", or "human military" so that monsters with different classnames
 	// still realize that they are teammates. (overridden for monsters that form groups)
 	virtual int Classify( void ) { return CLASS_NONE; };
-	virtual void DeathNotice( entvars_t *pevChild ) {
+	virtual void DeathNotice( entvars_t *pevChild )
+	{
+		/* Nothing. */
 	}  // monster maker children use this to tell the monster maker that they have died.
 
 	virtual STATE GetState( void ) { return STATE_OFF; }
@@ -336,19 +350,37 @@ public:
 	virtual CBaseMonster *MyMonsterPointer( void ) { return NULL; }
 	virtual CSquadMonster *MySquadMonsterPointer( void ) { return NULL; }
 	virtual int GetToggleState( void ) { return TS_AT_TOP; }
-	virtual void AddPoints( int score, BOOL bAllowNegativeScore ) {}
-	virtual void AddPointsToTeam( int score, BOOL bAllowNegativeScore ) {}
+	virtual void AddPoints( int score, BOOL bAllowNegativeScore )
+	{
+		/* Nothing. */
+	}
+	virtual void AddPointsToTeam( int score, BOOL bAllowNegativeScore )
+	{
+		/* Nothing. */
+	}
 	virtual BOOL AddPlayerItem( CBasePlayerItem *pItem ) { return 0; }
 	virtual BOOL RemovePlayerItem( CBasePlayerItem *pItem ) { return 0; }
 	virtual int GiveAmmo( int iAmount, const char *szName, int iMax ) { return -1; };
 	virtual float GetDelay( void ) { return 0; }
 	virtual int IsMoving( void ) { return pev->velocity != g_vecZero; }
-	virtual void OverrideReset( void ) {}
+	virtual void OverrideReset( void )
+	{
+		/* Nothing. */
+	}
 	virtual int DamageDecal( int bitsDamageType );
 	// This is ONLY used by the node graph to test movement through a door
-	virtual void SetToggleState( TOGGLE_STATE state ) {}
-	virtual void StartSneaking( void ) {}
-	virtual void StopSneaking( void ) {}
+	virtual void SetToggleState( TOGGLE_STATE state )
+	{
+		/* Nothing. */
+	}
+	virtual void StartSneaking( void )
+	{
+		/* Nothing. */
+	}
+	virtual void StopSneaking( void )
+	{
+		/* Nothing. */
+	}
 	virtual BOOL OnControls( entvars_t *pev ) { return FALSE; }
 	virtual BOOL IsSneaking( void ) { return FALSE; }
 	virtual BOOL IsAlive( void ) { return ( pev->deadflag == DEAD_NO ) && pev->health > 0; }

@@ -216,7 +216,10 @@ void CCineMonster::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 }
 
 // This doesn't really make sense since only MOVETYPE_PUSH get 'Blocked' events
-void CCineMonster::Blocked( CBaseEntity *pOther ) {}
+void CCineMonster::Blocked( CBaseEntity *pOther )
+{
+	/* Nothing. */
+}
 
 void CCineMonster::Touch( CBaseEntity *pOther )
 {
@@ -265,7 +268,10 @@ void CCineMonster::Die( void )
 //
 // ********** Cinematic PAIN **********
 //
-void CCineMonster::Pain( void ) {}
+void CCineMonster::Pain( void )
+{
+	/* Nothing. */
+}
 
 //
 // ********** Cinematic Think **********

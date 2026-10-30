@@ -51,7 +51,10 @@ private:
 class CSave : public CSaveRestoreBuffer
 {
 public:
-	CSave( SAVERESTOREDATA *pdata ) : CSaveRestoreBuffer( pdata ) {};
+	CSave( SAVERESTOREDATA *pdata ) : CSaveRestoreBuffer( pdata )
+	{
+		/* Nothing. */
+	};
 
 	void	WriteShort( const char *pname, const short *value, int count );
 	void	WriteInt( const char *pname, const int *value, int count );		// Save an int
@@ -86,7 +89,10 @@ typedef struct
 class CRestore : public CSaveRestoreBuffer
 {
 public:
-	CRestore( SAVERESTOREDATA *pdata ) : CSaveRestoreBuffer( pdata ), m_global(0), m_precache( TRUE ) { }
+	CRestore( SAVERESTOREDATA *pdata ) : CSaveRestoreBuffer( pdata ), m_global(0), m_precache( TRUE )
+	{
+		/* Nothing. */
+	}
 	int		ReadEntVars( const char *pname, entvars_t *pev );		// entvars_t
 	int		ReadFields( const char *pname, void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCount );
 	int		ReadField( void *pBaseData, TYPEDESCRIPTION *pFields, int fieldCount, int startField, int size, char *pName, void *pData );

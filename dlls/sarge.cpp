@@ -856,4 +856,5 @@ void CSarge::Touch( CBaseEntity *pOther )
 }
 void CSarge::GiveAdvice( CBaseEntity *pPlayer )
 {
+	/* Nothing. */
 }

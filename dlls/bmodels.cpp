@@ -295,7 +295,9 @@ class CFuncMonsterClip : public CFuncWall
 {
 public:
 	void Spawn( void );
-	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value ) {
+	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+	{
+		/* Nothing. */
 	}  // Clear out func_wall's use function
 };
 

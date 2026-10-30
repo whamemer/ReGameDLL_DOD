@@ -3191,7 +3191,10 @@ BOOL CBasePlayer::HasWeapons( void )
 	return FALSE;
 }
 
-void CBasePlayer::SelectPrevItem( int iItem ) {}
+void CBasePlayer::SelectPrevItem( int iItem )
+{
+	/* Nothing. */
+}
 
 //==============================================
 // !!!UNDONE:ultra temporary SprayCan entity to apply
@@ -5617,4 +5620,7 @@ bool CBasePlayer::IsParatrooper()
 }
 
 bool CBasePlayer::IsBritish() { return ( unsigned ) ( pev->playerclass - 0x15 ) < 6; }
-void CBasePlayer::MortarFireCommand( byte command ) {}
+void CBasePlayer::MortarFireCommand( byte command )
+{
+	/* Nothing. */
+}

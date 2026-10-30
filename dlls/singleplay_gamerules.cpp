@@ -28,7 +28,10 @@ CSPDoDRules::CSPDoDRules( void )
 	CGameRules::RefreshSkillData();
 }
 
-void CSPDoDRules::Init( void ) {}
+void CSPDoDRules::Init( void )
+{
+	/* Nothing. */
+}
 
 void CSPDoDRules::Think( void )
 {
@@ -130,6 +133,7 @@ void CSPDoDRules::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvars
 
 void CSPDoDRules::PlayerGotWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon )
 {
+	/* Nothing. */
 }
 
 float CSPDoDRules::FlWeaponRespawnTime( CBasePlayerItem *pWeapon )
@@ -159,6 +163,7 @@ BOOL CSPDoDRules::CanHaveItem( CBasePlayer *pPlayer, CItem *pItem )
 
 void CSPDoDRules::PlayerGotItem( CBasePlayer *pPlayer, CItem *pItem )
 {
+	/* Nothing. */
 }
 
 int CSPDoDRules::ItemShouldRespawn( CItem *pItem )
@@ -183,6 +188,7 @@ BOOL CSPDoDRules::IsAllowedToSpawn( CBaseEntity *pEntity )
 
 void CSPDoDRules::PlayerGotAmmo( CBasePlayer *pPlayer, char *szName, int iCount )
 {
+	/* Nothing. */
 }
 
 int CSPDoDRules::AmmoShouldRespawn( CBasePlayerAmmo *pAmmo )
@@ -226,11 +232,23 @@ BOOL CSPDoDRules::FAllowMonsters( void )
 }
 
 int CSPDoDRules::RoundState( void ) { return 1; }
-void CSPDoDRules::SetRoundState( int iState ) {}
-void CSPDoDRules::SetRestartTime( float fTime ) {}
+void CSPDoDRules::SetRoundState( int iState )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetRestartTime( float fTime )
+{
+	/* Nothing. */
+}
 int CSPDoDRules::TeamScores( int iTeam ) { return 1; }
-void CSPDoDRules::SetTeamScores( int iTeam, int iScore ) {}
-void CSPDoDRules::AddToTeamScores( int iTeam, int iScore ) {}
+void CSPDoDRules::SetTeamScores( int iTeam, int iScore )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::AddToTeamScores( int iTeam, int iScore )
+{
+	/* Nothing. */
+}
 
 unsigned short CSPDoDRules::usVoice( void ) { return 0; }
 unsigned short CSPDoDRules::bodyDamage( void ) { return 0; }
@@ -252,33 +270,105 @@ unsigned short CSPDoDRules::PopHelmet( void ) { return 0; }
 unsigned short CSPDoDRules::RoundReset( void ) { return 0; }
 unsigned short CSPDoDRules::StartTrail( void ) { return 0; }
 
-void CSPDoDRules::SetCamera( short s ) {}
-void CSPDoDRules::SetusVoice( short s ) {}
-void CSPDoDRules::SetbodyDamage( short s ) {}
-void CSPDoDRules::SetroundRestartSound( short s ) {}
-void CSPDoDRules::SetgerVoice( short s ) {}
-void CSPDoDRules::SetPain( short s ) {}
-void CSPDoDRules::SetSmoke( short s ) {}
-void CSPDoDRules::SetProne( short s ) {}
-void CSPDoDRules::SetBloodSprite( short s ) {}
-void CSPDoDRules::SetBloodStream( short s ) {}
-void CSPDoDRules::SetBulletTracers( short s ) {}
-void CSPDoDRules::SetSparkShower( short s ) {}
-void CSPDoDRules::SetScreenFades( short s ) {}
-void CSPDoDRules::SetBubbleTrails( short s ) {}
-void CSPDoDRules::SetBubbles( short s ) {}
-void CSPDoDRules::SetShards( short s ) {}
-void CSPDoDRules::SetExplosion( short s ) {}
+void CSPDoDRules::SetCamera( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetusVoice( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetbodyDamage( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetroundRestartSound( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetgerVoice( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetPain( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetSmoke( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetProne( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetBloodSprite( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetBloodStream( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetBulletTracers( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetSparkShower( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetScreenFades( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetBubbleTrails( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetBubbles( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetShards( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetExplosion( short s )
+{
+	/* Nothing. */
+}
 int CSPDoDRules::ReturnGameRules( void ) { return 0; }
-void CSPDoDRules::SetPopHelmet( short s ) {}
-void CSPDoDRules::SetRoundReset( short s ) {}
-void CSPDoDRules::SetRocketTrail( short s ) {}
-void CSPDoDRules::SetMapChangeFromTime( int iTime ) {}
+void CSPDoDRules::SetPopHelmet( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetRoundReset( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetRocketTrail( short s )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::SetMapChangeFromTime( int iTime )
+{
+	/* Nothing. */
+}
 float CSPDoDRules::GetMaxWaveTime( int nTeam ) { return 0.0f; }
 float CSPDoDRules::getWaveTime( int iTeam ) { return 0.0f; }
-void CSPDoDRules::SendTeamScores( int iTeam ) {}
-void CSPDoDRules::VoteKick( CBasePlayer *pPlayer, int id, bool b ) {}
-void CSPDoDRules::setWaveTime( int iTeam, float fTime ) {}
+void CSPDoDRules::SendTeamScores( int iTeam )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::VoteKick( CBasePlayer *pPlayer, int id, bool b )
+{
+	/* Nothing. */
+}
+void CSPDoDRules::setWaveTime( int iTeam, float fTime )
+{
+	/* Nothing. */
+}
 
 BOOL CSPDoDRules::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon )
 {
@@ -314,7 +404,10 @@ BOOL CSPDoDRules::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pWea
 	return FALSE;
 }
 
-void CSPDoDRules::setMapTime( void ) {}
+void CSPDoDRules::setMapTime( void )
+{
+	/* Nothing. */
+}
 
 void CSPDoDRules::PlayerDeathThink( CBasePlayer *pPlayer )
 {

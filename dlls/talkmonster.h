@@ -142,7 +142,10 @@ public:
 	BOOL IsFollowing( void ) { return m_hTargetEnt != NULL && m_hTargetEnt->IsPlayer(); }
 	void StopFollowing( BOOL clearSchedule );
 	void StartFollowing( CBaseEntity *pLeader );
-	virtual void DeclineFollowing( void ) {}
+	virtual void DeclineFollowing( void )
+	{
+		/* Nothing. */
+	}
 	void LimitFollowers( CBaseEntity *pPlayer, int maxFollowers );
 
 	void EXPORT FollowerUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );

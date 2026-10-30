@@ -765,7 +765,10 @@ void PlayerPostThink( edict_t *pEntity )
 		pPlayer->PostThink();
 }
 
-void ParmsNewLevel( void ) {}
+void ParmsNewLevel( void )
+{
+	/* Nothing. */
+}
 
 void ParmsChangeLevel( void )
 {

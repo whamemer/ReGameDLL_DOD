@@ -191,7 +191,10 @@ public:
 	virtual void RunTask( Task_t *pTask );
 	virtual Schedule_t *GetScheduleOfType( int Type );
 	virtual Schedule_t *GetSchedule( void );
-	virtual void ScheduleChange( void ) {}
+	virtual void ScheduleChange( void )
+	{
+		/* Nothing. */
+	}
 	// virtual int CanPlaySequence( void ) { return ((m_pCine == NULL) && (m_MonsterState == MONSTERSTATE_NONE || m_MonsterState == MONSTERSTATE_IDLE || m_IdealMonsterState == MONSTERSTATE_IDLE)); }
 	virtual int CanPlaySequence( BOOL fDisregardState, int interruptLevel );
 	virtual int CanPlaySentence( BOOL fDisregardState ) { return IsAlive(); }
@@ -347,7 +350,10 @@ public:
 	virtual void IdleSound( void ) { return; };
 	virtual void PainSound( void ) { return; };
 
-	virtual void StopFollowing( BOOL clearSchedule ) {}
+	virtual void StopFollowing( BOOL clearSchedule )
+	{
+		/* Nothing. */
+	}
 	virtual int Classify( void ) { return m_iClass; }
 
 	inline void Remember( int iMemory ) { m_afMemory |= iMemory; }
