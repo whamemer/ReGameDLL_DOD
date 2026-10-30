@@ -488,7 +488,7 @@ public:
 					 Vector vecRight, Vector vecUp, Vector vecDest );
 	Vector FireBulletsNC( Vector vecSrc, Vector vecDirShooting, float flSpread, float flDistance, int iBulletType,
 						  int iTracerFreq, int iDamage, entvars_t *pevAttacker, int shared_rand );
-	void RifleMeleeAttack( class CBasePlayer *pPlayer, int weapon_id );
+	void RifleMeleeAttack( class CBasePlayer *m_pPlayer, int weapon_id );
 	void EXPORT DecalThink( void );
 
 	virtual CBaseEntity *Respawn( void ) { return NULL; }
@@ -965,7 +965,7 @@ static_assert( offsetof( CBaseToggle, m_sMaster ) == 508, "CBaseToggle::m_sMaste
 	  << 28 )
 #define DMG_DOD_GIBMASK_GETDEATH                                                                                       \
 	( DMG_NERVEGAS | DMG_DOD_GIB6 )
-// Melee combos are CLUB + gib-style bit (RifleMeleeAttack @000dcf70):
+// Melee combos are CLUB + gib-style bit (RifleMeleeAttack):
 #define DMG_DOD_MELEE_BAYONET ( DMG_CLUB | DMG_PARALYZE )  // 0x8080, weapon_id 10, plrDmgBayonet
 #define DMG_DOD_MELEE_GARAND ( DMG_CLUB | DMG_NERVEGAS )
 #define DMG_DOD_MELEE_K43 ( DMG_CLUB | DMG_DOD_GIB6 )

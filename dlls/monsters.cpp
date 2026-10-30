@@ -2144,7 +2144,7 @@ void CBaseMonster::StartMonster( void )
 
 	if( !FStringNull( pev->target ) )	// this monster has a target
 	{
-		CBaseEntity *pPath = CBaseEntity::Instance( FIND_ENTITY_BY_TARGETNAME( NULL, STRING( pev->target ) ) );
+		CBaseEntity *pPath = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ) );
 		StartPatrol( pPath );
 	}
 
@@ -2678,11 +2678,13 @@ void CBaseMonster::HandleAnimEvent( MonsterEvent_t *pEvent )
 		break;
 
 	case SCRIPT_EVENT_SOUND:  // Play a named wave file
-		EMIT_SOUND( edict(), CHAN_BODY, pEvent->options, 1.0, ATTN_IDLE );
+		if( !FBitSet( pev->spawnflags, SF_MONSTER_GAG ) || m_MonsterState != MONSTERSTATE_IDLE )
+			EMIT_SOUND( edict(), CHAN_BODY, pEvent->options, 1.0, ATTN_IDLE );
 		break;
 
 	case SCRIPT_EVENT_SOUND_VOICE:
-		EMIT_SOUND( edict(), CHAN_VOICE, pEvent->options, 1.0, ATTN_IDLE );
+		if( !FBitSet( pev->spawnflags, SF_MONSTER_GAG ) || m_MonsterState != MONSTERSTATE_IDLE )
+			EMIT_SOUND( edict(), CHAN_VOICE, pEvent->options, 1.0, ATTN_IDLE );
 		break;
 
 	case SCRIPT_EVENT_SENTENCE_RND1:  // Play a named sentence group 33% of the time

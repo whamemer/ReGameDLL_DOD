@@ -1288,27 +1288,75 @@ void CBaseEntity::FireBullets( ULONG cShots, Vector vecSrc, Vector vecDirShootin
 	ApplyMultiDamage( pev, pevAttacker );
 }
 
-void CBaseEntity::RifleMeleeAttack( CBasePlayer *pPlayer, int weapon_id )
+void CBaseEntity::RifleMeleeAttack( CBasePlayer *m_pPlayer, int weapon_id )
 {
+	int i, j, k;
+	float distance;
+	Vector vecMin( -16, -16, -36 ), vecMax( 16, 16, 36 );
+	float *minmaxs[2] = { vecMin, vecMax };
+	TraceResult tmpTrace;
+
 	if( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
 		return;
 
-	UTIL_MakeVectors( pPlayer->pev->v_angle );
+	UTIL_MakeVectors( m_pPlayer->pev->v_angle );
 
-	Vector vecSrc = pPlayer->GetGunPosition();
+	Vector vecSrc = m_pPlayer->GetGunPosition();
 	Vector vecEnd = vecSrc + gpGlobals->v_forward * 64;
 
 	TraceResult tr;
-	UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, ENT( pPlayer->pev ), &tr );
+	UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, ENT( m_pPlayer->pev ), &tr );
 
 	if( tr.flFraction >= 1.0 )
 	{
-		UTIL_TraceHull( vecSrc, vecEnd, dont_ignore_monsters, head_hull, ENT( pPlayer->pev ), &tr );
+		UTIL_TraceHull( vecSrc, vecEnd, dont_ignore_monsters, head_hull, ENT( m_pPlayer->pev ), &tr );
 
 		if( tr.flFraction < 1.0 )
 		{
-			// The search for the best intersection of the hull is skipped: the original starts it only for
-			// a trace longer than the whole way, which never happens.
+			// Calculate the point of intersection of the line (or hull) and the object we hit
+			// This is and approximation of the "best" intersection
+			CBaseEntity *pHit = CBaseEntity::Instance( tr.pHit );
+
+			if( !pHit || pHit->IsBSPModel() )
+			{
+				// the search for the best intersection starts only for a trace longer than the whole way,
+				// which never happens
+				Vector vecHullEnd = tr.vecEndPos;
+
+				distance = 200.0f;
+
+				vecHullEnd = vecSrc + ( ( vecHullEnd - vecSrc ) * 2 );
+				UTIL_TraceLine( vecSrc, vecHullEnd, dont_ignore_monsters, m_pPlayer->edict(), &tmpTrace );
+
+				if( tmpTrace.flFraction > 1.0 )
+				{
+					for( i = 0; i < 2; i++ )
+					{
+						for( j = 0; j < 2; j++ )
+						{
+							for( k = 0; k < 2; k++ )
+							{
+								vecEnd.x = vecHullEnd.x + minmaxs[i][0];
+								vecEnd.y = vecHullEnd.y + minmaxs[j][1];
+								vecEnd.z = vecHullEnd.z + minmaxs[k][2];
+
+								UTIL_TraceLine( vecSrc, vecEnd, dont_ignore_monsters, m_pPlayer->edict(), &tmpTrace );
+
+								if( tmpTrace.flFraction < 1.0 )
+								{
+									float thisDistance = ( tmpTrace.vecEndPos - vecSrc ).Length();
+
+									if( thisDistance < distance )
+									{
+										tr = tmpTrace;
+										distance = thisDistance;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
 
 			// This is the point on the actual surface (the hull could have hit space)
 			vecEnd = tr.vecEndPos;
@@ -1325,20 +1373,20 @@ void CBaseEntity::RifleMeleeAttack( CBasePlayer *pPlayer, int weapon_id )
 	switch( weapon_id )
 	{
 	case WEAPON_KAR:
-		pEntity->TraceAttack( pPlayer->pev, gSkillData.plrDmgBayonet, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_BAYONET );
+		pEntity->TraceAttack( m_pPlayer->pev, gSkillData.plrDmgBayonet, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_BAYONET );
 		break;
 	case WEAPON_GARAND:
-		pEntity->TraceAttack( pPlayer->pev, gSkillData.plrDmgGarandButt, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_GARAND );
+		pEntity->TraceAttack( m_pPlayer->pev, gSkillData.plrDmgGarandButt, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_GARAND );
 		break;
 	case WEAPON_K43:
-		pEntity->TraceAttack( pPlayer->pev, gSkillData.plrDmgK43Butt, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_K43 );
+		pEntity->TraceAttack( m_pPlayer->pev, gSkillData.plrDmgK43Butt, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_K43 );
 		break;
 	case WEAPON_ENFIELD:
-		pEntity->TraceAttack( pPlayer->pev, gSkillData.plrDmgEnfieldButt, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_ENFIELD );
+		pEntity->TraceAttack( m_pPlayer->pev, gSkillData.plrDmgEnfieldButt, gpGlobals->v_forward, &tr, DMG_DOD_MELEE_ENFIELD );
 		break;
 	}
 
-	ApplyMultiDamage( pPlayer->pev, pPlayer->pev );
+	ApplyMultiDamage( m_pPlayer->pev, m_pPlayer->pev );
 
 	if( !pEntity || pEntity->Classify() == CLASS_NONE || pEntity->Classify() == CLASS_MACHINE )
 	{
@@ -1356,12 +1404,12 @@ void CBaseEntity::RifleMeleeAttack( CBasePlayer *pPlayer, int weapon_id )
 			pev->nextthink = gpGlobals->time + 0.1;
 
 			if( RANDOM_LONG( 0, 1 ) == 0 )
-				EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_ITEM, "weapons/cbar_hit1.wav", fvolbar, ATTN_NORM, 0, 98 + RANDOM_LONG( 0, 3 ) );
+				EMIT_SOUND_DYN( ENT( m_pPlayer->pev ), CHAN_ITEM, "weapons/cbar_hit1.wav", fvolbar, ATTN_NORM, 0, 98 + RANDOM_LONG( 0, 3 ) );
 			else
-				EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_ITEM, "weapons/cbar_hit2.wav", fvolbar, ATTN_NORM, 0, 98 + RANDOM_LONG( 0, 3 ) );
+				EMIT_SOUND_DYN( ENT( m_pPlayer->pev ), CHAN_ITEM, "weapons/cbar_hit2.wav", fvolbar, ATTN_NORM, 0, 98 + RANDOM_LONG( 0, 3 ) );
 		}
 
-		pPlayer->m_iWeaponVolume = 512;
+		m_pPlayer->m_iWeaponVolume = 512;
 		return;
 	}
 
@@ -1370,26 +1418,26 @@ void CBaseEntity::RifleMeleeAttack( CBasePlayer *pPlayer, int weapon_id )
 		switch( RANDOM_LONG( 0, 2 ) )
 		{
 		case 0:
-			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit1.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+			EMIT_SOUND_DYN( ENT( m_pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit1.wav", 1, ATTN_NORM, 0, PITCH_NORM );
 			break;
 		case 1:
-			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit2.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+			EMIT_SOUND_DYN( ENT( m_pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit2.wav", 1, ATTN_NORM, 0, PITCH_NORM );
 			break;
 		case 2:
-			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit3.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+			EMIT_SOUND_DYN( ENT( m_pPlayer->pev ), CHAN_WEAPON, "weapons/knife_hit3.wav", 1, ATTN_NORM, 0, PITCH_NORM );
 			break;
 		}
 	}
 	else if( weapon_id == WEAPON_GARAND || weapon_id == WEAPON_K43 )
 	{
 		if( pEntity->IsPlayer() )
-			EMIT_SOUND_DYN( ENT( pPlayer->pev ), CHAN_VOICE, "weapons/butt_hit.wav", 1, ATTN_NORM, 0, PITCH_NORM );
+			EMIT_SOUND_DYN( ENT( m_pPlayer->pev ), CHAN_VOICE, "weapons/butt_hit.wav", 1, ATTN_NORM, 0, PITCH_NORM );
 	}
 
-	pPlayer->m_iWeaponVolume = 128;
+	m_pPlayer->m_iWeaponVolume = 128;
 
 	if( pEntity->IsAlive() )
-		pPlayer->m_iWeaponVolume = 51;
+		m_pPlayer->m_iWeaponVolume = 51;
 }
 
 void CBaseEntity::DecalThink( void )

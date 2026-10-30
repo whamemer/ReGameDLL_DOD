@@ -524,14 +524,57 @@ void CBaseMonster::RunTask( Task_t *pTask )
 	break;
 	case TASK_WAIT_FOR_SCRIPT:
 	{
-		if( m_pCine->m_iDelay <= 0 && gpGlobals->time >= m_pCine->m_startTime )
+		if( m_pCine )
 		{
-			TaskComplete();
-			m_pCine->StartSequence( ( CBaseMonster * ) this, m_pCine->m_iszPlay, TRUE );
-			if( m_fSequenceFinished )
-				ClearSchedule();
+			if( m_pCine->m_iDelay <= 0 && gpGlobals->time >= m_pCine->m_startTime )
+			{
+				TaskComplete();
+
+				if( FClassnameIs( m_pCine->pev, "scripted_action" ) )
+				{
+					switch( m_pCine->m_fAction )
+					{
+					case 0:
+						m_IdealActivity = ACT_RANGE_ATTACK1;
+						break;
+					case 1:
+						m_IdealActivity = ACT_RANGE_ATTACK2;
+						break;
+					case 2:
+						m_IdealActivity = ACT_MELEE_ATTACK1;
+						break;
+					case 3:
+						m_IdealActivity = ACT_MELEE_ATTACK2;
+						break;
+					case 4:
+						m_IdealActivity = ACT_SPECIAL_ATTACK1;
+						break;
+					case 5:
+						m_IdealActivity = ACT_SPECIAL_ATTACK2;
+						break;
+					case 6:
+						m_IdealActivity = ACT_RELOAD;
+						break;
+					case 7:
+						m_IdealActivity = ACT_HOP;
+						break;
+					}
+				}
+				else
+				{
+					m_pCine->StartSequence( ( CBaseMonster * ) this, m_pCine->m_iszPlay, TRUE );
+					if( m_fSequenceFinished )
+						ClearSchedule();
+				}
+
+				pev->framerate = 1.0;
+				//ALERT( at_aiconsole, "Script %s has begun for %s\n", STRING( m_pCine->m_iszPlay ), STRING(pev->classname) );
+			}
+		}
+		else
+		{
+			ClearSchedule();
 			pev->framerate = 1.0;
-			//ALERT( at_aiconsole, "Script %s has begun for %s\n", STRING( m_pCine->m_iszPlay ), STRING(pev->classname) );
 		}
 		break;
 	}
@@ -1266,7 +1309,11 @@ void CBaseMonster::StartTask( Task_t *pTask )
 	}
 	case TASK_WAIT_FOR_SCRIPT:
 	{
-		if( m_pCine->m_iszIdle )
+		if( FClassnameIs( m_pCine->pev, "scripted_action" ) || !m_pCine->m_iszIdle )
+		{
+			m_IdealActivity = ACT_IDLE;
+		}
+		else
 		{
 			m_pCine->StartSequence( ( CBaseMonster * ) this, m_pCine->m_iszIdle, FALSE );
 			if( FStrEq( STRING( m_pCine->m_iszIdle ), STRING( m_pCine->m_iszPlay ) ) )
@@ -1274,15 +1321,17 @@ void CBaseMonster::StartTask( Task_t *pTask )
 				pev->framerate = 0;
 			}
 		}
-		else
-			m_IdealActivity = ACT_IDLE;
 
 		break;
 	}
 	case TASK_PLAY_SCRIPT:
 	{
-		pev->movetype = MOVETYPE_FLY;
-		ClearBits( pev->flags, FL_ONGROUND );
+		if( !FClassnameIs( m_pCine->pev, "scripted_action" ) )
+		{
+			pev->movetype = MOVETYPE_FLY;
+			ClearBits( pev->flags, FL_ONGROUND );
+		}
+
 		m_scriptState = SCRIPT_PLAYING;
 		break;
 	}
@@ -1294,9 +1343,9 @@ void CBaseMonster::StartTask( Task_t *pTask )
 	}
 	case TASK_PLANT_ON_SCRIPT:
 	{
-		if( m_hTargetEnt != NULL )
+		if( m_pCine )
 		{
-			pev->origin = m_hTargetEnt->pev->origin;  // Plant on target
+			pev->origin = m_pCine->pev->origin;  // Plant on target
 		}
 
 		TaskComplete();
@@ -1304,9 +1353,19 @@ void CBaseMonster::StartTask( Task_t *pTask )
 	}
 	case TASK_FACE_SCRIPT:
 	{
-		if( m_hTargetEnt != NULL )
+		if( m_pCine && m_pCine->m_fMoveTo )
 		{
-			pev->ideal_yaw = UTIL_AngleMod( m_hTargetEnt->pev->angles.y );
+			if( m_pCine->m_fTurnType == 0 )
+			{
+				pev->ideal_yaw = UTIL_AngleMod( m_pCine->pev->angles.y );
+			}
+			else if( m_pCine->m_fTurnType == 1 )
+			{
+				if( m_hTargetEnt )
+					MakeIdealYaw( m_hTargetEnt->pev->origin );
+				else
+					MakeIdealYaw( m_pCine->pev->origin );
+			}
 		}
 
 		TaskComplete();
