@@ -1,9 +1,9 @@
 /***
 *
 *	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
 *
 *   Use, distribution, and modification of this source code and/or resulting
@@ -35,7 +35,7 @@ float GetSkillCvar( const char *pName )
 
 	flValue = CVAR_GET_FLOAT( szBuffer );
 
-	if ( flValue <= 0 )
+	if( flValue <= 0 )
 	{
 		ALERT( at_console, "\n\n** GetSkillCVar Got a zero for %s **\n\n", szBuffer );
 	}

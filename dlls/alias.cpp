@@ -1,7 +1,7 @@
 /***
 *
 *	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
-*	
+*
 *	This product contains software technology licensed from Id
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
@@ -12,6 +12,7 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
@@ -41,6 +42,7 @@ int CInfoAlias::ObjectCaps()
 {
 	return 0;
 }
+
 STATE CInfoAlias::GetState()
 {
 	return ( pev->spawnflags & SF_ALIAS_OFF ) ? STATE_OFF : STATE_ON;
@@ -50,6 +52,7 @@ TYPEDESCRIPTION CMultiAlias::m_SaveData[] = {
 	DEFINE_FIELD( CMultiAlias, m_cTargets, FIELD_INTEGER ),
 	DEFINE_ARRAY( CMultiAlias, m_iszTargets, FIELD_STRING, 16 ),
 };
+
 IMPLEMENT_SAVERESTORE( CMultiAlias, CBaseEntity )
 
 TYPEDESCRIPTION CInfoGroup::m_SaveData[] = {
@@ -57,6 +60,7 @@ TYPEDESCRIPTION CInfoGroup::m_SaveData[] = {
 	DEFINE_ARRAY( CInfoGroup, m_iszMemberName, FIELD_STRING, 16 ),
 	DEFINE_ARRAY( CInfoGroup, m_iszMemberValue, FIELD_STRING, 16 ),
 };
+
 IMPLEMENT_SAVERESTORE( CInfoGroup, CBaseEntity )
 
 LINK_ENTITY_TO_CLASS( info_alias, CInfoAlias )
@@ -64,16 +68,17 @@ LINK_ENTITY_TO_CLASS( info_alias, CInfoAlias )
 void CInfoAlias::Spawn()
 {
 	RoundStore();
-	if ( pev->spawnflags & SF_ALIAS_OFF )
+	if( pev->spawnflags & SF_ALIAS_OFF )
 	{
 		int tmp = pev->target;
 		pev->target = pev->netname;
 		pev->netname = tmp;
 	}
 }
+
 void CInfoAlias::RoundRespawn()
 {
-	if ( pev->spawnflags & SF_ALIAS_OFF )
+	if( pev->spawnflags & SF_ALIAS_OFF )
 	{
 		int tmp = pev->target;
 		pev->target = pev->netname;
@@ -83,15 +88,15 @@ void CInfoAlias::RoundRespawn()
 
 void CInfoAlias::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if ( ShouldToggle( useType, GetState() ) )
+	if( ShouldToggle( useType, GetState() ) )
 		pev->nextthink = gpGlobals->time;
 }
 
 void CInfoAlias::Think()
 {
-	if ( ( pev->spawnflags & SF_ALIAS_OFF ) == 0 )
+	if( ( pev->spawnflags & SF_ALIAS_OFF ) == 0 )
 	{
-		if ( ( pev->spawnflags & SF_ALIAS_DEBUG ) == 0 )
+		if( ( pev->spawnflags & SF_ALIAS_DEBUG ) == 0 )
 			pev->spawnflags |= SF_ALIAS_OFF;
 		else
 		{
@@ -101,15 +106,17 @@ void CInfoAlias::Think()
 	}
 	else
 	{
-		if ( pev->spawnflags & SF_ALIAS_DEBUG )
+		if( pev->spawnflags & SF_ALIAS_DEBUG )
 			ALERT( at_console, "DEBUG: info_alias %s turns on", STRING( pev->targetname ) );
+
 		pev->spawnflags &= ~SF_ALIAS_OFF;
 	}
 
 	int tmp = pev->netname;
 	pev->netname = pev->target;
 	pev->target = tmp;
-	if ( pev->spawnflags & SF_ALIAS_DEBUG )
+
+	if( pev->spawnflags & SF_ALIAS_DEBUG )
 		ALERT( at_console, ": target becomes \"%s\"\n", STRING( pev->target ) );
 }
 
@@ -117,7 +124,7 @@ LINK_ENTITY_TO_CLASS( info_group, CInfoGroup )
 
 void CInfoGroup::KeyValue( KeyValueData *pkvd )
 {
-	if ( m_cMembers < 16 )
+	if( m_cMembers < 16 )
 	{
 		char tmp[128];
 		UTIL_StripToken( pkvd->szKeyName, tmp, 128 );
@@ -138,32 +145,34 @@ void CInfoGroup::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 void CInfoGroup::Think()
 {
 	CBaseEntity *pT = UTIL_FindEntityByTargetname( 0, STRING( pev->target ) );
-	if ( pT != 0 && FClassnameIs( pT->pev, "info_alias" ) )
+	if( pT != 0 && FClassnameIs( pT->pev, "info_alias" ) )
 	{
 		pT->pev->target = pev->targetname;
-		if ( ( pev->spawnflags & SF_ALIAS_DEBUG ) == 0 )
+		if( ( pev->spawnflags & SF_ALIAS_DEBUG ) == 0 )
 			return;
+
 		ALERT( at_console, "info_group %s changed the contents of alias %s to %s", STRING( pev->targetname ),
-			   STRING( pT->pev->targetname ), STRING( pT->pev->target ) );
+			STRING( pT->pev->targetname ), STRING( pT->pev->target ) );
+
 		return;
 	}
 
-	if ( pev->target != 0 )
+	if( pev->target != 0 )
 		ALERT( at_console, "info_group %s: alias %s was not found or not an alias!", STRING( pev->targetname ),
-			   STRING( pev->target ) );
+			STRING( pev->target ) );
 }
 
 int CInfoGroup::GetMember( const char *szMemberName )
 {
-	if ( szMemberName == 0 )
+	if( szMemberName == 0 )
 	{
 		ALERT( at_console, "info_group: GetMember called with null szMemberName!" );
 		return 0;
 	}
 
-	for ( int i = 0; i < m_cMembers; i++ )
+	for( int i = 0; i < m_cMembers; i++ )
 	{
-		if ( strcmp( szMemberName, STRING( m_iszMemberName[i] ) ) == 0 )
+		if( strcmp( szMemberName, STRING( m_iszMemberName[i] ) ) == 0 )
 			return m_iszMemberValue[i];
 	}
 
@@ -175,7 +184,7 @@ LINK_ENTITY_TO_CLASS( multi_alias, CMultiAlias )
 
 void CMultiAlias::KeyValue( KeyValueData *pkvd )
 {
-	if ( m_cTargets < 16 )
+	if( m_cTargets < 16 )
 	{
 		char tmp[128];
 		UTIL_StripToken( pkvd->szKeyName, tmp, 128 );
@@ -206,33 +215,34 @@ void CTriggerChangeAlias::Spawn()
 {
 	return;
 }
+
 void CTriggerChangeAlias::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	CBaseEntity *pAlias = UTIL_FindEntityByTargetname( NULL, STRING( pev->target ) );
 
-	if ( !pAlias || !FClassnameIs( pAlias->pev, "info_alias" ) )
+	if( !pAlias || !FClassnameIs( pAlias->pev, "info_alias" ) )
 	{
 		ALERT( at_console, "trigger_changealias %s: alias \"%s\" was not found or not an alias!", STRING( pev->targetname ),
-			   STRING( pev->target ) );
+			STRING( pev->target ) );
 		return;
 	}
 
 	int iNewValue = 0;
 
-	if ( pev->spawnflags & SF_CHANGEALIAS_FOLLOW )
+	if( pev->spawnflags & SF_CHANGEALIAS_FOLLOW )
 	{
 		CBaseEntity *pFollow = UTIL_FollowReference( NULL, STRING( pev->netname ) );
 
-		if ( pFollow )
+		if( pFollow )
 			iNewValue = pFollow->pev->targetname;
 	}
 
-	if ( !iNewValue )
+	if( !iNewValue )
 		iNewValue = pev->netname;
 
 	pAlias->pev->target = iNewValue;
 
-	if ( pev->spawnflags & SF_ALIAS_DEBUG )
+	if( pev->spawnflags & SF_ALIAS_DEBUG )
 		ALERT( at_console, "DEBUG: trigger_changealias %s activated: changed contents of alias \"%s\" to \"%s\"\n",
-			   STRING( pev->targetname ), STRING( pAlias->pev->targetname ), STRING( iNewValue ) );
+			STRING( pev->targetname ), STRING( pAlias->pev->targetname ), STRING( iNewValue ) );
 }

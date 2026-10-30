@@ -1,9 +1,9 @@
 /***
 *
 *	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
 *
 *   Use, distribution, and modification of this source code and/or resulting
@@ -12,10 +12,12 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
 #include "extdll.h"
 #include "eiface.h"
 #include "util.h"
 #include "game.h"
+
 cvar_t cvar_timelimit = { "mp_timelimit", "0", FCVAR_SERVER };
 cvar_t cvar_friendlyfire = { "mp_friendlyfire", "0", FCVAR_SERVER };
 cvar_t cvar_falldamage = { "mp_falldamage", "0", FCVAR_SERVER };
@@ -477,7 +479,7 @@ void GameDLLInit( void )
 	g_psv_aim = CVAR_GET_POINTER( "sv_aim" );
 	g_footsteps = CVAR_GET_POINTER( "mp_footsteps" );
 
-CVAR_REGISTER( &cvar_displaysoundlist );
+	CVAR_REGISTER( &cvar_displaysoundlist );
 	CVAR_REGISTER( &cvar_teamplay );
 	CVAR_REGISTER( &cvar_timelimit );
 	CVAR_REGISTER( &cvar_friendlyfire );
@@ -796,5 +798,6 @@ CVAR_REGISTER( &cvar_displaysoundlist );
 	CVAR_REGISTER( &sk_player_leg1 );
 	CVAR_REGISTER( &sk_player_leg2 );
 	CVAR_REGISTER( &sk_player_leg3 );
+
 	SERVER_COMMAND( "exec skill.cfg\n" );
 }

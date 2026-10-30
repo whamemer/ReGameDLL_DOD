@@ -9,6 +9,7 @@
 //
 //=============================================================================
 //=============================================================================
+
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
@@ -27,16 +28,16 @@ extern cvar_t cvar_forcecamera;
 
 BOOL IsTeamInfinite( int team )
 {
-	return ( (CDoDTeamPlay *)g_pGameRules )->IsTeamInfinite( team );
+	return ( ( CDoDTeamPlay * ) g_pGameRules )->IsTeamInfinite( team );
 }
 
 int GetForceCamera( void )
 {
-	if ( cvar_fadetoblack.value != 0.0f )
+	if( cvar_fadetoblack.value != 0.0f )
 		return 2;
-	if ( cvar_forcechasecam.value != 0.0f )
+	if( cvar_forcechasecam.value != 0.0f )
 		return 1;
-	if ( cvar_forcecamera.value != 0.0f )
+	if( cvar_forcecamera.value != 0.0f )
 		return 1;
 	return 0;
 }
@@ -45,13 +46,13 @@ bool CBasePlayer::Observer_PlayerValidTarget( CBaseEntity *pEnt, bool bSameTeam 
 {
 	bool bRet = false;
 
-	if ( pEnt && pEnt != this && !( ( (CBasePlayer *)pEnt )->has_disconnected )
+	if( pEnt && pEnt != this && !( ( ( CBasePlayer * ) pEnt )->has_disconnected )
 		&& pEnt->pev->deadflag < DEAD_DEAD && pEnt->pev->iuser1 < 1 && !( pEnt->pev->effects & EF_NODRAW ) )
 	{
-		if ( !IsTeamInfinite( pev->team ) || pev->team == TEAM_SPECTATOR || pev->team == pEnt->pev->team )
+		if( !IsTeamInfinite( pev->team ) || pev->team == TEAM_SPECTATOR || pev->team == pEnt->pev->team )
 		{
 			bRet = true;
-			if ( bSameTeam )
+			if( bSameTeam )
 				bRet = ( pEnt->pev->team == pev->team );
 		}
 	}
@@ -62,7 +63,7 @@ bool CBasePlayer::Observer_PlayerValidTarget( CBaseEntity *pEnt, bool bSameTeam 
 void CBasePlayer::Observer_FindNextPlayer( bool bReverse )
 {
 	int iStart;
-	if ( m_hObserverTarget )
+	if( m_hObserverTarget )
 		iStart = ENTINDEX( m_hObserverTarget->edict() );
 	else
 		iStart = ENTINDEX( edict() );
@@ -71,7 +72,7 @@ void CBasePlayer::Observer_FindNextPlayer( bool bReverse )
 	m_hObserverTarget = NULL;
 
 	bool bForceSameTeam = false;
-	if ( cvar_fadetoblack.value != 0.0f || cvar_forcechasecam.value != 0.0f || cvar_forcecamera.value != 0.0f )
+	if( cvar_fadetoblack.value != 0.0f || cvar_forcechasecam.value != 0.0f || cvar_forcecamera.value != 0.0f )
 		bForceSameTeam = ( pev->team != TEAM_SPECTATOR );
 
 	int iDir = bReverse ? -1 : 1;
@@ -80,55 +81,61 @@ void CBasePlayer::Observer_FindNextPlayer( bool bReverse )
 	{
 		iCurrent += iDir;
 
-		if ( iCurrent > gpGlobals->maxClients )
+		if( iCurrent > gpGlobals->maxClients )
 			iCurrent = 1;
-		if ( iCurrent < 1 )
+
+		if( iCurrent < 1 )
 			iCurrent = gpGlobals->maxClients;
 
 		CBaseEntity *pEnt = UTIL_PlayerByIndex( iCurrent );
-		if ( !pEnt || pEnt == this )
-			continue;
-		if ( ( (CBasePlayer *)pEnt )->has_disconnected )
-			continue;
-		if ( pEnt->pev->deadflag >= 2 || pEnt->pev->iuser1 >= 1 )
-			continue;
-		if ( pEnt->pev->effects & EF_NODRAW )
+
+		if( !pEnt || pEnt == this )
 			continue;
 
-		if ( IsTeamInfinite( pev->team ) && pev->team != TEAM_SPECTATOR && pEnt->pev->team != pev->team )
+		if( ( ( CBasePlayer * ) pEnt )->has_disconnected )
 			continue;
-		if ( bForceSameTeam && pEnt->pev->team != pev->team )
+
+		if( pEnt->pev->deadflag >= 2 || pEnt->pev->iuser1 >= 1 )
+			continue;
+
+		if( pEnt->pev->effects & EF_NODRAW )
+			continue;
+
+		if( IsTeamInfinite( pev->team ) && pev->team != TEAM_SPECTATOR && pEnt->pev->team != pev->team )
+			continue;
+
+		if( bForceSameTeam && pEnt->pev->team != pev->team )
 			continue;
 
 		m_hObserverTarget = pEnt;
 		break;
 
-	} while ( iCurrent != iStart );
+	} while( iCurrent != iStart );
 
 	// Did we find a target?
-	if ( m_hObserverTarget )
+	if( m_hObserverTarget )
 	{
 		// Move to the target
 		UTIL_SetOrigin( this, m_hObserverTarget->pev->origin );
 
 		// Store the target in pev so the physics DLL can get to it
-		if ( pev->iuser1 != OBS_ROAMING )
+		if( pev->iuser1 != OBS_ROAMING )
 			pev->iuser2 = ENTINDEX( m_hObserverTarget->edict() );
 
-		if ( pev->iuser1 == OBS_IN_EYE && m_hObserverTarget )
+		if( pev->iuser1 == OBS_IN_EYE && m_hObserverTarget )
 			SendObserverTargetWeaponAnim();
 	}
 }
 
 void CBasePlayer::SendObserverTargetWeaponAnim()
 {
-	if ( !m_hObserverTarget )
+	if( !m_hObserverTarget )
 		return;
 
 	int team = m_hObserverTarget->pev->team;
 	int body = 2;
-	if ( team == TEAM_ALLIES )
-		body = ( (unsigned)( m_hObserverTarget->pev->playerclass - 0x15 ) < 6 ) ? 1 : 0;
+	if( team == TEAM_ALLIES )
+		body = ( ( unsigned ) ( m_hObserverTarget->pev->playerclass - 0x15 ) < 6 ) ? 1 : 0;
 
 	MESSAGE_BEGIN( MSG_ONE, SVC_WEAPONANIM, NULL, pev );
 	WRITE_BYTE( 0 );
@@ -139,19 +146,19 @@ void CBasePlayer::SendObserverTargetWeaponAnim()
 void CBasePlayer::Observer_HandleButtons()
 {
 	// Slow down mouse clicks
-	if ( m_flNextObserverInput > gpGlobals->time )
+	if( m_flNextObserverInput > gpGlobals->time )
 		return;
 
 	// Jump changes from modes: Chase to Roaming
-	if ( m_afButtonPressed & IN_JUMP )
+	if( m_afButtonPressed & IN_JUMP )
 	{
-		if ( pev->iuser1 == OBS_CHASE_LOCKED )
+		if( pev->iuser1 == OBS_CHASE_LOCKED )
 			Observer_SetMode( OBS_CHASE_FREE );
-		else if ( pev->iuser1 == OBS_CHASE_FREE )
+		else if( pev->iuser1 == OBS_CHASE_FREE )
 			Observer_SetMode( OBS_IN_EYE );
-		else if ( pev->iuser1 == OBS_IN_EYE )
+		else if( pev->iuser1 == OBS_IN_EYE )
 			Observer_SetMode( OBS_ROAMING );
-		else if ( pev->iuser1 == OBS_ROAMING )
+		else if( pev->iuser1 == OBS_ROAMING )
 			Observer_SetMode( OBS_CHASE_FREE );
 		else
 			Observer_SetMode( OBS_CHASE_FREE );
@@ -160,14 +167,14 @@ void CBasePlayer::Observer_HandleButtons()
 	}
 
 	// Attack moves to the next player
-	if ( m_afButtonPressed & IN_ATTACK )
+	if( m_afButtonPressed & IN_ATTACK )
 	{
 		Observer_FindNextPlayer( false );
 		m_flNextObserverInput = gpGlobals->time + 0.2;
 	}
 
 	// Attack2 moves to the prev player
-	if ( m_afButtonPressed & IN_ATTACK2 )
+	if( m_afButtonPressed & IN_ATTACK2 )
 	{
 		Observer_FindNextPlayer( true );
 		m_flNextObserverInput = gpGlobals->time + 0.2;
@@ -176,15 +183,15 @@ void CBasePlayer::Observer_HandleButtons()
 
 void CBasePlayer::Observer_CheckTarget()
 {
-	if ( pev->iuser1 == OBS_ROAMING )
+	if( pev->iuser1 == OBS_ROAMING )
 		return;
 
 	// try to find a target if we have no current one
-	if ( m_hObserverTarget == NULL )
+	if( m_hObserverTarget == NULL )
 	{
 		Observer_FindNextPlayer( false );
 
-		if ( m_hObserverTarget == NULL )
+		if( m_hObserverTarget == NULL )
 		{
 			// no target found at all
 			int lastMode = pev->iuser1;
@@ -197,18 +204,18 @@ void CBasePlayer::Observer_CheckTarget()
 		}
 	}
 
-	CBasePlayer *target = (CBasePlayer *)( UTIL_PlayerByIndex( ENTINDEX( m_hObserverTarget->edict() ) ) );
+	CBasePlayer *target = ( CBasePlayer * ) ( UTIL_PlayerByIndex( ENTINDEX( m_hObserverTarget->edict() ) ) );
 
-	if ( !target )
+	if( !target )
 	{
 		Observer_FindNextPlayer( false );
 		return;
 	}
 
 	// check target
-	if ( target->pev->deadflag == DEAD_DYING )
+	if( target->pev->deadflag == DEAD_DYING )
 	{
-		if ( ( target->m_fDeadTime + 2.0f ) < gpGlobals->time )
+		if( ( target->m_fDeadTime + 2.0f ) < gpGlobals->time )
 		{
 			// 2 secs after death change target
 			Observer_FindNextPlayer( false );
@@ -220,16 +227,16 @@ void CBasePlayer::Observer_CheckTarget()
 void CBasePlayer::Observer_CheckProperties()
 {
 	// try to find a target if we have no current one
-	if ( pev->iuser1 == OBS_IN_EYE && m_hObserverTarget != NULL )
+	if( pev->iuser1 == OBS_IN_EYE && m_hObserverTarget != NULL )
 	{
-		CBasePlayer *target = (CBasePlayer *)( UTIL_PlayerByIndex( ENTINDEX( m_hObserverTarget->edict() ) ) );
+		CBasePlayer *target = ( CBasePlayer * ) ( UTIL_PlayerByIndex( ENTINDEX( m_hObserverTarget->edict() ) ) );
 
-		if ( !target )
+		if( !target )
 			return;
 
 		int weapon = ( target->m_pActiveItem != NULL ) ? target->m_pActiveItem->m_iId : 0;
 		// use fov of tracked client
-		if ( m_iFOV != target->m_iFOV || m_iObserverWeapon != weapon )
+		if( m_iFOV != target->m_iFOV || m_iObserverWeapon != weapon )
 		{
 			m_iFOV = target->m_iFOV;
 			m_iClientFOV = m_iFOV;
@@ -251,7 +258,7 @@ void CBasePlayer::Observer_CheckProperties()
 	{
 		m_iFOV = 90;
 
-		if ( m_iObserverWeapon != 0 )
+		if( m_iObserverWeapon != 0 )
 		{
 			m_iObserverWeapon = 0;
 
@@ -267,7 +274,7 @@ void CBasePlayer::Observer_CheckProperties()
 void CBasePlayer::Observer_SetMode( int iMode )
 {
 	// Just abort if we're changing to the mode we're already in
-	if ( iMode == pev->iuser1 )
+	if( iMode == pev->iuser1 )
 	{
 		pev->iuser3 = 0;
 		return;
@@ -276,28 +283,28 @@ void CBasePlayer::Observer_SetMode( int iMode )
 	int forcecamera = GetForceCamera();
 
 	// is valid mode ?
-	if ( iMode < 1 || iMode > 4 )
+	if( iMode < 1 || iMode > 4 )
 		iMode = OBS_IN_EYE;	 // now it is
 
 	// TEAM_SPECTATOR = 3 in DoD; forcecamera restricts roaming/chase
-	if ( pev->team != TEAM_SPECTATOR )
+	if( pev->team != TEAM_SPECTATOR )
 	{
-		if ( iMode == OBS_ROAMING && forcecamera == 1 )
+		if( iMode == OBS_ROAMING && forcecamera == 1 )
 			iMode = OBS_CHASE_LOCKED;
-		else if ( forcecamera == 2 )
+		else if( forcecamera == 2 )
 			iMode = OBS_IN_EYE;
 	}
 
 	// verify observer target again
-	if ( m_hObserverTarget != NULL )
+	if( m_hObserverTarget != NULL )
 	{
 		CBaseEntity *pEnt = m_hObserverTarget;
 
-		if ( ( pEnt == this ) || ( pEnt == NULL ) )
+		if( ( pEnt == this ) || ( pEnt == NULL ) )
 			m_hObserverTarget = NULL;
-		else if ( ( (CBasePlayer *)pEnt )->has_disconnected || pEnt->pev->iuser1 > 0 || ( pEnt->pev->effects & EF_NODRAW ) )
+		else if( ( ( CBasePlayer * ) pEnt )->has_disconnected || pEnt->pev->iuser1 > 0 || ( pEnt->pev->effects & EF_NODRAW ) )
 			m_hObserverTarget = NULL;
-		else if ( forcecamera != 0 && pEnt->pev->team != pev->team )
+		else if( forcecamera != 0 && pEnt->pev->team != pev->team )
 			m_hObserverTarget = NULL;
 	}
 
@@ -305,19 +312,19 @@ void CBasePlayer::Observer_SetMode( int iMode )
 	pev->iuser1 = iMode;
 
 	// if we are not roaming, we need a valid target to track
-	if ( ( iMode != OBS_ROAMING ) && ( m_hObserverTarget == NULL ) )
+	if( ( iMode != OBS_ROAMING ) && ( m_hObserverTarget == NULL ) )
 	{
 		Observer_FindNextPlayer( false );
 
 		// if we didn't find a valid target switch to roaming
-		if ( m_hObserverTarget == NULL )
+		if( m_hObserverTarget == NULL )
 		{
 			pev->iuser1 = OBS_ROAMING;
 		}
 	}
 
 	// set target if not roaming
-	if ( pev->iuser1 == OBS_ROAMING )
+	if( pev->iuser1 == OBS_ROAMING )
 	{
 		pev->iuser2 = 0;
 	}
@@ -326,7 +333,7 @@ void CBasePlayer::Observer_SetMode( int iMode )
 
 	pev->iuser3 = 0;  // clear second target from death cam
 
-	if ( m_hObserverTarget )
+	if( m_hObserverTarget )
 		UTIL_SetOrigin( this, m_hObserverTarget->pev->origin );
 
 	// print spectator mode on client screen
@@ -336,7 +343,7 @@ void CBasePlayer::Observer_SetMode( int iMode )
 
 	m_iObserverLastMode = iMode;
 
-	if ( pev->iuser1 == OBS_IN_EYE && m_hObserverTarget != NULL )
+	if( pev->iuser1 == OBS_IN_EYE && m_hObserverTarget != NULL )
 		SendObserverTargetWeaponAnim();
 }
 
@@ -347,10 +354,10 @@ void CBasePlayer::StartObserver( Vector vecPosition, Vector vecViewAngle )
 	WRITE_BYTE( ENTINDEX( edict() ) & 0xFF );
 	MESSAGE_END();
 
-	if ( m_pActiveItem )
+	if( m_pActiveItem )
 		m_pActiveItem->Holster( 0 );
 
-	if ( m_pTank )
+	if( m_pTank )
 	{
 		m_pTank->Use( this, this, USE_OFF, 0 );
 		m_pTank = NULL;
@@ -390,7 +397,7 @@ void CBasePlayer::StartObserver( Vector vecPosition, Vector vecViewAngle )
 	RemoveAllItems( 0 );
 	m_flNextObserverInput = 0.0;
 	Observer_SetMode( m_iObserverLastMode );
-	(*g_engfuncs.pfnSetClientMaxspeed)( edict(), 350.0 );
+	( *g_engfuncs.pfnSetClientMaxspeed )( edict(), 350.0 );
 
 	MESSAGE_BEGIN( MSG_ALL, gmsgSpectator, NULL );
 	WRITE_BYTE( ENTINDEX( edict() ) );
@@ -400,7 +407,7 @@ void CBasePlayer::StartObserver( Vector vecPosition, Vector vecViewAngle )
 
 void CBasePlayer::StopObserver()
 {
-	if ( pev->iuser1 == 0 && pev->iuser2 == 0 && !m_bIsObserver )
+	if( pev->iuser1 == 0 && pev->iuser2 == 0 && !m_bIsObserver )
 	{
 		m_iHideHUD = 0;
 		return;
@@ -422,36 +429,36 @@ void CBasePlayer::StopObserver()
 
 void CBasePlayer::Observer_SpectatePlayer( int iCurrent )
 {
-	if ( pev->iuser1 == 0 )
+	if( pev->iuser1 == 0 )
 		return;
 
 	bool bForceSameTeam = false;
-	if ( cvar_fadetoblack.value != 0.0f || cvar_forcechasecam.value != 0.0f || cvar_forcecamera.value != 0.0f )
+	if( cvar_fadetoblack.value != 0.0f || cvar_forcechasecam.value != 0.0f || cvar_forcecamera.value != 0.0f )
 		bForceSameTeam = ( pev->team != TEAM_SPECTATOR );
 
 	CBaseEntity *pEnt = UTIL_PlayerByIndex( iCurrent );
-	if ( pEnt && pEnt != this && !( ( (CBasePlayer *)pEnt )->has_disconnected )
+	if( pEnt && pEnt != this && !( ( ( CBasePlayer * ) pEnt )->has_disconnected )
 		&& pEnt->pev->deadflag < DEAD_DEAD && pEnt->pev->iuser1 < 1 && !( pEnt->pev->effects & EF_NODRAW ) )
 	{
-		if ( ( !IsTeamInfinite( pev->team ) || pev->team == TEAM_SPECTATOR || pev->team == pEnt->pev->team )
+		if( ( !IsTeamInfinite( pev->team ) || pev->team == TEAM_SPECTATOR || pev->team == pEnt->pev->team )
 			&& ( !bForceSameTeam || pEnt->pev->team == pev->team ) )
 		{
 			m_hObserverTarget = pEnt;
-			if ( !m_hObserverTarget )
+			if( !m_hObserverTarget )
 			{
 				ALERT( at_console, "No observer targets.\n" );
 				Observer_SetMode( OBS_ROAMING );
 				return;
 			}
 
-			if ( pev->iuser1 == OBS_ROAMING )
+			if( pev->iuser1 == OBS_ROAMING )
 				Observer_SetMode( OBS_CHASE_FREE );
 
 			pev->iuser2 = ENTINDEX( m_hObserverTarget->edict() );
 			UTIL_SetOrigin( this, m_hObserverTarget->pev->origin );
 			ALERT( at_console, "Now Tracking %s\n", STRING( m_hObserverTarget->pev->netname ) );
 
-			if ( pev->iuser1 == OBS_IN_EYE && m_hObserverTarget )
+			if( pev->iuser1 == OBS_IN_EYE && m_hObserverTarget )
 				SendObserverTargetWeaponAnim();
 		}
 	}

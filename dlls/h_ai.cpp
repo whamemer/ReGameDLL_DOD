@@ -1,9 +1,9 @@
 /***
 *
 *	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
 *
 *   Use, distribution, and modification of this source code and/or resulting
@@ -47,13 +47,13 @@ DLL_GLOBAL BOOL g_fDrawLines = FALSE;
 BOOL FBoxVisible( entvars_t *pevLooker, entvars_t *pevTarget, Vector &vecTargetOrigin, float flSize )
 {
 	// don't look through water
-	if ( ( pevLooker->waterlevel != 3 && pevTarget->waterlevel == 3 ) ||
-		 ( pevLooker->waterlevel == 3 && pevTarget->waterlevel == 0 ) )
+	if( ( pevLooker->waterlevel != 3 && pevTarget->waterlevel == 3 ) ||
+		( pevLooker->waterlevel == 3 && pevTarget->waterlevel == 0 ) )
 		return FALSE;
 
 	TraceResult tr;
 	Vector vecLookerOrigin = pevLooker->origin + pevLooker->view_ofs;  //look through the monster's 'eyes'
-	for ( int i = 0; i < 5; i++ )
+	for( int i = 0; i < 5; i++ )
 	{
 		Vector vecTarget = pevTarget->origin;
 		vecTarget.x += RANDOM_FLOAT( pevTarget->mins.x + flSize, pevTarget->maxs.x - flSize );
@@ -61,9 +61,9 @@ BOOL FBoxVisible( entvars_t *pevLooker, entvars_t *pevTarget, Vector &vecTargetO
 		vecTarget.z += RANDOM_FLOAT( pevTarget->mins.z + flSize, pevTarget->maxs.z - flSize );
 
 		UTIL_TraceLine( vecLookerOrigin, vecTarget, ignore_monsters, ignore_glass, ENT( pevLooker ) /*pentIgnore*/,
-						&tr );
+			&tr );
 
-		if ( tr.flFraction == 1.0 )
+		if( tr.flFraction == 1.0 )
 		{
 			vecTargetOrigin = vecTarget;
 			return TRUE;  // line of sight is valid.
@@ -87,7 +87,7 @@ Vector VecCheckToss( entvars_t *pev, const Vector &vecSpot1, Vector vecSpot2, fl
 	Vector vecTemp;
 	float flGravity = g_psv_gravity->value * flGravityAdj;
 
-	if ( vecSpot2.z - vecSpot1.z > 500 )
+	if( vecSpot2.z - vecSpot1.z > 500 )
 	{
 		// to high, fail
 		return g_vecZero;
@@ -111,7 +111,7 @@ Vector VecCheckToss( entvars_t *pev, const Vector &vecSpot1, Vector vecSpot2, fl
 	// (subtract 15 so the grenade doesn't hit the ceiling)
 	vecMidPoint.z -= 15;
 
-	if ( vecMidPoint.z < vecSpot1.z || vecMidPoint.z < vecSpot2.z )
+	if( vecMidPoint.z < vecSpot1.z || vecMidPoint.z < vecSpot2.z )
 	{
 		// to not enough space, fail
 		return g_vecZero;
@@ -125,7 +125,7 @@ Vector VecCheckToss( entvars_t *pev, const Vector &vecSpot1, Vector vecSpot2, fl
 	float time1 = sqrt( distance1 / ( 0.5 * flGravity ) );
 	float time2 = sqrt( distance2 / ( 0.5 * flGravity ) );
 
-	if ( time1 < 0.1 )
+	if( time1 < 0.1 )
 	{
 		// too close
 		return g_vecZero;
@@ -141,7 +141,7 @@ Vector VecCheckToss( entvars_t *pev, const Vector &vecSpot1, Vector vecSpot2, fl
 	vecApex.z = vecMidPoint.z;
 
 	UTIL_TraceLine( vecSpot1, vecApex, dont_ignore_monsters, ENT( pev ), &tr );
-	if ( tr.flFraction != 1.0 )
+	if( tr.flFraction != 1.0 )
 	{
 		// fail!
 		return g_vecZero;
@@ -149,7 +149,7 @@ Vector VecCheckToss( entvars_t *pev, const Vector &vecSpot1, Vector vecSpot2, fl
 
 	// UNDONE: either ignore monsters or change it to not care if we hit our enemy
 	UTIL_TraceLine( vecSpot2, vecApex, ignore_monsters, ENT( pev ), &tr );
-	if ( tr.flFraction != 1.0 )
+	if( tr.flFraction != 1.0 )
 	{
 		// fail!
 		return g_vecZero;
@@ -180,14 +180,14 @@ Vector VecCheckThrow( entvars_t *pev, const Vector &vecSpot1, Vector vecSpot2, f
 
 	TraceResult tr;
 	UTIL_TraceLine( vecSpot1, vecApex, dont_ignore_monsters, ENT( pev ), &tr );
-	if ( tr.flFraction != 1.0 )
+	if( tr.flFraction != 1.0 )
 	{
 		// fail!
 		return g_vecZero;
 	}
 
 	UTIL_TraceLine( vecSpot2, vecApex, ignore_monsters, ENT( pev ), &tr );
-	if ( tr.flFraction != 1.0 )
+	if( tr.flFraction != 1.0 )
 	{
 		// fail!
 		return g_vecZero;

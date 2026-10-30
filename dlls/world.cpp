@@ -1,9 +1,9 @@
 /***
 *
 *	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
 *
 *   Use, distribution, and modification of this source code and/or resulting
@@ -32,6 +32,7 @@
 #include "player.h"
 #include "weapons.h"
 #include "gamerules.h"
+
 extern const char *GetStdLightStyle( int iStyle );
 
 extern CGraph WorldGraph;
@@ -113,15 +114,15 @@ public:
 LINK_ENTITY_TO_CLASS( infodecal, CDecal );
 
 // UNDONE:  These won't get sent to joining players in multi-player
-void CDecal ::Spawn( void )
+void CDecal::Spawn( void )
 {
-	if ( pev->skin < 0 || ( gpGlobals->deathmatch && FBitSet( pev->spawnflags, SF_DECAL_NOTINDEATHMATCH ) ) )
+	if( pev->skin < 0 || ( gpGlobals->deathmatch && FBitSet( pev->spawnflags, SF_DECAL_NOTINDEATHMATCH ) ) )
 	{
 		REMOVE_ENTITY( ENT( pev ) );
 		return;
 	}
 
-	if ( FStringNull( pev->targetname ) )
+	if( FStringNull( pev->targetname ) )
 	{
 		SetThink( &CDecal::StaticDecal );
 		// if there's no targetname, the decal will spray itself on as soon as the world is done spawning.
@@ -135,7 +136,7 @@ void CDecal ::Spawn( void )
 	}
 }
 
-void CDecal ::TriggerDecal( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+void CDecal::TriggerDecal( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	// this is set up as a USE function for infodecals that have targetnames, so that the
 	// decal doesn't get applied until it is fired. (usually by a scripted sequence)
@@ -143,51 +144,51 @@ void CDecal ::TriggerDecal( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_T
 	int entityIndex;
 
 	UTIL_TraceLine( pev->origin - Vector( 5, 5, 5 ), pev->origin + Vector( 5, 5, 5 ), ignore_monsters, ENT( pev ),
-					&trace );
+		&trace );
 
 	MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
 	WRITE_BYTE( TE_BSPDECAL );
 	WRITE_COORD( pev->origin.x );
 	WRITE_COORD( pev->origin.y );
 	WRITE_COORD( pev->origin.z );
-	WRITE_SHORT( (int) pev->skin );
-	entityIndex = (short) ENTINDEX( trace.pHit );
+	WRITE_SHORT( ( int ) pev->skin );
+	entityIndex = ( short ) ENTINDEX( trace.pHit );
 	WRITE_SHORT( entityIndex );
-	if ( entityIndex )
-		WRITE_SHORT( (int) VARS( trace.pHit )->modelindex );
+	if( entityIndex )
+		WRITE_SHORT( ( int ) VARS( trace.pHit )->modelindex );
 	MESSAGE_END();
 
 	SetThink( &CDecal::SUB_Remove );
 	pev->nextthink = gpGlobals->time + 0.1;
 }
 
-void CDecal ::StaticDecal( void )
+void CDecal::StaticDecal( void )
 {
 	TraceResult trace;
 	int entityIndex, modelIndex;
 
 	UTIL_TraceLine( pev->origin - Vector( 5, 5, 5 ), pev->origin + Vector( 5, 5, 5 ), ignore_monsters, ENT( pev ),
-					&trace );
+		&trace );
 
-	entityIndex = (short) ENTINDEX( trace.pHit );
-	if ( entityIndex )
-		modelIndex = (int) VARS( trace.pHit )->modelindex;
+	entityIndex = ( short ) ENTINDEX( trace.pHit );
+	if( entityIndex )
+		modelIndex = ( int ) VARS( trace.pHit )->modelindex;
 	else
 		modelIndex = 0;
 
-	g_engfuncs.pfnStaticDecal( pev->origin, (int) pev->skin, entityIndex, modelIndex );
+	g_engfuncs.pfnStaticDecal( pev->origin, ( int ) pev->skin, entityIndex, modelIndex );
 
 	SUB_Remove();
 }
 
-void CDecal ::KeyValue( KeyValueData *pkvd )
+void CDecal::KeyValue( KeyValueData *pkvd )
 {
-	if ( FStrEq( pkvd->szKeyName, "texture" ) )
+	if( FStrEq( pkvd->szKeyName, "texture" ) )
 	{
 		pev->skin = DECAL_INDEX( pkvd->szValue );
 
 		// Found
-		if ( pev->skin >= 0 )
+		if( pev->skin >= 0 )
 			return;
 		ALERT( at_console, "Can't find decal %s\n", pkvd->szValue );
 	}
@@ -206,18 +207,18 @@ void CGlobalState::Reset( void )
 	m_listCount = 0;
 }
 
-globalentity_t *CGlobalState ::Find( string_t globalname )
+globalentity_t *CGlobalState::Find( string_t globalname )
 {
-	if ( !globalname )
+	if( !globalname )
 		return NULL;
 
 	globalentity_t *pTest;
 	const char *pEntityName = STRING( globalname );
 
 	pTest = m_pList;
-	while ( pTest )
+	while( pTest )
 	{
-		if ( FStrEq( pEntityName, pTest->name ) )
+		if( FStrEq( pEntityName, pTest->name ) )
 			break;
 
 		pTest = pTest->pNext;
@@ -229,14 +230,14 @@ globalentity_t *CGlobalState ::Find( string_t globalname )
 // This is available all the time now on impulse 104, remove later
 //
 //#ifdef _DEBUG
-void CGlobalState ::DumpGlobals( void )
+void CGlobalState::DumpGlobals( void )
 {
- 	static const char *estates[] = { "Off", "On", "Dead" };
+	static const char *estates[] = { "Off", "On", "Dead" };
 	globalentity_t *pTest;
 
 	ALERT( at_console, "-- Globals --\n" );
 	pTest = m_pList;
-	while ( pTest )
+	while( pTest )
 	{
 		ALERT( at_console, "%s: %s (%s)\n", pTest->name, pTest->levelName, estates[pTest->state] );
 		pTest = pTest->pNext;
@@ -244,11 +245,11 @@ void CGlobalState ::DumpGlobals( void )
 }
 //#endif
 
-void CGlobalState ::EntityAdd( string_t globalname, string_t mapName, GLOBALESTATE state )
+void CGlobalState::EntityAdd( string_t globalname, string_t mapName, GLOBALESTATE state )
 {
 	ASSERT( !Find( globalname ) );
 
-	globalentity_t *pNewEntity = (globalentity_t *) calloc( sizeof( globalentity_t ), 1 );
+	globalentity_t *pNewEntity = ( globalentity_t * ) calloc( sizeof( globalentity_t ), 1 );
 	ASSERT( pNewEntity != NULL );
 	pNewEntity->pNext = m_pList;
 	m_pList = pNewEntity;
@@ -258,25 +259,25 @@ void CGlobalState ::EntityAdd( string_t globalname, string_t mapName, GLOBALESTA
 	m_listCount++;
 }
 
-void CGlobalState ::EntitySetState( string_t globalname, GLOBALESTATE state )
+void CGlobalState::EntitySetState( string_t globalname, GLOBALESTATE state )
 {
 	globalentity_t *pEnt = Find( globalname );
 
-	if ( pEnt )
+	if( pEnt )
 		pEnt->state = state;
 }
 
-const globalentity_t *CGlobalState ::EntityFromTable( string_t globalname )
+const globalentity_t *CGlobalState::EntityFromTable( string_t globalname )
 {
 	globalentity_t *pEnt = Find( globalname );
 
 	return pEnt;
 }
 
-GLOBALESTATE CGlobalState ::EntityGetState( string_t globalname )
+GLOBALESTATE CGlobalState::EntityGetState( string_t globalname )
 {
 	globalentity_t *pEnt = Find( globalname );
-	if ( pEnt )
+	if( pEnt )
 		return pEnt->state;
 
 	return GLOBAL_OFF;
@@ -299,13 +300,14 @@ int CGlobalState::Save( CSave &save )
 	int i;
 	globalentity_t *pEntity;
 
-	if ( !save.WriteFields( "GLOBAL", this, m_SaveData, ARRAYSIZE( m_SaveData ) ) )
+	if( !save.WriteFields( "GLOBAL", this, m_SaveData, ARRAYSIZE( m_SaveData ) ) )
 		return 0;
 
 	pEntity = m_pList;
-	for ( i = 0; i < m_listCount && pEntity; i++ )
+
+	for( i = 0; i < m_listCount && pEntity; i++ )
 	{
-		if ( !save.WriteFields( "GENT", pEntity, gGlobalEntitySaveData, ARRAYSIZE( gGlobalEntitySaveData ) ) )
+		if( !save.WriteFields( "GENT", pEntity, gGlobalEntitySaveData, ARRAYSIZE( gGlobalEntitySaveData ) ) )
 			return 0;
 
 		pEntity = pEntity->pNext;
@@ -320,16 +322,18 @@ int CGlobalState::Restore( CRestore &restore )
 	globalentity_t tmpEntity;
 
 	ClearStates();
-	if ( !restore.ReadFields( "GLOBAL", this, m_SaveData, ARRAYSIZE( m_SaveData ) ) )
+
+	if( !restore.ReadFields( "GLOBAL", this, m_SaveData, ARRAYSIZE( m_SaveData ) ) )
 		return 0;
 
 	listCount = m_listCount;  // Get new list count
 	m_listCount = 0;		  // Clear loaded data
 
-	for ( i = 0; i < listCount; i++ )
+	for( i = 0; i < listCount; i++ )
 	{
-		if ( !restore.ReadFields( "GENT", &tmpEntity, gGlobalEntitySaveData, ARRAYSIZE( gGlobalEntitySaveData ) ) )
+		if( !restore.ReadFields( "GENT", &tmpEntity, gGlobalEntitySaveData, ARRAYSIZE( gGlobalEntitySaveData ) ) )
 			return 0;
+
 		EntityAdd( MAKE_STRING( tmpEntity.name ), MAKE_STRING( tmpEntity.levelName ), tmpEntity.state );
 	}
 
@@ -340,14 +344,15 @@ void CGlobalState::EntityUpdate( string_t globalname, string_t mapname )
 {
 	globalentity_t *pEnt = Find( globalname );
 
-	if ( pEnt )
+	if( pEnt )
 		strcpy( pEnt->levelName, STRING( mapname ) );
 }
 
 void CGlobalState::ClearStates( void )
 {
 	globalentity_t *pFree = m_pList;
-	while ( pFree )
+
+	while( pFree )
 	{
 		globalentity_t *pNext = pFree->pNext;
 		free( pFree );
@@ -389,6 +394,7 @@ LINK_ENTITY_TO_CLASS( worldspawn, CWorld );
 #define SF_WORLD_FORCETEAM 0x0004  // Force teams
 
 extern DLL_GLOBAL BOOL g_fGameOver;
+
 void CWorld::Spawn( void )
 {
 	EmptyEntityHashTable();
@@ -401,50 +407,64 @@ void CWorld::Precache( void )
 	CVAR_SET_FLOAT( "sv_gravity", 800 );
 	CVAR_SET_FLOAT( "sv_stepsize", 18 );
 	CVAR_SET_STRING( "room_type", "0" );
-	if ( g_pGameRules )
+
+	if( g_pGameRules )
 		::operator delete( g_pGameRules );
+
 	g_pGameRules = InstallGameRules();
 	g_pGameRules->Init();
-	CSoundEnt *pSoundEnt = GetClassPtr( (CSoundEnt *) NULL );
+
+	CSoundEnt *pSoundEnt = GetClassPtr( ( CSoundEnt * ) NULL );
 	::pSoundEnt = pSoundEnt;
 	pSoundEnt->Spawn();
-	if ( !::pSoundEnt )
+
+	if( !::pSoundEnt )
 		ALERT( at_console, "**COULD NOT CREATE SOUNDENT**\n" );
+
 	SENTENCEG_Init();
 	TEXTURETYPE_Init();
 	W_Precache();
 	ClientPrecache();
+
 	PRECACHE_SOUND( "common/null.wav" );
 	PRECACHE_SOUND( "items/weaponpickup.wav" );
-	g_Language = (int) CVAR_GET_FLOAT( "sv_language" );
-	for ( int i = 0; i <= 13; i++ )
+
+	g_Language = ( int ) CVAR_GET_FLOAT( "sv_language" );
+
+	for( int i = 0; i <= 13; i++ )
 		LIGHT_STYLE( i, GetStdLightStyle( i ) );
+
 	LIGHT_STYLE( 63, "a" );
-	for ( int i = 0; i < 42; i++ )
+
+	for( int i = 0; i < 42; i++ )
 		gDecals[i].index = DECAL_INDEX( gDecals[i].name );
+
 	WorldGraph.InitGraph();
-	if ( WorldGraph.CheckNODFile( (char *) STRING( gpGlobals->mapname ) ) )
+
+	if( WorldGraph.CheckNODFile( ( char * ) STRING( gpGlobals->mapname ) ) )
 	{
-		if ( WorldGraph.FLoadGraph( (char *) STRING( gpGlobals->mapname ) ) )
+		if( WorldGraph.FLoadGraph( ( char * ) STRING( gpGlobals->mapname ) ) )
 			ALERT( at_console, "\n*Graph Loaded!\n" );
 		else
 			ALERT( at_console, "*Error opening .NOD file\n" );
 	}
 	else
 		WorldGraph.AllocNodes();
-	if ( pev->speed <= 0 )
+
+	if( pev->speed <= 0 )
 	{
 		CVAR_SET_FLOAT( "sv_zmax", 4096 );
 	}
 	else
 		CVAR_SET_FLOAT( "sv_zmax", pev->speed );
-	if ( FStringNull( pev->netname ) )
+	if( FStringNull( pev->netname ) )
 		;
 	else
 	{
 		ALERT( at_aiconsole, "Chapter title: %s\n", STRING( pev->netname ) );
 		CBaseEntity *pEntity = CBaseEntity::Create( "env_message", g_vecZero, g_vecZero, NULL );
-		if ( pEntity )
+
+		if( pEntity )
 		{
 			pEntity->SetThink( &CBaseEntity::SUB_CallUseToggle );
 			pEntity->pev->message = pev->netname;
@@ -454,12 +474,14 @@ void CWorld::Precache( void )
 		}
 	}
 
-	if ( FBitSet( pev->spawnflags, SF_WORLD_DARK ) )
+	if( FBitSet( pev->spawnflags, SF_WORLD_DARK ) )
 		CVAR_SET_FLOAT( "v_dark", 1.0 );
 	else
 		CVAR_SET_FLOAT( "v_dark", 0.0 );
+
 	gDisplayTitle = FBitSet( pev->spawnflags, SF_WORLD_TITLE ) ? 1 : 0;
-	if ( FBitSet( pev->spawnflags, 4 ) == 0 )
+
+	if( FBitSet( pev->spawnflags, 4 ) == 0 )
 		CVAR_SET_FLOAT( "mp_defaultteam", 0.0 );
 	else
 		CVAR_SET_FLOAT( "mp_defaultteam", 1.0 );
@@ -470,96 +492,96 @@ void CWorld::Precache( void )
 //
 void CWorld::KeyValue( KeyValueData *pkvd )
 {
-	if ( FStrEq( pkvd->szKeyName, "skyname" ) )
+	if( FStrEq( pkvd->szKeyName, "skyname" ) )
 	{
 		CVAR_SET_STRING( "sv_skyname", pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "sounds" ) )
+	else if( FStrEq( pkvd->szKeyName, "sounds" ) )
 	{
 		gpGlobals->cdAudioTrack = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "WaveHeight" ) )
+	else if( FStrEq( pkvd->szKeyName, "WaveHeight" ) )
 	{
 		pev->scale = atof( pkvd->szValue ) * ( 1.0 / 8.0 );
 		pkvd->fHandled = TRUE;
 		CVAR_SET_FLOAT( "sv_wateramp", pev->scale );
 	}
-	else if ( FStrEq( pkvd->szKeyName, "MaxRange" ) )
+	else if( FStrEq( pkvd->szKeyName, "MaxRange" ) )
 	{
 		pev->speed = atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "chaptertitle" ) )
+	else if( FStrEq( pkvd->szKeyName, "chaptertitle" ) )
 	{
 		pev->netname = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "startdark" ) )
+	else if( FStrEq( pkvd->szKeyName, "startdark" ) )
 	{
-		if ( atoi( pkvd->szValue ) )
+		if( atoi( pkvd->szValue ) )
 			SetBits( pev->spawnflags, SF_WORLD_DARK );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "newunit" ) )
+	else if( FStrEq( pkvd->szKeyName, "newunit" ) )
 	{
-		if ( atoi( pkvd->szValue ) )
+		if( atoi( pkvd->szValue ) )
 			CVAR_SET_FLOAT( "sv_newunit", 1.0 );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "gametitle" ) )
+	else if( FStrEq( pkvd->szKeyName, "gametitle" ) )
 	{
-		if ( atoi( pkvd->szValue ) )
+		if( atoi( pkvd->szValue ) )
 			SetBits( pev->spawnflags, SF_WORLD_TITLE );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "mapteams" ) )
+	else if( FStrEq( pkvd->szKeyName, "mapteams" ) )
 	{
 		pev->team = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "defaultteam" ) )
+	else if( FStrEq( pkvd->szKeyName, "defaultteam" ) )
 	{
-		if ( atoi( pkvd->szValue ) )
+		if( atoi( pkvd->szValue ) )
 			SetBits( pev->spawnflags, 4 );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "allowmonsters" ) )
+	else if( FStrEq( pkvd->szKeyName, "allowmonsters" ) )
 	{
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "mapfog" ) )
+	else if( FStrEq( pkvd->szKeyName, "mapfog" ) )
 	{
 		CVAR_SET_FLOAT( "map_fog", atof( pkvd->szValue ) );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "map_fog_start" ) )
+	else if( FStrEq( pkvd->szKeyName, "map_fog_start" ) )
 	{
 		CVAR_SET_FLOAT( "map_fog_start", atof( pkvd->szValue ) );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "map_fog_end" ) )
+	else if( FStrEq( pkvd->szKeyName, "map_fog_end" ) )
 	{
 		CVAR_SET_FLOAT( "map_fog_end", atof( pkvd->szValue ) );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "map_fog_red" ) )
+	else if( FStrEq( pkvd->szKeyName, "map_fog_red" ) )
 	{
 		CVAR_SET_FLOAT( "map_fog_red", atof( pkvd->szValue ) );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "map_fog_green" ) )
+	else if( FStrEq( pkvd->szKeyName, "map_fog_green" ) )
 	{
 		CVAR_SET_FLOAT( "map_fog_green", atof( pkvd->szValue ) );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "map_fog_blue" ) )
+	else if( FStrEq( pkvd->szKeyName, "map_fog_blue" ) )
 	{
 		CVAR_SET_FLOAT( "map_fog_blue", atof( pkvd->szValue ) );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "player_team" ) )
+	else if( FStrEq( pkvd->szKeyName, "player_team" ) )
 	{
 		m_nPlayerTeam = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;

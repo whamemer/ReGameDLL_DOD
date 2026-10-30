@@ -1,9 +1,9 @@
 /***
 *
 *	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
 *
 *   Use, distribution, and modification of this source code and/or resulting
@@ -41,13 +41,13 @@ BOOL CGameRules::CanHaveAmmo( CBasePlayer *pPlayer, const char *pszAmmoName, int
 {
 	int iAmmoIndex;
 
-	if ( pszAmmoName )
+	if( pszAmmoName )
 	{
 		iAmmoIndex = pPlayer->GetAmmoIndex( pszAmmoName );
 
-		if ( iAmmoIndex > -1 )
+		if( iAmmoIndex > -1 )
 		{
-			if ( pPlayer->AmmoInventory( iAmmoIndex ) < iMaxCarry )
+			if( pPlayer->AmmoInventory( iAmmoIndex ) < iMaxCarry )
 			{
 				// player has room for more of this type of ammo
 				return TRUE;
@@ -60,11 +60,11 @@ BOOL CGameRules::CanHaveAmmo( CBasePlayer *pPlayer, const char *pszAmmoName, int
 
 //=========================================================
 //=========================================================
-edict_t *CGameRules ::GetPlayerSpawnSpot( CBasePlayer *pPlayer )
+edict_t *CGameRules::GetPlayerSpawnSpot( CBasePlayer *pPlayer )
 {
 	edict_t *pentSpawnSpot = EntSelectSpawnPoint( pPlayer, false );
 
-	if ( pentSpawnSpot )
+	if( pentSpawnSpot )
 	{
 		pPlayer->pev->origin = VARS( pentSpawnSpot )->origin + Vector( 0, 0, 1 );
 		pPlayer->pev->velocity = g_vecZero;
@@ -85,7 +85,7 @@ edict_t *CGameRules ::GetPlayerSpawnSpot( CBasePlayer *pPlayer )
 void CGameRules::GetInitialSpawnSpot( CBasePlayer *pPlayer )
 {
 	CBaseEntity *pSpot = UTIL_FindEntityByClassname( NULL, "info_player_observer" );
-	if ( !pSpot )
+	if( !pSpot )
 	{
 		ALERT( at_console, "GetInitialSpawnSpot: no info_player_observer in level - starting player at 0,0,0\n" );
 		pPlayer->pev->origin = g_vecZero;
@@ -110,16 +110,16 @@ void CGameRules::GetInitialSpawnSpot( CBasePlayer *pPlayer )
 BOOL CGameRules::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon )
 {
 	// only living players can have items
-	if ( pPlayer->pev->deadflag != DEAD_NO )
+	if( pPlayer->pev->deadflag != DEAD_NO )
 		return FALSE;
 
-	if ( pWeapon->pszAmmo1() )
+	if( pWeapon->pszAmmo1() )
 	{
-		if ( !CanHaveAmmo( pPlayer, pWeapon->pszAmmo1(), pWeapon->iMaxAmmo1() ) )
+		if( !CanHaveAmmo( pPlayer, pWeapon->pszAmmo1(), pWeapon->iMaxAmmo1() ) )
 		{
 			// we can't carry anymore ammo for this gun. We can only
 			// have the gun if we aren't already carrying one of this type
-			if ( pPlayer->HasPlayerItem( pWeapon ) )
+			if( pPlayer->HasPlayerItem( pWeapon ) )
 			{
 				return FALSE;
 			}
@@ -128,7 +128,7 @@ BOOL CGameRules::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pWeap
 	else
 	{
 		// weapon doesn't use ammo, don't take another if you already have it.
-		if ( pPlayer->HasPlayerItem( pWeapon ) )
+		if( pPlayer->HasPlayerItem( pWeapon ) )
 		{
 			return FALSE;
 		}
@@ -145,14 +145,14 @@ void CGameRules::RefreshSkillData( void )
 {
 	int iSkill;
 
-	iSkill = (int)CVAR_GET_FLOAT( "skill" );
+	iSkill = ( int ) CVAR_GET_FLOAT( "skill" );
 	g_iSkillLevel = iSkill;
 
-	if ( iSkill < 1 )
+	if( iSkill < 1 )
 	{
 		iSkill = 1;
 	}
-	else if ( iSkill > 3 )
+	else if( iSkill > 3 )
 	{
 		iSkill = 3;
 	}

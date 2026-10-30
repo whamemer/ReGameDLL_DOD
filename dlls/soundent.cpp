@@ -1,9 +1,9 @@
 /***
 *
 *	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
 *
 *   Use, distribution, and modification of this source code and/or resulting
@@ -12,6 +12,7 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
@@ -25,7 +26,7 @@ CSoundEnt *pSoundEnt;
 //=========================================================
 // CSound - Clear - zeros all fields for a sound
 //=========================================================
-void CSound ::Clear( void )
+void CSound::Clear( void )
 {
 	m_vecOrigin = g_vecZero;
 	m_iType = 0;
@@ -39,7 +40,7 @@ void CSound ::Clear( void )
 // Reset - clears the volume, origin, and type for a sound,
 // but doesn't expire or unlink it.
 //=========================================================
-void CSound ::Reset( void )
+void CSound::Reset( void )
 {
 	m_vecOrigin = g_vecZero;
 	m_iType = 0;
@@ -50,9 +51,9 @@ void CSound ::Reset( void )
 //=========================================================
 // FIsSound - returns TRUE if the sound is an Audible sound
 //=========================================================
-BOOL CSound ::FIsSound( void )
+BOOL CSound::FIsSound( void )
 {
-	if ( m_iType & ( bits_SOUND_COMBAT | bits_SOUND_WORLD | bits_SOUND_PLAYER | bits_SOUND_DANGER ) )
+	if( m_iType & ( bits_SOUND_COMBAT | bits_SOUND_WORLD | bits_SOUND_PLAYER | bits_SOUND_DANGER ) )
 	{
 		return TRUE;
 	}
@@ -63,9 +64,9 @@ BOOL CSound ::FIsSound( void )
 //=========================================================
 // FIsScent - returns TRUE if the sound is actually a scent
 //=========================================================
-BOOL CSound ::FIsScent( void )
+BOOL CSound::FIsScent( void )
 {
-	if ( m_iType & ( bits_SOUND_CARCASS | bits_SOUND_MEAT | bits_SOUND_GARBAGE ) )
+	if( m_iType & ( bits_SOUND_CARCASS | bits_SOUND_MEAT | bits_SOUND_GARBAGE ) )
 	{
 		return TRUE;
 	}
@@ -76,7 +77,7 @@ BOOL CSound ::FIsScent( void )
 //=========================================================
 // Spawn
 //=========================================================
-void CSoundEnt ::Spawn( void )
+void CSoundEnt::Spawn( void )
 {
 	pev->solid = SOLID_NOT;
 	Initialize();
@@ -89,7 +90,7 @@ void CSoundEnt ::Spawn( void )
 // for sounds that have ExpireTimes less than or equal
 // to the current world time, and these sounds are deallocated.
 //=========================================================
-void CSoundEnt ::Think( void )
+void CSoundEnt::Think( void )
 {
 	int iSound;
 	int iPreviousSound;
@@ -99,10 +100,10 @@ void CSoundEnt ::Think( void )
 	iPreviousSound = SOUNDLIST_EMPTY;
 	iSound = m_iActiveSound;
 
-	while ( iSound != SOUNDLIST_EMPTY )
+	while( iSound != SOUNDLIST_EMPTY )
 	{
-		if ( m_SoundPool[iSound].m_flExpireTime <= gpGlobals->time &&
-			 m_SoundPool[iSound].m_flExpireTime != SOUND_NEVER_EXPIRE )
+		if( m_SoundPool[iSound].m_flExpireTime <= gpGlobals->time &&
+			m_SoundPool[iSound].m_flExpireTime != SOUND_NEVER_EXPIRE )
 		{
 			int iNext = m_SoundPool[iSound].m_iNext;
 
@@ -118,10 +119,10 @@ void CSoundEnt ::Think( void )
 		}
 	}
 
-	if ( m_fShowReport )
+	if( m_fShowReport )
 	{
 		ALERT( at_aiconsole, "Soundlist: %d / %d  (%d)\n", ISoundsInList( SOUNDLISTTYPE_ACTIVE ),
-			   ISoundsInList( SOUNDLISTTYPE_FREE ), ISoundsInList( SOUNDLISTTYPE_ACTIVE ) - m_cLastActiveSounds );
+			ISoundsInList( SOUNDLISTTYPE_FREE ), ISoundsInList( SOUNDLISTTYPE_ACTIVE ) - m_cLastActiveSounds );
 		m_cLastActiveSounds = ISoundsInList( SOUNDLISTTYPE_ACTIVE );
 	}
 }
@@ -129,22 +130,22 @@ void CSoundEnt ::Think( void )
 //=========================================================
 // Precache - dummy function
 //=========================================================
-void CSoundEnt ::Precache( void ) {}
+void CSoundEnt::Precache( void ) {}
 
 //=========================================================
 // FreeSound - clears the passed active sound and moves it
 // to the top of the free list. TAKE CARE to only call this
 // function for sounds in the Active list!!
 //=========================================================
-void CSoundEnt ::FreeSound( int iSound, int iPrevious )
+void CSoundEnt::FreeSound( int iSound, int iPrevious )
 {
-	if ( !pSoundEnt )
+	if( !pSoundEnt )
 	{
 		// no sound ent!
 		return;
 	}
 
-	if ( iPrevious != SOUNDLIST_EMPTY )
+	if( iPrevious != SOUNDLIST_EMPTY )
 	{
 		// iSound is not the head of the active list, so
 		// must fix the index for the Previous sound
@@ -166,11 +167,11 @@ void CSoundEnt ::FreeSound( int iSound, int iPrevious )
 // IAllocSound - moves a sound from the Free list to the
 // Active list returns the index of the alloc'd sound
 //=========================================================
-int CSoundEnt ::IAllocSound( void )
+int CSoundEnt::IAllocSound( void )
 {
 	int iNewSound;
 
-	if ( m_iFreeSound == SOUNDLIST_EMPTY )
+	if( m_iFreeSound == SOUNDLIST_EMPTY )
 	{
 		// no free sound!
 		ALERT( at_console, "Free Sound List is full!\n" );
@@ -195,11 +196,11 @@ int CSoundEnt ::IAllocSound( void )
 // InsertSound - Allocates a free sound and fills it with
 // sound info.
 //=========================================================
-void CSoundEnt ::InsertSound( int iType, const Vector &vecOrigin, int iVolume, float flDuration )
+void CSoundEnt::InsertSound( int iType, const Vector &vecOrigin, int iVolume, float flDuration )
 {
 	int iThisSound;
 
-	if ( !pSoundEnt )
+	if( !pSoundEnt )
 	{
 		// no sound ent!
 		return;
@@ -207,7 +208,7 @@ void CSoundEnt ::InsertSound( int iType, const Vector &vecOrigin, int iVolume, f
 
 	iThisSound = pSoundEnt->IAllocSound();
 
-	if ( iThisSound == SOUNDLIST_EMPTY )
+	if( iThisSound == SOUNDLIST_EMPTY )
 	{
 		ALERT( at_console, "Could not AllocSound() for InsertSound() (DLL)\n" );
 		return;
@@ -223,7 +224,7 @@ void CSoundEnt ::InsertSound( int iType, const Vector &vecOrigin, int iVolume, f
 // Initialize - clears all sounds and moves them into the
 // free sound list.
 //=========================================================
-void CSoundEnt ::Initialize( void )
+void CSoundEnt::Initialize( void )
 {
 	int i;
 	int iSound;
@@ -231,7 +232,7 @@ void CSoundEnt ::Initialize( void )
 	m_iFreeSound = 0;
 	m_iActiveSound = SOUNDLIST_EMPTY;
 
-	for ( i = 0; i < MAX_WORLD_SOUNDS; i++ )
+	for( i = 0; i < MAX_WORLD_SOUNDS; i++ )
 	{  // clear all sounds, and link them into the free sound list.
 		m_SoundPool[i].Clear();
 		m_SoundPool[i].m_iNext = i + 1;
@@ -240,11 +241,11 @@ void CSoundEnt ::Initialize( void )
 	m_SoundPool[i - 1].m_iNext = SOUNDLIST_EMPTY;  // terminate the list here.
 
 	// now reserve enough sounds for each client
-	for ( i = 0; i < gpGlobals->maxClients; i++ )
+	for( i = 0; i < gpGlobals->maxClients; i++ )
 	{
 		iSound = pSoundEnt->IAllocSound();
 
-		if ( iSound == SOUNDLIST_EMPTY )
+		if( iSound == SOUNDLIST_EMPTY )
 		{
 			ALERT( at_console, "Could not AllocSound() for Client Reserve! (DLL)\n" );
 			return;
@@ -260,16 +261,16 @@ void CSoundEnt ::Initialize( void )
 // ISoundsInList - returns the number of sounds in the desired
 // sound list.
 //=========================================================
-int CSoundEnt ::ISoundsInList( int iListType )
+int CSoundEnt::ISoundsInList( int iListType )
 {
 	int i;
 	int iThisSound;
 
-	if ( iListType == SOUNDLISTTYPE_FREE )
+	if( iListType == SOUNDLISTTYPE_FREE )
 	{
 		iThisSound = m_iFreeSound;
 	}
-	else if ( iListType == SOUNDLISTTYPE_ACTIVE )
+	else if( iListType == SOUNDLISTTYPE_ACTIVE )
 	{
 		iThisSound = m_iActiveSound;
 	}
@@ -278,14 +279,14 @@ int CSoundEnt ::ISoundsInList( int iListType )
 		ALERT( at_console, "Unknown Sound List Type!\n" );
 	}
 
-	if ( iThisSound == SOUNDLIST_EMPTY )
+	if( iThisSound == SOUNDLIST_EMPTY )
 	{
 		return 0;
 	}
 
 	i = 0;
 
-	while ( iThisSound != SOUNDLIST_EMPTY )
+	while( iThisSound != SOUNDLIST_EMPTY )
 	{
 		i++;
 
@@ -298,9 +299,9 @@ int CSoundEnt ::ISoundsInList( int iListType )
 //=========================================================
 // ActiveList - returns the head of the active sound list
 //=========================================================
-int CSoundEnt ::ActiveList( void )
+int CSoundEnt::ActiveList( void )
 {
-	if ( !pSoundEnt )
+	if( !pSoundEnt )
 	{
 		return SOUNDLIST_EMPTY;
 	}
@@ -311,9 +312,9 @@ int CSoundEnt ::ActiveList( void )
 //=========================================================
 // FreeList - returns the head of the free sound list
 //=========================================================
-int CSoundEnt ::FreeList( void )
+int CSoundEnt::FreeList( void )
 {
-	if ( !pSoundEnt )
+	if( !pSoundEnt )
 	{
 		return SOUNDLIST_EMPTY;
 	}
@@ -325,20 +326,20 @@ int CSoundEnt ::FreeList( void )
 // SoundPointerForIndex - returns a pointer to the instance
 // of CSound at index's position in the sound pool.
 //=========================================================
-CSound *CSoundEnt ::SoundPointerForIndex( int iIndex )
+CSound *CSoundEnt::SoundPointerForIndex( int iIndex )
 {
-	if ( !pSoundEnt )
+	if( !pSoundEnt )
 	{
 		return NULL;
 	}
 
-	if ( iIndex > ( MAX_WORLD_SOUNDS - 1 ) )
+	if( iIndex > ( MAX_WORLD_SOUNDS - 1 ) )
 	{
 		ALERT( at_console, "SoundPointerForIndex() - Index too large!\n" );
 		return NULL;
 	}
 
-	if ( iIndex < 0 )
+	if( iIndex < 0 )
 	{
 		ALERT( at_console, "SoundPointerForIndex() - Index < 0!\n" );
 		return NULL;
@@ -353,12 +354,12 @@ CSound *CSoundEnt ::SoundPointerForIndex( int iIndex )
 // so this function ensures that a client gets the proper index
 // to his reserved sound in the soundlist.
 //=========================================================
-int CSoundEnt ::ClientSoundIndex( edict_t *pClient )
+int CSoundEnt::ClientSoundIndex( edict_t *pClient )
 {
 	int iReturn = ENTINDEX( pClient ) - 1;
 
 #ifdef _DEBUG
-	if ( iReturn < 0 || iReturn > gpGlobals->maxClients )
+	if( iReturn < 0 || iReturn > gpGlobals->maxClients )
 	{
 		ALERT( at_console, "** ClientSoundIndex returning a bogus value! **\n" );
 	}

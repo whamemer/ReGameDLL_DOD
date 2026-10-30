@@ -1,9 +1,9 @@
 /***
 *
 *	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
 *
 *   This source code contains proprietary and confidential information of
@@ -144,7 +144,7 @@ const char *CController::pDeathSounds[] = {
 // Classify - indicates this monster's place in the
 // relationship table.
 //=========================================================
-int CController ::Classify( void )
+int CController::Classify( void )
 {
 	return CLASS_ALIEN_MILITARY;
 }
@@ -153,14 +153,14 @@ int CController ::Classify( void )
 // SetYawSpeed - allows each sequence to have a different
 // turn rate associated with it.
 //=========================================================
-void CController ::SetYawSpeed( void )
+void CController::SetYawSpeed( void )
 {
 	int ys;
 
 	ys = 120;
 
 #if 0
-	switch ( m_Activity )
+	switch( m_Activity )
 	{
 	}
 #endif
@@ -168,10 +168,10 @@ void CController ::SetYawSpeed( void )
 	pev->yaw_speed = ys;
 }
 
-int CController ::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType )
+int CController::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType )
 {
 	// HACK HACK -- until we fix this.
-	if ( IsAlive() )
+	if( IsAlive() )
 		PainSound();
 	return CBaseMonster::TakeDamage( pevInflictor, pevAttacker, flDamage, bitsDamageType );
 }
@@ -187,13 +187,13 @@ void CController::Killed( entvars_t *pevAttacker, int iGib )
 	*/
 
 	// fade balls
-	if ( m_pBall[0] )
+	if( m_pBall[0] )
 	{
 		m_pBall[0]->SUB_StartFadeOut();
 		m_pBall[0] = NULL;
 	}
 
-	if ( m_pBall[1] )
+	if( m_pBall[1] )
 	{
 		m_pBall[1]->SUB_StartFadeOut();
 		m_pBall[1] = NULL;
@@ -205,13 +205,13 @@ void CController::Killed( entvars_t *pevAttacker, int iGib )
 void CController::GibMonster( void )
 {
 	// delete balls
-	if ( m_pBall[0] )
+	if( m_pBall[0] )
 	{
 		UTIL_Remove( m_pBall[0] );
 		m_pBall[0] = NULL;
 	}
 
-	if ( m_pBall[1] )
+	if( m_pBall[1] )
 	{
 		UTIL_Remove( m_pBall[1] );
 		m_pBall[1] = NULL;
@@ -220,28 +220,28 @@ void CController::GibMonster( void )
 	CSquadMonster::GibMonster();
 }
 
-void CController ::PainSound( void )
+void CController::PainSound( void )
 {
-	if ( RANDOM_LONG( 0, 5 ) < 2 )
+	if( RANDOM_LONG( 0, 5 ) < 2 )
 		EMIT_SOUND_ARRAY_DYN( CHAN_VOICE, pPainSounds );
 }
 
-void CController ::AlertSound( void )
+void CController::AlertSound( void )
 {
 	EMIT_SOUND_ARRAY_DYN( CHAN_VOICE, pAlertSounds );
 }
 
-void CController ::IdleSound( void )
+void CController::IdleSound( void )
 {
 	EMIT_SOUND_ARRAY_DYN( CHAN_VOICE, pIdleSounds );
 }
 
-void CController ::AttackSound( void )
+void CController::AttackSound( void )
 {
 	EMIT_SOUND_ARRAY_DYN( CHAN_VOICE, pAttackSounds );
 }
 
-void CController ::DeathSound( void )
+void CController::DeathSound( void )
 {
 	EMIT_SOUND_ARRAY_DYN( CHAN_VOICE, pDeathSounds );
 }
@@ -250,9 +250,9 @@ void CController ::DeathSound( void )
 // HandleAnimEvent - catches the monster-specific messages
 // that occur when tagged animation frames are played.
 //=========================================================
-void CController ::HandleAnimEvent( MonsterEvent_t *pEvent )
+void CController::HandleAnimEvent( MonsterEvent_t *pEvent )
 {
-	switch ( pEvent->event )
+	switch( pEvent->event )
 	{
 	case CONTROLLER_AE_HEAD_OPEN:
 	{
@@ -301,7 +301,7 @@ void CController ::HandleAnimEvent( MonsterEvent_t *pEvent )
 		WRITE_COORD( 32 );	// decay
 		MESSAGE_END();
 
-		CBaseMonster *pBall = (CBaseMonster *) Create( "controller_head_ball", vecStart, pev->angles, edict() );
+		CBaseMonster *pBall = ( CBaseMonster * ) Create( "controller_head_ball", vecStart, pev->angles, edict() );
 
 		pBall->pev->velocity = Vector( 0, 0, 32 );
 		pBall->m_hEnemy = m_hEnemy;
@@ -343,7 +343,7 @@ void CController ::HandleAnimEvent( MonsterEvent_t *pEvent )
 //=========================================================
 // Spawn
 //=========================================================
-void CController ::Spawn()
+void CController::Spawn()
 {
 	Precache();
 
@@ -356,8 +356,7 @@ void CController ::Spawn()
 	m_bloodColor = BLOOD_COLOR_GREEN;
 	pev->health = gSkillData.controllerHealth;
 	pev->view_ofs = Vector( 0, 0, -2 );	 // position of the eyes relative to monster's origin.
-	m_flFieldOfView =
-		VIEW_FIELD_FULL;  // indicates the width of this monster's forward view cone ( as a dotproduct result )
+	m_flFieldOfView = VIEW_FIELD_FULL;  // indicates the width of this monster's forward view cone ( as a dotproduct result )
 	m_MonsterState = MONSTERSTATE_NONE;
 
 	MonsterInit();
@@ -366,7 +365,7 @@ void CController ::Spawn()
 //=========================================================
 // Precache - precaches all resources this monster needs
 //=========================================================
-void CController ::Precache()
+void CController::Precache()
 {
 	PRECACHE_MODEL( "models/controller.mdl" );
 
@@ -388,8 +387,8 @@ void CController ::Precache()
 
 // Chase enemy schedule
 Task_t tlControllerChaseEnemy[] = {
-	{ TASK_GET_PATH_TO_ENEMY, (float) 128 },
-	{ TASK_WAIT_FOR_MOVEMENT, (float) 0 },
+	{ TASK_GET_PATH_TO_ENEMY, ( float ) 128 },
+	{ TASK_WAIT_FOR_MOVEMENT, ( float ) 0 },
 
 };
 
@@ -399,10 +398,10 @@ Schedule_t slControllerChaseEnemy[] = {
 };
 
 Task_t tlControllerStrafe[] = {
-	{ TASK_WAIT, (float) 0.2 },
-	{ TASK_GET_PATH_TO_ENEMY, (float) 128 },
-	{ TASK_WAIT_FOR_MOVEMENT, (float) 0 },
-	{ TASK_WAIT, (float) 1 },
+	{ TASK_WAIT, ( float ) 0.2 },
+	{ TASK_GET_PATH_TO_ENEMY, ( float ) 128 },
+	{ TASK_WAIT_FOR_MOVEMENT, ( float ) 0 },
+	{ TASK_WAIT, ( float ) 1 },
 };
 
 Schedule_t slControllerStrafe[] = {
@@ -410,10 +409,10 @@ Schedule_t slControllerStrafe[] = {
 };
 
 Task_t tlControllerTakeCover[] = {
-	{ TASK_WAIT, (float) 0.2 },
-	{ TASK_FIND_COVER_FROM_ENEMY, (float) 0 },
-	{ TASK_WAIT_FOR_MOVEMENT, (float) 0 },
-	{ TASK_WAIT, (float) 1 },
+	{ TASK_WAIT, ( float ) 0.2 },
+	{ TASK_FIND_COVER_FROM_ENEMY, ( float ) 0 },
+	{ TASK_WAIT_FOR_MOVEMENT, ( float ) 0 },
+	{ TASK_WAIT, ( float ) 1 },
 };
 
 Schedule_t slControllerTakeCover[] = {
@@ -422,20 +421,20 @@ Schedule_t slControllerTakeCover[] = {
 
 Task_t tlControllerFail[] = {
 	{ TASK_STOP_MOVING, 0 },
-	{ TASK_SET_ACTIVITY, (float) ACT_IDLE },
-	{ TASK_WAIT, (float) 2 },
-	{ TASK_WAIT_PVS, (float) 0 },
+	{ TASK_SET_ACTIVITY, ( float ) ACT_IDLE },
+	{ TASK_WAIT, ( float ) 2 },
+	{ TASK_WAIT_PVS, ( float ) 0 },
 };
 
 Schedule_t slControllerFail[] = {
 	{ tlControllerFail, ARRAYSIZE( tlControllerFail ), 0, 0, "ControllerFail" },
 };
 
-DEFINE_CUSTOM_SCHEDULES( CController ){
+DEFINE_CUSTOM_SCHEDULES( CController ) {
 	slControllerChaseEnemy,
-	slControllerStrafe,
-	slControllerTakeCover,
-	slControllerFail,
+		slControllerStrafe,
+		slControllerTakeCover,
+		slControllerFail,
 };
 
 IMPLEMENT_CUSTOM_SCHEDULES( CController, CSquadMonster );
@@ -443,17 +442,17 @@ IMPLEMENT_CUSTOM_SCHEDULES( CController, CSquadMonster );
 //=========================================================
 // StartTask
 //=========================================================
-void CController ::StartTask( Task_t *pTask )
+void CController::StartTask( Task_t *pTask )
 {
-	switch ( pTask->iTask )
+	switch( pTask->iTask )
 	{
 	case TASK_RANGE_ATTACK1:
-		CSquadMonster ::StartTask( pTask );
+		CSquadMonster::StartTask( pTask );
 		break;
 	case TASK_GET_PATH_TO_ENEMY_LKP:
 	{
-		if ( BuildNearestRoute( m_vecEnemyLKP, pev->view_ofs, pTask->flData,
-								( m_vecEnemyLKP - pev->origin ).Length() + 1024 ) )
+		if( BuildNearestRoute( m_vecEnemyLKP, pev->view_ofs, pTask->flData,
+			( m_vecEnemyLKP - pev->origin ).Length() + 1024 ) )
 		{
 			TaskComplete();
 		}
@@ -469,14 +468,14 @@ void CController ::StartTask( Task_t *pTask )
 	{
 		CBaseEntity *pEnemy = m_hEnemy;
 
-		if ( pEnemy == NULL )
+		if( pEnemy == NULL )
 		{
 			TaskFail();
 			return;
 		}
 
-		if ( BuildNearestRoute( pEnemy->pev->origin, pEnemy->pev->view_ofs, pTask->flData,
-								( pEnemy->pev->origin - pev->origin ).Length() + 1024 ) )
+		if( BuildNearestRoute( pEnemy->pev->origin, pEnemy->pev->view_ofs, pTask->flData,
+			( pEnemy->pev->origin - pev->origin ).Length() + 1024 ) )
 		{
 			TaskComplete();
 		}
@@ -489,7 +488,7 @@ void CController ::StartTask( Task_t *pTask )
 		break;
 	}
 	default:
-		CSquadMonster ::StartTask( pTask );
+		CSquadMonster::StartTask( pTask );
 		break;
 	}
 }
@@ -503,7 +502,7 @@ Vector Intersect( Vector vecSrc, Vector vecDst, Vector vecMove, float flSpeed )
 	float c = DotProduct( vecTo, vecTo );
 
 	float t;
-	if ( a == 0 )
+	if( a == 0 )
 	{
 		t = c / ( flSpeed * flSpeed );
 	}
@@ -514,7 +513,7 @@ Vector Intersect( Vector vecSrc, Vector vecDst, Vector vecMove, float flSpeed )
 		float t1 = -b + t;
 		float t2 = -b - t;
 
-		if ( t1 < 0 || t2 < t1 )
+		if( t1 < 0 || t2 < t1 )
 			t = t2;
 		else
 			t = t1;
@@ -522,9 +521,9 @@ Vector Intersect( Vector vecSrc, Vector vecDst, Vector vecMove, float flSpeed )
 
 	// ALERT( at_console, "Intersect %f\n", t );
 
-	if ( t < 0.1 )
+	if( t < 0.1 )
 		t = 0.1;
-	if ( t > 10.0 )
+	if( t > 10.0 )
 		t = 10.0;
 
 	Vector vecHit = vecTo + vecMove * t;
@@ -533,7 +532,7 @@ Vector Intersect( Vector vecSrc, Vector vecDst, Vector vecMove, float flSpeed )
 
 int CController::LookupFloat()
 {
-	if ( m_velocity.Length() < 32.0 )
+	if( m_velocity.Length() < 32.0 )
 	{
 		return LookupSequence( "up" );
 	}
@@ -543,23 +542,23 @@ int CController::LookupFloat()
 	float y = DotProduct( gpGlobals->v_right, m_velocity );
 	float z = DotProduct( gpGlobals->v_up, m_velocity );
 
-	if ( fabs( x ) > fabs( y ) && fabs( x ) > fabs( z ) )
+	if( fabs( x ) > fabs( y ) && fabs( x ) > fabs( z ) )
 	{
-		if ( x > 0 )
+		if( x > 0 )
 			return LookupSequence( "forward" );
 		else
 			return LookupSequence( "backward" );
 	}
-	else if ( fabs( y ) > fabs( z ) )
+	else if( fabs( y ) > fabs( z ) )
 	{
-		if ( y > 0 )
+		if( y > 0 )
 			return LookupSequence( "right" );
 		else
 			return LookupSequence( "left" );
 	}
 	else
 	{
-		if ( z > 0 )
+		if( z > 0 )
 			return LookupSequence( "up" );
 		else
 			return LookupSequence( "down" );
@@ -569,23 +568,23 @@ int CController::LookupFloat()
 //=========================================================
 // RunTask
 //=========================================================
-void CController ::RunTask( Task_t *pTask )
+void CController::RunTask( Task_t *pTask )
 {
 
-	if ( m_flShootEnd > gpGlobals->time )
+	if( m_flShootEnd > gpGlobals->time )
 	{
 		Vector vecHand, vecAngle;
 
 		GetAttachment( 2, vecHand, vecAngle );
 
-		while ( m_flShootTime < m_flShootEnd && m_flShootTime < gpGlobals->time )
+		while( m_flShootTime < m_flShootEnd && m_flShootTime < gpGlobals->time )
 		{
 			Vector vecSrc = vecHand + pev->velocity * ( m_flShootTime - gpGlobals->time );
 			Vector vecDir;
 
-			if ( m_hEnemy != NULL )
+			if( m_hEnemy != NULL )
 			{
-				if ( HasConditions( bits_COND_SEE_ENEMY ) )
+				if( HasConditions( bits_COND_SEE_ENEMY ) )
 				{
 					m_vecEstVelocity = m_vecEstVelocity * 0.5 + m_hEnemy->pev->velocity * 0.5;
 				}
@@ -595,21 +594,21 @@ void CController ::RunTask( Task_t *pTask )
 				}
 
 				vecDir = Intersect( vecSrc, m_hEnemy->BodyTarget( pev->origin ), m_vecEstVelocity,
-									gSkillData.controllerSpeedBall );
+					gSkillData.controllerSpeedBall );
 				float delta = 0.03490;	// +-2 degree
 				vecDir = vecDir + Vector( RANDOM_FLOAT( -delta, delta ), RANDOM_FLOAT( -delta, delta ),
-										  RANDOM_FLOAT( -delta, delta ) ) *
-									  gSkillData.controllerSpeedBall;
+					RANDOM_FLOAT( -delta, delta ) ) *
+					gSkillData.controllerSpeedBall;
 
 				vecSrc = vecSrc + vecDir * ( gpGlobals->time - m_flShootTime );
-				CBaseMonster *pBall = (CBaseMonster *) Create( "controller_energy_ball", vecSrc, pev->angles, edict() );
+				CBaseMonster *pBall = ( CBaseMonster * ) Create( "controller_energy_ball", vecSrc, pev->angles, edict() );
 				pBall->pev->velocity = vecDir;
 			}
 
 			m_flShootTime += 0.2;
 		}
 
-		if ( m_flShootTime > m_flShootEnd )
+		if( m_flShootTime > m_flShootEnd )
 		{
 			m_iBall[0] = 64;
 			m_iBallTime[0] = m_flShootEnd;
@@ -619,7 +618,7 @@ void CController ::RunTask( Task_t *pTask )
 		}
 	}
 
-	switch ( pTask->iTask )
+	switch( pTask->iTask )
 	{
 	case TASK_WAIT_FOR_MOVEMENT:
 	case TASK_WAIT:
@@ -628,23 +627,23 @@ void CController ::RunTask( Task_t *pTask )
 		MakeIdealYaw( m_vecEnemyLKP );
 		ChangeYaw( pev->yaw_speed );
 
-		if ( m_fSequenceFinished )
+		if( m_fSequenceFinished )
 		{
 			m_fInCombat = FALSE;
 		}
 
-		CSquadMonster ::RunTask( pTask );
+		CSquadMonster::RunTask( pTask );
 
-		if ( !m_fInCombat )
+		if( !m_fInCombat )
 		{
-			if ( HasConditions( bits_COND_CAN_RANGE_ATTACK1 ) )
+			if( HasConditions( bits_COND_CAN_RANGE_ATTACK1 ) )
 			{
 				pev->sequence = LookupActivity( ACT_RANGE_ATTACK1 );
 				pev->frame = 0;
 				ResetSequenceInfo();
 				m_fInCombat = TRUE;
 			}
-			else if ( HasConditions( bits_COND_CAN_RANGE_ATTACK2 ) )
+			else if( HasConditions( bits_COND_CAN_RANGE_ATTACK2 ) )
 			{
 				pev->sequence = LookupActivity( ACT_RANGE_ATTACK2 );
 				pev->frame = 0;
@@ -654,7 +653,7 @@ void CController ::RunTask( Task_t *pTask )
 			else
 			{
 				int iFloat = LookupFloat();
-				if ( m_fSequenceFinished || iFloat != pev->sequence )
+				if( m_fSequenceFinished || iFloat != pev->sequence )
 				{
 					pev->sequence = iFloat;
 					pev->frame = 0;
@@ -664,7 +663,7 @@ void CController ::RunTask( Task_t *pTask )
 		}
 		break;
 	default:
-		CSquadMonster ::RunTask( pTask );
+		CSquadMonster::RunTask( pTask );
 		break;
 	}
 }
@@ -675,9 +674,9 @@ void CController ::RunTask( Task_t *pTask )
 // monster's member function to get a pointer to a schedule
 // of the proper type.
 //=========================================================
-Schedule_t *CController ::GetSchedule( void )
+Schedule_t *CController::GetSchedule( void )
 {
-	switch ( m_MonsterState )
+	switch( m_MonsterState )
 	{
 	case MONSTERSTATE_IDLE:
 		break;
@@ -690,12 +689,12 @@ Schedule_t *CController ::GetSchedule( void )
 		Vector vecTmp = Intersect( Vector( 0, 0, 0 ), Vector( 100, 4, 7 ), Vector( 2, 10, -3 ), 20.0 );
 
 		// dead enemy
-		if ( HasConditions( bits_COND_LIGHT_DAMAGE ) )
+		if( HasConditions( bits_COND_LIGHT_DAMAGE ) )
 		{
 			// m_iFrustration++;
 		}
 
-		if ( HasConditions( bits_COND_HEAVY_DAMAGE ) )
+		if( HasConditions( bits_COND_HEAVY_DAMAGE ) )
 		{
 			// m_iFrustration++;
 		}
@@ -703,15 +702,15 @@ Schedule_t *CController ::GetSchedule( void )
 	break;
 	}
 
-	return CSquadMonster ::GetSchedule();
+	return CSquadMonster::GetSchedule();
 }
 
 //=========================================================
 //=========================================================
-Schedule_t *CController ::GetScheduleOfType( int Type )
+Schedule_t *CController::GetScheduleOfType( int Type )
 {
 	// ALERT( at_console, "%d\n", m_iFrustration );
-	switch ( Type )
+	switch( Type )
 	{
 	case SCHED_CHASE_ENEMY:
 		return slControllerChaseEnemy;
@@ -726,16 +725,16 @@ Schedule_t *CController ::GetScheduleOfType( int Type )
 		return slControllerFail;
 	}
 
-	return CBaseMonster ::GetScheduleOfType( Type );
+	return CBaseMonster::GetScheduleOfType( Type );
 }
 
 //=========================================================
 // CheckRangeAttack1  - shoot a bigass energy ball out of their head
 //
 //=========================================================
-BOOL CController ::CheckRangeAttack1( float flDot, float flDist )
+BOOL CController::CheckRangeAttack1( float flDot, float flDist )
 {
-	if ( flDot > 0.5 && flDist > 256 && flDist <= 2048 )
+	if( flDot > 0.5 && flDist > 256 && flDist <= 2048 )
 	{
 		return TRUE;
 	}
@@ -743,9 +742,9 @@ BOOL CController ::CheckRangeAttack1( float flDot, float flDist )
 	return FALSE;
 }
 
-BOOL CController ::CheckRangeAttack2( float flDot, float flDist )
+BOOL CController::CheckRangeAttack2( float flDot, float flDist )
 {
-	if ( flDot > 0.5 && flDist > 64 && flDist <= 2048 )
+	if( flDot > 0.5 && flDist > 64 && flDist <= 2048 )
 	{
 		return TRUE;
 	}
@@ -753,16 +752,16 @@ BOOL CController ::CheckRangeAttack2( float flDot, float flDist )
 	return FALSE;
 }
 
-BOOL CController ::CheckMeleeAttack1( float flDot, float flDist )
+BOOL CController::CheckMeleeAttack1( float flDot, float flDist )
 {
 	return FALSE;
 }
 
-void CController ::SetActivity( Activity NewActivity )
+void CController::SetActivity( Activity NewActivity )
 {
 	CBaseMonster::SetActivity( NewActivity );
 
-	switch ( m_Activity )
+	switch( m_Activity )
 	{
 	case ACT_WALK:
 		m_flGroundSpeed = 100;
@@ -776,17 +775,17 @@ void CController ::SetActivity( Activity NewActivity )
 //=========================================================
 // RunAI
 //=========================================================
-void CController ::RunAI( void )
+void CController::RunAI( void )
 {
-	CBaseMonster ::RunAI();
+	CBaseMonster::RunAI();
 	Vector vecStart, angleGun;
 
-	if ( HasMemory( bits_MEMORY_KILLED ) )
+	if( HasMemory( bits_MEMORY_KILLED ) )
 		return;
 
-	for ( int i = 0; i < 2; i++ )
+	for( int i = 0; i < 2; i++ )
 	{
-		if ( m_pBall[i] == NULL )
+		if( m_pBall[i] == NULL )
 		{
 			m_pBall[i] = CSprite::SpriteCreate( "sprites/xspark4.spr", pev->origin, TRUE );
 			m_pBall[i]->SetTransparency( kRenderGlow, 255, 255, 255, 255, kRenderFxNoDissipation );
@@ -795,7 +794,7 @@ void CController ::RunAI( void )
 		}
 
 		float t = m_iBallTime[i] - gpGlobals->time;
-		if ( t > 0.1 )
+		if( t > 0.1 )
 			t = 0.1 / t;
 		else
 			t = 1.0;
@@ -831,7 +830,7 @@ void CController::Stop( void )
 }
 
 #define DIST_TO_CHECK 200
-void CController ::Move( float flInterval )
+void CController::Move( float flInterval )
 {
 	float flWaypointDist;
 	float flCheckDist;
@@ -842,21 +841,21 @@ void CController ::Move( float flInterval )
 	CBaseEntity *pTargetEnt;
 
 	// Don't move if no valid route
-	if ( FRouteClear() )
+	if( FRouteClear() )
 	{
 		ALERT( at_aiconsole, "Tried to move with no route!\n" );
 		TaskFail();
 		return;
 	}
 
-	if ( m_flMoveWaitFinished > gpGlobals->time )
+	if( m_flMoveWaitFinished > gpGlobals->time )
 		return;
 
-// Debug, test movement code
+	// Debug, test movement code
 #if 0
 //	if ( CVAR_GET_FLOAT("stopmove" ) != 0 )
 	{
-		if ( m_movementGoal == MOVEGOAL_ENEMY )
+		if( m_movementGoal == MOVEGOAL_ENEMY )
 			RouteSimplify( m_hEnemy );
 		else
 			RouteSimplify( m_hTargetEnt );
@@ -872,7 +871,7 @@ void CController ::Move( float flInterval )
 	// to that entity for the CheckLocalMove and Triangulate functions.
 	pTargetEnt = NULL;
 
-	if ( m_flGroundSpeed == 0 )
+	if( m_flGroundSpeed == 0 )
 	{
 		m_flGroundSpeed = 100;
 		// TaskFail( );
@@ -891,7 +890,7 @@ void CController ::Move( float flInterval )
 		// ChangeYaw ( pev->yaw_speed );
 
 		// if the waypoint is closer than CheckDist, CheckDist is the dist to waypoint
-		if ( flWaypointDist < DIST_TO_CHECK )
+		if( flWaypointDist < DIST_TO_CHECK )
 		{
 			flCheckDist = flWaypointDist;
 		}
@@ -900,12 +899,12 @@ void CController ::Move( float flInterval )
 			flCheckDist = DIST_TO_CHECK;
 		}
 
-		if ( ( m_Route[m_iRouteIndex].iType & ( ~bits_MF_NOT_TO_MASK ) ) == bits_MF_TO_ENEMY )
+		if( ( m_Route[m_iRouteIndex].iType & ( ~bits_MF_NOT_TO_MASK ) ) == bits_MF_TO_ENEMY )
 		{
 			// only on a PURE move to enemy ( i.e., ONLY MF_TO_ENEMY set, not MF_TO_ENEMY and DETOUR )
 			pTargetEnt = m_hEnemy;
 		}
-		else if ( ( m_Route[m_iRouteIndex].iType & ~bits_MF_NOT_TO_MASK ) == bits_MF_TO_TARGETENT )
+		else if( ( m_Route[m_iRouteIndex].iType & ~bits_MF_NOT_TO_MASK ) == bits_MF_TO_TARGETENT )
 		{
 			pTargetEnt = m_hTargetEnt;
 		}
@@ -914,7 +913,7 @@ void CController ::Move( float flInterval )
 		// If this fails, it should be because of some dynamic entity blocking this guy.
 		// We've already checked this path, so we should wait and time out if the entity doesn't move
 		flDist = 0;
-		if ( CheckLocalMove( pev->origin, pev->origin + vecDir * flCheckDist, pTargetEnt, &flDist ) != LOCALMOVE_VALID )
+		if( CheckLocalMove( pev->origin, pev->origin + vecDir * flCheckDist, pTargetEnt, &flDist ) != LOCALMOVE_VALID )
 		{
 			CBaseEntity *pBlocker;
 
@@ -922,16 +921,16 @@ void CController ::Move( float flInterval )
 			Stop();
 			// Blocking entity is in global trace_ent
 			pBlocker = CBaseEntity::Instance( gpGlobals->trace_ent );
-			if ( pBlocker )
+			if( pBlocker )
 			{
 				DispatchBlocked( edict(), pBlocker->edict() );
 			}
 
-			if ( pBlocker && m_moveWaitTime > 0 && pBlocker->IsMoving() && !pBlocker->IsPlayer() &&
-				 ( gpGlobals->time - m_flMoveWaitFinished ) > 3.0 )
+			if( pBlocker && m_moveWaitTime > 0 && pBlocker->IsMoving() && !pBlocker->IsPlayer() &&
+				( gpGlobals->time - m_flMoveWaitFinished ) > 3.0 )
 			{
 				// Can we still move toward our target?
-				if ( flDist < m_flGroundSpeed )
+				if( flDist < m_flGroundSpeed )
 				{
 					// Wait for a second
 					m_flMoveWaitFinished = gpGlobals->time + m_moveWaitTime;
@@ -942,7 +941,7 @@ void CController ::Move( float flInterval )
 			else
 			{
 				// try to triangulate around whatever is in the way.
-				if ( FTriangulate( pev->origin, m_Route[m_iRouteIndex].vecLocation, flDist, pTargetEnt, &vecApex ) )
+				if( FTriangulate( pev->origin, m_Route[m_iRouteIndex].vecLocation, flDist, pTargetEnt, &vecApex ) )
 				{
 					InsertWaypoint( vecApex, bits_MF_TO_DETOUR );
 					RouteSimplify( pTargetEnt );
@@ -951,7 +950,7 @@ void CController ::Move( float flInterval )
 				{
 					ALERT( at_aiconsole, "Couldn't Triangulate\n" );
 					Stop();
-					if ( m_moveWaitTime > 0 )
+					if( m_moveWaitTime > 0 )
 					{
 						FRefreshRoute();
 						m_flMoveWaitFinished = gpGlobals->time + m_moveWaitTime * 0.5;
@@ -969,7 +968,7 @@ void CController ::Move( float flInterval )
 		}
 
 		// UNDONE: this is a hack to quit moving farther than it has looked ahead.
-		if ( flCheckDist < flMoveDist )
+		if( flCheckDist < flMoveDist )
 		{
 			MoveExecute( pTargetEnt, vecDir, flCheckDist / m_flGroundSpeed );
 
@@ -981,7 +980,7 @@ void CController ::Move( float flInterval )
 		{
 			MoveExecute( pTargetEnt, vecDir, flMoveDist / m_flGroundSpeed );
 
-			if ( ShouldAdvanceRoute( flWaypointDist - flMoveDist ) )
+			if( ShouldAdvanceRoute( flWaypointDist - flMoveDist ) )
 			{
 				AdvanceRoute( flWaypointDist );
 			}
@@ -989,35 +988,35 @@ void CController ::Move( float flInterval )
 			flMoveDist = 0;
 		}
 
-		if ( MovementIsComplete() )
+		if( MovementIsComplete() )
 		{
 			Stop();
 			RouteClear();
 		}
-	} while ( flMoveDist > 0 && flCheckDist > 0 );
+	} while( flMoveDist > 0 && flCheckDist > 0 );
 
 	// cut corner?
-	if ( flWaypointDist < 128 )
+	if( flWaypointDist < 128 )
 	{
-		if ( m_movementGoal == MOVEGOAL_ENEMY )
+		if( m_movementGoal == MOVEGOAL_ENEMY )
 			RouteSimplify( m_hEnemy );
 		else
 			RouteSimplify( m_hTargetEnt );
 		FRefreshRoute();
 
-		if ( m_flGroundSpeed > 100 )
+		if( m_flGroundSpeed > 100 )
 			m_flGroundSpeed -= 40;
 	}
 	else
 	{
-		if ( m_flGroundSpeed < 400 )
+		if( m_flGroundSpeed < 400 )
 			m_flGroundSpeed += 10;
 	}
 }
 
 BOOL CController::ShouldAdvanceRoute( float flWaypointDist )
 {
-	if ( flWaypointDist <= 32 )
+	if( flWaypointDist <= 32 )
 	{
 		return TRUE;
 	}
@@ -1025,25 +1024,25 @@ BOOL CController::ShouldAdvanceRoute( float flWaypointDist )
 	return FALSE;
 }
 
-int CController ::CheckLocalMove( const Vector &vecStart, const Vector &vecEnd, CBaseEntity *pTarget, float *pflDist )
+int CController::CheckLocalMove( const Vector &vecStart, const Vector &vecEnd, CBaseEntity *pTarget, float *pflDist )
 {
 	TraceResult tr;
 
 	UTIL_TraceHull( vecStart + Vector( 0, 0, 32 ), vecEnd + Vector( 0, 0, 32 ), dont_ignore_monsters, large_hull,
-					edict(), &tr );
+		edict(), &tr );
 
 	// ALERT( at_console, "%.0f %.0f %.0f : ", vecStart.x, vecStart.y, vecStart.z );
 	// ALERT( at_console, "%.0f %.0f %.0f\n", vecEnd.x, vecEnd.y, vecEnd.z );
 
-	if ( pflDist )
+	if( pflDist )
 	{
 		*pflDist = ( ( tr.vecEndPos - Vector( 0, 0, 32 ) ) - vecStart ).Length();  // get the distance.
 	}
 
 	// ALERT( at_console, "check %d %d %f\n", tr.fStartSolid, tr.fAllSolid, tr.flFraction );
-	if ( tr.fStartSolid || tr.flFraction < 1.0 )
+	if( tr.fStartSolid || tr.flFraction < 1.0 )
 	{
-		if ( pTarget && pTarget->edict() == gpGlobals->trace_ent )
+		if( pTarget && pTarget->edict() == gpGlobals->trace_ent )
 			return LOCALMOVE_VALID;
 		return LOCALMOVE_INVALID;
 	}
@@ -1053,7 +1052,7 @@ int CController ::CheckLocalMove( const Vector &vecStart, const Vector &vecEnd, 
 
 void CController::MoveExecute( CBaseEntity *pTargetEnt, const Vector &vecDir, float flInterval )
 {
-	if ( m_IdealActivity != m_movementActivity )
+	if( m_IdealActivity != m_movementActivity )
 		m_IdealActivity = m_movementActivity;
 
 	// ALERT( at_console, "move %.4f %.4f %.4f : %f\n", vecDir.x, vecDir.y, vecDir.z, flInterval );
@@ -1083,9 +1082,10 @@ class CControllerHeadBall : public CBaseMonster
 	Vector m_vecIdeal;
 	EHANDLE m_hOwner;
 };
+
 LINK_ENTITY_TO_CLASS( controller_head_ball, CControllerHeadBall );
 
-void CControllerHeadBall ::Spawn( void )
+void CControllerHeadBall::Spawn( void )
 {
 	Precache();
 	// motor
@@ -1114,14 +1114,14 @@ void CControllerHeadBall ::Spawn( void )
 	pev->dmgtime = gpGlobals->time;
 }
 
-void CControllerHeadBall ::Precache( void )
+void CControllerHeadBall::Precache( void )
 {
 	PRECACHE_MODEL( "sprites/xspark1.spr" );
 	PRECACHE_SOUND( "debris/zap4.wav" );
 	PRECACHE_SOUND( "weapons/electro4.wav" );
 }
 
-void CControllerHeadBall ::HuntThink( void )
+void CControllerHeadBall::HuntThink( void )
 {
 	pev->nextthink = gpGlobals->time + 0.1;
 
@@ -1142,9 +1142,9 @@ void CControllerHeadBall ::HuntThink( void )
 	MESSAGE_END();
 
 	// check world boundaries
-	if ( gpGlobals->time - pev->dmgtime > 5 || pev->renderamt < 64 || m_hEnemy == NULL || m_hOwner == NULL ||
-		 pev->origin.x < -4096 || pev->origin.x > 4096 || pev->origin.y < -4096 || pev->origin.y > 4096 ||
-		 pev->origin.z < -4096 || pev->origin.z > 4096 )
+	if( gpGlobals->time - pev->dmgtime > 5 || pev->renderamt < 64 || m_hEnemy == NULL || m_hOwner == NULL ||
+		pev->origin.x < -4096 || pev->origin.x > 4096 || pev->origin.y < -4096 || pev->origin.y > 4096 ||
+		pev->origin.z < -4096 || pev->origin.z > 4096 )
 	{
 		SetTouch( NULL );
 		UTIL_Remove( this );
@@ -1153,14 +1153,14 @@ void CControllerHeadBall ::HuntThink( void )
 
 	MovetoTarget( m_hEnemy->Center() );
 
-	if ( ( m_hEnemy->Center() - pev->origin ).Length() < 64 )
+	if( ( m_hEnemy->Center() - pev->origin ).Length() < 64 )
 	{
 		TraceResult tr;
 
 		UTIL_TraceLine( pev->origin, m_hEnemy->Center(), dont_ignore_monsters, ENT( pev ), &tr );
 
 		CBaseEntity *pEntity = CBaseEntity::Instance( tr.pHit );
-		if ( pEntity != NULL && pEntity->pev->takedamage )
+		if( pEntity != NULL && pEntity->pev->takedamage )
 		{
 			ClearMultiDamage();
 			pEntity->TraceAttack( m_hOwner->pev, gSkillData.controllerDmgZap, pev->velocity, &tr, DMG_SHOCK );
@@ -1187,7 +1187,7 @@ void CControllerHeadBall ::HuntThink( void )
 		MESSAGE_END();
 
 		UTIL_EmitAmbientSound( ENT( pev ), tr.vecEndPos, "weapons/electro4.wav", 0.5, ATTN_NORM, 0,
-							   RANDOM_LONG( 140, 160 ) );
+			RANDOM_LONG( 140, 160 ) );
 
 		m_flNextAttack = gpGlobals->time + 3.0;
 
@@ -1198,22 +1198,22 @@ void CControllerHeadBall ::HuntThink( void )
 	// Crawl( );
 }
 
-void CControllerHeadBall ::DieThink( void )
+void CControllerHeadBall::DieThink( void )
 {
 	UTIL_Remove( this );
 }
 
-void CControllerHeadBall ::MovetoTarget( Vector vecTarget )
+void CControllerHeadBall::MovetoTarget( Vector vecTarget )
 {
 	// accelerate
 	float flSpeed = m_vecIdeal.Length();
-	if ( flSpeed == 0 )
+	if( flSpeed == 0 )
 	{
 		m_vecIdeal = pev->velocity;
 		flSpeed = m_vecIdeal.Length();
 	}
 
-	if ( flSpeed > 400 )
+	if( flSpeed > 400 )
 	{
 		m_vecIdeal = m_vecIdeal.Normalize() * 400;
 	}
@@ -1222,7 +1222,7 @@ void CControllerHeadBall ::MovetoTarget( Vector vecTarget )
 	pev->velocity = m_vecIdeal;
 }
 
-void CControllerHeadBall ::Crawl( void )
+void CControllerHeadBall::Crawl( void )
 {
 
 	Vector vecAim = Vector( RANDOM_FLOAT( -1, 1 ), RANDOM_FLOAT( -1, 1 ), RANDOM_FLOAT( -1, 1 ) ).Normalize();
@@ -1270,9 +1270,10 @@ class CControllerZapBall : public CBaseMonster
 
 	EHANDLE m_hOwner;
 };
+
 LINK_ENTITY_TO_CLASS( controller_energy_ball, CControllerZapBall );
 
-void CControllerZapBall ::Spawn( void )
+void CControllerZapBall::Spawn( void )
 {
 	Precache();
 	// motor
@@ -1298,20 +1299,20 @@ void CControllerZapBall ::Spawn( void )
 	pev->nextthink = gpGlobals->time + 0.1;
 }
 
-void CControllerZapBall ::Precache( void )
+void CControllerZapBall::Precache( void )
 {
 	PRECACHE_MODEL( "sprites/xspark4.spr" );
 	// PRECACHE_SOUND("debris/zap4.wav");
 	// PRECACHE_SOUND("weapons/electro4.wav");
 }
 
-void CControllerZapBall ::AnimateThink( void )
+void CControllerZapBall::AnimateThink( void )
 {
 	pev->nextthink = gpGlobals->time + 0.1;
 
-	pev->frame = ( (int) pev->frame + 1 ) % 11;
+	pev->frame = ( ( int ) pev->frame + 1 ) % 11;
 
-	if ( gpGlobals->time - pev->dmgtime > 5 || pev->velocity.Length() < 10 )
+	if( gpGlobals->time - pev->dmgtime > 5 || pev->velocity.Length() < 10 )
 	{
 		SetTouch( NULL );
 		UTIL_Remove( this );
@@ -1320,12 +1321,12 @@ void CControllerZapBall ::AnimateThink( void )
 
 void CControllerZapBall::ExplodeTouch( CBaseEntity *pOther )
 {
-	if ( pOther->pev->takedamage )
+	if( pOther->pev->takedamage )
 	{
 		TraceResult tr = UTIL_GetGlobalTrace();
 
 		entvars_t *pevOwner;
-		if ( m_hOwner != NULL )
+		if( m_hOwner != NULL )
 		{
 			pevOwner = m_hOwner->pev;
 		}
@@ -1339,7 +1340,7 @@ void CControllerZapBall::ExplodeTouch( CBaseEntity *pOther )
 		ApplyMultiDamage( pevOwner, pevOwner );
 
 		UTIL_EmitAmbientSound( ENT( pev ), tr.vecEndPos, "weapons/electro4.wav", 0.3, ATTN_NORM, 0,
-							   RANDOM_LONG( 90, 99 ) );
+			RANDOM_LONG( 90, 99 ) );
 	}
 
 	UTIL_Remove( this );

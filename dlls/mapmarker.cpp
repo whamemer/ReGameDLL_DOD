@@ -1,7 +1,7 @@
 /***
 *
 *	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
-*	
+*
 *	This product contains software technology licensed from Id
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
@@ -12,6 +12,7 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
 #include "extdll.h"
 #include "util.h"
 #include "objective.h"
@@ -24,11 +25,11 @@ CMapMarker *CMapMarker::CreateMapMarker( Vector vecOrigin, Vector vecAngles, CBa
 	static int i = 0;
 
 	edict_t *pent = CREATE_ENTITY();
-	CMapMarker *pMarker = GetClassPtr( (CMapMarker *) VARS( pent ) );
+	CMapMarker *pMarker = GetClassPtr( ( CMapMarker * ) VARS( pent ) );
 	UTIL_SetOrigin( pMarker, vecOrigin );
 	pMarker->Spawn();
 
-	if ( pOwner )
+	if( pOwner )
 	{
 		pMarker->pev->owner = pOwner->edict();
 		pMarker->pev->team = pOwner->pev->team;
@@ -52,7 +53,8 @@ void CMapMarker::Spawn( void )
 
 	float stay = 10.0;
 	extern cvar_t *pcvar_mp_markerstaytime;
-	if ( pcvar_mp_markerstaytime )
+
+	if( pcvar_mp_markerstaytime )
 		stay = ( pcvar_mp_markerstaytime->value >= 2.0 ) ? pcvar_mp_markerstaytime->value : 2.0;
 
 	pev->nextthink = gpGlobals->time + stay;

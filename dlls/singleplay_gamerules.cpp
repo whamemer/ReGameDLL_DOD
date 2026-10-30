@@ -1,7 +1,7 @@
 /***
 *
 *	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
-*	
+*
 *	This product contains software technology licensed from Id
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
@@ -12,6 +12,7 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
@@ -51,9 +52,9 @@ BOOL CSPDoDRules::IsCoOp( void )
 
 BOOL CSPDoDRules::FShouldSwitchWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon )
 {
-	if ( !pPlayer->m_pActiveItem )
+	if( !pPlayer->m_pActiveItem )
 		return TRUE;
-	if ( !pPlayer->m_pActiveItem->CanHolster() )
+	if( !pPlayer->m_pActiveItem->CanHolster() )
 		return FALSE;
 	return TRUE;
 }
@@ -86,7 +87,7 @@ float CSPDoDRules::FlPlayerFallDamage( CBasePlayer *pPlayer )
 void CSPDoDRules::PlayerSpawn( CBasePlayer *pPlayer )
 {
 	CBaseEntity *e = NULL;
-	while ( ( e = UTIL_FindEntityByClassname( e, "game_player_equip" ) ) != NULL )
+	while( ( e = UTIL_FindEntityByClassname( e, "game_player_equip" ) ) != NULL )
 		e->Touch( pPlayer );
 	pPlayer->RemoveAllWeaponFlags();
 	pPlayer->m_iClassSpeed = 600;
@@ -230,6 +231,7 @@ void CSPDoDRules::SetRestartTime( float fTime ) {}
 int CSPDoDRules::TeamScores( int iTeam ) { return 1; }
 void CSPDoDRules::SetTeamScores( int iTeam, int iScore ) {}
 void CSPDoDRules::AddToTeamScores( int iTeam, int iScore ) {}
+
 unsigned short CSPDoDRules::usVoice( void ) { return 0; }
 unsigned short CSPDoDRules::bodyDamage( void ) { return 0; }
 unsigned short CSPDoDRules::roundRestartSound( void ) { return 0; }
@@ -249,6 +251,7 @@ unsigned short CSPDoDRules::Explosion( void ) { return 0; }
 unsigned short CSPDoDRules::PopHelmet( void ) { return 0; }
 unsigned short CSPDoDRules::RoundReset( void ) { return 0; }
 unsigned short CSPDoDRules::StartTrail( void ) { return 0; }
+
 void CSPDoDRules::SetCamera( short s ) {}
 void CSPDoDRules::SetusVoice( short s ) {}
 void CSPDoDRules::SetbodyDamage( short s ) {}
@@ -280,30 +283,30 @@ void CSPDoDRules::setWaveTime( int iTeam, float fTime ) {}
 BOOL CSPDoDRules::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon )
 {
 	int wid = pWeapon->m_iId;
-	if ( wid == 4 || wid == 10 )
+	if( wid == 4 || wid == 10 )
 		return FALSE;
-	if ( wid != 6 && wid != 8 && wid != 0x0c && wid != 0x0e && wid != 0x11 )
+	if( wid != 6 && wid != 8 && wid != 0x0c && wid != 0x0e && wid != 0x11 )
 	{
 		BOOL hasKnife = FALSE, hasSidearm = FALSE, hasPrimary = FALSE;
-		for ( int i = 0; i < 6; i++ )
+		for( int i = 0; i < 6; i++ )
 		{
-			for ( CBasePlayerItem *it = pPlayer->m_rgpPlayerItems[i]; it; it = it->m_pNext )
+			for( CBasePlayerItem *it = pPlayer->m_rgpPlayerItems[i]; it; it = it->m_pNext )
 			{
 				int fl = CBasePlayerItem::ItemInfoArray[it->m_iId].iFlags;
-				if ( fl & 0x20 ) hasKnife = TRUE;
-				if ( fl & 0x40 ) hasSidearm = TRUE;
-				if ( fl & 0x80 ) hasPrimary = TRUE;
-				if ( wid == it->m_iId )
+				if( fl & 0x20 ) hasKnife = TRUE;
+				if( fl & 0x40 ) hasSidearm = TRUE;
+				if( fl & 0x80 ) hasPrimary = TRUE;
+				if( wid == it->m_iId )
 					return FALSE;
 			}
 		}
 
 		int myfl = CBasePlayerItem::ItemInfoArray[wid].iFlags;
-		if ( ( myfl & 0x20 ) && hasKnife )
+		if( ( myfl & 0x20 ) && hasKnife )
 			return FALSE;
-		if ( ( myfl & 0x40 ) && hasSidearm )
+		if( ( myfl & 0x40 ) && hasSidearm )
 			return FALSE;
-		if ( ( myfl & 0x80 ) && hasPrimary )
+		if( ( myfl & 0x80 ) && hasPrimary )
 			return FALSE;
 		return TRUE;
 	}

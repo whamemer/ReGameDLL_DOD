@@ -1,9 +1,9 @@
 /***
 *
 *	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
 *
 *   Use, distribution, and modification of this source code and/or resulting
@@ -63,7 +63,7 @@ void CBaseSpectator::SpectatorImpulseCommand( void )
 	edict_t *pCurrentGoal;
 	BOOL bFound;
 
-	switch ( pev->impulse )
+	switch( pev->impulse )
 	{
 	case 1:
 		// teleport the spectator to the next spawn point
@@ -75,24 +75,24 @@ void CBaseSpectator::SpectatorImpulseCommand( void )
 		//  back around
 
 		bFound = FALSE;
-		while ( 1 )
+		while( 1 )
 		{
 			pCurrentGoal = FIND_ENTITY_BY_CLASSNAME( pCurrentGoal, "info_player_deathmatch" );
 			// Looped around, failure
-			if ( pCurrentGoal == pPreviousGoal )
+			if( pCurrentGoal == pPreviousGoal )
 			{
 				ALERT( at_console, "Could not find a spawn spot.\n" );
 				break;
 			}
 			// Found a non-world entity, set success, otherwise, look for the next one.
-			if ( !FNullEnt( pCurrentGoal ) )
+			if( !FNullEnt( pCurrentGoal ) )
 			{
 				bFound = TRUE;
 				break;
 			}
 		}
 
-		if ( !bFound )	// Didn't find a good spot.
+		if( !bFound )	// Didn't find a good spot.
 			break;
 
 		pGoal = pCurrentGoal;
@@ -117,7 +117,7 @@ Called every frame after physics are run
 */
 void CBaseSpectator::SpectatorThink( void )
 {
-	if ( !( pev->flags & FL_SPECTATOR ) )
+	if( !( pev->flags & FL_SPECTATOR ) )
 	{
 		pev->flags = FL_SPECTATOR;
 	}
@@ -125,7 +125,7 @@ void CBaseSpectator::SpectatorThink( void )
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NOCLIP;
 
-	if ( pev->impulse )
+	if( pev->impulse )
 		SpectatorImpulseCommand();
 }
 

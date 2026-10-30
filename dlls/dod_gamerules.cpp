@@ -1,7 +1,7 @@
 /***
 *
 *	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
-*	
+*
 *	This product contains software technology licensed from Id
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
@@ -12,6 +12,7 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
 #include <ctype.h>
 #include "extdll.h"
 #include "util.h"
@@ -27,12 +28,16 @@
 #include "objective.h"
 #include "voice_gamemgr.h"
 #include "dod_shared.h"
+
 extern DodClassInfo_t g_ClassInfo[];
 extern DodClassInfo_t g_ParaClassInfo[];
+
 extern DLL_GLOBAL CGameRules *g_pGameRules;
 extern DLL_GLOBAL BOOL g_fGameOver;
+
 typedef struct mapcycle_item_s mapcycle_item_t;
 typedef struct mapcycle_s mapcycle_t;
+
 extern void DestroyMapCycle( mapcycle_t *cycle );
 extern int ReloadMapCycleFile( const char *filename, mapcycle_t *cycle );
 extern void Host_Say( edict_t *pEntity, int teamonly );
@@ -40,6 +45,7 @@ extern void UpdateStatsFile( float t, char *m, float h, float a, int s );
 extern float AmmoDamage( const char *psz );
 extern void FireDODCamera( const char *p1, CBaseEntity *p2, CBaseEntity *p3, USE_TYPE t, float f );
 extern int get_maptime_left( void );
+
 extern cvar_t *pcvar_mp_clan_match;
 extern cvar_t *pcvar_mp_log_scores;
 extern cvar_t *pcvar_mp_timelimit;
@@ -48,11 +54,14 @@ extern cvar_t *pcvar_mp_combinemglimits;
 extern cvar_t *pcvar_mp_alliesclasses;
 extern cvar_t *pcvar_mp_axisclasses;
 extern int gmsgGameRules;
+
 extern void ExtractCommandString( char *s, char *szCommand );
+
 extern cvar_t *pcvar_classlimitcvars[28];
 extern char classlimitcvarNames[27][32];
 extern cvar_t *pcvar_mp_chattime;
 extern cvar_t *pcvar_mp_tkpenalty;
+
 extern int gmsgScoreShort;
 extern int gmsgTimerStatus;
 extern int gmsgHLTV;
@@ -64,9 +73,12 @@ extern int gmsgRoundState;
 extern int gmsgTeamScore;
 extern int gmsgWaveStatus;
 extern int gmsgWaveTime;
+
 extern cvar_t cvar_timelimit;
 extern cvar_t cvar_weaponstay;
+
 extern int g_teamplay;
+
 extern cvar_t *pcvar_mp_teamlimit;
 extern cvar_t *pcvar_mp_allowspectators;
 extern cvar_t *pcvar_mp_friendlyfire;
@@ -76,12 +88,14 @@ extern cvar_t *pcvar_mp_clan_restartround;
 extern cvar_t *pcvar_mp_clan_readyrestart;
 extern cvar_t *pcvar_mp_clan_match_warmup;
 extern cvar_t *pcvar_mp_clan_respawntime;
+
 extern int gmsgPClass;
 extern int gmsgPStatus;
 extern int gmsgPTeam;
 extern int gmsgClanTimer;
 extern int gmsgServerName;
 extern int gmsgMOTD;
+
 extern void ShowVGUI( CBasePlayer *pPlayer, int iMenu, int iParam );
 void RespawnAllies( void );
 void RespawnAxis( void );
@@ -104,13 +118,13 @@ public:
 };
 bool CMultiplayGameMgrHelper::CanPlayerHearPlayer( CBasePlayer *pListener, CBasePlayer *pTalker )
 {
-	if ( g_teamplay )
+	if( g_teamplay )
 	{
 		// only the team hears, and the living are heard by the dead but not the other way round
-		if ( pTalker->pev->team != pListener->pev->team )
+		if( pTalker->pev->team != pListener->pev->team )
 			return false;
 
-		if ( pTalker->pev->deadflag != pListener->pev->deadflag )
+		if( pTalker->pev->deadflag != pListener->pev->deadflag )
 			return pTalker->pev->deadflag == DEAD_NO;
 	}
 
@@ -184,11 +198,11 @@ CDoDTeamPlay::CDoDTeamPlay( void )
 	g_flTimeLimit = gpGlobals->time;
 	m_flDoDMapTime = gpGlobals->time;
 
-	if ( !IS_DEDICATED_SERVER() )
+	if( !IS_DEDICATED_SERVER() )
 	{
 		const char *lservercfgfile = CVAR_GET_STRING( "lservercfgfile" );
 
-		if ( lservercfgfile && *lservercfgfile )
+		if( lservercfgfile && *lservercfgfile )
 		{
 			char szCommand[256];
 
@@ -238,7 +252,7 @@ CDoDTeamPlay::CDoDTeamPlay( void )
 	m_flSpamResetTime = 0.0f;
 	m_vKickENT = NULL;
 
-	if ( MapChangeFromTime != 1 )
+	if( MapChangeFromTime != 1 )
 		SetNextMap();
 
 	MapChangeFromTime = 1;
@@ -250,13 +264,13 @@ CDoDTeamPlay::CDoDTeamPlay( void )
 
 	float flLogDelay = 10.0f;
 
-	if ( pcvar_mp_log_scores_delay )
+	if( pcvar_mp_log_scores_delay )
 	{
-		if ( pcvar_mp_log_scores_delay->value >= 1.0 )
+		if( pcvar_mp_log_scores_delay->value >= 1.0 )
 		{
 			flLogDelay = pcvar_mp_log_scores_delay->value;
 
-			if ( flLogDelay > 600.0 )
+			if( flLogDelay > 600.0 )
 				flLogDelay = 600.0;
 		}
 		else
@@ -270,16 +284,16 @@ CDoDTeamPlay::CDoDTeamPlay( void )
 	// the cvars of the class limits, class 0 has none
 	pcvar_classlimitcvars[0] = NULL;
 
-	for ( int i = 1; i != 27; i++ )
+	for( int i = 1; i != 27; i++ )
 		pcvar_classlimitcvars[i] = CVAR_GET_POINTER( classlimitcvarNames[i] );
 }
 
 float CDoDTeamPlay::FlWeaponRespawnTime( CBasePlayerItem *pWeapon )
 {
-	if ( ( CBasePlayerItem::ItemInfoArray[pWeapon->m_iId].iFlags & ITEM_FLAG_LAUNCHER ) == 0 )
+	if( ( CBasePlayerItem::ItemInfoArray[pWeapon->m_iId].iFlags & ITEM_FLAG_LAUNCHER ) == 0 )
 	{
-		if ( cvar_weaponstay.value > 0.0f &&
-			 ( CBasePlayerItem::ItemInfoArray[pWeapon->m_iId].iFlags & ITEM_FLAG_LIMITINWORLD ) == 0 )
+		if( cvar_weaponstay.value > 0.0f &&
+			( CBasePlayerItem::ItemInfoArray[pWeapon->m_iId].iFlags & ITEM_FLAG_LIMITINWORLD ) == 0 )
 			return gpGlobals->time;
 		return 20.0f + gpGlobals->time;
 	}
@@ -313,11 +327,11 @@ void DestroyMapCycle( mapcycle_t *cycle )
 {
 	mapcycle_item_s *p, *n, *start;
 	p = cycle->items;
-	if ( p )
+	if( p )
 	{
 		start = p;
 		p = p->next;
-		while ( p != start )
+		while( p != start )
 		{
 			n = p->next;
 			delete p;
@@ -334,10 +348,10 @@ void DestroyMapCycle( mapcycle_t *cycle )
 int CountPlayers( void )
 {
 	int n = 0;
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBaseEntity *p = UTIL_PlayerByIndex( i );
-		if ( p )
+		if( p )
 			n++;
 	}
 
@@ -347,32 +361,32 @@ int CountPlayers( void )
 void ExtractCommandString( char *s, char *szCommand )
 {
 	char pkey[512], value[512];
-	if ( s[0] == '\\' )
+	if( s[0] == '\\' )
 		s++;
-	while ( 1 )
+	while( 1 )
 	{
-		if ( s[0] == '\\' )
+		if( s[0] == '\\' )
 		{
 			s++;
 			char *o = pkey;
 			*o = 0;
 			char *d = value;
 			*d = 0;
-			while ( s[0] && s[0] != '\\' )
+			while( s[0] && s[0] != '\\' )
 				*o++ = *s++;
 			*o = 0;
 			strcat( szCommand, pkey );
-			if ( value[0] )
+			if( value[0] )
 			{
 				strcat( szCommand, " " );
 				strcat( szCommand, value );
 			}
 
 			strcat( szCommand, "\n" );
-			if ( !s[0] )
+			if( !s[0] )
 				return;
 		}
-		else if ( !s[0] )
+		else if( !s[0] )
 			return;
 		else
 			s++;
@@ -382,33 +396,33 @@ void ExtractCommandString( char *s, char *szCommand )
 char *COM_Parse( char *data )
 {
 	com_token[0] = 0;
-	if ( !data )
+	if( !data )
 		return NULL;
-	while ( *data <= ' ' )
+	while( *data <= ' ' )
 	{
-		if ( !*data )
+		if( !*data )
 			return NULL;
 		data++;
 	}
 
-	if ( data[0] == '/' && data[1] == '/' )
+	if( data[0] == '/' && data[1] == '/' )
 	{
-		while ( *data && *data != '\n' )
+		while( *data && *data != '\n' )
 			data++;
 		return COM_Parse( data );
 	}
 
-	if ( *data == '\"' )
+	if( *data == '\"' )
 	{
 		int len = 0;
 		data++;
-		while ( *data && *data != '\"' )
+		while( *data && *data != '\"' )
 			com_token[len++] = *data++;
 		com_token[len] = 0;
 		return *data ? data + 1 : data;
 	}
 
-	if ( *data == '{' || *data == '}' || *data == '(' || *data == ')' || *data == ',' || *data == '\'' )
+	if( *data == '{' || *data == '}' || *data == '(' || *data == ')' || *data == ',' || *data == '\'' )
 	{
 		com_token[0] = *data++;
 		com_token[1] = 0;
@@ -416,19 +430,20 @@ char *COM_Parse( char *data )
 	}
 
 	int len = 0;
-	while ( *data > ' ' && *data != '{' && *data != '}' && *data != '(' && *data != ')' && *data != ',' && *data != '\'' )
+	while( *data > ' ' && *data != '{' && *data != '}' && *data != '(' && *data != ')' && *data != ',' && *data != '\'' )
 		com_token[len++] = *data++;
 	com_token[len] = 0;
 	return data;
 }
+
 BOOL COM_TokenWaiting( char *buffer )
 {
 	// is there something but spaces before the end of the line
 	char *p = buffer;
 
-	while ( *p && *p != '\n' )
+	while( *p && *p != '\n' )
 	{
-		if ( !isspace( *p ) || isalnum( *p ) )
+		if( !isspace( *p ) || isalnum( *p ) )
 			return 1;
 
 		p++;
@@ -456,19 +471,19 @@ void CDoDTeamPlay::ChangeLevel( void )
 	strcpy( szFirstMapInList, "dod_caen" );
 
 	// find the map to change to
-	char *mapcfile = (char *)CVAR_GET_STRING( "mapcyclefile" );
+	char *mapcfile = ( char * ) CVAR_GET_STRING( "mapcyclefile" );
 
 	szCommands[0] = 0;
 	szRules[0] = 0;
 
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		if ( UTIL_PlayerByIndex( i ) )
+		if( UTIL_PlayerByIndex( i ) )
 			curplayers++;
 	}
 
 	// has the map cycle filename changed?
-	if ( stricmp( mapcfile, szPreviousMapCycleFile ) )
+	if( stricmp( mapcfile, szPreviousMapCycleFile ) )
 	{
 		strcpy( szPreviousMapCycleFile, mapcfile );
 
@@ -477,18 +492,18 @@ void CDoDTeamPlay::ChangeLevel( void )
 		mapcycle.items = NULL;
 		mapcycle.next_item = NULL;
 
-		if ( !ReloadMapCycleFile( mapcfile, &mapcycle ) || !mapcycle.items )
+		if( !ReloadMapCycleFile( mapcfile, &mapcycle ) || !mapcycle.items )
 		{
 			ALERT( at_console, "Unable to load map cycle file %s\n", mapcfile );
 			do_cycle = FALSE;
 		}
 	}
-	else if ( !mapcycle.items )
+	else if( !mapcycle.items )
 	{
 		do_cycle = FALSE;
 	}
 
-	if ( do_cycle )
+	if( do_cycle )
 	{
 		BOOL keeplooking = FALSE;
 		BOOL found = FALSE;
@@ -499,13 +514,13 @@ void CDoDTeamPlay::ChangeLevel( void )
 		strcpy( szFirstMapInList, STRING( gpGlobals->mapname ) );
 
 		// traverse the list
-		for ( item = mapcycle.next_item; item->next != mapcycle.next_item; item = item->next )
+		for( item = mapcycle.next_item; item->next != mapcycle.next_item; item = item->next )
 		{
 			keeplooking = FALSE;
 
-			if ( item->minplayers != 0 )
+			if( item->minplayers != 0 )
 			{
-				if ( curplayers >= item->minplayers )
+				if( curplayers >= item->minplayers )
 				{
 					found = TRUE;
 					minplayers = item->minplayers;
@@ -516,9 +531,9 @@ void CDoDTeamPlay::ChangeLevel( void )
 				}
 			}
 
-			if ( item->maxplayers != 0 )
+			if( item->maxplayers != 0 )
 			{
-				if ( curplayers <= item->maxplayers )
+				if( curplayers <= item->maxplayers )
 				{
 					found = TRUE;
 					maxplayers = item->maxplayers;
@@ -529,14 +544,14 @@ void CDoDTeamPlay::ChangeLevel( void )
 				}
 			}
 
-			if ( keeplooking )
+			if( keeplooking )
 				continue;
 
 			found = TRUE;
 			break;
 		}
 
-		if ( !found )
+		if( !found )
 			item = mapcycle.next_item;
 
 		// increment the next item pointer
@@ -548,13 +563,13 @@ void CDoDTeamPlay::ChangeLevel( void )
 		strcpy( szRules, item->rulebuffer );
 	}
 
-	if ( !IS_MAP_VALID( szNextMap ) )
+	if( !IS_MAP_VALID( szNextMap ) )
 		strcpy( szNextMap, szFirstMapInList );
 
 	g_fGameOver = TRUE;
 
 	// the clan match is back in the warmup on the next map
-	if ( IsClanMatch() && m_bClanMatch )
+	if( IsClanMatch() && m_bClanMatch )
 	{
 		m_bClanMatchActive = FALSE;
 		setMapTime();
@@ -563,15 +578,15 @@ void CDoDTeamPlay::ChangeLevel( void )
 
 	ALERT( at_console, "CHANGE LEVEL: %s\n", szNextMap );
 
-	if ( minplayers || maxplayers )
+	if( minplayers || maxplayers )
 		ALERT( at_console, "PLAYER COUNT:  min %i max %i current %i\n", minplayers, maxplayers, curplayers );
 
-	if ( strlen( szRules ) > 0 )
+	if( strlen( szRules ) > 0 )
 		ALERT( at_console, "RULES:  %s\n", szRules );
 
 	CHANGE_LEVEL( szNextMap, NULL );
 
-	if ( strlen( szCommands ) > 0 )
+	if( strlen( szCommands ) > 0 )
 		SERVER_COMMAND( szCommands );
 }
 
@@ -604,7 +619,7 @@ int CDoDTeamPlay::DeadPlayerAmmo( CBasePlayer *pPlayer )
 
 int CDoDTeamPlay::ItemShouldRespawn( CItem *pItem )
 {
-	if ( ( pItem->pev->spawnflags & SF_NORESPAWN ) == 0 )
+	if( ( pItem->pev->spawnflags & SF_NORESPAWN ) == 0 )
 		return GR_ITEM_RESPAWN_NO;
 	return GR_ITEM_RESPAWN_YES;
 }
@@ -612,20 +627,20 @@ int CDoDTeamPlay::ItemShouldRespawn( CItem *pItem )
 void CDoDTeamPlay::SendMOTDToClient( edict_t *client )
 {
 	int length = 0;
-	char *pFileList = (char *) LOAD_FILE_FOR_ME( CVAR_GET_STRING( "motdfile" ), &length );
+	char *pFileList = ( char * ) LOAD_FILE_FOR_ME( CVAR_GET_STRING( "motdfile" ), &length );
 
 	MESSAGE_BEGIN( MSG_ONE, gmsgServerName, NULL, client );
 	WRITE_STRING( CVAR_GET_STRING( "hostname" ) );
 	MESSAGE_END();
 
-	if ( pFileList && pFileList[0] != 0 )
+	if( pFileList && pFileList[0] != 0 )
 	{
 		int char_count = 0;
 		char *aFileList = pFileList;
 		do
 		{
 			char chunk[61];
-			if ( (int) strlen( aFileList ) < 60 )
+			if( ( int ) strlen( aFileList ) < 60 )
 				strcpy( chunk, aFileList );
 			else
 			{
@@ -633,8 +648,8 @@ void CDoDTeamPlay::SendMOTDToClient( edict_t *client )
 				chunk[60] = 0;
 			}
 
-			char_count += (int) strlen( chunk );
-			if ( char_count < 0x600 )
+			char_count += ( int ) strlen( chunk );
+			if( char_count < 0x600 )
 				aFileList = pFileList + char_count;
 			else
 				*aFileList = 0;
@@ -642,7 +657,7 @@ void CDoDTeamPlay::SendMOTDToClient( edict_t *client )
 			WRITE_BYTE( ( *aFileList == 0 ) );
 			WRITE_STRING( chunk );
 			MESSAGE_END();
-		} while ( *aFileList != 0 && char_count < 0x600 );
+		} while( *aFileList != 0 && char_count < 0x600 );
 	}
 
 	FREE_FILE( pFileList );
@@ -660,17 +675,17 @@ Vector CDoDTeamPlay::VecItemRespawnSpot( CItem *pItem )
 
 float CDoDTeamPlay::FlWeaponTryRespawn( CBasePlayerItem *pWeapon )
 {
-	if ( pWeapon == NULL )
+	if( pWeapon == NULL )
 		return 0.0f;
-	if ( pWeapon->m_iId != 0 && ( CBasePlayerItem::ItemInfoArray[pWeapon->m_iId].iFlags & ITEM_FLAG_LIMITINWORLD ) != 0 &&
-		 (int) NUMBER_OF_ENTITIES() >= gpGlobals->maxEntities - 100 )
+	if( pWeapon->m_iId != 0 && ( CBasePlayerItem::ItemInfoArray[pWeapon->m_iId].iFlags & ITEM_FLAG_LIMITINWORLD ) != 0 &&
+		( int ) NUMBER_OF_ENTITIES() >= gpGlobals->maxEntities - 100 )
 		return FlWeaponRespawnTime( pWeapon );
 	return 0.0f;
 }
 
 int CDoDTeamPlay::AmmoShouldRespawn( CBasePlayerAmmo *pAmmo )
 {
-	if ( ( pAmmo->pev->spawnflags & SF_NORESPAWN ) != 0 )
+	if( ( pAmmo->pev->spawnflags & SF_NORESPAWN ) != 0 )
 		return 4;
 	return 3;
 }
@@ -686,7 +701,7 @@ Vector CDoDTeamPlay::VecAmmoRespawnSpot( CBasePlayerAmmo *pAmmo )
 
 int CDoDTeamPlay::WeaponShouldRespawn( CBasePlayerItem *pWeapon )
 {
-	if ( ( pWeapon->pev->spawnflags & SF_NORESPAWN ) != 0 )
+	if( ( pWeapon->pev->spawnflags & SF_NORESPAWN ) != 0 )
 		return 2;
 	return 2 - ( ( pWeapon->pev->flags & FL_IMMUNE_LAVA ) == 0 );
 }
@@ -708,33 +723,33 @@ float CDoDTeamPlay::FlPlayerSpawnTime( CBasePlayer *pPlayer )
 edict_t *CDoDTeamPlay::GetPlayerSpawnSpot( CBasePlayer *pPlayer )
 {
 	edict_t *spot = CGameRules::GetPlayerSpawnSpot( pPlayer );
-	if ( spot && IsMultiplayer() && spot->v.target != 0 )
+	if( spot && IsMultiplayer() && spot->v.target != 0 )
 		FireTargets( STRING( spot->v.target ), pPlayer, pPlayer, USE_TOGGLE, 0.0f );
 	return spot;
 }
 
 BOOL CDoDTeamPlay::GetNextBestWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pCurrentWeapon )
 {
-	if ( !pCurrentWeapon->CanHolster() )
+	if( !pCurrentWeapon->CanHolster() )
 		return FALSE;
 
 	CBasePlayerItem *pBest = NULL;
 	int iBestWeight = -1;
 
-	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
+	for( int i = 0; i < MAX_ITEM_TYPES; i++ )
 	{
-		for ( CBasePlayerItem *pCheck = pPlayer->m_rgpPlayerItems[i]; pCheck; pCheck = pCheck->m_pNext )
+		for( CBasePlayerItem *pCheck = pPlayer->m_rgpPlayerItems[i]; pCheck; pCheck = pCheck->m_pNext )
 		{
-			if ( pCheck->iWeight() > -1 && pCheck->iWeight() == pCurrentWeapon->iWeight() && pCheck != pCurrentWeapon )
+			if( pCheck->iWeight() > -1 && pCheck->iWeight() == pCurrentWeapon->iWeight() && pCheck != pCurrentWeapon )
 			{
 				// this weapon is from the same category
-				if ( pCheck->CanDeploy() && pPlayer->SwitchWeapon( pCheck, 0 ) )
+				if( pCheck->CanDeploy() && pPlayer->SwitchWeapon( pCheck, 0 ) )
 					return TRUE;
 			}
-			else if ( pCheck->iWeight() > iBestWeight && pCheck != pCurrentWeapon )
+			else if( pCheck->iWeight() > iBestWeight && pCheck != pCurrentWeapon )
 			{
 				// the best weapon in case there is none of the same weight
-				if ( pCheck->CanDeploy() )
+				if( pCheck->CanDeploy() )
 				{
 					pBest = pCheck;
 					iBestWeight = pCheck->iWeight();
@@ -743,7 +758,7 @@ BOOL CDoDTeamPlay::GetNextBestWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pCu
 		}
 	}
 
-	if ( !pBest )
+	if( !pBest )
 		return FALSE;
 
 	pPlayer->SwitchWeapon( pBest, 0 );
@@ -758,7 +773,7 @@ void CDoDTeamPlay::PlayerGotWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeap
 
 	// a launcher that dies makes its spawn point materialize again
 	pWeapon->m_bTriggerSpawnOnDie = FALSE;
-	if ( !( pWeapon->pev->flags & FL_IMMUNE_LAVA ) && ( ii.iFlags & ITEM_FLAG_LAUNCHER ) )
+	if( !( pWeapon->pev->flags & FL_IMMUNE_LAVA ) && ( ii.iFlags & ITEM_FLAG_LAUNCHER ) )
 		pWeapon->m_bTriggerSpawnOnDie = TRUE;
 }
 
@@ -773,19 +788,19 @@ float CDoDTeamPlay::FlHEVChargerRechargeTime( void )
 
 BOOL CDoDTeamPlay::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pItem )
 {
-	if ( cvar_weaponstay.value <= 0.0f || ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & ITEM_FLAG_LIMITINWORLD ) == 0 )
+	if( cvar_weaponstay.value <= 0.0f || ( CBasePlayerItem::ItemInfoArray[pItem->m_iId].iFlags & ITEM_FLAG_LIMITINWORLD ) == 0 )
 	{
 		unsigned int cls = pItem->Classify();
 		unsigned int mask = cls & 8;
-		if ( ( cls & 0x3F0 ) != 0 )
+		if( ( cls & 0x3F0 ) != 0 )
 			mask = 0x3F0;
-		if ( ( cls & 1 ) != 0 )
+		if( ( cls & 1 ) != 0 )
 			mask = 1;
-		if ( ( cls & 6 ) == 0 )
+		if( ( cls & 6 ) == 0 )
 		{
-			for ( int i = 0; i < 6; i++ )
-				for ( CBasePlayerItem *p = pPlayer->m_rgpPlayerItems[i]; p; p = p->m_pNext )
-					if ( p->Classify() & mask )
+			for( int i = 0; i < 6; i++ )
+				for( CBasePlayerItem *p = pPlayer->m_rgpPlayerItems[i]; p; p = p->m_pNext )
+					if( p->Classify() & mask )
 						return FALSE;
 		}
 	}
@@ -841,39 +856,39 @@ void CDoDTeamPlay::Think( void )
 {
 	g_VoiceGameMgr.Update( gpGlobals->frametime );
 
-	if ( g_fGameOver )
+	if( g_fGameOver )
 	{
 		// the dead players watch the intermission, not the respawn countdown
-		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		for( int i = 1; i <= gpGlobals->maxClients; i++ )
 		{
-			CBasePlayer *pPlayer = (CBasePlayer *)UTIL_PlayerByIndex( i );
+			CBasePlayer *pPlayer = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
 
-			if ( !pPlayer || pPlayer->IsAlive() )
+			if( !pPlayer || pPlayer->IsAlive() )
 				continue;
 
 			pPlayer->StopObserver();
 
-			if ( ( pPlayer->pev->team == TEAM_ALLIES && m_GamePlayRules.m_bAlliesInfiniteLives ) ||
-				 ( pPlayer->pev->team == TEAM_AXIS && m_GamePlayRules.m_bAxisInfiniteLives ) )
+			if( ( pPlayer->pev->team == TEAM_ALLIES && m_GamePlayRules.m_bAlliesInfiniteLives ) ||
+				( pPlayer->pev->team == TEAM_AXIS && m_GamePlayRules.m_bAxisInfiniteLives ) )
 			{
 				MESSAGE_BEGIN( MSG_ONE, gmsgWaveStatus, NULL, pPlayer->edict() );
-					WRITE_BYTE( 0 );
+				WRITE_BYTE( 0 );
 				MESSAGE_END();
 			}
 		}
 
 		float flChatTime = pcvar_mp_chattime ? pcvar_mp_chattime->value : 0;
 
-		if ( pcvar_mp_chattime )
+		if( pcvar_mp_chattime )
 		{
-			int iChatTime = (int)flChatTime;
+			int iChatTime = ( int ) flChatTime;
 
-			if ( iChatTime <= 9 )
+			if( iChatTime <= 9 )
 			{
 				CVAR_SET_FLOAT( "mp_chattime", 10 );
 				flChatTime = pcvar_mp_chattime->value;
 			}
-			else if ( iChatTime > 120 )
+			else if( iChatTime > 120 )
 			{
 				CVAR_SET_FLOAT( "mp_chattime", 120 );
 				flChatTime = pcvar_mp_chattime->value;
@@ -882,22 +897,22 @@ void CDoDTeamPlay::Think( void )
 
 		m_flIntermissionEndTime = flChatTime + g_flIntermissionStartTime;
 
-		if ( gpGlobals->time > m_flIntermissionEndTime &&
-			 ( m_iEndIntermissionButtonHit || gpGlobals->time > g_flIntermissionStartTime + 120.0 ) )
+		if( gpGlobals->time > m_flIntermissionEndTime &&
+			( m_iEndIntermissionButtonHit || gpGlobals->time > g_flIntermissionStartTime + 120.0 ) )
 		{
 			int iAllies = 0;
 			int iAxis = 0;
 
-			for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+			for( int i = 1; i <= gpGlobals->maxClients; i++ )
 			{
 				CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
 
-				if ( !pPlayer )
+				if( !pPlayer )
 					continue;
 
-				if ( pPlayer->pev->team == TEAM_ALLIES )
+				if( pPlayer->pev->team == TEAM_ALLIES )
 					iAllies++;
-				else if ( pPlayer->pev->team == TEAM_AXIS )
+				else if( pPlayer->pev->team == TEAM_AXIS )
 					iAxis++;
 			}
 
@@ -913,24 +928,24 @@ void CDoDTeamPlay::Think( void )
 
 	float flTimeLimit = 3600.0f;
 
-	if ( pcvar_mp_timelimit )
+	if( pcvar_mp_timelimit )
 		flTimeLimit = 60.0f * pcvar_mp_timelimit->value;
 
-	if ( get_maptime_left() <= 0 && (int)flTimeLimit )
+	if( get_maptime_left() <= 0 && ( int ) flTimeLimit )
 	{
 		GoToIntermission();
 		return;
 	}
 
-	if ( gpGlobals->time > m_fLogScoresTime && pcvar_mp_log_scores && pcvar_mp_log_scores->value > 0.0 )
+	if( gpGlobals->time > m_fLogScoresTime && pcvar_mp_log_scores && pcvar_mp_log_scores->value > 0.0 )
 	{
 		float flDelay = 1.0f;
 
-		if ( pcvar_mp_log_scores->value >= 1.0 )
+		if( pcvar_mp_log_scores->value >= 1.0 )
 		{
 			flDelay = pcvar_mp_log_scores->value;
 
-			if ( flDelay > 600.0 )
+			if( flDelay > 600.0 )
 				flDelay = 600.0;
 		}
 
@@ -939,35 +954,35 @@ void CDoDTeamPlay::Think( void )
 		m_fLogScoresTime = gpGlobals->time + flDelay;
 	}
 
-	if ( m_RoundState == ROUNDSTATE_RUNNING && ( !m_GamePlayRules.m_bAlliesInfiniteLives || !m_GamePlayRules.m_bAxisInfiniteLives ) )
+	if( m_RoundState == ROUNDSTATE_RUNNING && ( !m_GamePlayRules.m_bAlliesInfiniteLives || !m_GamePlayRules.m_bAxisInfiniteLives ) )
 	{
 		m_flRoundTime += gpGlobals->frametime;
 		m_RoundParaCanJoin = m_flRoundTime <= 30.0;
 	}
 
-	if ( IsClanMatch() )
+	if( IsClanMatch() )
 	{
-		if ( pcvar_mp_clan_match && pcvar_mp_clan_match->value <= 0.0 )
+		if( pcvar_mp_clan_match && pcvar_mp_clan_match->value <= 0.0 )
 		{
 			SetClanMatch( FALSE );
 			setMapTime();
 		}
-		else if ( pcvar_mp_clan_restartround && pcvar_mp_clan_restartround->value > 0.0 )
+		else if( pcvar_mp_clan_restartround && pcvar_mp_clan_restartround->value > 0.0 )
 		{
 			StartClanRestart();
 			CVAR_SET_FLOAT( "mp_clan_restartround", 0 );
 		}
-		else if ( pcvar_mp_clan_readyrestart && pcvar_mp_clan_readyrestart->value > 0.0 )
+		else if( pcvar_mp_clan_readyrestart && pcvar_mp_clan_readyrestart->value > 0.0 )
 		{
 			m_bAwaitingReadyRestart = TRUE;
 			m_bHeardAlliesReady = FALSE;
 			m_bHeardAxisReady = FALSE;
 
-			UTIL_ClientPrintAll( HUD_PRINTCENTER, "#clan_ready_rules", (char *)CVAR_GET_STRING( "mp_clan_ready_signal" ), NULL, NULL, NULL );
+			UTIL_ClientPrintAll( HUD_PRINTCENTER, "#clan_ready_rules", ( char * ) CVAR_GET_STRING( "mp_clan_ready_signal" ), NULL, NULL, NULL );
 
 			CVAR_SET_FLOAT( "mp_clan_readyrestart", 0 );
 		}
-		else if ( pcvar_mp_clan_match_warmup && pcvar_mp_clan_match_warmup->value > 0.0 )
+		else if( pcvar_mp_clan_match_warmup && pcvar_mp_clan_match_warmup->value > 0.0 )
 		{
 			UTIL_ClientPrintAll( HUD_PRINTCENTER, "#clan_warmup_rules", NULL, NULL, NULL, NULL );
 
@@ -975,7 +990,7 @@ void CDoDTeamPlay::Think( void )
 
 			CVAR_SET_FLOAT( "mp_clan_match_warmup", 0 );
 		}
-		else if ( m_bAwaitingReadyRestart && m_bHeardAlliesReady && m_bHeardAxisReady )
+		else if( m_bAwaitingReadyRestart && m_bHeardAlliesReady && m_bHeardAxisReady )
 		{
 			StartClanRestart();
 
@@ -983,38 +998,38 @@ void CDoDTeamPlay::Think( void )
 			m_bHeardAlliesReady = FALSE;
 			m_bHeardAxisReady = FALSE;
 		}
-		else if ( m_bRoundRestarting && gpGlobals->time > m_flRestartRoundTime )
+		else if( m_bRoundRestarting && gpGlobals->time > m_flRestartRoundTime )
 		{
 			StartClanMatch();
 		}
 	}
-	else if ( pcvar_mp_clan_match && pcvar_mp_clan_match->value > 0.0 )
+	else if( pcvar_mp_clan_match && pcvar_mp_clan_match->value > 0.0 )
 	{
 		SetClanMatch( TRUE );
 
 		UTIL_ClientPrintAll( HUD_PRINTCENTER, "#clan_warmup_rules", NULL, NULL, NULL, NULL );
 	}
 
-	if ( m_RoundState == ROUNDSTATE_PREROUND )
+	if( m_RoundState == ROUNDSTATE_PREROUND )
 	{
-		if ( gpGlobals->time >= m_flGoodToGoTime && !m_rReadyToUnFreeze )
+		if( gpGlobals->time >= m_flGoodToGoTime && !m_rReadyToUnFreeze )
 		{
 			GoodToGo();
 		}
-		else if ( gpGlobals->time >= m_rRoundStartCount )
+		else if( gpGlobals->time >= m_rRoundStartCount )
 		{
-			if ( m_rReadyToUnFreeze == 2 )
+			if( m_rReadyToUnFreeze == 2 )
 				RoundFreeze();
-			else if ( m_rReadyToUnFreeze == 1 && m_DoDCameraState <= 0 )
+			else if( m_rReadyToUnFreeze == 1 && m_DoDCameraState <= 0 )
 				RoundUnfreeze();
 		}
 	}
 
-	if ( !g_fGameOver )
+	if( !g_fGameOver )
 	{
 		BOOL bContinue = TRUE;
 
-		if ( m_flAlliesWaveTime != 0 && m_RoundState == ROUNDSTATE_RUNNING && (int)m_flAlliesRespawn <= (int)gpGlobals->time )
+		if( m_flAlliesWaveTime != 0 && m_RoundState == ROUNDSTATE_RUNNING && ( int ) m_flAlliesRespawn <= ( int ) gpGlobals->time )
 		{
 			RespawnAllies();
 
@@ -1022,7 +1037,7 @@ void CDoDTeamPlay::Think( void )
 			bContinue = !g_fGameOver;
 		}
 
-		if ( bContinue && m_flAxisWaveTime != 0 && m_RoundState == ROUNDSTATE_RUNNING && (int)m_flAxisRespawn <= (int)gpGlobals->time )
+		if( bContinue && m_flAxisWaveTime != 0 && m_RoundState == ROUNDSTATE_RUNNING && ( int ) m_flAxisRespawn <= ( int ) gpGlobals->time )
 		{
 			RespawnAxis();
 
@@ -1030,7 +1045,7 @@ void CDoDTeamPlay::Think( void )
 		}
 	}
 
-	if ( gpGlobals->time >= m_flRestartTime && (unsigned int)( m_RoundState - 3 ) <= 2 && !g_fGameOver && m_DoDCameraState <= 0 )
+	if( gpGlobals->time >= m_flRestartTime && ( unsigned int ) ( m_RoundState - 3 ) <= 2 && !g_fGameOver && m_DoDCameraState <= 0 )
 	{
 		m_SaveRoundState = m_RoundState;
 
@@ -1043,9 +1058,9 @@ void CDoDTeamPlay::Think( void )
 void CDoDTeamPlay::GoToIntermission( void )
 {
 	UTIL_LogPrintf( "Final Scores: Allies: %d   Axis: %d\n", m_iTeamScores[1], m_iTeamScores[2] );
-	if ( g_fGameOver )
+	if( g_fGameOver )
 		return;
-	if ( IsClanMatch() && m_bClanMatch )
+	if( IsClanMatch() && m_bClanMatch )
 	{
 		m_bClanMatchActive = FALSE;
 		setMapTime();
@@ -1055,19 +1070,19 @@ void CDoDTeamPlay::GoToIntermission( void )
 	MESSAGE_BEGIN( MSG_ALL, SVC_INTERMISSION );
 	MESSAGE_END();
 
-	int ct = pcvar_mp_chattime ? (int) pcvar_mp_chattime->value : 10;
-	if ( ct < 10 )
+	int ct = pcvar_mp_chattime ? ( int ) pcvar_mp_chattime->value : 10;
+	if( ct < 10 )
 	{
 		CVAR_SET_FLOAT( "mp_chattime", 10.0f );
 		ct = 10;
 	}
-	else if ( ct > 120 )
+	else if( ct > 120 )
 	{
 		CVAR_SET_FLOAT( "mp_chattime", 120.0f );
 		ct = 120;
 	}
 
-	m_flIntermissionEndTime = gpGlobals->time + (float) ct;
+	m_flIntermissionEndTime = gpGlobals->time + ( float ) ct;
 	g_flIntermissionStartTime = gpGlobals->time;
 	g_fGameOver = TRUE;
 	m_iEndIntermissionButtonHit = TRUE;
@@ -1075,7 +1090,7 @@ void CDoDTeamPlay::GoToIntermission( void )
 
 void CDoDTeamPlay::PlayerThink( CBasePlayer *pPlayer )
 {
-	if ( g_fGameOver )
+	if( g_fGameOver )
 	{
 		pPlayer->m_afButtonPressed = 0;
 		pPlayer->pev->button = 0;
@@ -1085,11 +1100,11 @@ void CDoDTeamPlay::PlayerThink( CBasePlayer *pPlayer )
 
 BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 {
-	if ( g_VoiceGameMgr.ClientCommand( pPlayer, pcmd ) )
+	if( g_VoiceGameMgr.ClientCommand( pPlayer, pcmd ) )
 		return TRUE;
 
 	// the spectate command is sent by the HLTV proxy
-	if ( !strcmp( pcmd, "spectate" ) && ( pPlayer->pev->flags & FL_PROXY ) )
+	if( !strcmp( pcmd, "spectate" ) && ( pPlayer->pev->flags & FL_PROXY ) )
 	{
 		pPlayer->pev->flags |= FL_PROXY;
 		pPlayer->m_iNextClass = -1;
@@ -1098,8 +1113,8 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		pPlayer->pev->team = TEAM_SPECTATOR;
 
 		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" joined team \"%s\"\n", STRING( pPlayer->pev->netname ),
-						GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ), g_szTeamNames[0],
-						g_szTeamNames[pPlayer->pev->team] );
+			GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ), g_szTeamNames[0],
+			g_szTeamNames[pPlayer->pev->team] );
 
 		pPlayer->m_iJoiningState = JOINED;
 
@@ -1116,25 +1131,25 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		return FALSE;
 	}
 
-	if ( !strcmp( pcmd, "specmode" ) )
+	if( !strcmp( pcmd, "specmode" ) )
 	{
-		if ( pPlayer->pev->iuser1 > 0 )
+		if( pPlayer->pev->iuser1 > 0 )
 			pPlayer->Observer_SetMode( atoi( CMD_ARGV( 1 ) ) );
 
 		return FALSE;
 	}
 
-	if ( !strcmp( pcmd, "follownext" ) )
+	if( !strcmp( pcmd, "follownext" ) )
 	{
-		if ( pPlayer->pev->iuser1 > 0 )
+		if( pPlayer->pev->iuser1 > 0 )
 			pPlayer->Observer_FindNextPlayer( atoi( CMD_ARGV( 1 ) ) != 0 );
 
 		return FALSE;
 	}
 
-	if ( !strcmp( pcmd, "spectateperson" ) )
+	if( !strcmp( pcmd, "spectateperson" ) )
 	{
-		if ( CMD_ARGC() > 1 )
+		if( CMD_ARGC() > 1 )
 		{
 			pPlayer->Observer_SpectatePlayer( atoi( CMD_ARGV( 1 ) ) );
 			return FALSE;
@@ -1143,15 +1158,15 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		return TRUE;
 	}
 
-	if ( !strcmp( pcmd, "fullupdate" ) )
+	if( !strcmp( pcmd, "fullupdate" ) )
 	{
 		pPlayer->ForceClientDllUpdate();
 		return FALSE;
 	}
 
-	if ( !strcmp( pcmd, "timeleft" ) )
+	if( !strcmp( pcmd, "timeleft" ) )
 	{
-		if ( cvar_timelimit.value == 0.0 )
+		if( cvar_timelimit.value == 0.0 )
 		{
 			ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_time_left2" );
 		}
@@ -1169,15 +1184,15 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		return FALSE;
 	}
 
-	if ( !strcmp( pcmd, "dod_version" ) )
+	if( !strcmp( pcmd, "dod_version" ) )
 	{
 		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "Version 1.2f" );
 		return FALSE;
 	}
 
-	if ( !strcmp( pcmd, "chatmsg" ) )
+	if( !strcmp( pcmd, "chatmsg" ) )
 	{
-		if ( pPlayer->m_chatMsg )
+		if( pPlayer->m_chatMsg )
 		{
 			ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_chat_off" );
 			pPlayer->m_chatMsg = 0;
@@ -1191,9 +1206,9 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		return FALSE;
 	}
 
-	if ( !strcmp( pcmd, "deathmsg" ) )
+	if( !strcmp( pcmd, "deathmsg" ) )
 	{
-		if ( pPlayer->m_deathMsg )
+		if( pPlayer->m_deathMsg )
 		{
 			ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_deathmsg_off" );
 			pPlayer->m_deathMsg = 0;
@@ -1207,10 +1222,10 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		return FALSE;
 	}
 
-	if ( !strcmp( pcmd, "clientcutscenes" ) )
+	if( !strcmp( pcmd, "clientcutscenes" ) )
 	{
 		// a client that does not want the cutscenes has seen all of them
-		if ( CMD_ARGC() > 1 && !atoi( CMD_ARGV( 1 ) ) )
+		if( CMD_ARGC() > 1 && !atoi( CMD_ARGV( 1 ) ) )
 		{
 			pPlayer->i_seenAllieSpawnScene = 1;
 			pPlayer->i_seenAxisSpawnScene = 1;
@@ -1225,17 +1240,17 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		return FALSE;
 	}
 
-	if ( !strcmp( pcmd, "vote" ) )
+	if( !strcmp( pcmd, "vote" ) )
 	{
-		if ( (unsigned int)( pPlayer->lastMenuSelected - 5 ) > 4 )
+		if( ( unsigned int ) ( pPlayer->lastMenuSelected - 5 ) > 4 )
 		{
-			if ( m_vKickSessionState == 1 )
+			if( m_vKickSessionState == 1 )
 			{
 				pPlayer->VoteMenu( m_vKick, 5 );
 				return FALSE;
 			}
 
-			if ( m_vKickSessionState == 0 )
+			if( m_vKickSessionState == 0 )
 			{
 				pPlayer->VoteMenu( -1, 6 );
 				return FALSE;
@@ -1247,43 +1262,43 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		return TRUE;
 	}
 
-	if ( !strcmp( pcmd, "fov" ) )
+	if( !strcmp( pcmd, "fov" ) )
 	{
-		pPlayer->pev->fov = (float)pPlayer->m_iFOV;
+		pPlayer->pev->fov = ( float ) pPlayer->m_iFOV;
 
 		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_dont_cheat" );
 
 		return FALSE;
 	}
 
-	if ( !strcmp( pcmd, "say" ) )
+	if( !strcmp( pcmd, "say" ) )
 	{
 		int iChatMsg = pPlayer->m_chatMsg;
 		char readyString[64];
 
 		snprintf( readyString, sizeof( readyString ), "\"%s\"", CVAR_GET_STRING( "mp_clan_ready_signal" ) );
 
-		if ( m_bAwaitingReadyRestart && CMD_ARGC() > 1 )
+		if( m_bAwaitingReadyRestart && CMD_ARGC() > 1 )
 		{
 			const char *pszText = CMD_ARGS();
 			int team = pPlayer->pev->team;
 
-			if ( team == TEAM_ALLIES )
+			if( team == TEAM_ALLIES )
 			{
-				if ( !m_bHeardAlliesReady && !strcmp( pszText, readyString ) )
+				if( !m_bHeardAlliesReady && !strcmp( pszText, readyString ) )
 				{
 					m_bHeardAlliesReady = TRUE;
 					UTIL_ShowMessageAll( "#Clan_allies_ready", FALSE );
 				}
 			}
-			else if ( team == TEAM_AXIS && !m_bHeardAxisReady && !strcmp( pszText, readyString ) )
+			else if( team == TEAM_AXIS && !m_bHeardAxisReady && !strcmp( pszText, readyString ) )
 			{
 				m_bHeardAxisReady = TRUE;
 				UTIL_ShowMessageAll( "#Clan_axis_ready", FALSE );
 			}
 		}
 
-		if ( iChatMsg )
+		if( iChatMsg )
 		{
 			Host_Say( pPlayer->edict(), 0 );
 			return FALSE;
@@ -1293,9 +1308,9 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		return FALSE;
 	}
 
-	if ( !strcmp( pcmd, "say_team" ) )
+	if( !strcmp( pcmd, "say_team" ) )
 	{
-		if ( pPlayer->m_chatMsg )
+		if( pPlayer->m_chatMsg )
 		{
 			Host_Say( pPlayer->edict(), 1 );
 			return FALSE;
@@ -1305,47 +1320,47 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "menuselect" ) )
+	if( FStrEq( pcmd, "menuselect" ) )
 	{
-		if ( CMD_ARGC() > 1 )
+		if( CMD_ARGC() > 1 )
 		{
 			int iSelection = atoi( CMD_ARGV( 1 ) );
 
-			switch ( pPlayer->lastMenuSelected )
+			switch( pPlayer->lastMenuSelected )
 			{
 			case 5:
-				if ( iSelection == 1 )
+				if( iSelection == 1 )
 					VoteKick( pPlayer, m_vKick, true );
 				break;
 
 			case 6:
-				if ( iSelection == 9 )
+				if( iSelection == 9 )
 					pPlayer->VoteMenu( -1, 7 );
-				else if ( iSelection != 10 )
+				else if( iSelection != 10 )
 					VoteKick( pPlayer, iSelection, true );
 				break;
 
 			case 7:
-				if ( iSelection == 9 )
+				if( iSelection == 9 )
 					pPlayer->VoteMenu( -1, 8 );
-				else if ( iSelection != 10 )
+				else if( iSelection != 10 )
 					VoteKick( pPlayer, iSelection + 8, true );
 				break;
 
 			case 8:
-				if ( iSelection == 9 )
+				if( iSelection == 9 )
 					pPlayer->VoteMenu( -1, 9 );
-				else if ( iSelection != 10 )
+				else if( iSelection != 10 )
 					VoteKick( pPlayer, iSelection + 16, true );
 				break;
 
 			case 9:
-				if ( iSelection != 10 && iSelection != 9 )
+				if( iSelection != 10 && iSelection != 9 )
 					VoteKick( pPlayer, iSelection + 24, true );
 				break;
 
 			default:
-				if ( (unsigned int)( pPlayer->lastMenuSelected - 1 ) <= 3 )
+				if( ( unsigned int ) ( pPlayer->lastMenuSelected - 1 ) <= 3 )
 					VoiceCommSelect( pPlayer, iSelection );
 				break;
 			}
@@ -1356,33 +1371,33 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		return TRUE;
 	}
 
-	if ( FStrEq( pcmd, "jointeam" ) )
+	if( FStrEq( pcmd, "jointeam" ) )
 	{
-		if ( CMD_ARGC() > 1 )
+		if( CMD_ARGC() > 1 )
 			TeamSelect( pPlayer, atoi( CMD_ARGV( 1 ) ) );
 
 		return TRUE;
 	}
 
-	if ( FStrEq( pcmd, "changeclass" ) )
+	if( FStrEq( pcmd, "changeclass" ) )
 	{
 		ShowClassSelectMenu( pPlayer );
 		return TRUE;
 	}
 
-	if ( FStrEq( pcmd, "changeteam" ) )
+	if( FStrEq( pcmd, "changeteam" ) )
 	{
 		ShowVGUI( pPlayer, 2, 0 );
 		return TRUE;
 	}
 
-	if ( !strncmp( pcmd, "cls_", 4 ) )
+	if( !strncmp( pcmd, "cls_", 4 ) )
 	{
 		int iClass = 0;
 
-		while ( strcmp( g_ClassInfo[iClass].selectcmd, pcmd ) )
+		while( strcmp( g_ClassInfo[iClass].selectcmd, pcmd ) )
 		{
-			if ( ++iClass == 28 )
+			if( ++iClass == 28 )
 			{
 				iClass = 0;
 				break;
@@ -1393,53 +1408,53 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "nextmap" ) )
+	if( FStrEq( pcmd, "nextmap" ) )
 	{
 		ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_nextmap", sNextMap );
 		return TRUE;
 	}
 
-	if ( FStrEq( pcmd, "debug" ) || FStrEq( pcmd, "debug2" ) )
+	if( FStrEq( pcmd, "debug" ) || FStrEq( pcmd, "debug2" ) )
 		return TRUE;
 
 	// the commands below are for the living
-	if ( pPlayer->pev->deadflag )
+	if( pPlayer->pev->deadflag )
 		return FALSE;
 
-	if ( FStrEq( pcmd, "sprone" ) )
+	if( FStrEq( pcmd, "sprone" ) )
 	{
-		if ( pPlayer->IsSandbagDeployed() )
+		if( pPlayer->IsSandbagDeployed() )
 			return TRUE;
 
-		if ( pPlayer->IsInMortarDeploy() )
+		if( pPlayer->IsInMortarDeploy() )
 			return TRUE;
 
-		if ( pPlayer->pev->button & IN_ATTACK )
+		if( pPlayer->pev->button & IN_ATTACK )
 			return TRUE;
 
-		if ( pPlayer->pev->movetype == MOVETYPE_FLY )
+		if( pPlayer->pev->movetype == MOVETYPE_FLY )
 			return TRUE;
 
-		if ( !pPlayer->IsProne() && pPlayer->pev->waterlevel > 1 && pPlayer->pev->watertype != -19 )
+		if( !pPlayer->IsProne() && pPlayer->pev->waterlevel > 1 && pPlayer->pev->watertype != -19 )
 			return TRUE;
 
-		if ( gpGlobals->time > pPlayer->m_inextprone )
+		if( gpGlobals->time > pPlayer->m_inextprone )
 		{
 			int iProneState = pPlayer->pev->iuser3;
 
-			if ( iProneState == STANCE_PRONE )
+			if( iProneState == STANCE_PRONE )
 			{
 				pPlayer->UnProne();
 			}
-			else if ( iProneState == STANCE_STANDING )
+			else if( iProneState == STANCE_STANDING )
 			{
-				if ( ( pPlayer->pev->button & IN_DUCK ) || pPlayer->IsDucking() || ( pPlayer->m_afPhysicsFlags & PFLAG_DUCKING ) )
+				if( ( pPlayer->pev->button & IN_DUCK ) || pPlayer->IsDucking() || ( pPlayer->m_afPhysicsFlags & PFLAG_DUCKING ) )
 					return TRUE;
 
 				pPlayer->GoProne();
 				pPlayer->CheckPlayerSpeed();
 
-				if ( !( pPlayer->m_flDisplayHistory & HINT_PRONE ) )
+				if( !( pPlayer->m_flDisplayHistory & HINT_PRONE ) )
 				{
 					pPlayer->m_flDisplayHistory |= HINT_PRONE;
 					pPlayer->HintMessage( "#Hint_prone", 0 );
@@ -1453,55 +1468,55 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "give" ) )
+	if( FStrEq( pcmd, "give" ) )
 	{
-		if ( CVAR_GET_FLOAT( "sv_cheats" ) == 0.0 )
+		if( CVAR_GET_FLOAT( "sv_cheats" ) == 0.0 )
 			return FALSE;
 
-		if ( pPlayer->pev->iuser1 )
+		if( pPlayer->pev->iuser1 )
 			return FALSE;
 
 		int iCount = atoi( CMD_ARGV( 2 ) );
 		int iszItem = ALLOC_STRING( CMD_ARGV( 1 ) );
 
-		if ( iCount <= 0 )
+		if( iCount <= 0 )
 			iCount = 1;
 
-		for ( int i = 0; i < iCount; i++ )
+		for( int i = 0; i < iCount; i++ )
 			pPlayer->GiveNamedItem( STRING( iszItem ) );
 
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "use" ) )
+	if( FStrEq( pcmd, "use" ) )
 	{
 		pPlayer->SelectItem( CMD_ARGV( 1 ) );
 		return FALSE;
 	}
 
-	if ( strstr( pcmd, "weapon_" ) == pcmd )
+	if( strstr( pcmd, "weapon_" ) == pcmd )
 	{
 		pPlayer->SelectItem( pcmd );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "lastinv" ) )
+	if( FStrEq( pcmd, "lastinv" ) )
 	{
 		pPlayer->SelectLastItem();
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "dropammo" ) || FStrEq( pcmd, "dropmgammo" ) )
+	if( FStrEq( pcmd, "dropammo" ) || FStrEq( pcmd, "dropmgammo" ) )
 	{
 		pPlayer->DropGenericAmmo();
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "maim" ) )
+	if( FStrEq( pcmd, "maim" ) )
 	{
 		CMD_ARGS();
 
-		if ( CMD_ARGC() > 1 )
+		if( CMD_ARGC() > 1 )
 		{
 			atoi( CMD_ARGV( 1 ) );
 			return FALSE;
@@ -1510,156 +1525,156 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		return TRUE;
 	}
 
-	if ( FStrEq( pcmd, "drop" ) )
+	if( FStrEq( pcmd, "drop" ) )
 	{
-		pPlayer->DropPlayerItem( (char *)CMD_ARGV( 1 ), FALSE );
+		pPlayer->DropPlayerItem( ( char * ) CMD_ARGV( 1 ), FALSE );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "signal_sticktogether" ) )
+	if( FStrEq( pcmd, "signal_sticktogether" ) )
 	{
 		pPlayer->HandSignal( 0 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "signal_fallback" ) )
+	if( FStrEq( pcmd, "signal_fallback" ) )
 	{
 		pPlayer->HandSignal( 1 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "signal_no" ) )
+	if( FStrEq( pcmd, "signal_no" ) )
 	{
 		pPlayer->HandSignal( 2 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "signal_yes" ) )
+	if( FStrEq( pcmd, "signal_yes" ) )
 	{
 		pPlayer->HandSignal( 3 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "signal_sniper" ) )
+	if( FStrEq( pcmd, "signal_sniper" ) )
 	{
 		pPlayer->HandSignal( 4 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "signal_backup" ) )
+	if( FStrEq( pcmd, "signal_backup" ) )
 	{
 		pPlayer->HandSignal( 5 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "signal_enemyright" ) )
+	if( FStrEq( pcmd, "signal_enemyright" ) )
 	{
 		pPlayer->HandSignal( 6 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "signal_enemyleft" ) )
+	if( FStrEq( pcmd, "signal_enemyleft" ) )
 	{
 		pPlayer->HandSignal( 7 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "signal_grenade" ) )
+	if( FStrEq( pcmd, "signal_grenade" ) )
 	{
 		pPlayer->HandSignal( 8 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "signal_flankleft" ) )
+	if( FStrEq( pcmd, "signal_flankleft" ) )
 	{
 		pPlayer->HandSignal( 9 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "signal_moveout" ) )
+	if( FStrEq( pcmd, "signal_moveout" ) )
 	{
 		pPlayer->HandSignal( 10 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "signal_flankright" ) )
+	if( FStrEq( pcmd, "signal_flankright" ) )
 	{
 		pPlayer->HandSignal( 11 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "signal_areaclear" ) )
+	if( FStrEq( pcmd, "signal_areaclear" ) )
 	{
 		pPlayer->HandSignal( 12 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "signal_coveringfire" ) )
+	if( FStrEq( pcmd, "signal_coveringfire" ) )
 	{
 		pPlayer->HandSignal( 13 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "signal_holdposition" ) )
+	if( FStrEq( pcmd, "signal_holdposition" ) )
 	{
 		pPlayer->HandSignal( 15 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "signal_enemyspotted" ) )
+	if( FStrEq( pcmd, "signal_enemyspotted" ) )
 	{
 		pPlayer->HandSignal( 17 );
 		return FALSE;
 	}
 
-	if ( !strncmp( pcmd, "dod_is_toned", 12 ) )
+	if( !strncmp( pcmd, "dod_is_toned", 12 ) )
 	{
 		int iSignal = atoi( pcmd + 12 );
 
-		if ( (unsigned int)( iSignal - 2 ) <= 3 )
+		if( ( unsigned int ) ( iSignal - 2 ) <= 3 )
 			pPlayer->HandSignal( iSignal + 24 );
 
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "voice_menu1" ) )
+	if( FStrEq( pcmd, "voice_menu1" ) )
 	{
 		pPlayer->VoiceMenu( 1 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "voice_menu2" ) )
+	if( FStrEq( pcmd, "voice_menu2" ) )
 	{
 		pPlayer->VoiceMenu( 2 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "voice_menu3" ) )
+	if( FStrEq( pcmd, "voice_menu3" ) )
 	{
 		pPlayer->VoiceMenu( 3 );
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "dropobject" ) )
+	if( FStrEq( pcmd, "dropobject" ) )
 	{
-		if ( pPlayer->HasObject )
+		if( pPlayer->HasObject )
 			pPlayer->DropObject();
 
 		return TRUE;
 	}
 
-	if ( FStrEq( pcmd, "chattoplayer" ) )
+	if( FStrEq( pcmd, "chattoplayer" ) )
 	{
 		CBaseEntity *pTarget = UTIL_PlayerByIndex( atoi( CMD_ARGV( 1 ) ) );
 
-		if ( pTarget )
+		if( pTarget )
 		{
 			char text[201];
 			char word[127];
 
 			sprintf( text, "%c%s: ", 2, STRING( pTarget->pev->netname ) );
 
-			for ( int i = 2; i != CMD_ARGC() + 1; i++ )
+			for( int i = 2; i != CMD_ARGC() + 1; i++ )
 			{
 				sprintf( word, "%s ", CMD_ARGV( i ) );
 				strcat( text, word );
@@ -1671,27 +1686,27 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 		return TRUE;
 	}
 
-	if ( FStrEq( pcmd, "firemarker" ) )
+	if( FStrEq( pcmd, "firemarker" ) )
 	{
 		pPlayer->FireMapMarker();
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "nextmarker" ) )
+	if( FStrEq( pcmd, "nextmarker" ) )
 	{
 		pPlayer->NextMapMarker();
 		return FALSE;
 	}
 
-	if ( FStrEq( pcmd, "prevmarker" ) )
+	if( FStrEq( pcmd, "prevmarker" ) )
 	{
 		pPlayer->PrevMapMarker();
 		return FALSE;
 	}
 
-	for ( int i = 1; i != 28; i++ )
+	for( int i = 1; i != 28; i++ )
 	{
-		if ( FStrEq( pcmd, s_VoiceCommands[i][SLOT_VOICECOMMAND] ) )
+		if( FStrEq( pcmd, s_VoiceCommands[i][SLOT_VOICECOMMAND] ) )
 		{
 			pPlayer->VoiceCom( i );
 			return TRUE;
@@ -1704,9 +1719,9 @@ BOOL CDoDTeamPlay::ClientCommand( CBasePlayer *pPlayer, const char *pcmd )
 	strncpy( szCmd, pcmd, sizeof( szCmd ) - 1 );
 	szCmd[sizeof( szCmd ) - 1] = 0;
 
-	for ( char *p = szCmd; *p; p++ )
+	for( char *p = szCmd; *p; p++ )
 	{
-		if ( *p == '%' )
+		if( *p == '%' )
 			*p = ' ';
 	}
 
@@ -1723,13 +1738,13 @@ float CDoDTeamPlay::FlPlayerFallDamage( CBasePlayer *pPlayer )
 
 void CDoDTeamPlay::PreparePlayerForSpawn( CBasePlayer *pPlayer )
 {
-	if ( pPlayer->m_bIsObserver && pPlayer->m_imissedwave )
+	if( pPlayer->m_bIsObserver && pPlayer->m_imissedwave )
 		pPlayer->m_irdytospawn = 1;
 
 	int iClass = pPlayer->m_iNextClass;
 	char *pszClassName;
 
-	if ( (unsigned int)( iClass - 10 ) > 10 )
+	if( ( unsigned int ) ( iClass - 10 ) > 10 )
 		pszClassName = m_GamePlayRules.m_bAlliesArePara ? g_ParaClassInfo[iClass].classname : g_ClassInfo[iClass].classname;
 	else
 		pszClassName = m_GamePlayRules.m_bAxisArePara ? g_ParaClassInfo[iClass].classname : g_ClassInfo[iClass].classname;
@@ -1737,49 +1752,49 @@ void CDoDTeamPlay::PreparePlayerForSpawn( CBasePlayer *pPlayer )
 	ClientPrint( pPlayer->pev, HUD_PRINTTALK, pPlayer->IsAlive() ? "#game_respawn_as" : "#game_spawn_as", pszClassName );
 
 	UTIL_LogPrintf( "\"%s<%i><%s><%s>\" changed role to \"%s\"\n", STRING( pPlayer->pev->netname ),
-					GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ), "Allies", pszClassName );
+		GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ), "Allies", pszClassName );
 
-	if ( pPlayer->m_irdytospawn )
+	if( pPlayer->m_irdytospawn )
 	{
-		if ( ( pPlayer->pev->team == TEAM_ALLIES && m_GamePlayRules.m_bAlliesInfiniteLives ) ||
-			 ( pPlayer->pev->team == TEAM_AXIS && m_GamePlayRules.m_bAxisInfiniteLives ) || m_RoundState != ROUNDSTATE_RUNNING )
+		if( ( pPlayer->pev->team == TEAM_ALLIES && m_GamePlayRules.m_bAlliesInfiniteLives ) ||
+			( pPlayer->pev->team == TEAM_AXIS && m_GamePlayRules.m_bAxisInfiniteLives ) || m_RoundState != ROUNDSTATE_RUNNING )
 			pPlayer->DelayedSpawn();
 	}
 }
 
 int CDoDTeamPlay::GetClassLimit( int cls )
 {
-	if ( cls <= 28 && pcvar_classlimitcvars[cls] )
-		return (int)pcvar_classlimitcvars[cls]->value;
+	if( cls <= 28 && pcvar_classlimitcvars[cls] )
+		return ( int ) pcvar_classlimitcvars[cls]->value;
 
 	return -1;
 }
 
 BOOL CDoDTeamPlay::ReachedClassLimit( int targetClass )
 {
-	if ( targetClass == 27 )
+	if( targetClass == 27 )
 	{
-		if ( pcvar_mp_clan_match )
+		if( pcvar_mp_clan_match )
 			return pcvar_mp_clan_match->value > 0.0;
 
 		return FALSE;
 	}
 
-	if ( (unsigned int)( targetClass - 1 ) > 26 )
+	if( ( unsigned int ) ( targetClass - 1 ) > 26 )
 		return FALSE;
 
 	int iLimit = GetClassLimit( targetClass );
 	int iExisting = CountClasses( targetClass );
 
 	// the two machine gun classes can share their limits
-	if ( pcvar_mp_combinemglimits && pcvar_mp_combinemglimits->value > 0.0 )
+	if( pcvar_mp_combinemglimits && pcvar_mp_combinemglimits->value > 0.0 )
 	{
-		if ( targetClass == 17 )
+		if( targetClass == 17 )
 		{
 			iLimit += GetClassLimit( 18 );
 			iExisting += CountClasses( 18 );
 		}
-		else if ( targetClass == 18 )
+		else if( targetClass == 18 )
 		{
 			iLimit += GetClassLimit( 17 );
 			iExisting += CountClasses( 17 );
@@ -1792,11 +1807,11 @@ BOOL CDoDTeamPlay::ReachedClassLimit( int targetClass )
 int CDoDTeamPlay::CountClasses( int targetClass )
 {
 	int n = 0;
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBaseEntity *p = UTIL_PlayerByIndex( i );
-		if ( p && p->IsPlayer() &&
-			 ( ( (CBasePlayer *) p )->m_iNextClass == targetClass || p->pev->playerclass == targetClass ) )
+		if( p && p->IsPlayer() &&
+			( ( ( CBasePlayer * ) p )->m_iNextClass == targetClass || p->pev->playerclass == targetClass ) )
 			n++;
 	}
 
@@ -1812,42 +1827,42 @@ void CDoDTeamPlay::InitHUD( CBasePlayer *pPlayer )
 {
 	const char *name = "unconnected";
 
-	if ( pPlayer->pev->netname )
+	if( pPlayer->pev->netname )
 	{
 		name = STRING( pPlayer->pev->netname );
 
-		if ( !*name )
+		if( !*name )
 			name = "unconnected";
 	}
 
-	UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_joined_game", (char *)name, NULL, NULL, NULL );
+	UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_joined_game", ( char * ) name, NULL, NULL, NULL );
 
 	SendMOTDToClient( pPlayer->edict() );
 
 	// send the scores of the others to the new player
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBasePlayer *plr = (CBasePlayer *)UTIL_PlayerByIndex( i );
+		CBasePlayer *plr = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
 
-		if ( plr && plr != pPlayer )
+		if( plr && plr != pPlayer )
 		{
-			if ( plr->m_iObjScore <= 255 && plr->pev->frags <= 255 && plr->m_iDeaths <= 255 )
+			if( plr->m_iObjScore <= 255 && plr->pev->frags <= 255 && plr->m_iDeaths <= 255 )
 			{
 				MESSAGE_BEGIN( MSG_ONE, gmsgScoreInfo, NULL, pPlayer->edict() );
-					WRITE_BYTE( i );
-					WRITE_BYTE( plr->m_iObjScore );
-					WRITE_BYTE( plr->pev->frags );
-					WRITE_BYTE( plr->m_iDeaths );
+				WRITE_BYTE( i );
+				WRITE_BYTE( plr->m_iObjScore );
+				WRITE_BYTE( plr->pev->frags );
+				WRITE_BYTE( plr->m_iDeaths );
 			}
 			else
 			{
 				ALERT( at_aiconsole, "Init HUD data requiring short values - sending with WRITE_SHORT()\n" );
 
 				MESSAGE_BEGIN( MSG_ONE, gmsgScoreInfoLong, NULL, pPlayer->edict() );
-					WRITE_BYTE( i );
-					WRITE_SHORT( plr->m_iObjScore );
-					WRITE_SHORT( plr->pev->frags );
-					WRITE_SHORT( plr->m_iDeaths );
+				WRITE_BYTE( i );
+				WRITE_SHORT( plr->m_iObjScore );
+				WRITE_SHORT( plr->pev->frags );
+				WRITE_SHORT( plr->m_iDeaths );
 			}
 
 			WRITE_BYTE( plr->pev->playerclass );
@@ -1859,36 +1874,36 @@ void CDoDTeamPlay::InitHUD( CBasePlayer *pPlayer )
 
 	// tell everybody about the new player, it spectates until it has chosen a team
 	MESSAGE_BEGIN( MSG_ALL, gmsgScoreInfo );
-		WRITE_BYTE( ENTINDEX( pPlayer->edict() ) );
-		WRITE_BYTE( pPlayer->m_iObjScore );
-		WRITE_BYTE( pPlayer->pev->frags );
-		WRITE_BYTE( pPlayer->m_iDeaths );
-		WRITE_BYTE( 0 );
-		WRITE_BYTE( 3 );
-		WRITE_BYTE( pPlayer->PlayerStatus() );
+	WRITE_BYTE( ENTINDEX( pPlayer->edict() ) );
+	WRITE_BYTE( pPlayer->m_iObjScore );
+	WRITE_BYTE( pPlayer->pev->frags );
+	WRITE_BYTE( pPlayer->m_iDeaths );
+	WRITE_BYTE( 0 );
+	WRITE_BYTE( 3 );
+	WRITE_BYTE( pPlayer->PlayerStatus() );
 	MESSAGE_END();
 
-	if ( g_fGameOver )
+	if( g_fGameOver )
 	{
 		MESSAGE_BEGIN( MSG_ONE, SVC_INTERMISSION, NULL, pPlayer->edict() );
 		MESSAGE_END();
 	}
 
 	UTIL_LogPrintf( "\"%s<%i><%s><>\" entered the game\n", STRING( pPlayer->pev->netname ),
-					GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ) );
+		GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ) );
 
 	LevelChangeResets( pPlayer );
 
 	// the teams of the players that already joined one
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBaseEntity *plr = UTIL_PlayerByIndex( i );
 
-		if ( plr && (unsigned int)( plr->pev->team - 1 ) <= 2 )
+		if( plr && ( unsigned int ) ( plr->pev->team - 1 ) <= 2 )
 		{
 			MESSAGE_BEGIN( MSG_ONE, gmsgPTeam, NULL, pPlayer->edict() );
-				WRITE_BYTE( ENTINDEX( plr->edict() ) );
-				WRITE_BYTE( plr->pev->team );
+			WRITE_BYTE( ENTINDEX( plr->edict() ) );
+			WRITE_BYTE( plr->pev->team );
 			MESSAGE_END();
 		}
 	}
@@ -1906,7 +1921,7 @@ void CDoDTeamPlay::InitHUD( CBasePlayer *pPlayer )
 void CDoDTeamPlay::ChangePlayerTeam( CBasePlayer *pPlayer, int iTeam, int bKill, int bGib )
 {
 	int clientIndex = ENTINDEX( pPlayer->edict() );
-	if ( bKill )
+	if( bKill )
 	{
 		entvars_t *pevWorld = VARS( INDEXENT( 0 ) );
 		pPlayer->TakeDamage( pevWorld, pevWorld, 900.0f, 0x1000 );
@@ -1924,14 +1939,14 @@ void CDoDTeamPlay::ChangePlayerTeam( CBasePlayer *pPlayer, int iTeam, int bKill,
 void CDoDTeamPlay::ClientUserInfoChanged( CBasePlayer *pPlayer, char *infobuffer )
 {
 	// the model follows the class, whatever the client asks for
-	if ( pPlayer->m_sPlayerModel )
+	if( pPlayer->m_sPlayerModel )
 	{
 		char *buf = GET_INFOKEYBUFFER( pPlayer->edict() );
 		SET_CLIENT_KEYVALUE( ENTINDEX( pPlayer->edict() ), buf, "model", pPlayer->m_sPlayerModel );
 	}
 
 	char *lw = INFOKEY_VALUE( infobuffer, "cl_lw" );
-	if ( lw[0] < '1' )
+	if( lw[0] < '1' )
 	{
 		char *buf = GET_INFOKEYBUFFER( pPlayer->edict() );
 		SET_CLIENT_KEYVALUE( ENTINDEX( pPlayer->edict() ), buf, "cl_lw", "1" );
@@ -1944,7 +1959,7 @@ void CDoDTeamPlay::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvar
 {
 	BOOL bDeathMsg = FALSE;
 
-	if ( pcvar_mp_deathmsg )
+	if( pcvar_mp_deathmsg )
 		bDeathMsg = pcvar_mp_deathmsg->value > 0.0;
 
 	// what killed the victim: the index of the killer, the id and the name of the weapon
@@ -1954,18 +1969,18 @@ void CDoDTeamPlay::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvar
 	const char *pszClassname = NULL;
 	CBasePlayerWeapon *pWpn = NULL;
 
-	if ( pKiller->flags & FL_CLIENT )
+	if( pKiller->flags & FL_CLIENT )
 	{
 		iKillerIndex = ENTINDEX( pKiller->pContainingEntity );
 
-		if ( pevInflictor )
+		if( pevInflictor )
 		{
-			if ( pevInflictor == pKiller )
+			if( pevInflictor == pKiller )
 			{
 				// the killer used his own weapon
-				pWpn = (CBasePlayerWeapon *)( (CBasePlayer *)CBaseEntity::Instance( pKiller ) )->m_pActiveItem;
+				pWpn = ( CBasePlayerWeapon * ) ( ( CBasePlayer * ) CBaseEntity::Instance( pKiller ) )->m_pActiveItem;
 
-				if ( pWpn )
+				if( pWpn )
 				{
 					iKillerWeapon = pWpn->m_iId;
 					pszClassname = CBasePlayerItem::ItemInfoArray[iKillerWeapon].pszName;
@@ -1975,7 +1990,7 @@ void CDoDTeamPlay::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvar
 			{
 				pszClassname = STRING( pevInflictor->classname );
 
-				if ( !strcmp( pszClassname, "grenade" ) )
+				if( !strcmp( pszClassname, "grenade" ) )
 					iKillerWeapon = 13;
 				else
 					iKillerWeapon = !strcmp( pszClassname, "grenade2" ) ? 14 : 0;
@@ -1983,13 +1998,13 @@ void CDoDTeamPlay::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvar
 		}
 	}
 
-	if ( pszClassname )
+	if( pszClassname )
 	{
-		if ( !memcmp( pszClassname, "weapon_", 7 ) )
+		if( !memcmp( pszClassname, "weapon_", 7 ) )
 			pszKillerWeapon = pszClassname + 7;
-		else if ( !strncmp( pszClassname, "monster_", 8 ) )
+		else if( !strncmp( pszClassname, "monster_", 8 ) )
 			pszKillerWeapon = pszClassname + 8;
-		else if ( !strncmp( pszClassname, "func_", 5 ) )
+		else if( !strncmp( pszClassname, "func_", 5 ) )
 			pszKillerWeapon = pszClassname + 5;
 		else
 			pszKillerWeapon = strncmp( pszClassname, "shell_", 6 ) ? pszClassname : pszClassname + 6;
@@ -1999,32 +2014,32 @@ void CDoDTeamPlay::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvar
 	BOOL bResolved = FALSE;
 	BOOL bSkipBayonet = FALSE;
 
-	if ( pszClassname && iKillerWeapon == 15 )
+	if( pszClassname && iKillerWeapon == 15 )
 	{
 		pszKillerWeapon = "stick";
 		bSkipBayonet = TRUE;
 	}
-	else if ( pszClassname && iKillerWeapon == 6 )
+	else if( pszClassname && iKillerWeapon == 6 )
 	{
 		pszKillerWeapon = "scopedkar";
 		bSkipBayonet = TRUE;
 	}
 
-	if ( !bSkipBayonet && !strcmp( pszKillerWeapon, "kar" ) && flags == 3 )
+	if( !bSkipBayonet && !strcmp( pszKillerWeapon, "kar" ) && flags == 3 )
 	{
 		iKillerWeapon = 37;
 		pszKillerWeapon = "bayonet";
 		bResolved = TRUE;
 	}
 
-	if ( !bResolved && !strcmp( pszKillerWeapon, "garand" ) && flags == 4 )
+	if( !bResolved && !strcmp( pszKillerWeapon, "garand" ) && flags == 4 )
 	{
 		iKillerWeapon = 42;
 		pszKillerWeapon = "garandbutt";
 		bResolved = TRUE;
 	}
 
-	if ( !bResolved && !strcmp( pszKillerWeapon, "k43" ) && flags == 6 )
+	if( !bResolved && !strcmp( pszKillerWeapon, "k43" ) && flags == 6 )
 	{
 		iKillerWeapon = 42;
 		pszKillerWeapon = "k43butt";
@@ -2033,115 +2048,115 @@ void CDoDTeamPlay::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvar
 
 	BOOL bNotEnfield = strcmp( pszKillerWeapon, "enfield" ) != 0;
 
-	if ( !bResolved && !bNotEnfield && flags == 5 )
+	if( !bResolved && !bNotEnfield && flags == 5 )
 	{
 		iKillerWeapon = 43;
 		pszKillerWeapon = "enf_bayonet";
 		bResolved = TRUE;
 	}
 
-	if ( !bResolved && !strcmp( pszKillerWeapon, "m1carbine" ) &&
-		 ( ( pKiller->team == TEAM_ALLIES && m_GamePlayRules.m_bAlliesArePara ) ||
-		   ( pKiller->team == TEAM_AXIS && m_GamePlayRules.m_bAxisArePara ) ) )
+	if( !bResolved && !strcmp( pszKillerWeapon, "m1carbine" ) &&
+		( ( pKiller->team == TEAM_ALLIES && m_GamePlayRules.m_bAlliesArePara ) ||
+			( pKiller->team == TEAM_AXIS && m_GamePlayRules.m_bAxisArePara ) ) )
 	{
 		iKillerWeapon = 36;
 		pszKillerWeapon = "fcarbine";
 		bResolved = TRUE;
 	}
 
-	if ( !bResolved )
+	if( !bResolved )
 	{
-		if ( pWpn && !strcmp( pszKillerWeapon, "fg42" ) )
+		if( pWpn && !strcmp( pszKillerWeapon, "fg42" ) )
 		{
-			if ( pWpn->m_iWeaponState & 1 )
+			if( pWpn->m_iWeaponState & 1 )
 			{
 				iKillerWeapon = 35;
 				pszKillerWeapon = "scoped_fg42";
 			}
 		}
-		else if ( pWpn && !bNotEnfield )
+		else if( pWpn && !bNotEnfield )
 		{
-			if ( pWpn->m_iWeaponState & 1 )
+			if( pWpn->m_iWeaponState & 1 )
 			{
 				iKillerWeapon = 38;
 				pszKillerWeapon = "scoped_enfield";
 			}
 		}
-		else if ( !strcmp( pszKillerWeapon, "grenade" ) && m_GamePlayRules.m_bAlliesAreBrit )
+		else if( !strcmp( pszKillerWeapon, "grenade" ) && m_GamePlayRules.m_bAlliesAreBrit )
 		{
 			iKillerWeapon = 39;
 			pszKillerWeapon = "mills_bomb";
 		}
-		else if ( !strcmp( pszKillerWeapon, "amerknife" ) && m_GamePlayRules.m_bAlliesAreBrit )
+		else if( !strcmp( pszKillerWeapon, "amerknife" ) && m_GamePlayRules.m_bAlliesAreBrit )
 		{
 			iKillerWeapon = 40;
 			pszKillerWeapon = "brit_knife";
 		}
-		else if ( !strcmp( pszKillerWeapon, "bazooka" ) )
+		else if( !strcmp( pszKillerWeapon, "bazooka" ) )
 		{
 			iKillerWeapon = 29;
 		}
-		else if ( FStrEq( pszKillerWeapon, "pschreck" ) )
+		else if( FStrEq( pszKillerWeapon, "pschreck" ) )
 		{
 			iKillerWeapon = 30;
 		}
-		else if ( FStrEq( pszKillerWeapon, "piat" ) )
+		else if( FStrEq( pszKillerWeapon, "piat" ) )
 		{
 			iKillerWeapon = 31;
 		}
-		else if ( FStrEq( pszKillerWeapon, "mortar" ) )
+		else if( FStrEq( pszKillerWeapon, "mortar" ) )
 		{
 			iKillerWeapon = 32;
 		}
 	}
 
-	if ( bDeathMsg )
+	if( bDeathMsg )
 	{
 		MESSAGE_BEGIN( MSG_ALL, gmsgDeathMsg );
-			WRITE_BYTE( iKillerIndex );
-			WRITE_BYTE( ENTINDEX( pVictim->edict() ) );
-			WRITE_BYTE( iKillerWeapon );
+		WRITE_BYTE( iKillerIndex );
+		WRITE_BYTE( ENTINDEX( pVictim->edict() ) );
+		WRITE_BYTE( iKillerWeapon );
 		MESSAGE_END();
 	}
 
 	// the log and the code of the director message
 	int iDirectorMsg;
 
-	if ( pVictim->pev == pKiller )
+	if( pVictim->pev == pKiller )
 	{
 		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" committed suicide with \"%s\"\n", STRING( pVictim->pev->netname ),
-						GETPLAYERUSERID( pVictim->edict() ), GETPLAYERAUTHID( pKiller->pContainingEntity ),
-						pKiller->team == TEAM_ALLIES ? "Allies" : "Axis", pszKillerWeapon );
+			GETPLAYERUSERID( pVictim->edict() ), GETPLAYERAUTHID( pKiller->pContainingEntity ),
+			pKiller->team == TEAM_ALLIES ? "Allies" : "Axis", pszKillerWeapon );
 
 		iDirectorMsg = 0;
 	}
-	else if ( !( pKiller->flags & FL_CLIENT ) )
+	else if( !( pKiller->flags & FL_CLIENT ) )
 	{
 		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" committed suicide with \"%s\" (world)\n", STRING( pVictim->pev->netname ),
-						GETPLAYERUSERID( pVictim->edict() ), GETPLAYERAUTHID( pVictim->edict() ),
-						pVictim->pev->team == TEAM_ALLIES ? "Allies" : "Axis", pszKillerWeapon );
+			GETPLAYERUSERID( pVictim->edict() ), GETPLAYERAUTHID( pVictim->edict() ),
+			pVictim->pev->team == TEAM_ALLIES ? "Allies" : "Axis", pszKillerWeapon );
 
 		iDirectorMsg = 4;
 	}
 	else
 	{
-		CBasePlayer *pKillerPlayer = (CBasePlayer *)CBaseEntity::Instance( pKiller );
+		CBasePlayer *pKillerPlayer = ( CBasePlayer * ) CBaseEntity::Instance( pKiller );
 
 		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" killed \"%s<%i><%s><%s>\" with \"%s\"\n", STRING( pKillerPlayer->pev->netname ),
-						GETPLAYERUSERID( pKillerPlayer->pev->pContainingEntity ),
-						GETPLAYERAUTHID( pKillerPlayer->pev->pContainingEntity ), pKiller->team == TEAM_ALLIES ? "Allies" : "Axis",
-						STRING( pVictim->pev->netname ), GETPLAYERUSERID( pVictim->edict() ),
-						GETPLAYERAUTHID( pVictim->edict() ), pVictim->pev->team == TEAM_ALLIES ? "Allies" : "Axis", pszKillerWeapon );
+			GETPLAYERUSERID( pKillerPlayer->pev->pContainingEntity ),
+			GETPLAYERAUTHID( pKillerPlayer->pev->pContainingEntity ), pKiller->team == TEAM_ALLIES ? "Allies" : "Axis",
+			STRING( pVictim->pev->netname ), GETPLAYERUSERID( pVictim->edict() ),
+			GETPLAYERAUTHID( pVictim->edict() ), pVictim->pev->team == TEAM_ALLIES ? "Allies" : "Axis", pszKillerWeapon );
 
-		if ( !pevInflictor )
+		if( !pevInflictor )
 		{
 			iDirectorMsg = 0;
 		}
-		else if ( !pKillerPlayer->m_pActiveItem )
+		else if( !pKillerPlayer->m_pActiveItem )
 		{
 			iDirectorMsg = 0;
 		}
-		else if ( (unsigned int)pKillerPlayer->m_pActiveItem->m_iId > 19 )
+		else if( ( unsigned int ) pKillerPlayer->m_pActiveItem->m_iId > 19 )
 		{
 			iDirectorMsg = 4;
 		}
@@ -2149,9 +2164,9 @@ void CDoDTeamPlay::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvar
 		{
 			int iMask = 1 << pKillerPlayer->m_pActiveItem->m_iId;
 
-			if ( iMask & 0x1E240 )
+			if( iMask & 0x1E240 )
 				iDirectorMsg = 5;
-			else if ( iMask & 0x80006 )
+			else if( iMask & 0x80006 )
 				iDirectorMsg = 7;
 			else
 				iDirectorMsg = 4;
@@ -2161,9 +2176,9 @@ void CDoDTeamPlay::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvar
 	// the director follows the inflictor, or the killer when there is none
 	CBaseEntity *pOther = NULL;
 
-	if ( pevInflictor && g_engfuncs.pfnEntOffsetOfPEntity( pevInflictor->pContainingEntity ) )
+	if( pevInflictor && g_engfuncs.pfnEntOffsetOfPEntity( pevInflictor->pContainingEntity ) )
 		pOther = CBaseEntity::Instance( pevInflictor );
-	else if ( g_engfuncs.pfnEntOffsetOfPEntity( pKiller->pContainingEntity ) )
+	else if( g_engfuncs.pfnEntOffsetOfPEntity( pKiller->pContainingEntity ) )
 		pOther = CBaseEntity::Instance( pKiller );
 
 	UTIL_SendDirectorMessage( pVictim, pOther, iDirectorMsg );
@@ -2171,56 +2186,56 @@ void CDoDTeamPlay::DeathNotice( CBasePlayer *pVictim, entvars_t *pKiller, entvar
 
 void CDoDTeamPlay::PlayerKilled( CBasePlayer *pVictim, entvars_t *pKiller, entvars_t *pInflictor, int flags )
 {
-	if ( (unsigned int)( flags - 3 ) >= 4 )
+	if( ( unsigned int ) ( flags - 3 ) >= 4 )
 		flags = 0;
 
 	int team = pVictim->pev->team;
 
-	if ( ( team == TEAM_ALLIES && m_GamePlayRules.m_bAlliesInfiniteLives ) || ( team == TEAM_AXIS && m_GamePlayRules.m_bAxisInfiniteLives ) )
+	if( ( team == TEAM_ALLIES && m_GamePlayRules.m_bAlliesInfiniteLives ) || ( team == TEAM_AXIS && m_GamePlayRules.m_bAxisInfiniteLives ) )
 	{
-		if ( !( pVictim->m_flDisplayHistory & HINT_KILLED_WAVETIME_FIRST ) )
+		if( !( pVictim->m_flDisplayHistory & HINT_KILLED_WAVETIME_FIRST ) )
 		{
 			pVictim->m_flDisplayHistory |= HINT_KILLED_WAVETIME_FIRST;
 			pVictim->HintMessage( "#Hint_player_killed_wavetime", 0 );
 		}
 	}
-	else if ( !( pVictim->m_flDisplayHistory & HINT_KILLED_WAVETIME_AGAIN ) )
+	else if( !( pVictim->m_flDisplayHistory & HINT_KILLED_WAVETIME_AGAIN ) )
 	{
 		pVictim->m_flDisplayHistory |= HINT_KILLED_WAVETIME_AGAIN;
 		pVictim->HintMessage( "#Hint_player_killed_onelife", 0 );
 	}
 
-	if ( m_DisableDeathPenalty )
+	if( m_DisableDeathPenalty )
 		return;
 
 	DeathNotice( pVictim, pKiller, pInflictor, flags );
 
-	if ( !m_RoundDoesCount )
+	if( !m_RoundDoesCount )
 		return;
 
 	pVictim->m_iDeaths++;
 
 	MESSAGE_BEGIN( MSG_ALL, gmsgScoreShort );
-		WRITE_BYTE( ENTINDEX( pVictim->edict() ) );
-		WRITE_SHORT( pVictim->m_iObjScore );
-		WRITE_SHORT( (int)pVictim->pev->frags );
-		WRITE_SHORT( pVictim->m_iDeaths );
-		WRITE_BYTE( 1 );
+	WRITE_BYTE( ENTINDEX( pVictim->edict() ) );
+	WRITE_SHORT( pVictim->m_iObjScore );
+	WRITE_SHORT( ( int ) pVictim->pev->frags );
+	WRITE_SHORT( pVictim->m_iDeaths );
+	WRITE_BYTE( 1 );
 	MESSAGE_END();
 
 	float flTKPenalty = -1.0f;
 
-	if ( pcvar_mp_tkpenalty )
+	if( pcvar_mp_tkpenalty )
 		flTKPenalty = pcvar_mp_tkpenalty->value;
 
 	FireTargets( "game_playerdie", pVictim, pVictim, USE_TOGGLE, 0 );
 
-	CBasePlayer *pAttacker = (CBasePlayer *)CBaseEntity::Instance( pKiller );
+	CBasePlayer *pAttacker = ( CBasePlayer * ) CBaseEntity::Instance( pKiller );
 
-	if ( !pAttacker || pAttacker->Classify() != CLASS_PLAYER || !pAttacker->IsPlayer() )
+	if( !pAttacker || pAttacker->Classify() != CLASS_PLAYER || !pAttacker->IsPlayer() )
 		return;
 
-	if ( pVictim->pev == pKiller )
+	if( pVictim->pev == pKiller )
 		return;
 
 	pAttacker->AddFrags( IPointsForKill( pAttacker, pVictim ), 1 );
@@ -2230,7 +2245,7 @@ void CDoDTeamPlay::PlayerKilled( CBasePlayer *pVictim, entvars_t *pKiller, entva
 	BOOL bTeamKill = pVictim->pev->team == pAttacker->pev->team;
 	BOOL bPenalty = flTKPenalty > 0;
 
-	if ( bTeamKill && bPenalty )
+	if( bTeamKill && bPenalty )
 	{
 		// counted here and once more below, as the original does
 		pAttacker->m_iNumTKs++;
@@ -2240,12 +2255,12 @@ void CDoDTeamPlay::PlayerKilled( CBasePlayer *pVictim, entvars_t *pKiller, entva
 		pAttacker->m_iNumTKs = 0;
 	}
 
-	if ( bTeamKill )
+	if( bTeamKill )
 	{
-		if ( bPenalty )
+		if( bPenalty )
 			pAttacker->m_iNumTKs++;
 
-		if ( !( pAttacker->m_flDisplayHistory & HINT_CAREFUL_AROUND_TEAMMATES ) )
+		if( !( pAttacker->m_flDisplayHistory & HINT_CAREFUL_AROUND_TEAMMATES ) )
 		{
 			pAttacker->m_flDisplayHistory |= HINT_CAREFUL_AROUND_TEAMMATES;
 			pAttacker->HintMessage( "#Hint_careful_around_teammates", 1 );
@@ -2255,7 +2270,7 @@ void CDoDTeamPlay::PlayerKilled( CBasePlayer *pVictim, entvars_t *pKiller, entva
 	{
 		pAttacker->m_iNumTKs = 0;
 
-		if ( !( pAttacker->m_flDisplayHistory & HINT_KILLING_ENEMIES ) )
+		if( !( pAttacker->m_flDisplayHistory & HINT_KILLING_ENEMIES ) )
 		{
 			pAttacker->m_flDisplayHistory |= HINT_KILLING_ENEMIES;
 			pAttacker->HintMessage( "#Hint_killing_enemies_is_good", 0 );
@@ -2264,25 +2279,25 @@ void CDoDTeamPlay::PlayerKilled( CBasePlayer *pVictim, entvars_t *pKiller, entva
 
 	pAttacker->m_flNextDecalTime = gpGlobals->time;
 
-	if ( bTeamKill && bPenalty && (float)pAttacker->m_iNumTKs >= flTKPenalty )
+	if( bTeamKill && bPenalty && ( float ) pAttacker->m_iNumTKs >= flTKPenalty )
 	{
 		// the host of a listen server is never kicked
-		if ( ENTINDEX( pAttacker->edict() ) != 1 || IS_DEDICATED_SERVER() )
+		if( ENTINDEX( pAttacker->edict() ) != 1 || IS_DEDICATED_SERVER() )
 		{
 			const char *pszName = "unconnected";
 
-			if ( pAttacker->pev->netname )
+			if( pAttacker->pev->netname )
 			{
 				pszName = STRING( pAttacker->pev->netname );
 
-				if ( !*pszName )
+				if( !*pszName )
 					pszName = "unconnected";
 			}
 
-			UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_kick_tk", (char *)pszName, NULL, NULL, NULL );
+			UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_kick_tk", ( char * ) pszName, NULL, NULL, NULL );
 
 			UTIL_LogPrintf( "\"%s<%i>\" has been auto kicked from the game for TKing\n", STRING( pAttacker->pev->netname ),
-							GETPLAYERUSERID( pAttacker->edict() ) );
+				GETPLAYERUSERID( pAttacker->edict() ) );
 
 			ClientPrint( pAttacker->pev, HUD_PRINTCONSOLE, "#dod_kicked_reason_tk" );
 
@@ -2297,30 +2312,30 @@ int ReloadMapCycleFile( const char *filename, mapcycle_t *cycle )
 	char szMap[32];
 	int length;
 	char *pFileList;
-	char *aFileList = pFileList = (char *)LOAD_FILE_FOR_ME( filename, &length );
+	char *aFileList = pFileList = ( char * ) LOAD_FILE_FOR_ME( filename, &length );
 	int hasbuffer;
 	mapcycle_item_s *item, *newlist = NULL, *next;
 
-	if ( pFileList && length )
+	if( pFileList && length )
 	{
 		// the first map name in the file becomes the default
-		while ( 1 )
+		while( 1 )
 		{
 			hasbuffer = 0;
 			memset( szBuffer, 0, MAX_RULE_BUFFER );
 
 			pFileList = COM_Parse( pFileList );
-			if ( strlen( com_token ) <= 0 )
+			if( strlen( com_token ) <= 0 )
 				break;
 
 			strncpy( szMap, com_token, sizeof( szMap ) );
 			szMap[sizeof( szMap ) - 1] = '\0';
 
 			// Any more tokens on this line?
-			if ( COM_TokenWaiting( pFileList ) )
+			if( COM_TokenWaiting( pFileList ) )
 			{
 				pFileList = COM_Parse( pFileList );
-				if ( strlen( com_token ) > 0 )
+				if( strlen( com_token ) > 0 )
 				{
 					hasbuffer = 1;
 					strncpy( szBuffer, com_token, sizeof( szBuffer ) );
@@ -2329,7 +2344,7 @@ int ReloadMapCycleFile( const char *filename, mapcycle_t *cycle )
 			}
 
 			// Check map
-			if ( IS_MAP_VALID( szMap ) )
+			if( IS_MAP_VALID( szMap ) )
 			{
 				// Create entry
 				char *s;
@@ -2343,10 +2358,10 @@ int ReloadMapCycleFile( const char *filename, mapcycle_t *cycle )
 
 				memset( item->rulebuffer, 0, MAX_RULE_BUFFER );
 
-				if ( hasbuffer )
+				if( hasbuffer )
 				{
 					s = g_engfuncs.pfnInfoKeyValue( szBuffer, "minplayers" );
-					if ( s && s[0] )
+					if( s && s[0] )
 					{
 						item->minplayers = atoi( s );
 						item->minplayers = max( item->minplayers, 0 );
@@ -2354,7 +2369,7 @@ int ReloadMapCycleFile( const char *filename, mapcycle_t *cycle )
 					}
 
 					s = g_engfuncs.pfnInfoKeyValue( szBuffer, "maxplayers" );
-					if ( s && s[0] )
+					if( s && s[0] )
 					{
 						item->maxplayers = atoi( s );
 						item->maxplayers = max( item->maxplayers, 0 );
@@ -2385,7 +2400,7 @@ int ReloadMapCycleFile( const char *filename, mapcycle_t *cycle )
 	item = cycle->items;
 
 	// Reverse it to get original order
-	while ( item )
+	while( item )
 	{
 		next = item->next;
 		item->next = newlist;
@@ -2397,12 +2412,12 @@ int ReloadMapCycleFile( const char *filename, mapcycle_t *cycle )
 	item = cycle->items;
 
 	// Didn't parse anything
-	if ( !item )
+	if( !item )
 	{
 		return 0;
 	}
 
-	while ( item->next )
+	while( item->next )
 	{
 		item = item->next;
 	}
@@ -2422,11 +2437,11 @@ BOOL CDoDTeamPlay::IsTeamplay( void )
 BOOL CDoDTeamPlay::FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAttacker )
 {
 	BOOL bRet = TRUE;
-	if ( pAttacker != NULL )
+	if( pAttacker != NULL )
 	{
 		// the damage of a teammate depends on the friendly fire
-		if ( PlayerRelationship( pPlayer, pAttacker ) == 1 && pcvar_mp_friendlyfire )
-			bRet = ( pcvar_mp_friendlyfire->value > 0.0f || (CBasePlayer *) pAttacker == pPlayer );
+		if( PlayerRelationship( pPlayer, pAttacker ) == 1 && pcvar_mp_friendlyfire )
+			bRet = ( pcvar_mp_friendlyfire->value > 0.0f || ( CBasePlayer * ) pAttacker == pPlayer );
 	}
 
 	return bRet;
@@ -2435,9 +2450,9 @@ BOOL CDoDTeamPlay::FPlayerCanTakeDamage( CBasePlayer *pPlayer, CBaseEntity *pAtt
 BOOL CDoDTeamPlay::PlayFootstepSounds( CBasePlayer *pl, float fvol )
 {
 	extern cvar_t *g_footsteps;
-	if ( g_footsteps && g_footsteps->value == 0.0f )
+	if( g_footsteps && g_footsteps->value == 0.0f )
 		return FALSE;
-	if ( pl->pev->movetype == MOVETYPE_FLY )
+	if( pl->pev->movetype == MOVETYPE_FLY )
 		return TRUE;
 	float vel = sqrtf( pl->pev->velocity.x * pl->pev->velocity.x + pl->pev->velocity.y * pl->pev->velocity.y );
 	return ( vel > 200.0f );
@@ -2445,13 +2460,13 @@ BOOL CDoDTeamPlay::PlayFootstepSounds( CBasePlayer *pl, float fvol )
 
 int CDoDTeamPlay::PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget )
 {
-	if ( pTarget == NULL || pPlayer == NULL )
+	if( pTarget == NULL || pPlayer == NULL )
 		return 0;
-	if ( !pTarget->IsPlayer() )
+	if( !pTarget->IsPlayer() )
 		return 0;
-	if ( GetTeamID( pPlayer )[0] == 0 )
+	if( GetTeamID( pPlayer )[0] == 0 )
 		return 0;
-	if ( GetTeamID( pTarget )[0] == 0 )
+	if( GetTeamID( pTarget )[0] == 0 )
 		return 0;
 	return ( stricmp( GetTeamID( pTarget ), GetTeamID( pPlayer ) ) == 0 );
 }
@@ -2463,10 +2478,10 @@ BOOL CDoDTeamPlay::ShouldAutoAim( CBasePlayer *pPlayer, edict_t *target )
 int CDoDTeamPlay::IPointsForKill( CBasePlayer *pAttacker, CBasePlayer *pKilled )
 {
 	int pts = 0;
-	if ( pKilled != NULL )
+	if( pKilled != NULL )
 	{
 		pts = 1;
-		if ( pAttacker != NULL && pAttacker != pKilled )
+		if( pAttacker != NULL && pAttacker != pKilled )
 			pts = ( PlayerRelationship( pAttacker, pKilled ) != 1 );
 	}
 
@@ -2474,7 +2489,7 @@ int CDoDTeamPlay::IPointsForKill( CBasePlayer *pAttacker, CBasePlayer *pKilled )
 }
 const char *CDoDTeamPlay::GetTeamID( CBaseEntity *pEntity )
 {
-	if ( pEntity != NULL && pEntity->pev != NULL )
+	if( pEntity != NULL && pEntity->pev != NULL )
 		return pEntity->TeamID();
 	return "";
 }
@@ -2486,11 +2501,11 @@ int CDoDTeamPlay::GetTeamIndex( const char *pTeamName )
 
 const char *CDoDTeamPlay::GetIndexedTeamName( int teamIndex )
 {
-	if ( teamIndex == 1 )
+	if( teamIndex == 1 )
 		return "Allies";
-	if ( teamIndex == 2 )
+	if( teamIndex == 2 )
 		return "Axis";
-	if ( teamIndex == 3 )
+	if( teamIndex == 3 )
 		return "Spectators";
 	return "";
 }
@@ -2502,57 +2517,57 @@ BOOL CDoDTeamPlay::IsValidTeam( const char *pTeamName )
 
 BOOL CDoDTeamPlay::FShouldSwitchWeapon( CBasePlayer *pPlayer, CBasePlayerItem *pWeapon )
 {
-	if ( !pWeapon->CanDeploy() )
+	if( !pWeapon->CanDeploy() )
 		return FALSE;
-	if ( !pPlayer->m_pActiveItem )
+	if( !pPlayer->m_pActiveItem )
 		return TRUE;
-	if ( !pPlayer->m_pActiveItem->CanHolster() )
+	if( !pPlayer->m_pActiveItem->CanHolster() )
 		return FALSE;
 	return pWeapon->iWeight() > pPlayer->m_pActiveItem->iWeight();
 }
 
 char *WeaponIDToChar( int id )
 {
-	if ( (unsigned)id < 64 )
+	if( ( unsigned ) id < 64 )
 		return weaponnames[id];
 	return NULL;
 }
 
 BOOL CDoDTeamPlay::CanPlayerJoinClass( int playerclass )
 {
-	if ( playerclass == 27 )
+	if( playerclass == 27 )
 	{
-		if ( pcvar_mp_clan_match && pcvar_mp_clan_match->value > 0.0f )
+		if( pcvar_mp_clan_match && pcvar_mp_clan_match->value > 0.0f )
 			return FALSE;
 	}
-	else if ( (unsigned)( playerclass - 1 ) < 26 )
+	else if( ( unsigned ) ( playerclass - 1 ) < 26 )
 	{
-		if ( ReachedClassLimit( playerclass ) )
+		if( ReachedClassLimit( playerclass ) )
 			return FALSE;
 	}
-	else if ( (unsigned)( playerclass - 1 ) > 26 && playerclass != 27 )
+	else if( ( unsigned ) ( playerclass - 1 ) > 26 && playerclass != 27 )
 	{
 		// class 0 / >27: skip limit check, fall through to mask check
 	}
 
-	if ( playerclass == 9 || playerclass == 20 || playerclass == 26 )
+	if( playerclass == 9 || playerclass == 20 || playerclass == 26 )
 		return FALSE;
-	if ( (unsigned)( playerclass - 10 ) < 11 )
+	if( ( unsigned ) ( playerclass - 10 ) < 11 )
 	{
-		int v = (int)pcvar_mp_axisclasses->value;
+		int v = ( int ) pcvar_mp_axisclasses->value;
 		int mask = ( v > -1 ) ? v : -1;
 		int shift = playerclass - 10;
-		if ( ( ( mask >> ( shift & 31 ) ) & 1 ) == 0 )
+		if( ( ( mask >> ( shift & 31 ) ) & 1 ) == 0 )
 			return FALSE;
-		if ( m_GamePlayRules.m_bAxisArePara )
+		if( m_GamePlayRules.m_bAxisArePara )
 			return TRUE;
-		return (unsigned)( playerclass - 15 ) > 1;
+		return ( unsigned ) ( playerclass - 15 ) > 1;
 	}
 
-	int v = (int)pcvar_mp_alliesclasses->value;
+	int v = ( int ) pcvar_mp_alliesclasses->value;
 	int mask = ( v > -1 ) ? v : -1;
 	int shift = m_GamePlayRules.m_bAlliesAreBrit ? playerclass - 21 : playerclass - 1;
-	if ( ( ( mask >> ( shift & 31 ) ) & 1 ) == 0 )
+	if( ( ( mask >> ( shift & 31 ) ) & 1 ) == 0 )
 		return FALSE;
 	return TRUE;
 }
@@ -2561,12 +2576,12 @@ void CDoDTeamPlay::ChooseRandomClass( CBasePlayer *pPlayer )
 	int iFirst;
 	int iLast;
 
-	if ( pPlayer->pev->team == TEAM_ALLIES )
+	if( pPlayer->pev->team == TEAM_ALLIES )
 	{
 		iFirst = m_GamePlayRules.m_bAlliesAreBrit ? 21 : 1;
 		iLast = m_GamePlayRules.m_bAlliesAreBrit ? 26 : 9;
 	}
-	else if ( pPlayer->pev->team == TEAM_AXIS )
+	else if( pPlayer->pev->team == TEAM_AXIS )
 	{
 		iFirst = 10;
 		iLast = 20;
@@ -2581,18 +2596,18 @@ void CDoDTeamPlay::ChooseRandomClass( CBasePlayer *pPlayer )
 	int choices[17];
 	int iChoices = 0;
 
-	for ( int iClass = iFirst; iClass <= iLast; iClass++ )
+	for( int iClass = iFirst; iClass <= iLast; iClass++ )
 	{
-		if ( (unsigned int)( iClass - 1 ) <= 26 && ReachedClassLimit( iClass ) )
+		if( ( unsigned int ) ( iClass - 1 ) <= 26 && ReachedClassLimit( iClass ) )
 			continue;
 
-		if ( !CanPlayerJoinClass( iClass ) )
+		if( !CanPlayerJoinClass( iClass ) )
 			continue;
 
 		choices[iChoices++] = iClass;
 	}
 
-	if ( iChoices )
+	if( iChoices )
 	{
 		pPlayer->m_iNextClass = choices[RANDOM_LONG( 0, iChoices - 1 )];
 	}
@@ -2606,19 +2621,19 @@ void CDoDTeamPlay::ChooseRandomClass( CBasePlayer *pPlayer )
 
 void CDoDTeamPlay::PlayerSpawn( CBasePlayer *pPlayer )
 {
-	if ( pPlayer->has_disconnected || pPlayer->pev->iuser1 != 0 || pPlayer->pev->team == TEAM_SPECTATOR || pPlayer->pev->team == 0 ||
-		 pPlayer->m_iNextClass == 0 )
+	if( pPlayer->has_disconnected || pPlayer->pev->iuser1 != 0 || pPlayer->pev->team == TEAM_SPECTATOR || pPlayer->pev->team == 0 ||
+		pPlayer->m_iNextClass == 0 )
 		return;
 
 	int entindex = ENTINDEX( pPlayer->edict() );
 
-	if ( pPlayer->m_bIsRandomClass )
+	if( pPlayer->m_bIsRandomClass )
 	{
 		ChooseRandomClass( pPlayer );
 
 		DodClassInfo_t *pInfo;
 
-		if ( (unsigned int)( pPlayer->m_iNextClass - 10 ) <= 10 )
+		if( ( unsigned int ) ( pPlayer->m_iNextClass - 10 ) <= 10 )
 			pInfo = m_GamePlayRules.m_bAxisArePara ? g_ParaClassInfo : g_ClassInfo;
 		else
 			pInfo = m_GamePlayRules.m_bAlliesArePara ? g_ParaClassInfo : g_ClassInfo;
@@ -2632,43 +2647,43 @@ void CDoDTeamPlay::PlayerSpawn( CBasePlayer *pPlayer )
 
 	int cls = pPlayer->pev->playerclass;
 
-	if ( cls == 0 )
+	if( cls == 0 )
 	{
 		pPlayer->m_sPlayerModel = NULL;
 	}
 	else
 	{
-		if ( pPlayer->pev->team == TEAM_ALLIES )
+		if( pPlayer->pev->team == TEAM_ALLIES )
 			pPlayer->m_sPlayerModel = "us-inf";
-		else if ( pPlayer->pev->team == TEAM_AXIS )
+		else if( pPlayer->pev->team == TEAM_AXIS )
 			pPlayer->m_sPlayerModel = "axis-inf";
 
-		if ( (unsigned int)( cls - 1 ) <= 26 )
+		if( ( unsigned int ) ( cls - 1 ) <= 26 )
 		{
 			DodClassInfo_t *pClass;
 
-			if ( pPlayer->pev->team == TEAM_ALLIES && m_GamePlayRules.m_bAlliesArePara )
+			if( pPlayer->pev->team == TEAM_ALLIES && m_GamePlayRules.m_bAlliesArePara )
 				pClass = &g_ParaClassInfo[cls];
-			else if ( pPlayer->pev->team == TEAM_AXIS && m_GamePlayRules.m_bAxisArePara )
+			else if( pPlayer->pev->team == TEAM_AXIS && m_GamePlayRules.m_bAxisArePara )
 				pClass = &g_ParaClassInfo[cls];
 			else
 				pClass = &g_ClassInfo[cls];
 
 			pPlayer->m_sPlayerModel = pClass->modelname;
 
-			for ( int i = 0; i < 32; i++ )
+			for( int i = 0; i < 32; i++ )
 			{
-				if ( !( ( pClass->weapons >> i ) & 1 ) )
+				if( !( ( pClass->weapons >> i ) & 1 ) )
 					continue;
 
-				if ( i == 23 || i == 25 )
+				if( i == 23 || i == 25 )
 				{
 					// the scoped class of the FG42 and of the Enfield starts with the scope up
 					edict_t *pent = pPlayer->GiveNamedItem( i == 23 ? "weapon_fg42" : "weapon_enfield" );
 
-					if ( pent && pPlayer->pev->playerclass == ( i == 23 ? 16 : 23 ) )
+					if( pent && pPlayer->pev->playerclass == ( i == 23 ? 16 : 23 ) )
 					{
-						CBasePlayerWeapon *pWeapon = (CBasePlayerWeapon *)CBaseEntity::Instance( pent );
+						CBasePlayerWeapon *pWeapon = ( CBasePlayerWeapon * ) CBaseEntity::Instance( pent );
 
 						pWeapon->m_iWeaponState |= 1;
 						pWeapon->Deploy();
@@ -2680,20 +2695,20 @@ void CDoDTeamPlay::PlayerSpawn( CBasePlayer *pPlayer )
 				}
 			}
 
-			for ( int i = 0; i < 32; i++ )
+			for( int i = 0; i < 32; i++ )
 			{
-				if ( ( pClass->weapons2 >> i ) & 1 )
+				if( ( pClass->weapons2 >> i ) & 1 )
 					pPlayer->GiveNamedItem( weaponnames[i + 32] );
 			}
 
-			if ( pPlayer->pev->team == TEAM_ALLIES )
+			if( pPlayer->pev->team == TEAM_ALLIES )
 			{
-				for ( int i = 0; i < pClass->numgrenades; i++ )
+				for( int i = 0; i < pClass->numgrenades; i++ )
 					pPlayer->GiveNamedItem( "weapon_handgrenade" );
 			}
-			else if ( pPlayer->pev->team == TEAM_AXIS )
+			else if( pPlayer->pev->team == TEAM_AXIS )
 			{
-				for ( int i = 0; i < pClass->numgrenades; i++ )
+				for( int i = 0; i < pClass->numgrenades; i++ )
 					pPlayer->GiveNamedItem( "weapon_stickgrenade" );
 			}
 
@@ -2713,107 +2728,108 @@ void CDoDTeamPlay::PlayerSpawn( CBasePlayer *pPlayer )
 	SendTeamScores( 3 );
 
 	MESSAGE_BEGIN( MSG_ALL, gmsgPStatus );
-		WRITE_BYTE( entindex );
-		WRITE_BYTE( pPlayer->PlayerStatus() );
+	WRITE_BYTE( entindex );
+	WRITE_BYTE( pPlayer->PlayerStatus() );
 	MESSAGE_END();
 
 	MESSAGE_BEGIN( MSG_ALL, gmsgPClass );
-		WRITE_BYTE( entindex );
-		WRITE_BYTE( pPlayer->pev->playerclass );
+	WRITE_BYTE( entindex );
+	WRITE_BYTE( pPlayer->pev->playerclass );
 	MESSAGE_END();
 }
 
 int CDoDTeamPlay::GetWeaponId( const char *weaponname )
 {
-	if ( !strcmp( weaponname, "WEAPON_AMERKNIFE" ) )
+	if( !strcmp( weaponname, "WEAPON_AMERKNIFE" ) )
 		return 1;
 
-	if ( !strcmp( weaponname, "WEAPON_GERKNIFE" ) )
+	if( !strcmp( weaponname, "WEAPON_GERKNIFE" ) )
 		return 2;
 
-	if ( !strcmp( weaponname, "WEAPON_COLT" ) )
+	if( !strcmp( weaponname, "WEAPON_COLT" ) )
 		return 3;
 
-	if ( !strcmp( weaponname, "WEAPON_LUGER" ) )
+	if( !strcmp( weaponname, "WEAPON_LUGER" ) )
 		return 4;
 
-	if ( !strcmp( weaponname, "WEAPON_GARAND" ) )
+	if( !strcmp( weaponname, "WEAPON_GARAND" ) )
 		return 5;
 
-	if ( !strcmp( weaponname, "WEAPON_SCOPEDKAR" ) )
+	if( !strcmp( weaponname, "WEAPON_SCOPEDKAR" ) )
 		return 6;
 
-	if ( !strcmp( weaponname, "WEAPON_THOMPSON" ) )
+	if( !strcmp( weaponname, "WEAPON_THOMPSON" ) )
 		return 7;
 
-	if ( !strcmp( weaponname, "WEAPON_MP44" ) )
+	if( !strcmp( weaponname, "WEAPON_MP44" ) )
 		return 8;
 
-	if ( !strcmp( weaponname, "WEAPON_SPRING" ) )
+	if( !strcmp( weaponname, "WEAPON_SPRING" ) )
 		return 9;
 
-	if ( !strcmp( weaponname, "WEAPON_KAR" ) )
+	if( !strcmp( weaponname, "WEAPON_KAR" ) )
 		return 10;
 
-	if ( !strcmp( weaponname, "WEAPON_BAR" ) )
+	if( !strcmp( weaponname, "WEAPON_BAR" ) )
 		return 11;
 
-	if ( !strcmp( weaponname, "WEAPON_MP40" ) )
+	if( !strcmp( weaponname, "WEAPON_MP40" ) )
 		return 12;
 
-	if ( !strcmp( weaponname, "WEAPON_MG42" ) )
+	if( !strcmp( weaponname, "WEAPON_MG42" ) )
 		return 17;
 
-	if ( !strcmp( weaponname, "WEAPON_30CAL" ) )
+	if( !strcmp( weaponname, "WEAPON_30CAL" ) )
 		return 18;
 
-	if ( !strcmp( weaponname, "WEAPON_SPADE" ) )
+	if( !strcmp( weaponname, "WEAPON_SPADE" ) )
 		return 19;
 
-	if ( !strcmp( weaponname, "WEAPON_M1CARBINE" ) )
+	if( !strcmp( weaponname, "WEAPON_M1CARBINE" ) )
 		return 20;
 
-	if ( !strcmp( weaponname, "WEAPON_MG34" ) )
+	if( !strcmp( weaponname, "WEAPON_MG34" ) )
 		return 21;
 
-	if ( !strcmp( weaponname, "WEAPON_GREASEGUN" ) )
+	if( !strcmp( weaponname, "WEAPON_GREASEGUN" ) )
 		return 22;
 
-	if ( !strcmp( weaponname, "WEAPON_FG42" ) )
+	if( !strcmp( weaponname, "WEAPON_FG42" ) )
 		return 23;
 
-	if ( !strcmp( weaponname, "WEAPON_K43" ) )
+	if( !strcmp( weaponname, "WEAPON_K43" ) )
 		return 24;
 
-	if ( !strcmp( weaponname, "WEAPON_ENFIELD" ) )
+	if( !strcmp( weaponname, "WEAPON_ENFIELD" ) )
 		return 25;
 
-	if ( !strcmp( weaponname, "WEAPON_STEN" ) )
+	if( !strcmp( weaponname, "WEAPON_STEN" ) )
 		return 26;
 
-	if ( !strcmp( weaponname, "WEAPON_BREN" ) )
+	if( !strcmp( weaponname, "WEAPON_BREN" ) )
 		return 27;
 
-	if ( !strcmp( weaponname, "WEAPON_WEBLEY" ) )
+	if( !strcmp( weaponname, "WEAPON_WEBLEY" ) )
 		return 28;
 
-	if ( !strcmp( weaponname, "WEAPON_FOLDINGCARBINE" ) )
+	if( !strcmp( weaponname, "WEAPON_FOLDINGCARBINE" ) )
 		return 20;
 
-	if ( !strcmp( weaponname, "WEAPON_GERPARAKNIFE" ) )
+	if( !strcmp( weaponname, "WEAPON_GERPARAKNIFE" ) )
 		return 2;
 
-	if ( !strcmp( weaponname, "WEAPON_SCOPED_FG42" ) )
+	if( !strcmp( weaponname, "WEAPON_SCOPED_FG42" ) )
 		return 65;
 
 	return !strcmp( weaponname, "WEAPON_SCOPEDENFIELD" ) ? 25 : -1;
 }
+
 BOOL CDoDTeamPlay::ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress, char *szRejectReason )
 {
 	g_VoiceGameMgr.ClientConnected( pEntity );
 	char *buf = GET_INFOKEYBUFFER( pEntity );
 	char *nm = INFOKEY_VALUE( buf, "name" );
-	if ( nm[0] == '#' )
+	if( nm[0] == '#' )
 	{
 		char sName[256];
 		strncpy( sName, nm, 255 );
@@ -2827,16 +2843,16 @@ BOOL CDoDTeamPlay::ClientConnected( edict_t *pEntity, const char *pszName, const
 
 void CDoDTeamPlay::ClientDisconnected( edict_t *pClient )
 {
-	if ( !pClient )
+	if( !pClient )
 		return;
 
-	CBasePlayer *pPlayer = (CBasePlayer *)GET_PRIVATE( pClient );
+	CBasePlayer *pPlayer = ( CBasePlayer * ) GET_PRIVATE( pClient );
 
-	if ( pPlayer )
+	if( pPlayer )
 	{
 		MESSAGE_BEGIN( MSG_ALL, gmsgSpectator );
-			WRITE_BYTE( ENTINDEX( pClient ) );
-			WRITE_BYTE( 0 );
+		WRITE_BYTE( ENTINDEX( pClient ) );
+		WRITE_BYTE( 0 );
 		MESSAGE_END();
 
 		FireTargets( "game_playerleave", pPlayer, pPlayer, USE_TOGGLE, 0 );
@@ -2844,7 +2860,7 @@ void CDoDTeamPlay::ClientDisconnected( edict_t *pClient )
 		const char *szTeam = pPlayer->pev->team == TEAM_ALLIES ? "Allies" : "Axis";
 
 		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" disconnected\n", STRING( pPlayer->pev->netname ),
-						GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ), szTeam );
+			GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ), szTeam );
 
 		pPlayer->DropPlayerItem( "weapon_bazooka", TRUE );
 		pPlayer->DropPlayerItem( "weapon_pschreck", TRUE );
@@ -2854,12 +2870,12 @@ void CDoDTeamPlay::ClientDisconnected( edict_t *pClient )
 		// the players that watched him stop watching
 		CBasePlayer *pObserver = NULL;
 
-		while ( ( pObserver = (CBasePlayer *)UTIL_FindEntityByClassname( pObserver, "player" ) ) != NULL )
+		while( ( pObserver = ( CBasePlayer * ) UTIL_FindEntityByClassname( pObserver, "player" ) ) != NULL )
 		{
-			if ( FNullEnt( pObserver->edict() ) )
+			if( FNullEnt( pObserver->edict() ) )
 				break;
 
-			if ( pObserver->pev && pObserver != pPlayer && pObserver->m_hObserverTarget == pPlayer )
+			if( pObserver->pev && pObserver != pPlayer && pObserver->m_hObserverTarget == pPlayer )
 			{
 				int iMode = pObserver->pev->iuser1;
 
@@ -2869,7 +2885,7 @@ void CDoDTeamPlay::ClientDisconnected( edict_t *pClient )
 			}
 		}
 
-		if ( pPlayer->HasObject )
+		if( pPlayer->HasObject )
 			pPlayer->DropObject();
 
 		pPlayer->ClientDisconnect();
@@ -2880,16 +2896,16 @@ void CDoDTeamPlay::GoodToGo( void )
 {
 	DetectGameRules();
 	int ready = 0;
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBasePlayer *p = (CBasePlayer *) UTIL_PlayerByIndex( i );
-		if ( !p || p->pev->team < 1 || p->pev->team > 2 )
+		CBasePlayer *p = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
+		if( !p || p->pev->team < 1 || p->pev->team > 2 )
 			continue;
-		if ( p->m_iJoiningState == JOINED )
+		if( p->m_iJoiningState == JOINED )
 			ready++;
 	}
 
-	if ( ready != 0 )
+	if( ready != 0 )
 	{
 		RestartRound();
 		return;
@@ -2920,23 +2936,23 @@ void CDoDTeamPlay::RestartRound( void )
 	m_rReadyToUnFreeze = 2;
 	ResetEnts();
 	CBaseEntity *pr = NULL;
-	while ( ( pr = UTIL_FindEntityByClassname( pr, "dod_preround" ) ) != NULL )
-		GetClassPtr( (CDoDPreRound *) pr->pev )->Launch( m_SaveRoundState );
-	if ( cvar_timelimit.value < 0.0f )
+	while( ( pr = UTIL_FindEntityByClassname( pr, "dod_preround" ) ) != NULL )
+		GetClassPtr( ( CDoDPreRound * ) pr->pev )->Launch( m_SaveRoundState );
+	if( cvar_timelimit.value < 0.0f )
 		CVAR_SET_FLOAT( "timelimit", 0.0f );
 	int allies = 0;
 	int axis = 0;
 	CBaseEntity *first = NULL;
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBasePlayer *p = (CBasePlayer *) UTIL_PlayerByIndex( i );
-		if ( !p || p->Classify() != CLASS_PLAYER || p->has_disconnected )
+		CBasePlayer *p = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
+		if( !p || p->Classify() != CLASS_PLAYER || p->has_disconnected )
 			continue;
 		int t = p->pev->team;
-		if ( t == 0 || t == 3 || p->m_iNextClass == -1 )
+		if( t == 0 || t == 3 || p->m_iNextClass == -1 )
 			continue;
-		if ( ( t == 1 && m_GamePlayRules.m_bAlliesInfiniteLives ) ||
-			 ( t == 2 && m_GamePlayRules.m_bAxisInfiniteLives ) )
+		if( ( t == 1 && m_GamePlayRules.m_bAlliesInfiniteLives ) ||
+			( t == 2 && m_GamePlayRules.m_bAxisInfiniteLives ) )
 		{
 			MESSAGE_BEGIN( MSG_ONE, gmsgWaveStatus, NULL, p->pev );
 			WRITE_BYTE( 0 );
@@ -2945,16 +2961,16 @@ void CDoDTeamPlay::RestartRound( void )
 
 		p->HasObject = FALSE;
 		p->DelayedSpawn();
-		if ( p->pev->team == TEAM_ALLIES )
+		if( p->pev->team == TEAM_ALLIES )
 			allies++;
-		else if ( p->pev->team == TEAM_AXIS )
+		else if( p->pev->team == TEAM_AXIS )
 			axis++;
-		if ( !first )
+		if( !first )
 			first = p;
 	}
 
-	if ( ( !m_GamePlayRules.m_bAlliesInfiniteLives || !m_GamePlayRules.m_bAxisInfiniteLives ) &&
-		 ( allies == 0 || axis == 0 ) )
+	if( ( !m_GamePlayRules.m_bAlliesInfiniteLives || !m_GamePlayRules.m_bAxisInfiniteLives ) &&
+		( allies == 0 || axis == 0 ) )
 	{
 		m_RoundDoesCount = FALSE;
 		UTIL_ClientPrintAll( HUD_PRINTCONSOLE, "#game_bogus_round", 0, 0, 0, 0 );
@@ -2967,21 +2983,22 @@ void CDoDTeamPlay::RestartRound( void )
 	m_flCanJoinTime = gpGlobals->time + 15.0f;
 	int idx = 0;
 	CBaseEntity *e = NULL;
-	while ( ( e = UTIL_FindEntityByClassname( e, "dod_capture_area" ) ) != NULL )
+
+	while( ( e = UTIL_FindEntityByClassname( e, "dod_capture_area" ) ) != NULL )
 	{
 		e->area_SetIndex( idx );
 		idx++;
 	}
 
 	e = NULL;
-	while ( ( e = UTIL_FindEntityByClassname( e, "dod_object_goal" ) ) != NULL )
+	while( ( e = UTIL_FindEntityByClassname( e, "dod_object_goal" ) ) != NULL )
 	{
 		e->area_SetIndex( idx );
 		idx++;
 	}
 
 	e = NULL;
-	while ( ( e = UTIL_FindEntityByClassname( e, "func_breakable" ) ) != NULL )
+	while( ( e = UTIL_FindEntityByClassname( e, "func_breakable" ) ) != NULL )
 	{
 		e->area_SetIndex( idx );
 		idx++;
@@ -2992,24 +3009,24 @@ void CDoDTeamPlay::TeamWon( int iTeamWon )
 {
 	int allies = 0;
 	int axis = 0;
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBasePlayer *p = (CBasePlayer *) UTIL_PlayerByIndex( i );
-		if ( !p )
+		CBasePlayer *p = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
+		if( !p )
 			continue;
-		if ( p->pev->team == TEAM_ALLIES )
+		if( p->pev->team == TEAM_ALLIES )
 			allies++;
-		else if ( p->pev->team == TEAM_AXIS )
+		else if( p->pev->team == TEAM_AXIS )
 			axis++;
 	}
 
 	edict_t *ed = NULL;
-	while ( ( ed = FIND_ENTITY_BY_STRING( ed, "classname", "grenade" ) ) != NULL )
-		if ( OFFSET( ed ) != 0 )
+	while( ( ed = FIND_ENTITY_BY_STRING( ed, "classname", "grenade" ) ) != NULL )
+		if( OFFSET( ed ) != 0 )
 			VARS( ed )->iuser1 = 1;
 	ed = NULL;
-	while ( ( ed = FIND_ENTITY_BY_STRING( ed, "classname", "grenade2" ) ) != NULL )
-		if ( OFFSET( ed ) != 0 )
+	while( ( ed = FIND_ENTITY_BY_STRING( ed, "classname", "grenade2" ) ) != NULL )
+		if( OFFSET( ed ) != 0 )
 			VARS( ed )->iuser1 = 1;
 	UTIL_LogPrintf( "\"%s\" scored \"%i\" with \"%i\" players\n", "Allies", m_iTeamScores[1], allies );
 	UTIL_LogPrintf( "\"%s\" scored \"%i\" with \"%i\" players\n", "Axis", m_iTeamScores[2], axis );
@@ -3021,22 +3038,22 @@ float CDoDTeamPlay::GetMaxWaveTime( int nTeam )
 {
 	float fTime = 6.0f;
 	int nNumPlayers = 0;
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBaseEntity *p = UTIL_PlayerByIndex( i );
-		if ( p && p->pev->team == nTeam )
+		if( p && p->pev->team == nTeam )
 			nNumPlayers++;
 	}
 
-	if ( nNumPlayers > 2 ) fTime = 8.0f;
-	if ( nNumPlayers > 5 ) fTime = 10.0f;
-	if ( nNumPlayers > 7 ) fTime = 11.0f;
-	if ( nNumPlayers > 9 ) fTime = 12.0f;
-	if ( nNumPlayers > 11 ) fTime = 13.0f;
-	if ( nNumPlayers > 13 ) fTime = 14.0f;
-	if ( nTeam == 1 )
+	if( nNumPlayers > 2 ) fTime = 8.0f;
+	if( nNumPlayers > 5 ) fTime = 10.0f;
+	if( nNumPlayers > 7 ) fTime = 11.0f;
+	if( nNumPlayers > 9 ) fTime = 12.0f;
+	if( nNumPlayers > 11 ) fTime = 13.0f;
+	if( nNumPlayers > 13 ) fTime = 14.0f;
+	if( nTeam == 1 )
 		return fTime * m_GamePlayRules.m_fAlliesRespawnFactor;
-	if ( nTeam == 2 )
+	if( nTeam == 2 )
 		return fTime * m_GamePlayRules.m_fAxisRespawnFactor;
 	return fTime;
 }
@@ -3044,13 +3061,13 @@ float CDoDTeamPlay::GetMaxWaveTime( int nTeam )
 float CDoDTeamPlay::getWaveTime( int iTeam )
 {
 	float dt;
-	if ( iTeam == TEAM_ALLIES )
+	if( iTeam == TEAM_ALLIES )
 	{
 		dt = m_flAlliesRespawn - gpGlobals->time;
 		return dt > 0.0f ? dt : 0.0f;
 	}
 
-	if ( iTeam == TEAM_AXIS )
+	if( iTeam == TEAM_AXIS )
 	{
 		dt = m_flAxisRespawn - gpGlobals->time;
 		return dt > 0.0f ? dt : 0.0f;
@@ -3061,29 +3078,29 @@ float CDoDTeamPlay::getWaveTime( int iTeam )
 
 void CDoDTeamPlay::setWaveTime( int iTeam, float fTime )
 {
-	if ( iTeam == TEAM_ALLIES )
+	if( iTeam == TEAM_ALLIES )
 	{
-		if ( !m_GamePlayRules.m_bAlliesInfiniteLives )
+		if( !m_GamePlayRules.m_bAlliesInfiniteLives )
 			return;
 		m_flAlliesRespawn = gpGlobals->time + fTime;
 		m_flAlliesWaveTime = fTime;
 	}
-	else if ( iTeam == TEAM_AXIS )
+	else if( iTeam == TEAM_AXIS )
 	{
-		if ( !m_GamePlayRules.m_bAxisInfiniteLives )
+		if( !m_GamePlayRules.m_bAxisInfiniteLives )
 			return;
 		m_flAxisRespawn = gpGlobals->time + fTime;
 		m_flAxisWaveTime = fTime;
 	}
 	else
 		return;
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBaseEntity *p = UTIL_PlayerByIndex( i );
-		if ( p && p->pev->team == iTeam )
+		if( p && p->pev->team == iTeam )
 		{
 			MESSAGE_BEGIN( MSG_ONE, gmsgWaveTime, NULL, p->pev );
-			WRITE_CHAR( (int) fTime );
+			WRITE_CHAR( ( int ) fTime );
 			MESSAGE_END();
 		}
 	}
@@ -3094,33 +3111,33 @@ int CountTeamMembers( int teamNum )
 {
 	int iAllies = 0;
 	int iAxis = 0;
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBaseEntity *p = UTIL_PlayerByIndex( i );
-		if ( p )
+		if( p )
 		{
-			if ( p->pev->team == TEAM_ALLIES )
+			if( p->pev->team == TEAM_ALLIES )
 				iAllies++;
-			else if ( p->pev->team == TEAM_AXIS )
+			else if( p->pev->team == TEAM_AXIS )
 				iAxis++;
 		}
 	}
 
-	if ( teamNum == TEAM_ALLIES )
+	if( teamNum == TEAM_ALLIES )
 		return iAllies - iAxis;
 	return iAxis - iAllies;
 }
 
 void CDoDTeamPlay::SendTeamScores( int m_iTeam )
 {
-	if ( m_iTeam == 0 )
+	if( m_iTeam == 0 )
 	{
 		m_iTeamScores[1] = 0;
 		m_iTeamScores[2] = 0;
 		return;
 	}
 
-	if ( m_iTeam == TEAM_ALLIES || m_iTeam == 3 )
+	if( m_iTeam == TEAM_ALLIES || m_iTeam == 3 )
 	{
 		MESSAGE_BEGIN( MSG_ALL, gmsgTeamScore );
 		WRITE_BYTE( 1 );
@@ -3128,7 +3145,7 @@ void CDoDTeamPlay::SendTeamScores( int m_iTeam )
 		MESSAGE_END();
 	}
 
-	if ( m_iTeam == TEAM_AXIS || m_iTeam == 3 )
+	if( m_iTeam == TEAM_AXIS || m_iTeam == 3 )
 	{
 		MESSAGE_BEGIN( MSG_ALL, gmsgTeamScore );
 		WRITE_BYTE( 2 );
@@ -3141,15 +3158,15 @@ int DeadTeammates( entvars_t *pevPlr )
 {
 	int iDead = 0;
 
-	if ( pevPlr )
+	if( pevPlr )
 	{
-		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		for( int i = 1; i <= gpGlobals->maxClients; i++ )
 		{
 			CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
 
-			if ( pPlayer && !pPlayer->has_disconnected && pPlayer->pev->team == pevPlr->team && pPlayer->pev != pevPlr )
+			if( pPlayer && !pPlayer->has_disconnected && pPlayer->pev->team == pevPlr->team && pPlayer->pev != pevPlr )
 			{
-				if ( !pPlayer->IsAlive() )
+				if( !pPlayer->IsAlive() )
 					iDead++;
 			}
 		}
@@ -3161,15 +3178,15 @@ int AliveTeammates( entvars_t *pevPlr )
 {
 	int iAlive = 0;
 
-	if ( pevPlr )
+	if( pevPlr )
 	{
-		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		for( int i = 1; i <= gpGlobals->maxClients; i++ )
 		{
 			CBaseEntity *pPlayer = UTIL_PlayerByIndex( i );
 
-			if ( pPlayer && !pPlayer->has_disconnected && pPlayer->pev->team == pevPlr->team && pPlayer->pev != pevPlr )
+			if( pPlayer && !pPlayer->has_disconnected && pPlayer->pev->team == pevPlr->team && pPlayer->pev != pevPlr )
 			{
-				if ( pPlayer->IsAlive() )
+				if( pPlayer->IsAlive() )
 					iAlive++;
 			}
 		}
@@ -3183,12 +3200,12 @@ void RespawnAllies( void )
 	ALERT( at_console, "Respawning Allies\n" );
 	CBaseEntity *ent1 = NULL;
 	FireTargets( "dod_respawn_allies", NULL, NULL, USE_TOGGLE, 0.0f );
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBasePlayer *p = (CBasePlayer *) UTIL_PlayerByIndex( i );
-		if ( p && !p->has_disconnected && p->pev->team == TEAM_ALLIES && !p->IsAlive() )
+		CBasePlayer *p = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
+		if( p && !p->has_disconnected && p->pev->team == TEAM_ALLIES && !p->IsAlive() )
 		{
-			if ( p->m_iNextClass == -1 )
+			if( p->m_iNextClass == -1 )
 			{
 				ClientPrint( p->pev, HUD_PRINTCENTER, "#game_will_spawn", 0, 0, 0, 0 );
 				p->m_imissedwave = 1;
@@ -3196,7 +3213,7 @@ void RespawnAllies( void )
 			else
 			{
 				p->DelayedSpawn();
-				if ( !ent1 )
+				if( !ent1 )
 					ent1 = p;
 			}
 		}
@@ -3209,12 +3226,12 @@ void RespawnAxis( void )
 	CBaseEntity *ent1 = NULL;
 	ALERT( at_console, "Respawning Axis\n" );
 	FireTargets( "dod_respawn_axis", NULL, NULL, USE_TOGGLE, 0.0f );
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBasePlayer *p = (CBasePlayer *) UTIL_PlayerByIndex( i );
-		if ( p && !p->has_disconnected && p->pev->team == TEAM_AXIS && !p->IsAlive() )
+		CBasePlayer *p = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
+		if( p && !p->has_disconnected && p->pev->team == TEAM_AXIS && !p->IsAlive() )
 		{
-			if ( p->m_iNextClass == -1 )
+			if( p->m_iNextClass == -1 )
 			{
 				ClientPrint( p->pev, HUD_PRINTCENTER, "#game_will_spawn", 0, 0, 0, 0 );
 				p->m_imissedwave = 1;
@@ -3222,7 +3239,7 @@ void RespawnAxis( void )
 			else
 			{
 				p->DelayedSpawn();
-				if ( !ent1 )
+				if( !ent1 )
 					ent1 = p;
 			}
 		}
@@ -3233,23 +3250,23 @@ void RespawnAxis( void )
 
 void CDoDTeamPlay::UpdateData( CBasePlayer *pPlayer )
 {
-	if ( pPlayer->m_iObjScore <= 255 && pPlayer->pev->frags <= 255 && pPlayer->m_iDeaths <= 255 )
+	if( pPlayer->m_iObjScore <= 255 && pPlayer->pev->frags <= 255 && pPlayer->m_iDeaths <= 255 )
 	{
 		MESSAGE_BEGIN( MSG_ALL, gmsgScoreInfo );
-			WRITE_BYTE( ENTINDEX( pPlayer->edict() ) );
-			WRITE_BYTE( pPlayer->m_iObjScore );
-			WRITE_BYTE( pPlayer->pev->frags );
-			WRITE_BYTE( pPlayer->m_iDeaths );
+		WRITE_BYTE( ENTINDEX( pPlayer->edict() ) );
+		WRITE_BYTE( pPlayer->m_iObjScore );
+		WRITE_BYTE( pPlayer->pev->frags );
+		WRITE_BYTE( pPlayer->m_iDeaths );
 	}
 	else
 	{
 		ALERT( at_aiconsole, "Init HUD data requiring short values - sending with WRITE_SHORT()\n" );
 
 		MESSAGE_BEGIN( MSG_ALL, gmsgScoreInfoLong );
-			WRITE_BYTE( ENTINDEX( pPlayer->edict() ) );
-			WRITE_SHORT( pPlayer->m_iObjScore );
-			WRITE_SHORT( pPlayer->pev->frags );
-			WRITE_SHORT( pPlayer->m_iDeaths );
+		WRITE_BYTE( ENTINDEX( pPlayer->edict() ) );
+		WRITE_SHORT( pPlayer->m_iObjScore );
+		WRITE_SHORT( pPlayer->pev->frags );
+		WRITE_SHORT( pPlayer->m_iDeaths );
 	}
 
 	WRITE_BYTE( pPlayer->pev->playerclass );
@@ -3273,27 +3290,27 @@ void CDoDTeamPlay::RoundUnfreeze( void )
 	m_rReadyToUnFreeze = 0;
 	m_bIsRoundFrozen = false;
 	CDodRoundTimer *pTimer =
-		(CDodRoundTimer *) UTIL_FindEntityByClassname( NULL, "dod_round_timer" );
-	while ( pTimer )
+		( CDodRoundTimer * ) UTIL_FindEntityByClassname( NULL, "dod_round_timer" );
+	while( pTimer )
 	{
-		if ( ( pTimer->pev->spawnflags & SF_ROUNDTIMER_MANUAL ) == 0 )
+		if( ( pTimer->pev->spawnflags & SF_ROUNDTIMER_MANUAL ) == 0 )
 			pTimer->StartTimer();
-		pTimer = (CDodRoundTimer *) UTIL_FindEntityByClassname( pTimer, "dod_round_timer" );
+		pTimer = ( CDodRoundTimer * ) UTIL_FindEntityByClassname( pTimer, "dod_round_timer" );
 	}
 
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBasePlayer *p = (CBasePlayer *) UTIL_PlayerByIndex( i );
-		if ( !p || p->Classify() != 2 || p->pev->team == TEAM_SPECTATOR )
+		CBasePlayer *p = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
+		if( !p || p->Classify() != 2 || p->pev->team == TEAM_SPECTATOR )
 			continue;
 		p->CheckPlayerSpeed();
 		int r = RANDOM_LONG( 0, 3 );
 		int team = p->pev->team;
 		const char *msg;
 		int bparam1;
-		if ( team == TEAM_ALLIES )
+		if( team == TEAM_ALLIES )
 		{
-			if ( m_GamePlayRules.m_bAlliesAreBrit )
+			if( m_GamePlayRules.m_bAlliesAreBrit )
 			{
 				msg = ( r == 1 || r == 3 ) ? "#game_roundstart_brit2" : "#game_roundstart_brit1";
 				bparam1 = 1;
@@ -3312,8 +3329,8 @@ void CDoDTeamPlay::RoundUnfreeze( void )
 
 		entvars_t *client = p->pev;
 		ClientPrint( client, HUD_PRINTTALK, msg, 0, 0, 0, 0 );
-		PLAYBACK_EVENT_FULL( 0, client->pContainingEntity, m_roundRestartSound, 0.0, (float *) &g_vecZero,
-							 (float *) &g_vecZero, 0.0, 0.0, team, r, bparam1, 0 );
+		PLAYBACK_EVENT_FULL( 0, client->pContainingEntity, m_roundRestartSound, 0.0, ( float * ) &g_vecZero,
+			( float * ) &g_vecZero, 0.0, 0.0, team, r, bparam1, 0 );
 	}
 }
 void CDoDTeamPlay::RoundFreeze( void )
@@ -3324,47 +3341,47 @@ void CDoDTeamPlay::RoundFreeze( void )
 
 	CDodRoundTimer *pTimer = NULL;
 
-	while ( ( pTimer = (CDodRoundTimer *)UTIL_FindEntityByClassname( pTimer, "dod_round_timer" ) ) != NULL )
+	while( ( pTimer = ( CDodRoundTimer * ) UTIL_FindEntityByClassname( pTimer, "dod_round_timer" ) ) != NULL )
 		pTimer->ResetTimer();
 
 	// the teams that have not seen their spawn cutscene yet
 	BOOL bAlliesCut = FALSE;
 	BOOL bAxisCut = FALSE;
 
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBasePlayer *pPlayer = (CBasePlayer *)UTIL_PlayerByIndex( i );
+		CBasePlayer *pPlayer = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
 
-		if ( !pPlayer || pPlayer->Classify() != CLASS_PLAYER || pPlayer->pev->team == TEAM_SPECTATOR )
+		if( !pPlayer || pPlayer->Classify() != CLASS_PLAYER || pPlayer->pev->team == TEAM_SPECTATOR )
 			continue;
 
-		if ( pPlayer->pev->team == TEAM_ALLIES )
+		if( pPlayer->pev->team == TEAM_ALLIES )
 		{
-			if ( !pPlayer->i_seenAllieSpawnScene )
+			if( !pPlayer->i_seenAllieSpawnScene )
 				bAlliesCut = TRUE;
 		}
-		else if ( pPlayer->pev->team == TEAM_AXIS && !pPlayer->i_seenAxisSpawnScene )
+		else if( pPlayer->pev->team == TEAM_AXIS && !pPlayer->i_seenAxisSpawnScene )
 		{
 			bAxisCut = TRUE;
 		}
 
-		(*g_engfuncs.pfnSetClientMaxspeed)( pPlayer->edict(), 1.0f );
+		( *g_engfuncs.pfnSetClientMaxspeed )( pPlayer->edict(), 1.0f );
 	}
 
 	CCineMonster *pCine = NULL;
 
-	while ( ( pCine = (CCineMonster *)UTIL_FindEntityByClassname( pCine, "scripted_sequence" ) ) != NULL )
+	while( ( pCine = ( CCineMonster * ) UTIL_FindEntityByClassname( pCine, "scripted_sequence" ) ) != NULL )
 		pCine->DoDReset();
 
 	CBaseEntity *pTrain = NULL;
 
-	while ( ( pTrain = UTIL_FindEntityByClassname( pTrain, "func_train" ) ) != NULL )
+	while( ( pTrain = UTIL_FindEntityByClassname( pTrain, "func_train" ) ) != NULL )
 		pTrain->RoundRespawn();
 
-	if ( bAlliesCut )
+	if( bAlliesCut )
 		FireDODCamera( "allie_spawn_cut", NULL, NULL, USE_TOGGLE, 0 );
 
-	if ( bAxisCut )
+	if( bAxisCut )
 		FireDODCamera( "axis_spawn_cut", NULL, NULL, USE_TOGGLE, 0 );
 }
 
@@ -3381,12 +3398,12 @@ void CDoDTeamPlay::LevelChangeResets( CBasePlayer *pPlayer )
 	pPlayer->CheckPlayerSpeed();
 
 	MESSAGE_BEGIN( MSG_ONE, gmsgClientAreas, NULL, pPlayer->edict() );
-		WRITE_BYTE( 0 );
-		WRITE_BYTE( 2 );
+	WRITE_BYTE( 0 );
+	WRITE_BYTE( 2 );
 	MESSAGE_END();
 
 	MESSAGE_BEGIN( MSG_ONE, gmsgWaveTime, NULL, pPlayer->edict() );
-		WRITE_CHAR( 0 );
+	WRITE_CHAR( 0 );
 	MESSAGE_END();
 }
 
@@ -3397,16 +3414,16 @@ BOOL CDoDTeamPlay::FAllowFlashlight( void )
 
 BOOL CDoDTeamPlay::IsAllowedToSpawn( CBaseEntity *pEntity )
 {
-	if ( !pcvar_mp_spawnbazookas )
+	if( !pcvar_mp_spawnbazookas )
 		pcvar_mp_spawnbazookas = CVAR_GET_POINTER( "mp_spawnbazookas" );
 
-	if ( pcvar_mp_spawnbazookas->value > 0.0 )
+	if( pcvar_mp_spawnbazookas->value > 0.0 )
 		return TRUE;
 
 	// without mp_spawnbazookas the launchers are not spawned
 	const char *pszClassname = STRING( pEntity->pev->classname );
 
-	if ( !strcmp( pszClassname, "weapon_piat" ) || !strcmp( pszClassname, "weapon_pschreck" ) )
+	if( !strcmp( pszClassname, "weapon_piat" ) || !strcmp( pszClassname, "weapon_pschreck" ) )
 		return FALSE;
 
 	return strcmp( pszClassname, "weapon_bazooka" ) != 0;
@@ -3421,11 +3438,11 @@ void CDoDTeamPlay::SetNextMap( void )
 
 	strcpy( szFirstMapInList, "dod_caen" );
 
-	char *mapcfile = (char *)CVAR_GET_STRING( "mapcyclefile" );
+	char *mapcfile = ( char * ) CVAR_GET_STRING( "mapcyclefile" );
 
 	BOOL bAdvance;
 
-	if ( !stricmp( mapcfile, szPreviousMapCycleFile ) )
+	if( !stricmp( mapcfile, szPreviousMapCycleFile ) )
 	{
 		// the cycle is loaded already
 		bAdvance = mapcycle.items != NULL;
@@ -3441,11 +3458,11 @@ void CDoDTeamPlay::SetNextMap( void )
 
 		bAdvance = ReloadMapCycleFile( mapcfile, &mapcycle ) && mapcycle.items;
 
-		if ( !bAdvance )
+		if( !bAdvance )
 			ALERT( at_console, "Unable to load map cycle file %s\n", mapcfile );
 	}
 
-	if ( bAdvance )
+	if( bAdvance )
 	{
 		strcpy( sNextMap, STRING( gpGlobals->mapname ) );
 		strcpy( szFirstMapInList, STRING( gpGlobals->mapname ) );
@@ -3457,7 +3474,7 @@ void CDoDTeamPlay::SetNextMap( void )
 		strcpy( sNextMap, pszNext );
 	}
 
-	if ( !IS_MAP_VALID( sNextMap ) )
+	if( !IS_MAP_VALID( sNextMap ) )
 		strcpy( sNextMap, szFirstMapInList );
 }
 
@@ -3465,38 +3482,38 @@ char *CDoDTeamPlay::COM_Parse( char *data )
 {
 	int c, len = 0;
 	com_token[0] = 0;
-	if ( !data )
+	if( !data )
 		return NULL;
-	while ( *data <= ' ' )
+	while( *data <= ' ' )
 	{
-		if ( *data == 0 )
+		if( *data == 0 )
 			return NULL;
 		data++;
 	}
 
-	if ( data[0] == '/' && data[1] == '/' )
+	if( data[0] == '/' && data[1] == '/' )
 	{
-		while ( *data && *data != '\n' )
+		while( *data && *data != '\n' )
 			data++;
 		return COM_Parse( data );
 	}
 
-	if ( *data == '\"' )
+	if( *data == '\"' )
 	{
 		data++;
-		while ( *data && *data != '\"' )
+		while( *data && *data != '\"' )
 			com_token[len++] = *data++;
 		com_token[len] = 0;
 		return *data ? data + 1 : data;
 	}
 
-	if ( *data == '{' || *data == '}' || *data == '(' || *data == ')' || *data == ',' || *data == '\'' )
+	if( *data == '{' || *data == '}' || *data == '(' || *data == ')' || *data == ',' || *data == '\'' )
 	{
 		com_token[0] = *data++;
 		com_token[1] = 0;
 		return data;
 	}
-	while ( *data > ' ' && *data != '{' && *data != '}' && *data != '(' && *data != ')' && *data != ',' && *data != '\'' )
+	while( *data > ' ' && *data != '{' && *data != '}' && *data != '(' && *data != ')' && *data != ',' && *data != '\'' )
 		com_token[len++] = *data++;
 	com_token[len] = 0;
 	return data;
@@ -3505,9 +3522,9 @@ BOOL CDoDTeamPlay::COM_TokenWaiting( char *buffer )
 {
 	char *p = buffer;
 
-	while ( *p && *p != '\n' )
+	while( *p && *p != '\n' )
 	{
-		if ( !isspace( *p ) || isalnum( *p ) )
+		if( !isspace( *p ) || isalnum( *p ) )
 			return 1;
 
 		p++;
@@ -3541,14 +3558,14 @@ int CDoDTeamPlay::TeamScores( int team )
 
 void CDoDTeamPlay::SetTeamScores( int iTeam, int iScore )
 {
-	if ( m_RoundDoesCount != TRUE )
+	if( m_RoundDoesCount != TRUE )
 		return;
 	m_iTeamScores[iTeam] = iScore;
 }
 
 void CDoDTeamPlay::AddToTeamScores( int iTeam, int iScore )
 {
-	if ( ( !IsClanMatch() || IsClanMatchActive() ) && m_RoundDoesCount == TRUE )
+	if( ( !IsClanMatch() || IsClanMatchActive() ) && m_RoundDoesCount == TRUE )
 	{
 		m_iTeamScores[iTeam] = m_iTeamScores[iTeam] + iScore;
 
@@ -3689,64 +3706,64 @@ void CDoDTeamPlay::SetCamera( short s ) { m_Camera = s; }
 void CDoDTeamPlay::SendObjectiveStatus( CBasePlayer *pPlayer )
 {
 	MESSAGE_BEGIN( MSG_ONE, gmsgRoundState, NULL, pPlayer->edict() );
-		WRITE_BYTE( RoundState() );
+	WRITE_BYTE( RoundState() );
 	MESSAGE_END();
 
 	// the control points of the master that is in use
-	CControlPointMaster *pMaster = (CControlPointMaster *)UTIL_FindEntityByClassname( NULL, "dod_control_point_master" );
+	CControlPointMaster *pMaster = ( CControlPointMaster * ) UTIL_FindEntityByClassname( NULL, "dod_control_point_master" );
 
-	while ( pMaster )
+	while( pMaster )
 	{
 		CBaseEntity *pNext = UTIL_FindEntityByClassname( pMaster, "dod_control_point_master" );
 
-		if ( pMaster->IsMasteredOn() )
+		if( pMaster->IsMasteredOn() )
 		{
 			pMaster->SendObjectiveStatus( pPlayer );
 			break;
 		}
 
-		pMaster = (CControlPointMaster *)pNext;
+		pMaster = ( CControlPointMaster * ) pNext;
 	}
 
 	CBaseEntity *pEntity = NULL;
 
-	while ( ( pEntity = UTIL_FindEntityByClassname( pEntity, "dod_capture_area" ) ) != NULL )
+	while( ( pEntity = UTIL_FindEntityByClassname( pEntity, "dod_capture_area" ) ) != NULL )
 		pEntity->area_SendStatus( pPlayer );
 
 	pEntity = NULL;
 
-	while ( ( pEntity = UTIL_FindEntityByClassname( pEntity, "dod_object_goal" ) ) != NULL )
+	while( ( pEntity = UTIL_FindEntityByClassname( pEntity, "dod_object_goal" ) ) != NULL )
 		pEntity->area_SendStatus( pPlayer );
 
 	pEntity = NULL;
 
-	while ( ( pEntity = UTIL_FindEntityByClassname( pEntity, "func_breakable" ) ) != NULL )
+	while( ( pEntity = UTIL_FindEntityByClassname( pEntity, "func_breakable" ) ) != NULL )
 		pEntity->area_SendStatus( pPlayer );
 
 	CDodRoundTimer *pTimer = NULL;
 
-	while ( ( pTimer = (CDodRoundTimer *)UTIL_FindEntityByClassname( pTimer, "dod_round_timer" ) ) != NULL )
+	while( ( pTimer = ( CDodRoundTimer * ) UTIL_FindEntityByClassname( pTimer, "dod_round_timer" ) ) != NULL )
 		pTimer->SendStatus( pPlayer );
 
 	CParticleShooter *pShooter = NULL;
 
-	while ( ( pShooter = (CParticleShooter *)UTIL_FindEntityByClassname( pShooter, "particle_shooter" ) ) != NULL )
+	while( ( pShooter = ( CParticleShooter * ) UTIL_FindEntityByClassname( pShooter, "particle_shooter" ) ) != NULL )
 		pShooter->SendUpdate( pPlayer );
 }
 
 void CDoDTeamPlay::SendWaveStatus( CBasePlayer *pPlayer, int status )
 {
-	if ( pPlayer == NULL )
+	if( pPlayer == NULL )
 		return;
 	int team = pPlayer->pev->team;
 	BOOL infinite;
-	if ( team == TEAM_ALLIES )
+	if( team == TEAM_ALLIES )
 		infinite = m_GamePlayRules.m_bAlliesInfiniteLives;
-	else if ( team == TEAM_AXIS )
+	else if( team == TEAM_AXIS )
 		infinite = m_GamePlayRules.m_bAxisInfiniteLives;
 	else
 		return;
-	if ( infinite )
+	if( infinite )
 	{
 		MESSAGE_BEGIN( MSG_ONE, gmsgWaveStatus, NULL, pPlayer->pev );
 		WRITE_BYTE( status );
@@ -3765,10 +3782,10 @@ void CDoDTeamPlay::ReadInClassInfo( void )
 
 void CDoDTeamPlay::PlayerDeathThink( CBasePlayer *pPlayer )
 {
-	if ( gpGlobals->time <= pPlayer->m_fDeadTime + 1.0f || g_fGameOver )
+	if( gpGlobals->time <= pPlayer->m_fDeadTime + 1.0f || g_fGameOver )
 		return;
 
-	if ( RoundState() != ROUNDSTATE_RUNNING )
+	if( RoundState() != ROUNDSTATE_RUNNING )
 	{
 		pPlayer->StartObserver( pPlayer->pev->origin, pPlayer->pev->angles );
 		return;
@@ -3776,16 +3793,16 @@ void CDoDTeamPlay::PlayerDeathThink( CBasePlayer *pPlayer )
 
 	pPlayer->m_bIsObserver = TRUE;
 
-	if ( IsTeamInfinite( pPlayer->pev->team ) )
+	if( IsTeamInfinite( pPlayer->pev->team ) )
 	{
 		// no wave is on its way: the next one comes after the maximal wave time, at least 3 seconds
-		if ( getWaveTime( pPlayer->pev->team ) <= 0.0f )
+		if( getWaveTime( pPlayer->pev->team ) <= 0.0f )
 		{
 			float tempTime = GetMaxWaveTime( pPlayer->pev->team );
-			if ( pcvar_mp_clan_match && pcvar_mp_clan_match->value > 0.0f && pcvar_mp_clan_respawntime &&
-				 pcvar_mp_clan_respawntime->value > 0.0f )
+			if( pcvar_mp_clan_match && pcvar_mp_clan_match->value > 0.0f && pcvar_mp_clan_respawntime &&
+				pcvar_mp_clan_respawntime->value > 0.0f )
 				tempTime = pcvar_mp_clan_respawntime->value;
-			if ( tempTime < 3.0f )
+			if( tempTime < 3.0f )
 				tempTime = 3.0f;
 			setWaveTime( pPlayer->pev->team, tempTime );
 		}
@@ -3800,20 +3817,20 @@ void CDoDTeamPlay::DetectGameRules( void )
 {
 	CBaseEntity *det = UTIL_FindEntityByClassname( NULL, "info_doddetect" );
 	BOOL found = FALSE;
-	while ( det )
+	while( det )
 	{
-		string_t master = ( (CDoDDetect *) det )->m_sMaster;
-		if ( master == 0 || UTIL_IsMasterTriggered( master, det ) )
+		string_t master = ( ( CDoDDetect * ) det )->m_sMaster;
+		if( master == 0 || UTIL_IsMasterTriggered( master, det ) )
 		{
 			gr_gameRules = 1;
-			CopyGamePlayLogic( ( (CDoDDetect *) det )->m_GamePlayRules );
+			CopyGamePlayLogic( ( ( CDoDDetect * ) det )->m_GamePlayRules );
 			found = TRUE;
 		}
 
 		det = UTIL_FindEntityByClassname( det, "info_doddetect" );
 	}
 
-	if ( !found )
+	if( !found )
 	{
 		gr_gameRules = 0;
 		m_GamePlayRules.m_iPointsAlliesElim = 5;
@@ -3846,7 +3863,7 @@ void CDoDTeamPlay::SendClientGamerules( CBasePlayer *pPlayer )
 	int iAllies;
 	int iAlliesInfinite;
 
-	if ( m_GamePlayRules.m_bAlliesArePara )
+	if( m_GamePlayRules.m_bAlliesArePara )
 	{
 		iAllies = 1;
 		iAlliesInfinite = 3;
@@ -3859,35 +3876,35 @@ void CDoDTeamPlay::SendClientGamerules( CBasePlayer *pPlayer )
 
 	int iAxis = m_GamePlayRules.m_bAxisArePara;
 
-	if ( m_GamePlayRules.m_bAlliesInfiniteLives )
+	if( m_GamePlayRules.m_bAlliesInfiniteLives )
 		iAllies = iAlliesInfinite;
 
-	if ( m_GamePlayRules.m_bAxisInfiniteLives )
+	if( m_GamePlayRules.m_bAxisInfiniteLives )
 		iAxis |= 2;
 
 	// a clan match that is still in the warmup
-	if ( IsClanMatch() && !IsClanMatchActive() )
+	if( IsClanMatch() && !IsClanMatchActive() )
 		iAxis |= 4;
 
-	if ( pPlayer )
+	if( pPlayer )
 	{
 		MESSAGE_BEGIN( MSG_ONE, gmsgGameRules, NULL, pPlayer->edict() );
-			WRITE_BYTE( iAllies );
-			WRITE_BYTE( iAxis );
+		WRITE_BYTE( iAllies );
+		WRITE_BYTE( iAxis );
 		MESSAGE_END();
 
 		return;
 	}
 
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBaseEntity *pEntity = UTIL_PlayerByIndex( i );
 
-		if ( pEntity && (unsigned int)( pEntity->pev->team - 1 ) <= 2 )
+		if( pEntity && ( unsigned int ) ( pEntity->pev->team - 1 ) <= 2 )
 		{
 			MESSAGE_BEGIN( MSG_ONE, gmsgGameRules, NULL, pEntity->edict() );
-				WRITE_BYTE( iAllies );
-				WRITE_BYTE( iAxis );
+			WRITE_BYTE( iAllies );
+			WRITE_BYTE( iAxis );
 			MESSAGE_END();
 		}
 	}
@@ -3917,17 +3934,17 @@ BOOL CDoDTeamPlay::IsAlliesPara( void )
 
 BOOL CDoDTeamPlay::IsTeamPara( int team )
 {
-	if ( team == TEAM_ALLIES )
+	if( team == TEAM_ALLIES )
 		return m_GamePlayRules.m_bAlliesArePara;
-	if ( team == TEAM_AXIS )
+	if( team == TEAM_AXIS )
 		return m_GamePlayRules.m_bAxisArePara;
 	return FALSE;
 }
 BOOL CDoDTeamPlay::IsTeamInfinite( int team )
 {
-	if ( team == TEAM_ALLIES )
+	if( team == TEAM_ALLIES )
 		return m_GamePlayRules.m_bAlliesInfiniteLives;
-	if ( team == TEAM_AXIS )
+	if( team == TEAM_AXIS )
 		return m_GamePlayRules.m_bAxisInfiniteLives;
 	return FALSE;
 }
@@ -3938,46 +3955,46 @@ void CDoDTeamPlay::EnumerateTeams( int *aA, int *nA, int *aX, int *nX )
 	int na = 0;
 	int ax = 0;
 	int nx = 0;
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBasePlayer *p = (CBasePlayer *) UTIL_PlayerByIndex( i );
-		if ( !p || p->has_disconnected )
+		CBasePlayer *p = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
+		if( !p || p->has_disconnected )
 			continue;
-		if ( p->pev->team == TEAM_ALLIES )
+		if( p->pev->team == TEAM_ALLIES )
 		{
 			na++;
-			if ( p->IsAlive() )
+			if( p->IsAlive() )
 				aa++;
 		}
-		else if ( p->pev->team == TEAM_AXIS )
+		else if( p->pev->team == TEAM_AXIS )
 		{
 			nx++;
-			if ( p->IsAlive() )
+			if( p->IsAlive() )
 				ax++;
 		}
 	}
 
-	if ( aA )
+	if( aA )
 		*aA = aa;
-	if ( nA )
+	if( nA )
 		*nA = na;
-	if ( aX )
+	if( aX )
 		*aX = ax;
-	if ( nX )
+	if( nX )
 		*nX = nx;
 }
 
 void CDoDTeamPlay::ResetForDoDCamera( void )
 {
 	CBaseEntity *pEnt = UTIL_FindEntityByClassname( NULL, "scripted_sequence" );
-	while ( pEnt )
+	while( pEnt )
 	{
-		((CCineMonster *)pEnt)->DoDReset();
+		( ( CCineMonster * ) pEnt )->DoDReset();
 		pEnt = UTIL_FindEntityByClassname( pEnt, "scripted_sequence" );
 	}
 
 	pEnt = UTIL_FindEntityByClassname( NULL, "func_train" );
-	while ( pEnt )
+	while( pEnt )
 	{
 		pEnt->RoundRespawn();
 		pEnt = UTIL_FindEntityByClassname( pEnt, "func_train" );
@@ -3987,6 +4004,7 @@ void CDoDTeamPlay::ResetForDoDCamera( void )
 void CDoDTeamPlay::RefreshSkillData( void )
 {
 	CGameRules::RefreshSkillData();
+
 	gSkillData.plrDmgCOLT = 40.0f;
 	gSkillData.plrDmgLUGER = 40.0f;
 	gSkillData.plrDmgCARBINE = 40.0f;
@@ -4023,10 +4041,10 @@ void CDoDTeamPlay::RefreshSkillData( void )
 
 void CDoDTeamPlay::TimerExpired( void )
 {
-	if ( !m_GamePlayRules.m_bUseTimer )
+	if( !m_GamePlayRules.m_bUseTimer )
 		return;
 
-	if ( m_GamePlayRules.m_iTimerTeam == 1 )
+	if( m_GamePlayRules.m_iTimerTeam == 1 )
 	{
 		SetRoundState( ROUNDSTATE_ALLIES_WON );
 		AddToTeamScores( 1, m_GamePlayRules.m_iPointsTimerExpires );
@@ -4034,7 +4052,7 @@ void CDoDTeamPlay::TimerExpired( void )
 		FireDODCamera( "allies_win_cut", NULL, NULL, USE_TOGGLE, 0 );
 		FireDODCamera( "axis_loose_cut", NULL, NULL, USE_TOGGLE, 0 );
 	}
-	else if ( m_GamePlayRules.m_iTimerTeam == 2 )
+	else if( m_GamePlayRules.m_iTimerTeam == 2 )
 	{
 		SetRoundState( ROUNDSTATE_AXIS_WON );
 		AddToTeamScores( 2, m_GamePlayRules.m_iPointsTimerExpires );
@@ -4048,12 +4066,12 @@ void CDoDTeamPlay::TimerExpired( void )
 
 		CCineMonster *pCine = NULL;
 
-		while ( ( pCine = (CCineMonster *)UTIL_FindEntityByClassname( pCine, "scripted_sequence" ) ) != NULL )
+		while( ( pCine = ( CCineMonster * ) UTIL_FindEntityByClassname( pCine, "scripted_sequence" ) ) != NULL )
 			pCine->DoDReset();
 
 		CBaseEntity *pTrain = NULL;
 
-		while ( ( pTrain = UTIL_FindEntityByClassname( pTrain, "func_train" ) ) != NULL )
+		while( ( pTrain = UTIL_FindEntityByClassname( pTrain, "func_train" ) ) != NULL )
 			pTrain->RoundRespawn();
 
 		FireTargets( "para_draw", NULL, NULL, USE_TOGGLE, 0 );
@@ -4072,7 +4090,7 @@ void CDoDTeamPlay::TimerExpired( void )
 void CDoDTeamPlay::ClassSelect( CBasePlayer *pPlayer, int iClassSelect )
 {
 	int team = pPlayer->pev->team;
-	if ( team == 3 )
+	if( team == 3 )
 		return;
 
 	pPlayer->m_bIsRandomClass = false;
@@ -4081,16 +4099,16 @@ void CDoDTeamPlay::ClassSelect( CBasePlayer *pPlayer, int iClassSelect )
 	int iVar10;
 	DodClassInfo_t *pClassInfo = NULL;
 
-	if ( iClassSelect == 0x1b )
+	if( iClassSelect == 0x1b )
 	{
-		if ( pPlayer->m_iNextClass == -1 && pPlayer->m_imissedwave != 0 && m_RoundState == ROUNDSTATE_RUNNING )
+		if( pPlayer->m_iNextClass == -1 && pPlayer->m_imissedwave != 0 && m_RoundState == ROUNDSTATE_RUNNING )
 			pPlayer->m_irdytospawn = 1;
 		pPlayer->m_iNextClass = 0x1b;
 		pPlayer->m_bIsRandomClass = true;
-		if ( !pPlayer->IsAlive() )
+		if( !pPlayer->IsAlive() )
 		{
 			ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_spawn_asrandom", 0, 0, 0, 0 );
-			if ( pPlayer->m_iJoiningState != JOINED )
+			if( pPlayer->m_iJoiningState != JOINED )
 				pPlayer->m_iJoiningState = READYTOGO;
 		}
 		else
@@ -4099,44 +4117,44 @@ void CDoDTeamPlay::ClassSelect( CBasePlayer *pPlayer, int iClassSelect )
 		}
 
 		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" changed role to \"Random\"\n", STRING( pPlayer->pev->netname ),
-						GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ),
-						bIsAlly ? "Allies" : "Axis" );
+			GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ),
+			bIsAlly ? "Allies" : "Axis" );
 		iVar10 = pPlayer->m_irdytospawn;
 	}
 	else
 	{
-		if ( bIsAlly && bIsBrit && (unsigned) ( iClassSelect - 0x15 ) > 5 )
+		if( bIsAlly && bIsBrit && ( unsigned ) ( iClassSelect - 0x15 ) > 5 )
 			return;
-		if ( !bIsBrit && bIsAlly )
+		if( !bIsBrit && bIsAlly )
 		{
-			if ( (unsigned) ( iClassSelect - 1 ) > 8 )
+			if( ( unsigned ) ( iClassSelect - 1 ) > 8 )
 				return;
-			if ( (unsigned) ( iClassSelect - 10 ) < 0xb )
+			if( ( unsigned ) ( iClassSelect - 10 ) < 0xb )
 				pClassInfo = m_GamePlayRules.m_bAxisArePara ? g_ParaClassInfo : g_ClassInfo;
 			else
 				pClassInfo = m_GamePlayRules.m_bAlliesArePara ? g_ParaClassInfo : g_ClassInfo;
 		}
-		else if ( team != TEAM_AXIS )
+		else if( team != TEAM_AXIS )
 		{
-			if ( iClassSelect == 0 )
+			if( iClassSelect == 0 )
 				return;
-			if ( (unsigned) ( iClassSelect - 10 ) < 0xb )
+			if( ( unsigned ) ( iClassSelect - 10 ) < 0xb )
 				pClassInfo = m_GamePlayRules.m_bAxisArePara ? g_ParaClassInfo : g_ClassInfo;
 			else
 				pClassInfo = m_GamePlayRules.m_bAlliesArePara ? g_ParaClassInfo : g_ClassInfo;
 		}
 		else
 		{
-			if ( (unsigned) ( iClassSelect - 10 ) > 10 )
+			if( ( unsigned ) ( iClassSelect - 10 ) > 10 )
 				return;
 			pClassInfo = m_GamePlayRules.m_bAxisArePara ? g_ParaClassInfo : g_ClassInfo;
 		}
 
 		const char *classname = pClassInfo[iClassSelect].classname;
 
-		if ( iClassSelect != pPlayer->pev->playerclass &&
-			 ( ( (unsigned) ( iClassSelect - 1 ) < 0x1b && ReachedClassLimit( iClassSelect ) ) ||
-			   !CanPlayerJoinClass( iClassSelect ) ) )
+		if( iClassSelect != pPlayer->pev->playerclass &&
+			( ( ( unsigned ) ( iClassSelect - 1 ) < 0x1b && ReachedClassLimit( iClassSelect ) ) ||
+				!CanPlayerJoinClass( iClassSelect ) ) )
 		{
 			ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_class_limit", classname, 0, 0, 0 );
 			ShowClassSelectMenu( pPlayer );
@@ -4144,12 +4162,12 @@ void CDoDTeamPlay::ClassSelect( CBasePlayer *pPlayer, int iClassSelect )
 		}
 
 		pPlayer->m_iNextClass = iClassSelect;
-		if ( pPlayer->m_imissedwave != 0 && m_RoundState == ROUNDSTATE_RUNNING )
+		if( pPlayer->m_imissedwave != 0 && m_RoundState == ROUNDSTATE_RUNNING )
 			pPlayer->m_irdytospawn = 1;
-		if ( !pPlayer->IsAlive() )
+		if( !pPlayer->IsAlive() )
 		{
 			ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_spawn_as", classname, 0, 0, 0 );
-			if ( pPlayer->m_iJoiningState != JOINED )
+			if( pPlayer->m_iJoiningState != JOINED )
 				pPlayer->m_iJoiningState = READYTOGO;
 		}
 		else
@@ -4158,63 +4176,63 @@ void CDoDTeamPlay::ClassSelect( CBasePlayer *pPlayer, int iClassSelect )
 		}
 
 		UTIL_LogPrintf( "\"%s<%i><%s><%s>\" changed role to \"%s\"\n", STRING( pPlayer->pev->netname ),
-						GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ),
-						bIsAlly ? "Allies" : "Axis", classname );
+			GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ),
+			bIsAlly ? "Allies" : "Axis", classname );
 		iVar10 = pPlayer->m_irdytospawn;
 	}
 
-	if ( iVar10 == 0 )
+	if( iVar10 == 0 )
 		return;
 	int team2 = pPlayer->pev->team;
 	BOOL infinite;
-	if ( team2 == 1 )
+	if( team2 == 1 )
 		infinite = m_GamePlayRules.m_bAlliesInfiniteLives;
-	else if ( team2 == 2 )
+	else if( team2 == 2 )
 		infinite = m_GamePlayRules.m_bAxisInfiniteLives;
 	else
 		infinite = FALSE;
-	if ( !infinite && m_RoundState == ROUNDSTATE_RUNNING )
+	if( !infinite && m_RoundState == ROUNDSTATE_RUNNING )
 		return;
 	pPlayer->DelayedSpawn();
 }
 
 void CDoDTeamPlay::TeamSelect( CBasePlayer *pPlayer, int iTeamSelect )
 {
-	if ( (unsigned) ( iTeamSelect - 1 ) > 4 || iTeamSelect == 4 )
+	if( ( unsigned ) ( iTeamSelect - 1 ) > 4 || iTeamSelect == 4 )
 		return;
 
-	if ( iTeamSelect == TEAM_SPECTATOR )
+	if( iTeamSelect == TEAM_SPECTATOR )
 	{
-		if ( pcvar_mp_allowspectators != NULL && pcvar_mp_allowspectators->value <= 0.0f )
+		if( pcvar_mp_allowspectators != NULL && pcvar_mp_allowspectators->value <= 0.0f )
 		{
 			ShowVGUI( pPlayer, 2, 0 );
 			return;
 		}
 	}
-	else if ( iTeamSelect == 5 )
+	else if( iTeamSelect == 5 )
 	{
 		int diff = CountTeamMembers( TEAM_ALLIES );
-		if ( diff < 0 )
+		if( diff < 0 )
 			iTeamSelect = TEAM_ALLIES;
-		else if ( diff > 0 )
+		else if( diff > 0 )
 			iTeamSelect = TEAM_AXIS;
 		else
 			iTeamSelect = ( m_iTeamScores[TEAM_ALLIES] >= m_iTeamScores[TEAM_AXIS] ) + 1;
 	}
 
 	int team = pPlayer->pev->team;
-	if ( team == iTeamSelect )
+	if( team == iTeamSelect )
 		return;
 
 	int firstTime = ( team <= 0 );
-	BOOL b_playableteam = (unsigned) ( team - 1 ) < 3;
+	BOOL b_playableteam = ( unsigned ) ( team - 1 ) < 3;
 
-	if ( pcvar_mp_teamlimit != NULL )
+	if( pcvar_mp_teamlimit != NULL )
 	{
 		float teamOver = pcvar_mp_teamlimit->value;
-		if ( teamOver > 0.0f && iTeamSelect != TEAM_SPECTATOR )
+		if( teamOver > 0.0f && iTeamSelect != TEAM_SPECTATOR )
 		{
-			if ( (float) CountTeamMembers( iTeamSelect ) >= teamOver )
+			if( ( float ) CountTeamMembers( iTeamSelect ) >= teamOver )
 			{
 				ClientPrint( pPlayer->pev, HUD_PRINTCENTER, "#game_uneven_teams", 0, 0, 0, 0 );
 				ShowVGUI( pPlayer, 2, 0 );
@@ -4223,17 +4241,17 @@ void CDoDTeamPlay::TeamSelect( CBasePlayer *pPlayer, int iTeamSelect )
 		}
 	}
 
-	if ( pPlayer->m_ilastteam == 1 && team != TEAM_SPECTATOR )
+	if( pPlayer->m_ilastteam == 1 && team != TEAM_SPECTATOR )
 	{
 		ClientPrint( pPlayer->pev, HUD_PRINTCENTER, "#game_switch_teams_once", 0, 0, 0, 0 );
 		return;
 	}
 
-	if ( !firstTime )
+	if( !firstTime )
 		pPlayer->m_ilastteam = 1;
 
 	pPlayer->m_iNextClass = -1;
-	if ( pPlayer->pev->team != TEAM_SPECTATOR )
+	if( pPlayer->pev->team != TEAM_SPECTATOR )
 	{
 		pPlayer->SetThink( &CBasePlayer::ServerSpawnCheck );
 		pPlayer->pev->nextthink = gpGlobals->time;
@@ -4243,12 +4261,12 @@ void CDoDTeamPlay::TeamSelect( CBasePlayer *pPlayer, int iTeamSelect )
 	pPlayer->m_bIsRandomClass = false;
 
 	UTIL_LogPrintf( "\"%s<%i><%s><%s>\" joined team \"%s\"\n", STRING( pPlayer->pev->netname ),
-					GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ),
-					g_szTeamNames[pPlayer->pev->team], g_szTeamNames[iTeamSelect] );
+		GETPLAYERUSERID( pPlayer->edict() ), GETPLAYERAUTHID( pPlayer->edict() ),
+		g_szTeamNames[pPlayer->pev->team], g_szTeamNames[iTeamSelect] );
 	ChangePlayerTeam( pPlayer, iTeamSelect, 1, 0 );
 	pPlayer->pev->team = iTeamSelect;
 
-	if ( iTeamSelect == TEAM_SPECTATOR )
+	if( iTeamSelect == TEAM_SPECTATOR )
 	{
 		pPlayer->m_iJoiningState = JOINED;
 		Vector color = g_vecZero;
@@ -4258,33 +4276,33 @@ void CDoDTeamPlay::TeamSelect( CBasePlayer *pPlayer, int iTeamSelect )
 		pPlayer->m_bIsObserver = 1;
 		pPlayer->StartObserver( pPlayer->pev->origin, pPlayer->pev->angles );
 		UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_joined_team", STRING( pPlayer->pev->netname ),
-							 g_szTeamNames[iTeamSelect], 0, 0 );
+			g_szTeamNames[iTeamSelect], 0, 0 );
 		return;
 	}
 
 	float waveTime = getWaveTime( pPlayer->pev->team );
-	if ( waveTime <= 0.0f && ( ( iTeamSelect == TEAM_ALLIES && m_GamePlayRules.m_bAlliesInfiniteLives ) ||
-							   ( iTeamSelect == TEAM_AXIS && m_GamePlayRules.m_bAxisInfiniteLives ) ) )
+	if( waveTime <= 0.0f && ( ( iTeamSelect == TEAM_ALLIES && m_GamePlayRules.m_bAlliesInfiniteLives ) ||
+		( iTeamSelect == TEAM_AXIS && m_GamePlayRules.m_bAxisInfiniteLives ) ) )
 	{
-		if ( b_playableteam )
+		if( b_playableteam )
 		{
 			float tempTime = GetMaxWaveTime( pPlayer->pev->team );
-			if ( pcvar_mp_clan_match != NULL && pcvar_mp_clan_match->value > 0.0f && pcvar_mp_clan_respawntime != NULL )
+			if( pcvar_mp_clan_match != NULL && pcvar_mp_clan_match->value > 0.0f && pcvar_mp_clan_respawntime != NULL )
 			{
-				if ( pcvar_mp_clan_respawntime->value > 0.0f )
+				if( pcvar_mp_clan_respawntime->value > 0.0f )
 					tempTime = pcvar_mp_clan_respawntime->value;
 			}
 
-			if ( tempTime < 3.0f )
+			if( tempTime < 3.0f )
 				tempTime = 3.0f;
-			if ( m_RoundState != ROUNDSTATE_RUNNING )
+			if( m_RoundState != ROUNDSTATE_RUNNING )
 				tempTime = 0.5f;
 
 			SendWaveStatus( pPlayer, 1 );
 			setWaveTime( pPlayer->pev->team, tempTime );
 		}
 	}
-	else if ( b_playableteam && m_RoundState == ROUNDSTATE_RUNNING )
+	else if( b_playableteam && m_RoundState == ROUNDSTATE_RUNNING )
 		SendWaveStatus( pPlayer, 1 );
 
 	ShowClassSelectMenu( pPlayer );
@@ -4295,12 +4313,12 @@ void CDoDTeamPlay::TeamSelect( CBasePlayer *pPlayer, int iTeamSelect )
 	MESSAGE_END();
 
 	UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_joined_team", STRING( pPlayer->pev->netname ),
-						 g_szTeamNames[iTeamSelect], 0, 0 );
+		g_szTeamNames[iTeamSelect], 0, 0 );
 }
 
 void CDoDTeamPlay::VoiceCommSelect( CBasePlayer *pPlayer, int v )
 {
-	if ( v != 10 && pPlayer->lastMenuSelected > 0 )
+	if( v != 10 && pPlayer->lastMenuSelected > 0 )
 		pPlayer->VoiceCom( v + pPlayer->lastMenuSelected * 9 - 9 );
 }
 
@@ -4313,7 +4331,7 @@ void CDoDTeamPlay::SetClanMatch( bool bMatchOn )
 {
 	m_bClanMatch = bMatchOn;
 	m_bClanMatchActive = FALSE;
-	if ( !bMatchOn )
+	if( !bMatchOn )
 	{
 		m_bRoundRestarting = FALSE;
 		m_bAwaitingReadyRestart = FALSE;
@@ -4335,7 +4353,7 @@ bool CDoDTeamPlay::IsClanMatchActive( void )
 
 void CDoDTeamPlay::CheckClanRestart( void )
 {
-	if ( m_bRoundRestarting && m_flRestartRoundTime < gpGlobals->time )
+	if( m_bRoundRestarting && m_flRestartRoundTime < gpGlobals->time )
 		StartClanMatch();
 }
 
@@ -4343,10 +4361,10 @@ void CDoDTeamPlay::StartClanRestart( void )
 {
 	int iRestartDelay = 0;
 	float fRestartDelay = 0.0f;
-	if ( pcvar_mp_clan_timer != NULL )
+	if( pcvar_mp_clan_timer != NULL )
 	{
 		fRestartDelay = pcvar_mp_clan_timer->value;
-		iRestartDelay = (int) fRestartDelay;
+		iRestartDelay = ( int ) fRestartDelay;
 	}
 
 	char szMins[8];
@@ -4366,10 +4384,10 @@ void CDoDTeamPlay::StartClanRestart( void )
 void CDoDTeamPlay::StartClanMatch( void )
 {
 	m_bClanMatchActive = TRUE;
-	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		CBasePlayer *plr = (CBasePlayer *) UTIL_PlayerByIndex( i );
-		if ( !plr )
+		CBasePlayer *plr = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
+		if( !plr )
 			continue;
 		plr->m_iObjScore = 0;
 		plr->pev->frags = 0;
@@ -4394,7 +4412,7 @@ void CDoDTeamPlay::StartClanMatch( void )
 
 void CDoDTeamPlay::ReturnToWarmup( void )
 {
-	if ( m_bClanMatch )
+	if( m_bClanMatch )
 	{
 		m_bClanMatchActive = FALSE;
 		setMapTime();
@@ -4407,7 +4425,7 @@ int CDoDTeamPlay::GetClassMask( int team )
 	int iFirst;
 	int iLast;
 
-	if ( team == TEAM_ALLIES )
+	if( team == TEAM_ALLIES )
 	{
 		iFirst = m_GamePlayRules.m_bAlliesAreBrit ? 21 : 1;
 		iLast = m_GamePlayRules.m_bAlliesAreBrit ? 26 : 9;
@@ -4421,29 +4439,29 @@ int CDoDTeamPlay::GetClassMask( int team )
 	// the classes that reached their limit go into the upper 16 bits
 	int iLimitBits = 0;
 
-	for ( int iClass = iFirst; iClass <= iLast; iClass++ )
+	for( int iClass = iFirst; iClass <= iLast; iClass++ )
 	{
-		if ( (unsigned int)( iClass - 1 ) <= 26 && ReachedClassLimit( iClass ) )
+		if( ( unsigned int ) ( iClass - 1 ) <= 26 && ReachedClassLimit( iClass ) )
 			iLimitBits |= 1 << ( iClass - iFirst );
 	}
 
 	int iMask = iLimitBits << 16;
 
-	if ( team == TEAM_ALLIES )
+	if( team == TEAM_ALLIES )
 	{
-		int iClasses = (int)pcvar_mp_alliesclasses->value;
+		int iClasses = ( int ) pcvar_mp_alliesclasses->value;
 
-		iMask |= iClasses >= 0 ? (unsigned short)iClasses : 0xFFFF;
+		iMask |= iClasses >= 0 ? ( unsigned short ) iClasses : 0xFFFF;
 
-		if ( !m_GamePlayRules.m_bAlliesAreBrit )
+		if( !m_GamePlayRules.m_bAlliesAreBrit )
 			return iMask & 0xFFFFFEFF;
 
 		return iMask & 0xFFFFFFDF;
 	}
 
-	int iClasses = (int)pcvar_mp_axisclasses->value;
+	int iClasses = ( int ) pcvar_mp_axisclasses->value;
 
-	iMask |= iClasses >= 0 ? (unsigned short)iClasses : 0xFFFF;
+	iMask |= iClasses >= 0 ? ( unsigned short ) iClasses : 0xFFFF;
 
 	return iMask & 0xFFFFFBFF;
 }
@@ -4451,18 +4469,18 @@ void CDoDTeamPlay::ShowClassSelectMenu( CBasePlayer *pPlayer )
 {
 	int team = pPlayer->pev->team;
 
-	if ( team == TEAM_ALLIES )
+	if( team == TEAM_ALLIES )
 	{
-		if ( m_GamePlayRules.m_bAlliesArePara )
+		if( m_GamePlayRules.m_bAlliesArePara )
 			ShowVGUI( pPlayer, 11, GetClassMask( 1 ) );
-		else if ( m_GamePlayRules.m_bAlliesAreBrit )
+		else if( m_GamePlayRules.m_bAlliesAreBrit )
 			ShowVGUI( pPlayer, 12, GetClassMask( 1 ) );
 		else
 			ShowVGUI( pPlayer, 10, GetClassMask( 1 ) );
 	}
-	else if ( team == TEAM_AXIS )
+	else if( team == TEAM_AXIS )
 	{
-		if ( m_GamePlayRules.m_bAxisArePara )
+		if( m_GamePlayRules.m_bAxisArePara )
 			ShowVGUI( pPlayer, 14, GetClassMask( 2 ) );
 		else
 			ShowVGUI( pPlayer, 13, GetClassMask( 2 ) );
@@ -4472,18 +4490,18 @@ void CDoDTeamPlay::ShowClassSelectMenu( CBasePlayer *pPlayer )
 const char *CDoDTeamPlay::GetPlayerClassName( int playerclass )
 {
 	BOOL para;
-	if ( (unsigned) ( playerclass - 10 ) < 11 )
+	if( ( unsigned ) ( playerclass - 10 ) < 11 )
 		para = m_GamePlayRules.m_bAxisArePara;
 	else
 		para = m_GamePlayRules.m_bAlliesArePara;
-	if ( para )
+	if( para )
 		return g_ParaClassInfo[playerclass].classname;
 	return g_ClassInfo[playerclass].classname;
 }
 
 BOOL CDoDTeamPlay::AllowSpawnableBazookas( void )
 {
-	if ( !pcvar_mp_spawnbazookas )
+	if( !pcvar_mp_spawnbazookas )
 		pcvar_mp_spawnbazookas = CVAR_GET_POINTER( "mp_spawnbazookas" );
 
 	return pcvar_mp_spawnbazookas->value > 0.0f;
@@ -4514,87 +4532,87 @@ void CDoDDetect::Spawn( void )
 {
 	AddEntityHashValue( pev, "info_doddetect", CLASSNAME );
 	pev->solid = SOLID_NOT;
-	((CDoDTeamPlay *)g_pGameRules)->DetectGameRules();
+	( ( CDoDTeamPlay * ) g_pGameRules )->DetectGameRules();
 }
 
 void CDoDDetect::KeyValue( KeyValueData *pkvd )
 {
-	if ( FStrEq( pkvd->szKeyName, "detect_axis_infinite" ) || FStrEq( pkvd->szKeyName, "axis_infinite_lifes" ) )
+	if( FStrEq( pkvd->szKeyName, "detect_axis_infinite" ) || FStrEq( pkvd->szKeyName, "axis_infinite_lifes" ) )
 	{
 		m_GamePlayRules.m_bAxisInfiniteLives = ( atoi( pkvd->szValue ) == 1 );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "detect_allies_infinite" ) || FStrEq( pkvd->szKeyName, "allies_infinite_lifes" ) )
+	else if( FStrEq( pkvd->szKeyName, "detect_allies_infinite" ) || FStrEq( pkvd->szKeyName, "allies_infinite_lifes" ) )
 	{
 		m_GamePlayRules.m_bAlliesInfiniteLives = ( atoi( pkvd->szValue ) == 1 );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "detect_axis_paras" ) )
+	else if( FStrEq( pkvd->szKeyName, "detect_axis_paras" ) )
 	{
 		m_GamePlayRules.m_bAxisArePara = ( atoi( pkvd->szValue ) > 0 );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "detect_allies_country" ) )
+	else if( FStrEq( pkvd->szKeyName, "detect_allies_country" ) )
 	{
 		m_GamePlayRules.m_bAlliesAreBrit = ( atoi( pkvd->szValue ) == 1 );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "detect_allies_paras" ) )
+	else if( FStrEq( pkvd->szKeyName, "detect_allies_paras" ) )
 	{
 		m_GamePlayRules.m_bAlliesArePara = ( atoi( pkvd->szValue ) > 0 );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "detect_points_allieseliminated" ) )
+	else if( FStrEq( pkvd->szKeyName, "detect_points_allieseliminated" ) )
 	{
 		m_GamePlayRules.m_iPointsAlliesElim = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "detect_points_axiseliminated" ) )
+	else if( FStrEq( pkvd->szKeyName, "detect_points_axiseliminated" ) )
 	{
 		m_GamePlayRules.m_iPointsAxisElim = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "master" ) )
+	else if( FStrEq( pkvd->szKeyName, "master" ) )
 	{
 		m_sMaster = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "detect_target_allieseliminated" ) )
+	else if( FStrEq( pkvd->szKeyName, "detect_target_allieseliminated" ) )
 	{
 		m_GamePlayRules.m_sAlliesElimTarget = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "detect_target_axiseliminated" ) )
+	else if( FStrEq( pkvd->szKeyName, "detect_target_axiseliminated" ) )
 	{
 		m_GamePlayRules.m_sAxisElimTarget = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "detect_use_timer" ) )
+	else if( FStrEq( pkvd->szKeyName, "detect_use_timer" ) )
 	{
 		m_GamePlayRules.m_bUseTimer = ( atoi( pkvd->szValue ) > 0 );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "detect_target_timerexpired" ) )
+	else if( FStrEq( pkvd->szKeyName, "detect_target_timerexpired" ) )
 	{
 		m_GamePlayRules.m_sTimerExpireTarget = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "detect_timer_team" ) )
+	else if( FStrEq( pkvd->szKeyName, "detect_timer_team" ) )
 	{
 		m_GamePlayRules.m_iTimerTeam = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "detect_points_timerexpired" ) )
+	else if( FStrEq( pkvd->szKeyName, "detect_points_timerexpired" ) )
 	{
 		m_GamePlayRules.m_iPointsTimerExpires = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "detect_allies_respawnfactor" ) )
+	else if( FStrEq( pkvd->szKeyName, "detect_allies_respawnfactor" ) )
 	{
 		m_GamePlayRules.m_fAlliesRespawnFactor = atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "detect_axis_respawnfactor" ) )
+	else if( FStrEq( pkvd->szKeyName, "detect_axis_respawnfactor" ) )
 	{
 		m_GamePlayRules.m_fAxisRespawnFactor = atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
@@ -4605,7 +4623,7 @@ void CDoDDetect::KeyValue( KeyValueData *pkvd )
 
 bool CDoDDetect::IsMasteredOn( void )
 {
-	if ( m_sMaster != 0 )
+	if( m_sMaster != 0 )
 		return UTIL_IsMasterTriggered( m_sMaster, this ) > 0;
 	return true;
 }
@@ -4631,22 +4649,22 @@ void CDodParaRoundTimer::TimerThink( void )
 	m_fLastThinkTime = now;
 	pev->nextthink = now + 0.1f;
 
-	if ( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
+	if( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
 	{
-		if ( !m_bTimer )
+		if( !m_bTimer )
 			return;
 		m_bTimer = false;
 		SendStatus();
 		SetThink( NULL );
 	}
 
-	if ( m_bTimer )
+	if( m_bTimer )
 	{
 		m_fRoundTimer -= ( now - last );
-		if ( m_fRoundTimer > 0.0f )
+		if( m_fRoundTimer > 0.0f )
 		{
 			m_fUpdateTimer -= 0.1f;
-			if ( m_fUpdateTimer <= 0.0f )
+			if( m_fUpdateTimer <= 0.0f )
 			{
 				SendStatus();
 				m_fUpdateTimer = 30.0f;
@@ -4654,8 +4672,8 @@ void CDodParaRoundTimer::TimerThink( void )
 		}
 		else
 		{
-			if ( g_pGameRules != NULL )
-				((CDoDTeamPlay *)g_pGameRules)->TimerExpired();
+			if( g_pGameRules != NULL )
+				( ( CDoDTeamPlay * ) g_pGameRules )->TimerExpired();
 			m_bTimer = false;
 			SendStatus();
 			SetThink( NULL );
@@ -4693,8 +4711,10 @@ void CDodParaRoundTimer::SendStatus( void )
 	float t = m_fRoundTimer;
 
 	MESSAGE_BEGIN( MSG_ALL, gmsgTimerStatus );
-	WRITE_BYTE( (int)m_bTimer );
-	if ( t <= 0.0f ) t = 0.0f;
+	WRITE_BYTE( ( int ) m_bTimer );
+
+	if( t <= 0.0f ) t = 0.0f;
+
 	WRITE_COORD( t );
 	MESSAGE_END();
 }
@@ -4704,8 +4724,10 @@ void CDodParaRoundTimer::SendStatus( CBasePlayer *pPlayer )
 	float t = m_fRoundTimer;
 
 	MESSAGE_BEGIN( MSG_ONE, gmsgTimerStatus, NULL, pPlayer->pev );
-	WRITE_BYTE( (int)m_bTimer );
-	if ( t <= 0.0f ) t = 0.0f;
+	WRITE_BYTE( ( int ) m_bTimer );
+
+	if( t <= 0.0f ) t = 0.0f;
+
 	WRITE_COORD( t );
 	MESSAGE_END();
 }
@@ -4715,15 +4737,15 @@ LINK_ENTITY_TO_CLASS( dod_preround, CDoDPreRound );
 void CDoDPreRound::KeyValue( KeyValueData *pkvd )
 {
 	pkvd->fHandled = TRUE;
-	if ( !strcmp( pkvd->szKeyName, "allieswin" ) )
+	if( !strcmp( pkvd->szKeyName, "allieswin" ) )
 		m_allieswin = ALLOC_STRING( pkvd->szValue );
-	else if ( !strcmp( pkvd->szKeyName, "alliesloose" ) )
+	else if( !strcmp( pkvd->szKeyName, "alliesloose" ) )
 		m_alliesloose = ALLOC_STRING( pkvd->szValue );
-	else if ( !strcmp( pkvd->szKeyName, "axiswin" ) )
+	else if( !strcmp( pkvd->szKeyName, "axiswin" ) )
 		m_axiswin = ALLOC_STRING( pkvd->szValue );
-	else if ( !strcmp( pkvd->szKeyName, "axisloose" ) )
+	else if( !strcmp( pkvd->szKeyName, "axisloose" ) )
 		m_axisloose = ALLOC_STRING( pkvd->szValue );
-	else if ( !strcmp( pkvd->szKeyName, "draw" ) )
+	else if( !strcmp( pkvd->szKeyName, "draw" ) )
 		m_draw = ALLOC_STRING( pkvd->szValue );
 	else
 		pkvd->fHandled = FALSE;
@@ -4731,25 +4753,25 @@ void CDoDPreRound::KeyValue( KeyValueData *pkvd )
 
 void CDoDPreRound::Launch( int iRoundState )
 {
-	if ( iRoundState == 3 )
+	if( iRoundState == 3 )
 	{
-		if ( m_allieswin != 0 )
+		if( m_allieswin != 0 )
 			FireTargets( STRING( m_allieswin ), NULL, this, USE_TOGGLE, 0 );
-		if ( m_axisloose == 0 )
+		if( m_axisloose == 0 )
 			return;
 		FireTargets( STRING( m_axisloose ), NULL, this, USE_TOGGLE, 0 );
 	}
-	else if ( iRoundState == 4 )
+	else if( iRoundState == 4 )
 	{
-		if ( m_axiswin != 0 )
+		if( m_axiswin != 0 )
 			FireTargets( STRING( m_axiswin ), NULL, this, USE_TOGGLE, 0 );
-		if ( m_alliesloose == 0 )
+		if( m_alliesloose == 0 )
 			return;
 		FireTargets( STRING( m_alliesloose ), NULL, this, USE_TOGGLE, 0 );
 	}
-	else if ( iRoundState == 5 )
+	else if( iRoundState == 5 )
 	{
-		if ( m_draw == 0 )
+		if( m_draw == 0 )
 			return;
 		FireTargets( STRING( m_draw ), NULL, this, USE_TOGGLE, 0 );
 	}

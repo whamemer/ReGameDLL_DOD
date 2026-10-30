@@ -1,9 +1,9 @@
-/*** 
+/***
 *
 *	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
 *
 *   Use, distribution, and modification of this source code and/or resulting
@@ -16,7 +16,7 @@
 
 ===== mortar.cpp ========================================================
 
-  the "LaBuznik" mortar device              
+  the "LaBuznik" mortar device
 
 */
 
@@ -36,7 +36,7 @@ public:
 	void KeyValue( KeyValueData *pkvd );
 
 	// Bmodels don't go across transitions
-	virtual int ObjectCaps( void ) { return CBaseToggle ::ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
+	virtual int ObjectCaps( void ) { return CBaseToggle::ObjectCaps() & ~FCAP_ACROSS_TRANSITION; }
 
 	virtual int Save( CSave &save );
 	virtual int Restore( CRestore &restore );
@@ -67,34 +67,34 @@ TYPEDESCRIPTION CFuncMortarField::m_SaveData[] = {
 
 IMPLEMENT_SAVERESTORE( CFuncMortarField, CBaseToggle );
 
-void CFuncMortarField ::KeyValue( KeyValueData *pkvd )
+void CFuncMortarField::KeyValue( KeyValueData *pkvd )
 {
-	if ( FStrEq( pkvd->szKeyName, "m_iszXController" ) )
+	if( FStrEq( pkvd->szKeyName, "m_iszXController" ) )
 	{
 		m_iszXController = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iszYController" ) )
+	else if( FStrEq( pkvd->szKeyName, "m_iszYController" ) )
 	{
 		m_iszYController = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "m_flSpread" ) )
+	else if( FStrEq( pkvd->szKeyName, "m_flSpread" ) )
 	{
 		m_flSpread = atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "m_fControl" ) )
+	else if( FStrEq( pkvd->szKeyName, "m_fControl" ) )
 	{
 		m_fControl = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iCount" ) )
+	else if( FStrEq( pkvd->szKeyName, "m_iCount" ) )
 	{
 		m_iCount = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iDamage" ) )
+	else if( FStrEq( pkvd->szKeyName, "m_iDamage" ) )
 	{
 		m_iDamage = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
@@ -102,7 +102,7 @@ void CFuncMortarField ::KeyValue( KeyValueData *pkvd )
 }
 
 // Drop bombs from above
-void CFuncMortarField ::Spawn( void )
+void CFuncMortarField::Spawn( void )
 {
 	pev->solid = SOLID_NOT;
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );	// set size and link into world
@@ -110,11 +110,11 @@ void CFuncMortarField ::Spawn( void )
 	SetBits( pev->effects, EF_NODRAW );
 	SetUse( &CFuncMortarField::FieldUse );
 	Precache();
-	if ( m_iDamage < 1 )
+	if( m_iDamage < 1 )
 		m_iDamage = 200;
 }
 
-void CFuncMortarField ::Precache( void )
+void CFuncMortarField::Precache( void )
 {
 	PRECACHE_SOUND( "weapons/mortar.wav" );
 	PRECACHE_SOUND( "weapons/mortarhit.wav" );
@@ -122,7 +122,7 @@ void CFuncMortarField ::Precache( void )
 }
 
 // If connected to a table, then use the table controllers, else hit where the trigger is.
-void CFuncMortarField ::FieldUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+void CFuncMortarField::FieldUse( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	Vector vecStart;
 
@@ -130,12 +130,12 @@ void CFuncMortarField ::FieldUse( CBaseEntity *pActivator, CBaseEntity *pCaller,
 	vecStart.y = RANDOM_FLOAT( pev->mins.y, pev->maxs.y );
 	vecStart.z = pev->maxs.z;
 
-	switch ( m_fControl )
+	switch( m_fControl )
 	{
 	case 0:	 // random
 		break;
 	case 1:	 // Trigger Activator
-		if ( pActivator != NULL )
+		if( pActivator != NULL )
 		{
 			vecStart.x = pActivator->pev->origin.x;
 			vecStart.y = pActivator->pev->origin.y;
@@ -145,19 +145,19 @@ void CFuncMortarField ::FieldUse( CBaseEntity *pActivator, CBaseEntity *pCaller,
 	{
 		CBaseEntity *pController;
 
-		if ( !FStringNull( m_iszXController ) )
+		if( !FStringNull( m_iszXController ) )
 		{
 			pController = UTIL_FindEntityByTargetname( NULL, STRING( m_iszXController ) );
-			if ( pController != NULL )
+			if( pController != NULL )
 			{
 				vecStart.x = pev->mins.x + pController->pev->ideal_yaw * ( pev->size.x );
 			}
 		}
 
-		if ( !FStringNull( m_iszYController ) )
+		if( !FStringNull( m_iszYController ) )
 		{
 			pController = UTIL_FindEntityByTargetname( NULL, STRING( m_iszYController ) );
-			if ( pController != NULL )
+			if( pController != NULL )
 			{
 				vecStart.y = pev->mins.y + pController->pev->ideal_yaw * ( pev->size.y );
 			}
@@ -171,7 +171,7 @@ void CFuncMortarField ::FieldUse( CBaseEntity *pActivator, CBaseEntity *pCaller,
 	EMIT_SOUND_DYN( ENT( pev ), CHAN_VOICE, "weapons/mortar.wav", 1.0, ATTN_NONE, 0, pitch );
 
 	float t = 4.0;
-	for ( int i = 0; i < m_iCount; i++ )
+	for( int i = 0; i < m_iCount; i++ )
 	{
 		Vector vecSpot = vecStart;
 		vecSpot.x += RANDOM_FLOAT( -m_flSpread, m_flSpread );
@@ -181,7 +181,7 @@ void CFuncMortarField ::FieldUse( CBaseEntity *pActivator, CBaseEntity *pCaller,
 		UTIL_TraceLine( vecSpot, vecSpot + Vector( 0, 0, -1 ) * 4096, ignore_monsters, ENT( pev ), &tr );
 
 		edict_t *pentOwner = NULL;
-		if ( pActivator )
+		if( pActivator )
 			pentOwner = pActivator->edict();
 
 		CBaseEntity *pMortar = Create( "monster_mortar", tr.vecEndPos, Vector( 0, 0, 0 ), pentOwner );
@@ -189,7 +189,7 @@ void CFuncMortarField ::FieldUse( CBaseEntity *pActivator, CBaseEntity *pCaller,
 		t += RANDOM_FLOAT( 0.2, 0.5 );
 		pMortar->pev->dmg = m_iDamage;  // DoD: damage carried from func_mortar_field
 
-		if ( i == 0 )
+		if( i == 0 )
 			CSoundEnt::InsertSound( bits_SOUND_DANGER, tr.vecEndPos, 400, 0.3 );
 	}
 }
@@ -229,7 +229,7 @@ void CMortar::MortarExplode( void )
 {
 	TraceResult tr;
 	UTIL_TraceLine( pev->origin + Vector( 0, 0, 1024 ), pev->origin - Vector( 0, 0, 1024 ), dont_ignore_monsters,
-					ENT( pev ), &tr );
+		ENT( pev ), &tr );
 
 	Explode( &tr, DMG_BLAST | DMG_MORTAR );
 	UTIL_ScreenShake( tr.vecEndPos, 25.0, 150.0, 1.0, 750 );
@@ -241,11 +241,11 @@ void CMortar::MortarExplode( void )
 #if 0
 void CMortar::ShootTimed( EVARS *pevOwner, Vector vecStart, float time )
 {
-	CMortar *pMortar = GetClassPtr( (CMortar *)NULL );
+	CMortar *pMortar = GetClassPtr( ( CMortar * ) NULL );
 	pMortar->Spawn();
 
 	TraceResult tr;
-	UTIL_TraceLine( vecStart, vecStart + Vector( 0, 0, -1 ) * 4096, ignore_monsters, ENT(pMortar->pev), &tr );
+	UTIL_TraceLine( vecStart, vecStart + Vector( 0, 0, -1 ) * 4096, ignore_monsters, ENT( pMortar->pev ), &tr );
 
 	pMortar->pev->nextthink = gpGlobals->time + time;
 

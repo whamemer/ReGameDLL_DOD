@@ -1,9 +1,9 @@
 /***
 *
-*	Copyright (c) 1996-2001, Valve LLC. All rights reserved. 
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
 *
 *   This source code contains proprietary and confidential information of
@@ -31,7 +31,7 @@
 class CLegacyCineMonster : public CBaseMonster
 {
 public:
- 	void CineSpawn( const char *szModel );
+	void CineSpawn( const char *szModel );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	void EXPORT CineThink( void );
 	void Pain( void );
@@ -101,7 +101,7 @@ LINK_ENTITY_TO_CLASS( monster_cine3_barney, CCine3Barney );
 // ********** Scientist SPAWN **********
 //
 
- void CLegacyCineMonster ::CineSpawn( const char *szModel )
+void CLegacyCineMonster::CineSpawn( const char *szModel )
 {
 	PRECACHE_MODEL( szModel );
 	SET_MODEL( ENT( pev ), szModel );
@@ -114,14 +114,14 @@ LINK_ENTITY_TO_CLASS( monster_cine3_barney, CCine3Barney );
 	pev->yaw_speed = 10;
 
 	// ugly alpha hack, can't set ints from the bsp.
-	pev->sequence = (int) pev->impulse;
+	pev->sequence = ( int ) pev->impulse;
 	ResetSequenceInfo();
 	pev->framerate = 0.0;
 
 	m_bloodColor = BLOOD_COLOR_RED;
 
 	// if no targetname, start now
-	if ( FStringNull( pev->targetname ) )
+	if( FStringNull( pev->targetname ) )
 	{
 		SetThink( &CLegacyCineMonster::CineThink );
 		pev->nextthink += 1.0;
@@ -131,7 +131,7 @@ LINK_ENTITY_TO_CLASS( monster_cine3_barney, CCine3Barney );
 //
 // CineStart
 //
-void CLegacyCineMonster ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+void CLegacyCineMonster::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	pev->animtime = 0;	// reset the sequence
 	SetThink( &CLegacyCineMonster::CineThink );
@@ -141,7 +141,7 @@ void CLegacyCineMonster ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, US
 //
 // ********** Scientist DIE **********
 //
-void CLegacyCineMonster ::Die( void )
+void CLegacyCineMonster::Die( void )
 {
 	SetThink( &CLegacyCineMonster::SUB_Remove );
 }
@@ -149,12 +149,12 @@ void CLegacyCineMonster ::Die( void )
 //
 // ********** Scientist PAIN **********
 //
-void CLegacyCineMonster ::Pain( void )
+void CLegacyCineMonster::Pain( void )
 {
 	EMIT_SOUND( ENT( pev ), CHAN_VOICE, "player/pain3.wav", 1, ATTN_NORM );
 }
 
-void CLegacyCineMonster ::CineThink( void )
+void CLegacyCineMonster::CineThink( void )
 {
 	// DBG_CheckMonsterData(pev);
 
@@ -162,12 +162,12 @@ void CLegacyCineMonster ::CineThink( void )
 	// THIS is a test feature
 	//UTIL_ParticleEffect(pev->origin, g_vecZero, 255, 20);
 
-	if ( !pev->animtime )
+	if( !pev->animtime )
 		ResetSequenceInfo();
 
 	pev->nextthink = gpGlobals->time + 1.0;
 
-	if ( pev->spawnflags != 0 && m_fSequenceFinished )
+	if( pev->spawnflags != 0 && m_fSequenceFinished )
 	{
 		Die();
 		return;
@@ -190,18 +190,18 @@ public:
 
 LINK_ENTITY_TO_CLASS( cine_blood, CCineBlood );
 
-void CCineBlood ::BloodGush( void )
+void CCineBlood::BloodGush( void )
 {
 	Vector vecSplatDir;
 	TraceResult tr;
 	pev->nextthink = gpGlobals->time + 0.1;
 
 	UTIL_MakeVectors( pev->angles );
-	if ( pev->health-- < 0 )
+	if( pev->health-- < 0 )
 		REMOVE_ENTITY( ENT( pev ) );
 	// CHANGE_METHOD ( ENT(pev), em_think, SUB_Remove );
 
-	if ( RANDOM_FLOAT( 0, 1 ) < 0.7 )  // larger chance of globs
+	if( RANDOM_FLOAT( 0, 1 ) < 0.7 )  // larger chance of globs
 	{
 		UTIL_BloodDrips( pev->origin, UTIL_RandomBloodVector(), BLOOD_COLOR_RED, 10 );
 	}
@@ -210,14 +210,14 @@ void CCineBlood ::BloodGush( void )
 		UTIL_BloodStream( pev->origin, UTIL_RandomBloodVector(), BLOOD_COLOR_RED, RANDOM_LONG( 50, 150 ) );
 	}
 
-	if ( RANDOM_FLOAT( 0, 1 ) < 0.75 )
+	if( RANDOM_FLOAT( 0, 1 ) < 0.75 )
 	{  // decals the floor with blood.
 		vecSplatDir = Vector( 0, 0, -1 );
 		vecSplatDir = vecSplatDir + ( RANDOM_FLOAT( -1, 1 ) * 0.6 * gpGlobals->v_right ) +
-					  ( RANDOM_FLOAT( -1, 1 ) * 0.6 * gpGlobals->v_forward );  // randomize a bit
+			( RANDOM_FLOAT( -1, 1 ) * 0.6 * gpGlobals->v_forward );  // randomize a bit
 		UTIL_TraceLine( pev->origin + Vector( 0, 0, 64 ), pev->origin + vecSplatDir * 256, ignore_monsters, ENT( pev ),
-						&tr );
-		if ( tr.flFraction != 1.0 )
+			&tr );
+		if( tr.flFraction != 1.0 )
 		{
 			// Decal with a bloodsplat
 			UTIL_BloodDecalTrace( &tr, BLOOD_COLOR_RED );
@@ -225,13 +225,13 @@ void CCineBlood ::BloodGush( void )
 	}
 }
 
-void CCineBlood ::BloodStart( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+void CCineBlood::BloodStart( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	SetThink( &CCineBlood::BloodGush );
 	pev->nextthink = gpGlobals->time;  // now!
 }
 
-void CCineBlood ::Spawn( void )
+void CCineBlood::Spawn( void )
 {
 	pev->solid = SOLID_NOT;
 	SetUse( &CCineBlood::BloodStart );

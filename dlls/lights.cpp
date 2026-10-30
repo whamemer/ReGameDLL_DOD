@@ -1,9 +1,9 @@
 /***
 *
 *	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
 *
 *   Use, distribution, and modification of this source code and/or resulting
@@ -51,7 +51,7 @@ const char *GetStdLightStyle( int iStyle );
 
 const char *GetStdLightStyle( int iStyle )
 {
-	if ( (unsigned) ( iStyle - 1 ) < 19 )
+	if( ( unsigned ) ( iStyle - 1 ) < 19 )
 		return s_stdLightStyles[iStyle - 1];
 	return "m";
 }
@@ -107,52 +107,52 @@ IMPLEMENT_SAVERESTORE( CLight, CPointEntity );
 //
 void CLight::KeyValue( KeyValueData *pkvd )
 {
-	if ( FStrEq( pkvd->szKeyName, "style" ) )
+	if( FStrEq( pkvd->szKeyName, "style" ) )
 	{
 		m_iStyle = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iOnStyle" ) )
+	else if( FStrEq( pkvd->szKeyName, "m_iOnStyle" ) )
 	{
 		m_iOnStyle = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iOffStyle" ) )
+	else if( FStrEq( pkvd->szKeyName, "m_iOffStyle" ) )
 	{
 		m_iOffStyle = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iTurnOnStyle" ) )
+	else if( FStrEq( pkvd->szKeyName, "m_iTurnOnStyle" ) )
 	{
 		m_iTurnOnStyle = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iTurnOffStyle" ) )
+	else if( FStrEq( pkvd->szKeyName, "m_iTurnOffStyle" ) )
 	{
 		m_iTurnOffStyle = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iTurnOnTime" ) )
+	else if( FStrEq( pkvd->szKeyName, "m_iTurnOnTime" ) )
 	{
 		m_iTurnOnTime = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iTurnOffTime" ) )
+	else if( FStrEq( pkvd->szKeyName, "m_iTurnOffTime" ) )
 	{
 		m_iTurnOffTime = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "pitch" ) )
+	else if( FStrEq( pkvd->szKeyName, "pitch" ) )
 	{
 		pev->angles.x = atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "pattern" ) )
+	else if( FStrEq( pkvd->szKeyName, "pattern" ) )
 	{
 		m_iszPattern = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "firetarget" ) )
+	else if( FStrEq( pkvd->szKeyName, "firetarget" ) )
 	{
 		pev->target = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
@@ -163,30 +163,30 @@ void CLight::KeyValue( KeyValueData *pkvd )
 
 void CLight::SetCorrectStyle( void )
 {
-	if ( m_iStyle < 32 )
+	if( m_iStyle < 32 )
 		return;
 	int style;
-	if ( m_iState == STATE_TURN_ON )
+	if( m_iState == STATE_TURN_ON )
 	{
 		style = m_iTurnOnStyle;
-		if ( style == 0 )
+		if( style == 0 )
 		{
 			LIGHT_STYLE( m_iStyle, "a" );
 			return;
 		}
 	}
-	else if ( m_iState > STATE_TURN_ON )
+	else if( m_iState > STATE_TURN_ON )
 	{
-		if ( m_iState == STATE_ON )
+		if( m_iState == STATE_ON )
 		{
-			if ( m_iszPattern )
+			if( m_iszPattern )
 			{
 				LIGHT_STYLE( m_iStyle, STRING( m_iszPattern ) );
 				return;
 			}
 
 			style = m_iOnStyle;
-			if ( style == 0 )
+			if( style == 0 )
 			{
 				LIGHT_STYLE( m_iStyle, "m" );
 				return;
@@ -194,10 +194,10 @@ void CLight::SetCorrectStyle( void )
 		}
 		else
 		{
-			if ( m_iState != STATE_TURN_OFF )
+			if( m_iState != STATE_TURN_OFF )
 				return;
 			style = m_iTurnOffStyle;
-			if ( style == 0 )
+			if( style == 0 )
 			{
 				LIGHT_STYLE( m_iStyle, "m" );
 				return;
@@ -206,10 +206,10 @@ void CLight::SetCorrectStyle( void )
 	}
 	else
 	{
-		if ( m_iState != STATE_OFF )
+		if( m_iState != STATE_OFF )
 			return;
 		style = m_iOffStyle;
-		if ( style == 0 )
+		if( style == 0 )
 		{
 			LIGHT_STYLE( m_iStyle, "a" );
 			return;
@@ -217,7 +217,7 @@ void CLight::SetCorrectStyle( void )
 	}
 
 	const char *pat = "m";
-	if ( (unsigned) ( style - 1 ) < 0x13 )
+	if( ( unsigned ) ( style - 1 ) < 0x13 )
 		pat = GetStdLightStyle( style );
 	LIGHT_STYLE( m_iStyle, pat );
 }
@@ -225,18 +225,18 @@ void CLight::SetCorrectStyle( void )
 void CLight::Think( void )
 {
 	STATE state = GetState();
-	if ( state == STATE_TURN_OFF )
+	if( state == STATE_TURN_OFF )
 	{
 		m_iState = STATE_OFF;
 		FireTargets( STRING( pev->target ), this, this, USE_OFF, 0 );
 	}
-	else if ( state == STATE_TURN_ON )
+	else if( state == STATE_TURN_ON )
 	{
 		m_iState = STATE_ON;
 		FireTargets( STRING( pev->target ), this, this, USE_ON, 0 );
 	}
 
-	if ( m_iStyle >= 32 )
+	if( m_iStyle >= 32 )
 		SetCorrectStyle();
 }
 
@@ -248,7 +248,7 @@ If targeted, it will toggle between on or off.
 */
 void CLight::Spawn( void )
 {
-	if ( FStringNull( pev->targetname ) )
+	if( FStringNull( pev->targetname ) )
 	{
 		REMOVE_ENTITY( ENT( pev ) );
 		return;
@@ -257,7 +257,7 @@ void CLight::Spawn( void )
 	m_bDefaultOn = FBitSet( pev->spawnflags, SF_LIGHT_START_OFF ) ? FALSE : TRUE;
 	m_iState = FBitSet( pev->spawnflags, SF_LIGHT_START_OFF ) ? STATE_OFF : STATE_ON;
 
-	if ( m_iStyle >= 32 )
+	if( m_iStyle >= 32 )
 		SetCorrectStyle();
 
 	RoundStore();
@@ -265,13 +265,13 @@ void CLight::Spawn( void )
 
 void CLight::RoundRespawn( void )
 {
-	if ( !m_bDefaultOn )
+	if( !m_bDefaultOn )
 	{
 		LIGHT_STYLE( m_iStyle, "a" );
 		return;
 	}
 
-	if ( !m_iszPattern )
+	if( !m_iszPattern )
 	{
 		LIGHT_STYLE( m_iStyle, "m" );
 		return;
@@ -282,14 +282,14 @@ void CLight::RoundRespawn( void )
 
 void CLight::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if ( m_iStyle < 32 )
+	if( m_iStyle < 32 )
 		return;
-	if ( !ShouldToggle( useType, m_iState ) )
+	if( !ShouldToggle( useType, m_iState ) )
 		return;
 	STATE state = GetState();
-	if ( state == STATE_OFF || state == STATE_TURN_OFF )
+	if( state == STATE_OFF || state == STATE_TURN_OFF )
 	{
-		if ( m_iTurnOnTime == 0 )
+		if( m_iTurnOnTime == 0 )
 			m_iState = STATE_ON;
 		else
 		{
@@ -297,9 +297,9 @@ void CLight::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useTyp
 			pev->nextthink = gpGlobals->time + m_iTurnOnTime;
 		}
 	}
-	else if ( state == STATE_ON || state == STATE_TURN_ON )
+	else if( state == STATE_ON || state == STATE_TURN_ON )
 	{
-		if ( m_iTurnOffTime == 0 )
+		if( m_iTurnOffTime == 0 )
 			m_iState = STATE_OFF;
 		else
 		{
@@ -309,7 +309,7 @@ void CLight::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useTyp
 	}
 	else
 		return;
-	if ( m_iStyle < 32 )
+	if( m_iStyle < 32 )
 		return;
 	SetCorrectStyle();
 }
@@ -327,18 +327,19 @@ public:
 };
 
 LINK_ENTITY_TO_CLASS( light_environment, CEnvLight );
+
 void CEnvLight::KeyValue( KeyValueData *pkvd )
 {
-	if ( FStrEq( pkvd->szKeyName, "_light" ) )
+	if( FStrEq( pkvd->szKeyName, "_light" ) )
 	{
 		int r, g, b, v, j;
 		char szColor[64];
 		j = sscanf( pkvd->szValue, "%d %d %d %d\n", &r, &g, &b, &v );
-		if ( j == 1 )
+		if( j == 1 )
 		{
 			g = b = r;
 		}
-		else if ( j == 4 )
+		else if( j == 4 )
 		{
 			r = r * ( v / 255.0 );
 			g = g * ( v / 255.0 );
@@ -358,12 +359,12 @@ void CEnvLight::KeyValue( KeyValueData *pkvd )
 		sprintf( szColor, "%d", b );
 		CVAR_SET_STRING( "sv_skycolor_b", szColor );
 	}
-	else if ( FStrEq( pkvd->szKeyName, "style" ) )
+	else if( FStrEq( pkvd->szKeyName, "style" ) )
 	{
 		m_iStyle = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iOnStyle" ) )
+	else if( FStrEq( pkvd->szKeyName, "m_iOnStyle" ) )
 	{
 		m_iOnStyle = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
@@ -372,7 +373,7 @@ void CEnvLight::KeyValue( KeyValueData *pkvd )
 		CLight::KeyValue( pkvd );
 }
 
-void CEnvLight ::Spawn( void )
+void CEnvLight::Spawn( void )
 {
 	char szVector[64];
 	UTIL_MakeAimVectors( pev->angles );
@@ -418,17 +419,17 @@ LINK_ENTITY_TO_CLASS( trigger_lightstyle, CTriggerLightstyle );
 
 void CTriggerLightstyle::KeyValue( KeyValueData *pkvd )
 {
-	if ( FStrEq( pkvd->szKeyName, "style" ) )
+	if( FStrEq( pkvd->szKeyName, "style" ) )
 	{
 		m_iStyle = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "pattern" ) )
+	else if( FStrEq( pkvd->szKeyName, "pattern" ) )
 	{
 		m_iszPattern = ALLOC_STRING( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
-	else if ( FStrEq( pkvd->szKeyName, "m_iWait" ) )
+	else if( FStrEq( pkvd->szKeyName, "m_iWait" ) )
 	{
 		m_iWait = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
@@ -444,45 +445,48 @@ void CTriggerLightstyle::Spawn( void )
 
 void CTriggerLightstyle::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	if ( FStringNull( pev->target ) )
+	if( FStringNull( pev->target ) )
 		return;
 	CBaseEntity *pTarget = NULL;
-	while ( ( pTarget = UTIL_FindEntityByTargetname( pTarget, STRING( pev->target ) ) ) != NULL )
+	while( ( pTarget = UTIL_FindEntityByTargetname( pTarget, STRING( pev->target ) ) ) != NULL )
 	{
-		if ( FNullEnt( pTarget->edict() ) || !ENTINDEX( pTarget->edict() ) )
+		if( FNullEnt( pTarget->edict() ) || !ENTINDEX( pTarget->edict() ) )
 			break;
-		if ( !FClassnameIs( pTarget->pev, "light" ) && !FClassnameIs( pTarget->pev, "light_spot" ) &&
-			 !FClassnameIs( pTarget->pev, "env_light" ) )
+		if( !FClassnameIs( pTarget->pev, "light" ) && !FClassnameIs( pTarget->pev, "light_spot" ) &&
+			!FClassnameIs( pTarget->pev, "env_light" ) )
 			continue;
-		CLight *pLight = (CLight *) pTarget;
-		if ( pLight->m_iStyle < 32 )
+		CLight *pLight = ( CLight * ) pTarget;
+		if( pLight->m_iStyle < 32 )
 			continue;
-		if ( m_iszPattern )
+		if( m_iszPattern )
 			LIGHT_STYLE( pLight->m_iStyle, STRING( m_iszPattern ) );
-		else if ( m_iStyle != 0 )
+		else if( m_iStyle != 0 )
 		{
 			const char *pat = ( m_iStyle - 1 < 19 ) ? GetStdLightStyle( m_iStyle ) : "m";
-			LIGHT_STYLE( pLight->m_iStyle, (char *) pat );
+			LIGHT_STYLE( pLight->m_iStyle, ( char * ) pat );
 		}
 
-		if ( m_iWait != -1 )
+		if( m_iWait != -1 )
 			pev->nextthink = gpGlobals->time + m_iWait;
 	}
 }
 
 void CTriggerLightstyle::Think( void )
 {
-	if ( FStringNull( pev->target ) )
+	if( FStringNull( pev->target ) )
 		return;
 	CBaseEntity *pTarget = NULL;
-	while ( ( pTarget = UTIL_FindEntityByTargetname( pTarget, STRING( pev->target ) ) ) != NULL )
+
+	while( ( pTarget = UTIL_FindEntityByTargetname( pTarget, STRING( pev->target ) ) ) != NULL )
 	{
-		if ( FNullEnt( pTarget->edict() ) || !ENTINDEX( pTarget->edict() ) )
+		if( FNullEnt( pTarget->edict() ) || !ENTINDEX( pTarget->edict() ) )
 			return;
-		if ( !FClassnameIs( pTarget->pev, "light" ) && !FClassnameIs( pTarget->pev, "light_spot" ) &&
-			 !FClassnameIs( pTarget->pev, "env_light" ) )
+
+		if( !FClassnameIs( pTarget->pev, "light" ) && !FClassnameIs( pTarget->pev, "light_spot" ) &&
+			!FClassnameIs( pTarget->pev, "env_light" ) )
 			continue;
-		if ( ( (CLight *) pTarget )->m_iStyle >= 32 )
-			( (CLight *) pTarget )->SetCorrectStyle();
+
+		if( ( ( CLight * ) pTarget )->m_iStyle >= 32 )
+			( ( CLight * ) pTarget )->SetCorrectStyle();
 	}
 }

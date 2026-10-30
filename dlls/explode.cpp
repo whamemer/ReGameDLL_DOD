@@ -1,9 +1,9 @@
 /***
 *
 *	Copyright (c) 1996-2002, Valve LLC. All rights reserved.
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
 *
 *   Use, distribution, and modification of this source code and/or resulting
@@ -42,10 +42,12 @@ void CShower::Spawn( void )
 	pev->velocity = RANDOM_FLOAT( 200, 300 ) * pev->angles;
 	pev->velocity.x += RANDOM_FLOAT( -100.f, 100.f );
 	pev->velocity.y += RANDOM_FLOAT( -100.f, 100.f );
-	if ( pev->velocity.z >= 0 )
+
+	if( pev->velocity.z >= 0 )
 		pev->velocity.z += 200;
 	else
 		pev->velocity.z -= 200;
+
 	pev->movetype = MOVETYPE_BOUNCE;
 	pev->gravity = 0.5;
 	pev->nextthink = gpGlobals->time + 0.1;
@@ -63,21 +65,23 @@ void CShower::Think( void )
 	UTIL_Sparks( pev->origin );
 
 	pev->speed -= 0.1;
-	if ( pev->speed > 0 )
+
+	if( pev->speed > 0 )
 		pev->nextthink = gpGlobals->time + 0.1;
 	else
 		UTIL_Remove( this );
+
 	pev->flags &= ~FL_ONGROUND;
 }
 
 void CShower::Touch( CBaseEntity *pOther )
 {
-	if ( pev->flags & FL_ONGROUND )
+	if( pev->flags & FL_ONGROUND )
 		pev->velocity = pev->velocity * 0.1;
 	else
 		pev->velocity = pev->velocity * 0.6;
 
-	if ( ( pev->velocity.x * pev->velocity.x + pev->velocity.y * pev->velocity.y ) < 10.0 )
+	if( ( pev->velocity.x * pev->velocity.x + pev->velocity.y * pev->velocity.y ) < 10.0 )
 		pev->speed = 0;
 }
 
@@ -107,7 +111,7 @@ LINK_ENTITY_TO_CLASS( env_explosion, CEnvExplosion );
 
 void CEnvExplosion::KeyValue( KeyValueData *pkvd )
 {
-	if ( FStrEq( pkvd->szKeyName, "iMagnitude" ) )
+	if( FStrEq( pkvd->szKeyName, "iMagnitude" ) )
 	{
 		m_iMagnitude = atoi( pkvd->szValue );
 		pkvd->fHandled = TRUE;
@@ -138,12 +142,12 @@ void CEnvExplosion::Spawn( void )
 		flSpriteScale = 50;
 	}
 	*/
-	if ( flSpriteScale < 10 )
+	if( flSpriteScale < 10 )
 	{
 		flSpriteScale = 10;
 	}
 
-	m_spriteScale = (int) flSpriteScale;
+	m_spriteScale = ( int ) flSpriteScale;
 }
 
 void CEnvExplosion::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
@@ -160,7 +164,7 @@ void CEnvExplosion::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 	UTIL_TraceLine( vecSpot, vecSpot + Vector( 0, 0, -40 ), ignore_monsters, ENT( pev ), &tr );
 
 	// Pull out of the wall a bit
-	if ( tr.flFraction != 1.0 )
+	if( tr.flFraction != 1.0 )
 	{
 		pev->origin = tr.vecEndPos + ( tr.vecPlaneNormal * ( m_iMagnitude - 24 ) * 0.6 );
 	}
@@ -170,9 +174,9 @@ void CEnvExplosion::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 	}
 
 	// draw decal
-	if ( !( pev->spawnflags & SF_ENVEXPLOSION_NODECAL ) )
+	if( !( pev->spawnflags & SF_ENVEXPLOSION_NODECAL ) )
 	{
-		if ( RANDOM_FLOAT( 0, 1 ) < 0.5 )
+		if( RANDOM_FLOAT( 0, 1 ) < 0.5 )
 		{
 			UTIL_DecalTrace( &tr, DECAL_SCORCH1 );
 		}
@@ -185,14 +189,14 @@ void CEnvExplosion::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 	// draw fireball
 	float flScale = 0;
 
-	if ( !( pev->spawnflags & SF_ENVEXPLOSION_NOFIREBALL ) )
+	if( !( pev->spawnflags & SF_ENVEXPLOSION_NOFIREBALL ) )
 		flScale = m_spriteScale;
 
-	PLAYBACK_EVENT_FULL( 0, ENT( pev ), g_pGameRules->Explosion(), 0, (float *)&g_vecZero, (float *)&g_vecZero,
-						 flScale, 15.0, g_sModelIndexFireball, 0, 0, 0 );
+	PLAYBACK_EVENT_FULL( 0, ENT( pev ), g_pGameRules->Explosion(), 0, ( float * ) &g_vecZero, ( float * ) &g_vecZero,
+		flScale, 15.0, g_sModelIndexFireball, 0, 0, 0 );
 
 	// do damage
-	if ( !( pev->spawnflags & SF_ENVEXPLOSION_NODAMAGE ) )
+	if( !( pev->spawnflags & SF_ENVEXPLOSION_NODAMAGE ) )
 	{
 		RadiusDamage( pev, pev, m_iMagnitude, CLASS_NONE, DMG_BLAST );
 	}
@@ -201,11 +205,11 @@ void CEnvExplosion::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 	pev->nextthink = gpGlobals->time + 0.3;
 
 	// draw sparks
-	if ( !( pev->spawnflags & SF_ENVEXPLOSION_NOSPARKS ) )
+	if( !( pev->spawnflags & SF_ENVEXPLOSION_NOSPARKS ) )
 	{
 		int sparkCount = RANDOM_LONG( 0, 3 );
 
-		for ( int i = 0; i < sparkCount; i++ )
+		for( int i = 0; i < sparkCount; i++ )
 		{
 			Create( "spark_shower", pev->origin, tr.vecPlaneNormal, NULL );
 		}
@@ -214,13 +218,13 @@ void CEnvExplosion::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 
 void CEnvExplosion::Smoke( void )
 {
-	if ( !( pev->spawnflags & SF_ENVEXPLOSION_NOSMOKE ) )
+	if( !( pev->spawnflags & SF_ENVEXPLOSION_NOSMOKE ) )
 	{
-		PLAYBACK_EVENT_FULL( 0, ENT( pev ), g_pGameRules->Smoke(), 0, (float *)&g_vecZero, (float *)&g_vecZero,
-							 m_spriteScale, 12.0, g_sModelIndexSmoke, 0, 0, 0 );
+		PLAYBACK_EVENT_FULL( 0, ENT( pev ), g_pGameRules->Smoke(), 0, ( float * ) &g_vecZero, ( float * ) &g_vecZero,
+			m_spriteScale, 12.0, g_sModelIndexSmoke, 0, 0, 0 );
 	}
 
-	if ( !( pev->spawnflags & SF_ENVEXPLOSION_REPEATABLE ) )
+	if( !( pev->spawnflags & SF_ENVEXPLOSION_REPEATABLE ) )
 	{
 		UTIL_Remove( this );
 	}
@@ -237,7 +241,8 @@ void ExplosionCreate( const Vector &center, const Vector &angles, edict_t *pOwne
 	kvd.szKeyName = "iMagnitude";
 	kvd.szValue = buf;
 	pExplosion->KeyValue( &kvd );
-	if ( !doDamage )
+
+	if( !doDamage )
 		pExplosion->pev->spawnflags |= SF_ENVEXPLOSION_NODAMAGE;
 
 	pExplosion->Spawn();

@@ -1,7 +1,7 @@
 /***
 *
 *	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
-*	
+*
 *	This product contains software technology licensed from Id
 *	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
@@ -12,6 +12,7 @@
 *   without written permission from Valve LLC.
 *
 ****/
+
 #include "extdll.h"
 #include "util.h"
 #include "cbase.h"
@@ -29,27 +30,32 @@ CDoDStatMgr::CDoDStatMgr( void )
 {
 	memset( m_PlayerStats, 0, sizeof( m_PlayerStats ) );
 }
+
 void CDoDStatMgr::InitPlayer( int index )
 {
-	if ( (unsigned) index > 0x1f )
+	if( ( unsigned ) index > 0x1f )
 		return;
+
 	m_PlayerStats[index].stat[0] = 0;
 	m_PlayerStats[index].stat[1] = 0;
 	m_PlayerStats[index].stat[2] = 0;
 	m_PlayerStats[index].stat[3] = 0;
 	m_PlayerStats[index].starttime = gpGlobals->time;
 }
+
 DoDPlayerStats_t *CDoDStatMgr::GetPlayer( int index )
 {
-	if ( (unsigned) index < 0x20 )
+	if( ( unsigned ) index < 0x20 )
 		return &m_PlayerStats[index];
 	return NULL;
 }
+
 void CDoDStatMgr::PrintPlayerStats( int index )
 {
-	DoDPlayerStats_t *p = ( (unsigned) index < 0x20 ) ? &m_PlayerStats[index] : NULL;
+	DoDPlayerStats_t *p = ( ( unsigned ) index < 0x20 ) ? &m_PlayerStats[index] : NULL;
 	CBaseEntity *pEnt = UTIL_PlayerByIndex( index );
-	if ( pEnt && p )
+
+	if( pEnt && p )
 	{
 		char buf[96];
 		sprintf( buf, "%s: %d\n", StatNames[0], p->stat[0] );

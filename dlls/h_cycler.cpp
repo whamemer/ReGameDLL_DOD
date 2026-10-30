@@ -1,9 +1,9 @@
 /***
 *
-*	Copyright (c) 1996-2001, Valve LLC. All rights reserved. 
-*	
-*	This product contains software technology licensed from Id 
-*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc. 
+*	Copyright (c) 1996-2001, Valve LLC. All rights reserved.
+*
+*	This product contains software technology licensed from Id
+*	Software, Inc. ("Id Technology").  Id Technology (c) 1996 Id Software, Inc.
 *	All Rights Reserved.
 *
 *   Use, distribution, and modification of this source code and/or resulting
@@ -35,8 +35,8 @@
 class CCycler : public CBaseMonster
 {
 public:
- 	void GenericCyclerSpawn( const char *szModel, Vector vecMin, Vector vecMax );
-	virtual int ObjectCaps( void ) { return ( CBaseEntity ::ObjectCaps() | FCAP_IMPULSE_USE ); }
+	void GenericCyclerSpawn( const char *szModel, Vector vecMin, Vector vecMax );
+	virtual int ObjectCaps( void ) { return ( CBaseEntity::ObjectCaps() | FCAP_IMPULSE_USE ); }
 	int TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType );
 	void Spawn( void );
 	void Think( void );
@@ -67,7 +67,7 @@ class CGenericCycler : public CCycler
 public:
 	void Spawn( void )
 	{
-		GenericCyclerSpawn( (char *) STRING( pev->model ), Vector( -16, -16, 0 ), Vector( 16, 16, 72 ) );
+		GenericCyclerSpawn( ( char * ) STRING( pev->model ), Vector( -16, -16, 0 ), Vector( 16, 16, 72 ) );
 	}
 };
 LINK_ENTITY_TO_CLASS( cycler, CGenericCycler );
@@ -82,7 +82,7 @@ public:
 	void Spawn( void );
 };
 LINK_ENTITY_TO_CLASS( cycler_prdroid, CCyclerProbe );
-void CCyclerProbe ::Spawn( void )
+void CCyclerProbe::Spawn( void )
 {
 	pev->origin = pev->origin + Vector( 0, 0, 16 );
 	GenericCyclerSpawn( "models/prdroid.mdl", Vector( -16, -16, -16 ), Vector( 16, 16, 16 ) );
@@ -90,9 +90,9 @@ void CCyclerProbe ::Spawn( void )
 
 // Cycler member functions
 
-void CCycler ::GenericCyclerSpawn( const char *szModel, Vector vecMin, Vector vecMax )
+void CCycler::GenericCyclerSpawn( const char *szModel, Vector vecMin, Vector vecMax )
 {
-	if ( !szModel || !*szModel )
+	if( !szModel || !*szModel )
 	{
 		ALERT( at_error, "cycler at %.0f %.0f %0.f missing modelname", pev->origin.x, pev->origin.y, pev->origin.z );
 		REMOVE_ENTITY( ENT( pev ) );
@@ -108,7 +108,7 @@ void CCycler ::GenericCyclerSpawn( const char *szModel, Vector vecMin, Vector ve
 	UTIL_SetSize( pev, vecMin, vecMax );
 }
 
-void CCycler ::Spawn()
+void CCycler::Spawn()
 {
 	InitBoneControllers();
 	pev->solid = SOLID_SLIDEBOX;
@@ -127,7 +127,7 @@ void CCycler ::Spawn()
 
 	ResetSequenceInfo();
 
-	if ( pev->sequence != 0 || pev->frame != 0 )
+	if( pev->sequence != 0 || pev->frame != 0 )
 	{
 		m_animate = 0;
 		pev->framerate = 0;
@@ -141,16 +141,16 @@ void CCycler ::Spawn()
 //
 // cycler think
 //
-void CCycler ::Think( void )
+void CCycler::Think( void )
 {
 	pev->nextthink = gpGlobals->time + 0.1;
 
-	if ( m_animate )
+	if( m_animate )
 	{
 		StudioFrameAdvance();
 	}
 
-	if ( m_fSequenceFinished && !m_fSequenceLoops )
+	if( m_fSequenceFinished && !m_fSequenceLoops )
 	{
 		// ResetSequenceInfo();
 		// hack to avoid reloading model every frame
@@ -159,7 +159,7 @@ void CCycler ::Think( void )
 		m_fSequenceFinished = FALSE;
 		m_flLastEventCheck = gpGlobals->time;
 		pev->frame = 0;
-		if ( !m_animate )
+		if( !m_animate )
 			pev->framerate = 0.0;  // FIX: don't reset framerate
 	}
 }
@@ -167,10 +167,10 @@ void CCycler ::Think( void )
 //
 // CyclerUse - starts a rotation trend
 //
-void CCycler ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
+void CCycler::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	m_animate = !m_animate;
-	if ( m_animate )
+	if( m_animate )
 		pev->framerate = 1.0;
 	else
 		pev->framerate = 0.0;
@@ -180,15 +180,15 @@ void CCycler ::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useT
 // CyclerPain , changes sequences when shot
 //
 //void CCycler :: Pain( float flDamage )
-int CCycler ::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType )
+int CCycler::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType )
 {
-	if ( m_animate )
+	if( m_animate )
 	{
 		pev->sequence++;
 
 		ResetSequenceInfo();
 
-		if ( m_flFrameRate == 0.0 )
+		if( m_flFrameRate == 0.0 )
 		{
 			pev->sequence = 0;
 			ResetSequenceInfo();
@@ -215,7 +215,7 @@ public:
 	void Spawn( void );
 	void Think( void );
 	void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
-	virtual int ObjectCaps( void ) { return ( CBaseEntity ::ObjectCaps() | FCAP_DONT_SAVE | FCAP_IMPULSE_USE ); }
+	virtual int ObjectCaps( void ) { return ( CBaseEntity::ObjectCaps() | FCAP_DONT_SAVE | FCAP_IMPULSE_USE ); }
 	virtual int TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType );
 	void Animate( float frames );
 
@@ -251,15 +251,15 @@ void CCyclerSprite::Spawn( void )
 	m_animate = 1;
 	m_lastTime = gpGlobals->time;
 
-	PRECACHE_MODEL( (char *) STRING( pev->model ) );
+	PRECACHE_MODEL( ( char * ) STRING( pev->model ) );
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );
 
-	m_maxFrame = (float) MODEL_FRAMES( pev->modelindex ) - 1;
+	m_maxFrame = ( float ) MODEL_FRAMES( pev->modelindex ) - 1;
 }
 
 void CCyclerSprite::Think( void )
 {
-	if ( ShouldAnimate() )
+	if( ShouldAnimate() )
 		Animate( pev->framerate * ( gpGlobals->time - m_lastTime ) );
 
 	pev->nextthink = gpGlobals->time + 0.1;
@@ -274,7 +274,7 @@ void CCyclerSprite::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 
 int CCyclerSprite::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, float flDamage, int bitsDamageType )
 {
-	if ( m_maxFrame > 1.0 )
+	if( m_maxFrame > 1.0 )
 	{
 		Animate( 1.0 );
 	}
@@ -285,7 +285,7 @@ int CCyclerSprite::TakeDamage( entvars_t *pevInflictor, entvars_t *pevAttacker, 
 void CCyclerSprite::Animate( float frames )
 {
 	pev->frame += frames;
-	if ( m_maxFrame > 0 )
+	if( m_maxFrame > 0 )
 		pev->frame = fmod( pev->frame, m_maxFrame );
 }
 
@@ -310,7 +310,7 @@ void CWeaponCycler::Spawn()
 	pev->solid = SOLID_SLIDEBOX;
 	pev->movetype = MOVETYPE_NONE;
 
-	PRECACHE_MODEL( (char *) STRING( pev->model ) );
+	PRECACHE_MODEL( ( char * ) STRING( pev->model ) );
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );
 	m_iszModel = pev->model;
 	m_iModel = pev->modelindex;
@@ -353,7 +353,7 @@ void CWeaponCycler::SecondaryAttack( void )
 	GetSequenceInfo( pmodel, pev, &flFrameRate, &flGroundSpeed );
 	pev->modelindex = 0;
 
-	if ( flFrameRate == 0.0 )
+	if( flFrameRate == 0.0 )
 	{
 		pev->sequence = 0;
 	}
@@ -393,9 +393,9 @@ void CWreckage::Spawn( void )
 	pev->frame = 0;
 	pev->nextthink = gpGlobals->time + 0.1;
 
-	if ( pev->model )
+	if( pev->model )
 	{
-		PRECACHE_MODEL( (char *) STRING( pev->model ) );
+		PRECACHE_MODEL( ( char * ) STRING( pev->model ) );
 		SET_MODEL( ENT( pev ), STRING( pev->model ) );
 	}
 	// pev->scale = 5.0;
@@ -405,8 +405,8 @@ void CWreckage::Spawn( void )
 
 void CWreckage::Precache()
 {
-	if ( pev->model )
-		PRECACHE_MODEL( (char *) STRING( pev->model ) );
+	if( pev->model )
+		PRECACHE_MODEL( ( char * ) STRING( pev->model ) );
 }
 
 void CWreckage::Think( void )
@@ -414,14 +414,14 @@ void CWreckage::Think( void )
 	StudioFrameAdvance();
 	pev->nextthink = gpGlobals->time + 0.2;
 
-	if ( pev->dmgtime )
+	if( pev->dmgtime )
 	{
-		if ( pev->dmgtime < gpGlobals->time )
+		if( pev->dmgtime < gpGlobals->time )
 		{
 			UTIL_Remove( this );
 			return;
 		}
-		else if ( RANDOM_FLOAT( 0, pev->dmgtime - m_flStartTime ) > pev->dmgtime - gpGlobals->time )
+		else if( RANDOM_FLOAT( 0, pev->dmgtime - m_flStartTime ) > pev->dmgtime - gpGlobals->time )
 		{
 			return;
 		}
@@ -433,6 +433,6 @@ void CWreckage::Think( void )
 	VecSrc.y = RANDOM_FLOAT( pev->absmin.y, pev->absmax.y );
 	VecSrc.z = RANDOM_FLOAT( pev->absmin.z, pev->absmax.z );
 
-	PLAYBACK_EVENT_FULL( 0, ENT( pev ), g_pGameRules->Smoke(), 0, (float *)&g_vecZero, (float *)&g_vecZero,
-						 RANDOM_LONG( 0, 49 ) + 50, RANDOM_LONG( 0, 3 ) + 8, g_sModelIndexSmoke, 0, 0, 0 );
+	PLAYBACK_EVENT_FULL( 0, ENT( pev ), g_pGameRules->Smoke(), 0, ( float * ) &g_vecZero, ( float * ) &g_vecZero,
+		RANDOM_LONG( 0, 49 ) + 50, RANDOM_LONG( 0, 3 ) + 8, g_sModelIndexSmoke, 0, 0, 0 );
 }
