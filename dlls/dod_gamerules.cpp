@@ -2723,7 +2723,7 @@ void CDoDTeamPlay::PlayerSpawn( CBasePlayer *pPlayer )
 	MESSAGE_END();
 }
 
-int CDoDTeamPlay::GetWeaponId( char *weaponname )
+int CDoDTeamPlay::GetWeaponId( const char *weaponname )
 {
 	if ( !strcmp( weaponname, "WEAPON_AMERKNIFE" ) )
 		return 1;

@@ -244,7 +244,7 @@ void CBaseDoor::KeyValue( KeyValueData *pkvd )
 	}
 	else if ( FStrEq( pkvd->szKeyName, "TeamDoors" ) )
 	{
-		TeamSpecific = atoi( pkvd->szValue );
+		TeamSpecific = (int) atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
 	else
@@ -301,7 +301,7 @@ void CBaseDoor::Spawn()
 	}
 
 	pev->movetype = MOVETYPE_PUSH;
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );
 
 	if ( pev->speed == 0 )
@@ -314,7 +314,7 @@ void CBaseDoor::Spawn()
 														 fabs( pev->movedir.z * ( pev->size.z - 2 ) ) - m_flLip ) );
 	if ( FBitSet( pev->spawnflags, SF_DOOR_START_OPEN ) )
 	{  // swap pos1 and pos2, put door at pos2
-		UTIL_SetOrigin( pev, m_vecPosition2 );
+		UTIL_SetOrigin( this, m_vecPosition2 );
 		m_vecPosition2 = m_vecPosition1;
 		m_vecPosition1 = pev->origin;
 	}
@@ -343,7 +343,7 @@ void CBaseDoor::RoundRespawn( void )
 	m_vecPosition2 = m_vecPosition1 + pev->movedir * ( fabs( pev->movedir.x * ( pev->size.x - 2 ) ) + fabs( pev->movedir.y * ( pev->size.y - 2 ) ) + fabs( pev->movedir.z * ( pev->size.z - 2 ) ) - m_flLip );
 	if ( FBitSet( pev->spawnflags, SF_DOOR_START_OPEN ) )
 	{
-		UTIL_SetOrigin( pev, m_vecPosition2 );
+		UTIL_SetOrigin( this, m_vecPosition2 );
 		Vector vecTemp = m_vecPosition2;
 		m_vecPosition2 = m_vecPosition1;
 		m_vecPosition1 = vecTemp;
@@ -359,9 +359,9 @@ void CBaseDoor::RoundRespawn( void )
 void CBaseDoor ::SetToggleState( TOGGLE_STATE state )
 {
 	if ( state == TS_AT_TOP )
-		UTIL_SetOrigin( pev, m_vecPosition2 );
+		UTIL_SetOrigin( this, m_vecPosition2 );
 	else
-		UTIL_SetOrigin( pev, m_vecPosition1 );
+		UTIL_SetOrigin( this, m_vecPosition1 );
 }
 void CBaseDoor::Precache( void )
 {
@@ -888,7 +888,7 @@ void CRotDoor::Spawn( void )
 		pev->solid = SOLID_BSP;
 
 	pev->movetype = MOVETYPE_PUSH;
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );
 
 	if ( pev->speed == 0 )
@@ -926,7 +926,7 @@ void CRotDoor ::SetToggleState( TOGGLE_STATE state )
 	else
 		pev->angles = m_vecAngle1;
 
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 }
 
 void CRotDoor::RoundRespawn( void )
@@ -993,7 +993,7 @@ void CMomentaryDoor::Spawn( void )
 	pev->solid = SOLID_BSP;
 	pev->movetype = MOVETYPE_PUSH;
 
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );
 
 	if ( pev->dmg == 0 )
@@ -1010,7 +1010,7 @@ void CMomentaryDoor::Spawn( void )
 
 	if ( FBitSet( pev->spawnflags, SF_DOOR_START_OPEN ) )
 	{  // swap pos1 and pos2, put door at pos2
-		UTIL_SetOrigin( pev, m_vecPosition2 );
+		UTIL_SetOrigin( this, m_vecPosition2 );
 		m_vecPosition2 = m_vecPosition1;
 		m_vecPosition1 = pev->origin;
 	}
@@ -1115,7 +1115,7 @@ void CMomentaryDoor::MomentaryMoveDone( void )
 
 	Vector vecDest = m_vecFinalDest;
 	pev->velocity = g_vecZero;
-	UTIL_SetOrigin( pev, vecDest );
+	UTIL_SetOrigin( this, vecDest );
 	SetThink( NULL );
 	pev->nextthink = -1;
 

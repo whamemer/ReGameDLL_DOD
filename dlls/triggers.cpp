@@ -1460,7 +1460,7 @@ void CTriggerMonsterJump ::Spawn( void )
 	if ( !FStringNull( pev->targetname ) )
 	{  // if targetted, spawn turned off
 		pev->solid = SOLID_NOT;
-		UTIL_SetOrigin( pev, pev->origin );	 // Unlink from trigger list
+		UTIL_SetOrigin( this, pev->origin );	 // Unlink from trigger list
 		SetUse( &CTriggerMonsterJump::ToggleUse );
 	}
 }
@@ -1468,7 +1468,7 @@ void CTriggerMonsterJump ::Spawn( void )
 void CTriggerMonsterJump ::Think( void )
 {
 	pev->solid = SOLID_NOT;				 // kill the trigger for now !!!UNDONE
-	UTIL_SetOrigin( pev, pev->origin );	 // Unlink from trigger list
+	UTIL_SetOrigin( this, pev->origin );	 // Unlink from trigger list
 	SetThink( NULL );
 }
 
@@ -1667,7 +1667,7 @@ void CTriggerHurt ::Spawn( void )
 				  SF_TRIGGER_HURT_START_OFF ) )	 // if flagged to Start Turned Off, make trigger nonsolid.
 		pev->solid = SOLID_NOT;
 
-	UTIL_SetOrigin( pev, pev->origin );	 // Link into the list
+	UTIL_SetOrigin( this, pev->origin );	 // Link into the list
 
 	RoundStore();
 }
@@ -1736,7 +1736,7 @@ void CBaseTrigger ::ToggleUse( CBaseEntity *pActivator, CBaseEntity *pCaller, US
 		pev->solid = SOLID_NOT;
 	}
 
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 }
 
 // When touched, a hurt trigger does DMG points of damage each half-second
@@ -2673,7 +2673,7 @@ void CTriggerPush ::Spawn()
 
 	SetUse( &CTriggerPush::ToggleUse );
 
-	UTIL_SetOrigin( pev, pev->origin );	 // Link into the list
+	UTIL_SetOrigin( this, pev->origin );	 // Link into the list
 
 	m_iEnabled = 1;
 
@@ -2784,7 +2784,7 @@ void CBaseTrigger ::TeleportTouch( CBaseEntity *pOther )
 
 	pevToucher->flags &= ~FL_ONGROUND;
 
-	UTIL_SetOrigin( pevToucher, tmp );
+	UTIL_SetOrigin( pOther, tmp );
 
 	pevToucher->angles = pentTarget->v.angles;
 
@@ -3210,7 +3210,7 @@ void CTriggerCamera::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYP
 	// copy over player information
 	if ( FBitSet( pev->spawnflags, SF_CAMERA_PLAYER_POSITION ) )
 	{
-		UTIL_SetOrigin( pev, pActivator->pev->origin + pActivator->pev->view_ofs );
+		UTIL_SetOrigin( this, pActivator->pev->origin + pActivator->pev->view_ofs );
 		pev->angles.x = -pActivator->pev->angles.x;
 		pev->angles.y = pActivator->pev->angles.y;
 		pev->angles.z = 0;
@@ -3382,7 +3382,7 @@ LINK_ENTITY_TO_CLASS( dod_object_goal, CObjectCapture );
 
 void CObjectCapture::Spawn()
 {
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 	CBaseTrigger::InitTrigger();
 	RoundStore();
 	m_bCapped = false;
@@ -3390,7 +3390,7 @@ void CObjectCapture::Spawn()
 
 void CObjectCapture::RoundRespawn()
 {
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 	CBaseTrigger::InitTrigger();
 	m_bCapped = false;
 }
@@ -3530,7 +3530,7 @@ void CLocation::Spawn()
 {
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NONE;
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 	UTIL_SetSize( pev, g_vecZero, g_vecZero );
 	SetTouch( NULL );
 	pev->movedir = g_vecZero;
@@ -3615,7 +3615,7 @@ void CControlPoint::Spawn()
 	pev->sequence = 0;
 	pev->framerate = 1.0;
 	m_fCapDelayTime = 1.0;
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 	UTIL_SetSize( pev, pev->mins, pev->maxs );
 	pev->movedir = g_vecZero;
 	UTIL_MakeVectors( pev->angles );
@@ -4007,7 +4007,7 @@ void CControlPointMaster::Spawn()
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NONE;
 	pev->effects = EF_NODRAW;
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 	UTIL_SetSize( pev, g_vecZero, g_vecZero );
 	SetTouch( NULL );
 	SetThink( &CControlPointMaster::CPMThink );
@@ -4498,17 +4498,12 @@ public:
 	void RoundRespawn();
 	void KeyValue( KeyValueData *pkvd );
 	void EXPORT SandBagTouch( CBaseEntity *pOther );
-	BOOL IsMasteredOn();
+	bool IsMasteredOn() { return !m_sMaster || UTIL_IsMasterTriggered( m_sMaster, this ); }
 
 	int m_nYaw;		// from pev->angles.y at Spawn
 	int m_nRange;	// default 5
 	int m_sMaster;	// string_t
 };
-
-BOOL CSandBag::IsMasteredOn()
-{
-	return !m_sMaster || UTIL_IsMasterTriggered( m_sMaster, this );
-}
 
 LINK_ENTITY_TO_CLASS( dod_trigger_sandbag, CSandBag );
 
@@ -4527,7 +4522,7 @@ void CSandBag::Spawn()
 	Precache();
 	pev->sequence = 0;
 	pev->framerate = 1.0;
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 	UTIL_SetSize( pev, pev->mins, pev->maxs );
 	SetTouch( &CSandBag::SandBagTouch );
 
@@ -4567,41 +4562,22 @@ void CSandBag::SandBagTouch( CBaseEntity *pOther )
 		return;
 	if ( !IsMasteredOn() )
 		return;
-	int delta = abs( (int) pOther->pev->angles.y - m_nYaw );
+	int delta = abs( (int) ( pOther->pev->angles.y - m_nYaw ) );
 	if ( delta > 180 )
 		delta = 360 - delta;
-	if ( CBasePlayer::IsProne( (CBasePlayer *) pOther ) )
-	{
-		if ( !CBasePlayer::IsSandbagDeployed( (CBasePlayer *) pOther ) )
-			return;
-	}
-	else
-	{
-		if ( pOther->pev->button & IN_DUCK )
-			return;
-		if ( delta > m_nRange )
-		{
-			if ( !CBasePlayer::IsSandbagDeployed( (CBasePlayer *) pOther ) )
-				return;
-		}
-		else
-		{
-			CBasePlayerItem *pActive = ( (CBasePlayer *) pOther )->m_pActiveItem;
-			if ( !pActive || pActive->Classify() != 0x100 )						   // 0x100 = LMG class
-			{
-				if ( !CBasePlayer::IsSandbagDeployed( (CBasePlayer *) pOther ) )
-					return;
-			}
-		}
-	}
 
 	CBasePlayer *pPlayer = (CBasePlayer *) pOther;
-	*(int *) ( (char *) pPlayer + 0x76c ) |= 1;
-	int *pFlags = (int *) ( (char *) pPlayer + 0x7cc );
-	if ( !( *pFlags & 0x400 ) )
+
+	if ( !pPlayer->IsProne() && !( pPlayer->pev->button & IN_DUCK ) &&
+		 ( ( delta <= m_nRange && pPlayer->m_pActiveItem && pPlayer->m_pActiveItem->Classify() == CLASS_MACHINEGUN ) ||
+		   pPlayer->IsSandbagDeployed() ) )
 	{
-		*pFlags |= 0x400;
-		pPlayer->HintMessage( "#Hint_sandbag_area_touch", 0 );
+		pPlayer->m_signals.Signal( SIGNAL_SANDBAG );
+		if ( !( pPlayer->m_flDisplayHistory & HINT_SANDBAG_AREA_TOUCH ) )
+		{
+			pPlayer->m_flDisplayHistory |= HINT_SANDBAG_AREA_TOUCH;
+			pPlayer->HintMessage( "#Hint_sandbag_area_touch", 0 );
+		}
 	}
 }
 
@@ -4664,7 +4640,7 @@ void CAreaCapture::Spawn()
 	m_iAreaIndex = -1;
 	pev->sequence = 0;
 	pev->framerate = 1.0;
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 	UTIL_SetSize( pev, pev->mins, pev->maxs );
 	SetThink( NULL );
 	SetTouch( &CAreaCapture::AreaTouch );
@@ -5249,7 +5225,7 @@ void CAreaCapture::RoundRespawn()
 	m_iAreaIndex = -1;
 	pev->sequence = 0;
 	pev->framerate = 1.0;
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 	UTIL_SetSize( pev, pev->mins, pev->maxs );
 	SetTouch( &CAreaCapture::AreaTouch );
 	pev->nextthink = gpGlobals->time + 0.1;
@@ -5275,14 +5251,12 @@ void CAreaCapture::KeyValue( KeyValueData *pkvd )
 	}
 	else if ( FStrEq( pkvd->szKeyName, "area_allies_numcap" ) )
 	{
-		int v = atoi( pkvd->szValue );
-		m_nAlliesNumCap = ( v > 0 ) ? v : 1;
+		m_nAlliesNumCap = ( atoi( pkvd->szValue ) > 0 ) ? atoi( pkvd->szValue ) : 1;
 		pkvd->fHandled = TRUE;
 	}
 	else if ( FStrEq( pkvd->szKeyName, "area_axis_numcap" ) )
 	{
-		int v = atoi( pkvd->szValue );
-		m_nAxisNumCap = ( v > 0 ) ? v : 1;
+		m_nAxisNumCap = ( atoi( pkvd->szValue ) > 0 ) ? atoi( pkvd->szValue ) : 1;
 		pkvd->fHandled = TRUE;
 	}
 	else if ( FStrEq( pkvd->szKeyName, "area_allies_startcap" ) )

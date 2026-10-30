@@ -183,8 +183,8 @@ public:
 	void InitGraph( void );
 	int AllocNodes( void );
 
-	int CheckNODFile( const char *szMapName );
-	int FLoadGraph( const char *szMapName );
+	int CheckNODFile( char *szMapName );
+	int FLoadGraph( char *szMapName );
 	int FSaveGraph( char *szMapName );
 	int FSetGraphPointers( void );
 	void CheckNode( Vector vecOrigin, int iNode );

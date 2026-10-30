@@ -1311,7 +1311,7 @@ int CBaseMonster ::CheckLocalMove( const Vector &vecStart, const Vector &vecEnd,
 	iReturn = LOCALMOVE_VALID;					 // assume everything will be ok.
 
 	// move the monster to the start of the local move that's to be checked.
-	UTIL_SetOrigin( pev, vecStart );  // !!!BUGBUG - won't this fire triggers? - nope, SetOrigin doesn't fire
+	UTIL_SetOrigin( this, vecStart );  // !!!BUGBUG - won't this fire triggers? - nope, SetOrigin doesn't fire
 
 	if ( !( pev->flags & ( FL_FLY | FL_SWIM ) ) )
 	{
@@ -1393,7 +1393,7 @@ int CBaseMonster ::CheckLocalMove( const Vector &vecStart, const Vector &vecEnd,
 	*/
 
 	// since we've actually moved the monster during the check, undo the move.
-	UTIL_SetOrigin( pev, vecStartPos );
+	UTIL_SetOrigin( this, vecStartPos );
 
 	return iReturn;
 }
@@ -3287,7 +3287,7 @@ void CBaseMonster::CorpseFallThink( void )
 		SetThink( NULL );
 
 		SetSequenceBox();
-		UTIL_SetOrigin( pev, pev->origin );	 // link into world.
+		UTIL_SetOrigin( this, pev->origin );	 // link into world.
 	}
 	else
 		pev->nextthink = gpGlobals->time + 0.1;
@@ -3310,7 +3310,7 @@ void CBaseMonster ::MonsterInitDead( void )
 	pev->deadflag = DEAD_DEAD;
 
 	UTIL_SetSize( pev, g_vecZero, g_vecZero );
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 
 	// Setup health counters, etc.
 	BecomeDead();

@@ -825,7 +825,7 @@ int DispatchRestore( edict_t *pent, SAVERESTOREDATA *pSaveData, int globalEntity
 			pSaveData->vecLandmarkOffset = oldOffset;
 			if ( pEntity )
 			{
-				UTIL_SetOrigin( pEntity->pev, pEntity->pev->origin );
+				UTIL_SetOrigin( pEntity, pEntity->pev->origin );
 				pEntity->OverrideReset();
 			}
 		}
@@ -1109,7 +1109,7 @@ void CBaseEntity ::MakeDormant( void )
 	// Don't think
 	pev->nextthink = 0;
 	// Relink
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 }
 
 int CBaseEntity ::IsDormant( void )

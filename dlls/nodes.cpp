@@ -145,8 +145,8 @@ int CGraph ::AllocNodes( void )
 //=========================================================
 entvars_t *CGraph ::LinkEntForLink( CLink *pLink, CNode *pNode )
 {
-	edict_t *pentSearch;
-	edict_t *pentTrigger;
+	CBaseEntity *pSearch;
+	CBaseEntity *pTrigger;
 	entvars_t *pevTrigger;
 	entvars_t *pevLinkEnt;
 	TraceResult tr;
@@ -155,7 +155,7 @@ entvars_t *CGraph ::LinkEntForLink( CLink *pLink, CNode *pNode )
 	if ( !pevLinkEnt )
 		return NULL;
 
-	pentSearch = NULL;	// start search at the top of the ent list.
+	pSearch = NULL;	// start search at the top of the ent list.
 
 	if ( FClassnameIs( pevLinkEnt, "func_door" ) || FClassnameIs( pevLinkEnt, "func_door_rotating" ) )
 	{
@@ -170,10 +170,9 @@ entvars_t *CGraph ::LinkEntForLink( CLink *pLink, CNode *pNode )
 
 		while ( 1 )
 		{
-			pentTrigger =
-				FIND_ENTITY_BY_TARGET( pentSearch, STRING( pevLinkEnt->targetname ) );	// find the button or trigger
+			pTrigger = UTIL_FindEntityByTarget( pSearch, STRING( pevLinkEnt->targetname ) );	// find the button or trigger
 
-			if ( FNullEnt( pentTrigger ) )
+			if ( !pTrigger )
 			{  // no trigger found
 
 				// right now this is a problem among auto-open doors, or any door that opens through the use
@@ -182,8 +181,8 @@ entvars_t *CGraph ::LinkEntForLink( CLink *pLink, CNode *pNode )
 				return pevLinkEnt;
 			}
 
-			pentSearch = pentTrigger;
-			pevTrigger = VARS( pentTrigger );
+			pSearch = pTrigger;
+			pevTrigger = pTrigger->pev;
 
 			if ( FClassnameIs( pevTrigger, "func_button" ) || FClassnameIs( pevTrigger, "func_rot_button" ) )
 			{  // only buttons are handled right now.
@@ -1545,7 +1544,7 @@ void CTestHull::DropDelay( void )
 {
 	//	UTIL_CenterPrintAll( "Node Graph out of Date. Rebuilding..." );
 
-	UTIL_SetOrigin( VARS( pev ), WorldGraph.m_pNodes[0].m_vecOrigin );
+	UTIL_SetOrigin( this, WorldGraph.m_pNodes[0].m_vecOrigin );
 
 	SetThink( &CTestHull::CallBuildNodeGraph );
 
@@ -1869,7 +1868,7 @@ void CTestHull ::BuildNodeGraph( void )
 					break;
 				}
 
-				UTIL_SetOrigin( pev, pSrcNode->m_vecOrigin );  // place the hull on the node
+				UTIL_SetOrigin( this, pSrcNode->m_vecOrigin );  // place the hull on the node
 
 				if ( !FBitSet( pev->flags, FL_ONGROUND ) )
 				{
@@ -2378,7 +2377,7 @@ void CQueuePriority::Heap_SiftUp( void )
 // will be loaded. If file cannot be loaded, the node tree
 // will be created and saved to disk.
 //=========================================================
-int CGraph ::FLoadGraph( const char *szMapName )
+int CGraph ::FLoadGraph( char *szMapName )
 {
 	char szFilename[MAX_PATH];
 	int iVersion;
@@ -2635,7 +2634,7 @@ int CGraph ::FSaveGraph( char *szMapName )
 int CGraph ::FSetGraphPointers( void )
 {
 	int i;
-	edict_t *pentLinkEnt;
+	CBaseEntity *pLinkEnt;
 
 	for ( i = 0; i < m_cLinks; i++ )
 	{  // go through all of the links
@@ -2650,23 +2649,23 @@ int CGraph ::FSetGraphPointers( void )
 			// m_szLinkEntModelname is not necessarily NULL terminated (so we can store it in a more alignment-friendly 4 bytes)
 			memcpy( name, m_pLinkPool[i].m_szLinkEntModelname, 4 );
 			name[4] = 0;
-			pentLinkEnt = FIND_ENTITY_BY_STRING( NULL, "model", name );
+			pLinkEnt = UTIL_FindEntityByString( NULL, "model", name );
 
-			if ( FNullEnt( pentLinkEnt ) )
+			if ( pLinkEnt )
 			{
-				// the ent isn't around anymore? Either there is a major problem, or it was removed from the world
-				// ( like a func_breakable that's been destroyed or something ). Make sure that LinkEnt is null.
-				ALERT( at_aiconsole, "**Could not find model %s\n", name );
-				m_pLinkPool[i].m_pLinkEnt = NULL;
-			}
-			else
-			{
-				m_pLinkPool[i].m_pLinkEnt = VARS( pentLinkEnt );
+				m_pLinkPool[i].m_pLinkEnt = pLinkEnt->pev;
 
 				if ( !FBitSet( m_pLinkPool[i].m_pLinkEnt->flags, FL_GRAPHED ) )
 				{
 					m_pLinkPool[i].m_pLinkEnt->flags += FL_GRAPHED;
 				}
+			}
+			else
+			{
+				// the ent isn't around anymore? Either there is a major problem, or it was removed from the world
+				// ( like a func_breakable that's been destroyed or something ). Make sure that LinkEnt is null.
+				ALERT( at_aiconsole, "**Could not find model %s\n", name );
+				m_pLinkPool[i].m_pLinkEnt = NULL;
 			}
 		}
 	}
@@ -2691,7 +2690,7 @@ int CGraph ::FSetGraphPointers( void )
 // though. ( I now suspect that we are getting GMT back from
 // these functions and must compensate for local time ) (sjb)
 //=========================================================
-int CGraph ::CheckNODFile( const char *szMapName )
+int CGraph ::CheckNODFile( char *szMapName )
 {
 	int retValue;
 

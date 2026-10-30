@@ -805,7 +805,7 @@ void CController ::RunAI( void )
 		m_pBall[i]->SetBrightness( m_iBallCurrent[i] );
 
 		GetAttachment( i + 2, vecStart, angleGun );
-		UTIL_SetOrigin( m_pBall[i]->pev, vecStart );
+		UTIL_SetOrigin( m_pBall[i], vecStart );
 
 		MESSAGE_BEGIN( MSG_BROADCAST, SVC_TEMPENTITY );
 		WRITE_BYTE( TE_ELIGHT );
@@ -1101,7 +1101,7 @@ void CControllerHeadBall ::Spawn( void )
 	pev->scale = 2.0;
 
 	UTIL_SetSize( pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ) );
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 
 	SetThink( &CControllerHeadBall::HuntThink );
 	SetTouch( &CControllerHeadBall::BounceTouch );
@@ -1288,7 +1288,7 @@ void CControllerZapBall ::Spawn( void )
 	pev->scale = 0.5;
 
 	UTIL_SetSize( pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ) );
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 
 	SetThink( &CControllerZapBall::AnimateThink );
 	SetTouch( &CControllerZapBall::ExplodeTouch );

@@ -1315,7 +1315,7 @@ public:
 		pev->movetype = MOVETYPE_TOSS;
 		pev->solid = SOLID_TRIGGER;
 		UTIL_SetSize( pev, Vector( -16, -16, 0 ), Vector( 16, 16, 16 ) );
-		UTIL_SetOrigin( pev, pev->origin );
+		UTIL_SetOrigin( this, pev->origin );
 		SetTouch( &CBasePlayerAmmo::DefaultTouch );
 		pev->team = TEAM_ALLIES;
 	}
@@ -1349,7 +1349,7 @@ public:
 		pev->movetype = MOVETYPE_TOSS;
 		pev->solid = SOLID_TRIGGER;
 		UTIL_SetSize( pev, Vector( -16, -16, 0 ), Vector( 16, 16, 16 ) );
-		UTIL_SetOrigin( pev, pev->origin );
+		UTIL_SetOrigin( this, pev->origin );
 		SetTouch( &CBasePlayerAmmo::DefaultTouch );
 		pev->team = TEAM_AXIS;
 	}
@@ -1366,7 +1366,7 @@ public:
 		pev->movetype = MOVETYPE_TOSS;
 		pev->solid = SOLID_TRIGGER;
 		UTIL_SetSize( pev, Vector( -16, -16, 0 ), Vector( 16, 16, 16 ) );
-		UTIL_SetOrigin( pev, pev->origin );
+		UTIL_SetOrigin( this, pev->origin );
 		SetTouch( &CBasePlayerAmmo::DefaultTouch );
 		pev->team = TEAM_ALLIES;
 	}

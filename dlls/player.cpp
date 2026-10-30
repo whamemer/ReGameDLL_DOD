@@ -498,15 +498,6 @@ Vector CBasePlayer ::GetGunPosition()
 	return origin;
 }
 
-BOOL CBasePlayer::IsProne( CBasePlayer *pPlayer )
-{
-	return pPlayer && pPlayer->IsProne();
-}
-BOOL CBasePlayer::IsSandbagDeployed( CBasePlayer *pPlayer )
-{
-	return pPlayer && pPlayer->IsSandbagDeployed();
-}
-
 void UTIL_EdictScreenFadeBuild( ScreenFade &fade, const Vector &color, float fadeTime, float fadeHold, int alpha,
 								int flags )
 {
@@ -4373,7 +4364,7 @@ class CInfoIntermission : public CPointEntity
 
 void CInfoIntermission::Spawn( void )
 {
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 	pev->solid = SOLID_NOT;
 	pev->effects = EF_NODRAW;
 	pev->v_angle = g_vecZero;

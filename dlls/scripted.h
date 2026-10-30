@@ -27,6 +27,7 @@
 #define SF_SCRIPT_NOINTERRUPT 32
 #define SF_SCRIPT_OVERRIDESTATE 64
 #define SF_SCRIPT_NOSCRIPTMOVEMENT 128
+#define SF_SCRIPT_DIE 256
 
 #define SCRIPT_BREAK_CONDITIONS ( bits_COND_LIGHT_DAMAGE | bits_COND_HEAVY_DAMAGE )
 
@@ -53,7 +54,7 @@ public:
 	virtual void Touch( CBaseEntity *pOther );
 	virtual int ObjectCaps( void ) { return ( CBaseMonster ::ObjectCaps() & ~FCAP_ACROSS_TRANSITION ); }
 	virtual void Activate( void );
-	virtual STATE GetState( void ) { return (STATE)m_iState; }
+	virtual STATE GetState( void ) { return m_iState; }
 
 	virtual int Save( CSave &save );
 	virtual int Restore( CRestore &restore );
@@ -65,7 +66,7 @@ public:
 	void Pain( void );
 	void Die( void );
 	void DelayStart( int state );
-	BOOL FindEntity( void );
+	CBaseMonster *FindEntity( const char *sName, BOOL noCheck );
 	virtual void PossessEntity( void );
 
 	void ReleaseEntity( CBaseMonster *pEntity );
@@ -77,10 +78,10 @@ public:
 	BOOL CanInterrupt( void );
 	void AllowInterrupt( BOOL fAllow );
 	int IgnoreConditions( void );
-	BOOL IsAction( void );
+	BOOL IsAction( void ) { return FClassnameIs( pev, "scripted_action" ); }
 	BOOL PreciseAttack( void );
 
-	int m_iState;
+	STATE m_iState;
 	int m_iszIdle;	  // string index for idle animation
 	int m_iszPlay;	  // string index for scripted animation
 	int m_iszEntity;  // entity that is wanted for this script

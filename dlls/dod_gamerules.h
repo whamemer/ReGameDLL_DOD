@@ -76,7 +76,7 @@ public:
 	void StartClanMatch( void );
 	void CheckClanRestart( void );
 	void VoiceCommSelect( CBasePlayer *pPlayer, int v );
-	int GetWeaponId( char *wn );
+	int GetWeaponId( const char *wn );
 	virtual BOOL ClientConnected( edict_t *pEntity, const char *pszName, const char *pszAddress,
 								  char *szRejectReason );
 	virtual BOOL ClientCommand( CBasePlayer *pPlayer, const char *pcmd );

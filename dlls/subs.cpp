@@ -555,7 +555,7 @@ After moving, set origin to exact final destination, call "move done" function
 */
 void CBaseToggle ::LinearMoveDone( void )
 {
-	UTIL_SetOrigin( pev, m_vecFinalDest );
+	UTIL_SetOrigin( this, m_vecFinalDest );
 	pev->velocity = g_vecZero;
 	pev->nextthink = -1;
 	if ( m_pfnCallWhenMoveDone )

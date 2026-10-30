@@ -423,9 +423,9 @@ void CWorld::Precache( void )
 	for ( int i = 0; i < 42; i++ )
 		gDecals[i].index = DECAL_INDEX( gDecals[i].name );
 	WorldGraph.InitGraph();
-	if ( WorldGraph.CheckNODFile( STRING( gpGlobals->mapname ) ) )
+	if ( WorldGraph.CheckNODFile( (char *) STRING( gpGlobals->mapname ) ) )
 	{
-		if ( WorldGraph.FLoadGraph( STRING( gpGlobals->mapname ) ) )
+		if ( WorldGraph.FLoadGraph( (char *) STRING( gpGlobals->mapname ) ) )
 			ALERT( at_console, "\n*Graph Loaded!\n" );
 		else
 			ALERT( at_console, "*Error opening .NOD file\n" );

@@ -1271,7 +1271,7 @@ void CPushable ::Spawn( void )
 	pev->friction = 0;
 
 	pev->origin.z += 1;	 // Pick up off of the floor
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 
 	// Multiply by area of the box's cross-section (assume 1000 units^3 standard volume)
 	pev->skin = ( pev->skin * ( pev->maxs.x - pev->mins.x ) * ( pev->maxs.y - pev->mins.y ) ) * 0.0005;

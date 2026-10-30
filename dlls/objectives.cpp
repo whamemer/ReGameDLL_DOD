@@ -40,7 +40,7 @@ void CObject::Spawn()
 	Precache();
 	pev->solid = SOLID_BBOX;		// 1
 	pev->movetype = MOVETYPE_TOSS;	// 6
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 	UTIL_SetSize( pev, g_vecZero, g_vecZero );
 	m_vStartOrigin = Vector( 0, 0, 0 );
 	pev->sequence = OBJECT_IDLE;
@@ -88,7 +88,7 @@ void CObject::ResetObject()
 		m_flNextTouchTime = gpGlobals->time + 1.0;
 	}
 
-	UTIL_SetOrigin( pev, m_vStartOrigin );
+	UTIL_SetOrigin( this, m_vStartOrigin );
 	m_bDropped = 0;
 	m_bCarried = 0;
 	if ( pev->noise3 )
@@ -356,7 +356,7 @@ void CScoreEvent::Spawn( void )
 	pev->solid = SOLID_NOT;
 	pev->movetype = MOVETYPE_NONE;
 	pev->effects = EF_NODRAW;
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 	UTIL_SetSize( pev, g_vecZero, g_vecZero );
 	SetTouch( NULL );
 	SetUse( &CScoreEvent::ScoreEventUse );

@@ -416,7 +416,7 @@ void CBasePlayerItem ::FallInit( void )
 	pev->movetype = MOVETYPE_TOSS;
 	pev->solid = SOLID_BBOX;
 
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 	UTIL_SetSize( pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ) );	//pointsize until it lands on the ground.
 
 	SetUse( NULL );
@@ -474,7 +474,7 @@ void CBasePlayerItem::Materialize( void )
 
 	pev->solid = SOLID_TRIGGER;
 
-	UTIL_SetOrigin( pev, pev->origin );	 // link into world.
+	UTIL_SetOrigin( this, pev->origin );	 // link into world.
 	SetTouch( &CBasePlayerItem::DefaultTouch );
 	m_bReadyToRespawn = FALSE;
 	SetThink( NULL );
@@ -1098,7 +1098,7 @@ void CBasePlayerWeapon::RemoveStamina( float removeAmount, CBasePlayer *pOther )
 		pOther = m_pPlayer;
 	if ( !pOther )
 		return;
-	if ( ( pOther->pev->button & IN_DUCK ) == 0 && !CBasePlayer::IsProne( pOther ) )
+	if ( ( pOther->pev->button & IN_DUCK ) == 0 && !pOther->IsProne() )
 	{
 		float f = pOther->pev->fuser4 - removeAmount;
 		if ( f < 0.0f )
@@ -1165,7 +1165,7 @@ bool CBasePlayerWeapon::PlayerIsWaterSniping( void )
 	if ( wl == 3 )
 		return true;
 	if ( wl > 0 )
-		return CBasePlayer::IsProne( m_pPlayer ) != 0;
+		return m_pPlayer->IsProne();
 	return false;
 }
 
@@ -1265,7 +1265,7 @@ void CBasePlayerAmmo::Spawn( void )
 	pev->movetype = MOVETYPE_TOSS;
 	pev->solid = SOLID_TRIGGER;
 	UTIL_SetSize( pev, Vector( -16, -16, 0 ), Vector( 16, 16, 16 ) );
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 
 	SetTouch( &CBasePlayerAmmo::DefaultTouch );
 }
@@ -1275,7 +1275,7 @@ CBaseEntity *CBasePlayerAmmo::Respawn( void )
 	pev->effects |= EF_NODRAW;
 	SetTouch( NULL );
 
-	UTIL_SetOrigin( pev, g_pGameRules->VecAmmoRespawnSpot( this ) );  // move to wherever I'm supposed to repawn.
+	UTIL_SetOrigin( this, g_pGameRules->VecAmmoRespawnSpot( this ) );  // move to wherever I'm supposed to repawn.
 
 	SetThink( &CBasePlayerAmmo::Materialize );
 	pev->nextthink = g_pGameRules->FlAmmoRespawnTime( this );

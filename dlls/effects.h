@@ -320,7 +320,6 @@ public:
 
 	void	TurnOn( void );
 	void	TurnOff( void );
-	int	IsOn( void );
 	STATE GetState( void ) { return ( pev->effects & EF_NODRAW ) ? STATE_OFF : STATE_ON; }
 
 	void	FireAtPoint( TraceResult &point );

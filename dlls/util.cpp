@@ -1097,7 +1097,7 @@ char *UTIL_dtos4( int d )
 	return buf;
 }
 
-void UTIL_ShowMessage( const char *pString, CBaseEntity *pEntity, BOOL bHintMsg )
+void UTIL_ShowMessage( const char *pString, CBaseEntity *pEntity, bool bHintMsg )
 {
 	if ( pEntity && pEntity->IsNetClient() )
 	{
@@ -1159,13 +1159,6 @@ void UTIL_SetSize( entvars_t *pev, const Vector &vecMin, const Vector &vecMax )
 float UTIL_VecToYaw( const Vector &vec )
 {
 	return VEC_TO_YAW( vec );
-}
-
-void UTIL_SetOrigin( entvars_t *pev, const Vector &vecOrigin )
-{
-	edict_t *ent = ENT( pev );
-	if ( ent )
-		SET_ORIGIN( ent, vecOrigin );
 }
 
 void UTIL_SetEdictOrigin( edict_t *pEdict, const Vector &vecOrigin )
@@ -2787,7 +2780,7 @@ void UTIL_EffectPrint( CBasePlayer *pPlayer, int color, int effect, int channel,
 	}
 }
 
-void UTIL_ShowMessageAll( const char *pString, BOOL bHintMsg )
+void UTIL_ShowMessageAll( const char *pString, bool bHintMsg )
 {
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{

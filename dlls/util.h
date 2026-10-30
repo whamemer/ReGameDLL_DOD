@@ -314,7 +314,6 @@ inline void UTIL_MakeVectorsPrivate( const Vector &vecAngles, float *p_vForward,
 extern void UTIL_MakeAimVectors( const Vector &vecAngles );	 // like MakeVectors, but assumes pitch isn't inverted
 extern void UTIL_MakeInvVectors( const Vector &vec, globalvars_t *pgv );
 
-extern void UTIL_SetOrigin( entvars_t *pev, const Vector &vecOrigin );
 extern void UTIL_SetOrigin( CBaseEntity *pEntity, const Vector &vecOrigin );
 extern void UTIL_SetEdictOrigin( edict_t *pEdict, const Vector &vecOrigin );
 extern void UTIL_EmitAmbientSound( edict_t *entity, const Vector &vecOrigin, const char *samp, float vol,
@@ -322,8 +321,8 @@ extern void UTIL_EmitAmbientSound( edict_t *entity, const Vector &vecOrigin, con
 extern void UTIL_ParticleEffect( const Vector &vecOrigin, const Vector &vecDirection, ULONG ulColor, ULONG ulCount );
 extern void UTIL_ScreenShake( const Vector &center, float amplitude, float frequency, float duration, float radius );
 extern void UTIL_ScreenShakeAll( const Vector &center, float amplitude, float frequency, float duration );
-extern void UTIL_ShowMessage( const char *pString, CBaseEntity *pPlayer, BOOL bHint = FALSE );
-extern void UTIL_ShowMessageAll( const char *pString, BOOL bHint = FALSE );
+extern void UTIL_ShowMessage( const char *pString, CBaseEntity *pPlayer, bool bHint = false );
+extern void UTIL_ShowMessageAll( const char *pString, bool bHint = false );
 extern unsigned short FixedUnsigned16( float value, float scale );
 extern void UTIL_ScreenFadeAll( const Vector &color, float fadeTime, float holdTime, int alpha, int flags );
 extern void UTIL_ScreenFade( CBaseEntity *pEntity, const Vector &color, float fadeTime, float fadeHold, int alpha,

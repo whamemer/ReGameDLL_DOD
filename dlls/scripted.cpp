@@ -135,7 +135,6 @@ IMPLEMENT_SAVERESTORE( CCineMonster, CBaseMonster );
 
 LINK_ENTITY_TO_CLASS( scripted_sequence, CCineMonster );
 LINK_ENTITY_TO_CLASS( scripted_action, CCineMonster );
-#define CLASSNAME "scripted_sequence"
 
 LINK_ENTITY_TO_CLASS( aiscripted_sequence, CCineAI );
 
@@ -144,6 +143,7 @@ void CCineMonster ::Spawn( void )
 	// pev->solid = SOLID_TRIGGER;
 	// UTIL_SetSize(pev, Vector(-8, -8, -8), Vector(8, 8, 8));
 	pev->solid = SOLID_NOT;
+	m_iState = STATE_OFF;
 
 	// REMOVE: The old side-effect
 #if 0
@@ -272,55 +272,45 @@ void CCineMonster ::Pain( void ) {}
 //
 
 // find a viable entity
-int CCineMonster ::FindEntity( void )
+CBaseMonster *CCineMonster ::FindEntity( const char *sName, BOOL noCheck )
 {
-	edict_t *pentTarget;
+	CBaseEntity *pEntity = UTIL_FindEntityByTargetname( NULL, sName );
 
-	pentTarget = FIND_ENTITY_BY_TARGETNAME( NULL, STRING( m_iszEntity ) );
-	m_hTargetEnt = NULL;
-	CBaseMonster *pTarget = NULL;
-
-	while ( !FNullEnt( pentTarget ) )
+	while ( pEntity )
 	{
-		if ( FBitSet( VARS( pentTarget )->flags, FL_MONSTER ) )
+		if ( FBitSet( pEntity->pev->flags, FL_MONSTER ) )
 		{
-			pTarget = GetMonsterPointer( pentTarget );
-			if ( pTarget && pTarget->CanPlaySequence( FCanOverrideState(), SS_INTERRUPT_BY_NAME ) )
+			CBaseMonster *pMonster = pEntity->MyMonsterPointer();
+			if ( pMonster )
 			{
-				m_hTargetEnt = pTarget;
-				return TRUE;
+				if ( noCheck || pMonster->CanPlaySequence( FCanOverrideState(), SS_INTERRUPT_BY_NAME ) )
+					return pMonster;
 			}
 
-			ALERT( at_console, "Found %s, but can't play!\n", STRING( m_iszEntity ) );
+			ALERT( at_console, "Found %s, but can't play!\n", sName );
 		}
 
-		pentTarget = FIND_ENTITY_BY_TARGETNAME( pentTarget, STRING( m_iszEntity ) );
-		pTarget = NULL;
+		pEntity = UTIL_FindEntityByTargetname( pEntity, sName );
 	}
 
-	if ( !pTarget )
+	pEntity = NULL;
+	while ( ( pEntity = UTIL_FindEntityInSphere( pEntity, pev->origin, m_flRadius ) ) != NULL )
 	{
-		CBaseEntity *pEntity = NULL;
-		while ( ( pEntity = UTIL_FindEntityInSphere( pEntity, pev->origin, m_flRadius ) ) != NULL )
+		if ( FClassnameIs( pEntity->pev, sName ) )
 		{
-			if ( FClassnameIs( pEntity->pev, STRING( m_iszEntity ) ) )
+			if ( FBitSet( pEntity->pev->flags, FL_MONSTER ) )
 			{
-				if ( FBitSet( pEntity->pev->flags, FL_MONSTER ) )
+				CBaseMonster *pMonster = pEntity->MyMonsterPointer();
+				if ( pMonster )
 				{
-					pTarget = pEntity->MyMonsterPointer();
-					if ( pTarget && pTarget->CanPlaySequence( FCanOverrideState(), SS_INTERRUPT_IDLE ) )
-					{
-						m_hTargetEnt = pTarget;
-						return TRUE;
-					}
+					if ( noCheck || pMonster->CanPlaySequence( FCanOverrideState(), SS_INTERRUPT_IDLE ) )
+						return pMonster;
 				}
 			}
 		}
 	}
 
-	pTarget = NULL;
-	m_hTargetEnt = NULL;
-	return FALSE;
+	return NULL;
 }
 
 // make the entity enter a scripted sequence
@@ -345,43 +335,69 @@ void CCineMonster ::PossessEntity( void )
 
 		pTarget->m_pGoalEnt = this;
 		pTarget->m_pCine = this;
-		pTarget->m_hTargetEnt = this;
+
+		if ( IsAction() && m_iszAttack )
+		{
+			// the entity to attack, by its name or by its classname
+			pTarget->m_hTargetEnt = UTIL_FindEntityByTargetname( NULL, STRING( m_iszAttack ) );
+			if ( !pTarget->m_hTargetEnt )
+			{
+				do
+				{
+					if ( !( pTarget->m_hTargetEnt = UTIL_FindEntityInSphere( pTarget->m_hTargetEnt, pev->origin, m_flRadius ) ) )
+						break;
+				} while ( !FClassnameIs( pTarget->m_hTargetEnt->pev, STRING( m_iszAttack ) ) );
+			}
+
+			if ( !pTarget->m_hTargetEnt )
+			{
+				ALERT( at_console, "%s %s: missing entity for \"Entity to Attack\": %s\n", STRING( pev->classname ),
+					   STRING( pev->targetname ), STRING( m_iszAttack ) );
+				pTarget->m_hTargetEnt = this;
+			}
+		}
+		else
+			pTarget->m_hTargetEnt = this;
 
 		m_saved_movetype = pTarget->pev->movetype;
 		m_saved_solid = pTarget->pev->solid;
 		m_saved_effects = pTarget->pev->effects;
 		pTarget->pev->effects |= pev->effects;
+		m_iState = STATE_ON;
 
 		switch ( m_fMoveTo )
 		{
 		case 0:
+		case 5:
 			pTarget->m_scriptState = SCRIPT_WAIT;
 			break;
 
 		case 1:
-			pTarget->m_scriptState = SCRIPT_WALK_TO_MARK;
-			DelayStart( 1 );
-			break;
-
 		case 2:
-			pTarget->m_scriptState = SCRIPT_RUN_TO_MARK;
+			m_iState = STATE_TURN_ON;
 			DelayStart( 1 );
+			pTarget->m_scriptState = SCRIPT_WAIT;
 			break;
 
 		case 4:
-			UTIL_SetOrigin( pTarget->pev, pev->origin );
+			if ( m_fTurnType == 0 )
+			{
+				pTarget->pev->angles.y = pev->angles.y;
+			}
+			else if ( m_fTurnType == 1 )
+			{
+				Vector vec = pev->origin - pTarget->pev->origin;
+				pTarget->pev->angles.y = UTIL_VecToYaw( vec );
+			}
+
+			UTIL_SetOrigin( pTarget, pev->origin );
 			pTarget->pev->ideal_yaw = pev->angles.y;
 			pTarget->pev->avelocity = Vector( 0, 0, 0 );
 			pTarget->pev->velocity = Vector( 0, 0, 0 );
 			pTarget->pev->effects |= EF_NOINTERP;
-			pTarget->pev->angles.y = pev->angles.y;
 			pTarget->m_scriptState = SCRIPT_WAIT;
-			m_startTime = gpGlobals->time + 1E6;
-			// UNDONE: Add a flag to do this so people can fixup physics after teleporting monsters
-			//			pTarget->pev->flags &= ~FL_ONGROUND;
 			break;
 		}
-		//		ALERT( at_aiconsole, "\"%s\" found and used (INT: %s)\n", STRING( pTarget->pev->targetname ), FBitSet(pev->spawnflags, SF_SCRIPT_NOINTERRUPT)?"No":"Yes" );
 
 		pTarget->m_IdealMonsterState = MONSTERSTATE_SCRIPT;
 		if ( m_iszIdle )
@@ -400,6 +416,8 @@ void CCineMonster ::PossessEntity( void )
 void CCineAI ::PossessEntity( void )
 {
 	Schedule_t *pNewSchedule;
+
+	m_iState = STATE_TURN_ON;
 
 	CBaseEntity *pEntity = m_hTargetEnt;
 	CBaseMonster *pTarget = NULL;
@@ -440,14 +458,13 @@ void CCineAI ::PossessEntity( void )
 
 		case 4:
 			// zap the monster instantly to the site of the script entity.
-			UTIL_SetOrigin( pTarget->pev, pev->origin );
+			UTIL_SetOrigin( pTarget, pev->origin );
 			pTarget->pev->ideal_yaw = pev->angles.y;
 			pTarget->pev->avelocity = Vector( 0, 0, 0 );
 			pTarget->pev->velocity = Vector( 0, 0, 0 );
 			pTarget->pev->effects |= EF_NOINTERP;
 			pTarget->pev->angles.y = pev->angles.y;
 			pTarget->m_scriptState = SCRIPT_WAIT;
-			m_startTime = gpGlobals->time + 1E6;
 			// UNDONE: Add a flag to do this so people can fixup physics after teleporting monsters
 			pTarget->pev->flags &= ~FL_ONGROUND;
 			break;
@@ -481,7 +498,7 @@ void CCineAI ::PossessEntity( void )
 
 void CCineMonster ::CineThink( void )
 {
-	if ( FindEntity() )
+	if ( ( m_hTargetEnt = FindEntity( STRING( m_iszEntity ), FALSE ) ) != NULL )
 	{
 		PossessEntity();
 		ALERT( at_aiconsole, "script \"%s\" using monster \"%s\"\n", STRING( pev->targetname ), STRING( m_iszEntity ) );
@@ -673,7 +690,7 @@ int CCineMonster::IgnoreConditions( void )
 void ScriptEntityCancel( edict_t *pentCine )
 {
 	// make sure they are a scripted_sequence
-	if ( FClassnameIs( pentCine, CLASSNAME ) )
+	if ( FClassnameIs( pentCine, "scripted_sequence" ) || FClassnameIs( pentCine, "scripted_action" ) )
 	{
 		CCineMonster *pCineTarget = GetClassPtr( (CCineMonster *) VARS( pentCine ) );
 		// make sure they have a monster in mind for the script
@@ -698,22 +715,22 @@ void ScriptEntityCancel( edict_t *pentCine )
 
 void CCineMonster::DoDReset( void )
 {
-	edict_t *pent = FIND_ENTITY_BY_TARGETNAME( NULL, STRING( m_iszEntity ) );
-	while ( !FNullEnt( pent ) )
+	CBaseEntity *pEntity = UTIL_FindEntityByTargetname( NULL, STRING( m_iszEntity ) );
+	m_hTargetEnt = NULL;
+
+	while ( pEntity )
 	{
-		CBaseEntity *pEnt = CBaseEntity::Instance( pent );
-		if ( pEnt && ( pEnt->pev->flags & FL_MONSTER ) )
+		if ( FBitSet( pEntity->pev->flags, FL_MONSTER ) )
 		{
-			CBaseMonster *pMon = pEnt->MyMonsterPointer();
-			if ( pMon )
-			{
-				pMon->DoDSetScriptReset();
-				pMon->m_pGoalEnt = NULL;
-			}
+			CBaseMonster *pMonster = pEntity->MyMonsterPointer();
+			pMonster->DoDSetScriptReset();
+			pMonster->m_pCine = NULL;
 		}
 
-		pent = FIND_ENTITY_BY_TARGETNAME( pent, STRING( m_iszEntity ) );
+		pEntity = UTIL_FindEntityByTargetname( pEntity, STRING( m_iszEntity ) );
 	}
+
+	SetUse( &CCineMonster::Use );
 }
 
 // find all the cinematic entities with my targetname and stop them from playing
@@ -727,25 +744,25 @@ void CCineMonster ::CancelScript( void )
 		return;
 	}
 
-	edict_t *pentCineTarget = FIND_ENTITY_BY_TARGETNAME( NULL, STRING( pev->targetname ) );
+	CBaseEntity *pCineTarget = UTIL_FindEntityByTargetname( NULL, STRING( pev->targetname ) );
 
-	while ( !FNullEnt( pentCineTarget ) )
+	while ( pCineTarget )
 	{
-		ScriptEntityCancel( pentCineTarget );
-		pentCineTarget = FIND_ENTITY_BY_TARGETNAME( pentCineTarget, STRING( pev->targetname ) );
+		ScriptEntityCancel( pCineTarget->edict() );
+		pCineTarget = UTIL_FindEntityByTargetname( pCineTarget, STRING( pev->targetname ) );
 	}
 }
 
 // find all the cinematic entities with my targetname and tell them to wait before starting
 void CCineMonster ::DelayStart( int state )
 {
-	edict_t *pentCine = FIND_ENTITY_BY_TARGETNAME( NULL, STRING( pev->targetname ) );
+	CBaseEntity *pCine = UTIL_FindEntityByTargetname( NULL, STRING( pev->targetname ) );
 
-	while ( !FNullEnt( pentCine ) )
+	while ( pCine )
 	{
-		if ( FClassnameIs( pentCine, "scripted_sequence" ) )
+		if ( FClassnameIs( pCine->pev, "scripted_sequence" ) || FClassnameIs( pCine->pev, "scripted_action" ) )
 		{
-			CCineMonster *pTarget = GetClassPtr( (CCineMonster *) VARS( pentCine ) );
+			CCineMonster *pTarget = GetClassPtr( (CCineMonster *) pCine->pev );
 			if ( state )
 			{
 				pTarget->m_iDelay++;
@@ -754,43 +771,47 @@ void CCineMonster ::DelayStart( int state )
 			{
 				pTarget->m_iDelay--;
 				if ( pTarget->m_iDelay <= 0 )
+				{
+					pTarget->m_iState = STATE_ON;
+					FireTargets( STRING( m_iszFireOnBegin ), this, this, USE_TOGGLE, 0 );
 					pTarget->m_startTime = gpGlobals->time + 0.05;
+				}
 			}
 		}
 
-		pentCine = FIND_ENTITY_BY_TARGETNAME( pentCine, STRING( pev->targetname ) );
+		pCine = UTIL_FindEntityByTargetname( pCine, STRING( pev->targetname ) );
 	}
 }
 
 // Find an entity that I'm interested in and precache the sounds he'll need in the sequence.
 void CCineMonster ::Activate( void )
 {
-	edict_t *pentTarget;
+	CBaseEntity *pEntity;
 	CBaseMonster *pTarget;
 
 	// The entity name could be a target name or a classname
 	// Check the targetname
-	pentTarget = FIND_ENTITY_BY_TARGETNAME( NULL, STRING( m_iszEntity ) );
+	pEntity = UTIL_FindEntityByTargetname( NULL, STRING( m_iszEntity ) );
 	pTarget = NULL;
 
-	while ( !pTarget && !FNullEnt( pentTarget ) )
+	while ( !pTarget && pEntity )
 	{
-		if ( FBitSet( VARS( pentTarget )->flags, FL_MONSTER ) )
+		if ( FBitSet( pEntity->pev->flags, FL_MONSTER ) )
 		{
-			pTarget = GetMonsterPointer( pentTarget );
+			pTarget = pEntity->MyMonsterPointer();
 		}
 
-		pentTarget = FIND_ENTITY_BY_TARGETNAME( pentTarget, STRING( m_iszEntity ) );
+		pEntity = UTIL_FindEntityByTargetname( pEntity, STRING( m_iszEntity ) );
 	}
 
 	// If no entity with that targetname, check the classname
 	if ( !pTarget )
 	{
-		pentTarget = FIND_ENTITY_BY_CLASSNAME( NULL, STRING( m_iszEntity ) );
-		while ( !pTarget && !FNullEnt( pentTarget ) )
+		pEntity = UTIL_FindEntityByClassname( NULL, STRING( m_iszEntity ) );
+		while ( !pTarget && pEntity )
 		{
-			pTarget = GetMonsterPointer( pentTarget );
-			pentTarget = FIND_ENTITY_BY_TARGETNAME( pentTarget, STRING( m_iszEntity ) );
+			pTarget = pEntity->MyMonsterPointer();
+			pEntity = UTIL_FindEntityByClassname( pEntity, STRING( m_iszEntity ) );
 		}
 	}
 	// Found a compatible entity
@@ -819,6 +840,8 @@ BOOL CBaseMonster ::CineCleanup()
 		pev->movetype = m_pCine->m_saved_movetype;
 		pev->solid = m_pCine->m_saved_solid;
 		pev->effects = m_pCine->m_saved_effects;
+		if ( FBitSet( m_pCine->pev->spawnflags, SF_SCRIPT_DIE ) )
+			pev->deadflag = DEAD_DYING;
 	}
 	else
 	{
@@ -902,7 +925,7 @@ BOOL CBaseMonster ::CineCleanup()
 
 			// pEntity->pev->origin.z = new_origin.z + 5.0; // damn, got to fix this
 
-			UTIL_SetOrigin( pev, pev->origin );
+			UTIL_SetOrigin( this, pev->origin );
 			pev->effects |= EF_NOINTERP;
 		}
 
@@ -926,7 +949,6 @@ BOOL CBaseMonster ::CineCleanup()
 	}
 
 	//	SetAnimation( m_MonsterState );
-	ClearBits( pev->spawnflags, SF_MONSTER_WAIT_FOR_SCRIPT );
 
 	return TRUE;
 }

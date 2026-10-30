@@ -109,7 +109,7 @@ void CBasePlayer::Observer_FindNextPlayer( bool bReverse )
 	if ( m_hObserverTarget )
 	{
 		// Move to the target
-		UTIL_SetOrigin( pev, m_hObserverTarget->pev->origin );
+		UTIL_SetOrigin( this, m_hObserverTarget->pev->origin );
 
 		// Store the target in pev so the physics DLL can get to it
 		if ( pev->iuser1 != OBS_ROAMING )
@@ -327,7 +327,7 @@ void CBasePlayer::Observer_SetMode( int iMode )
 	pev->iuser3 = 0;  // clear second target from death cam
 
 	if ( m_hObserverTarget )
-		UTIL_SetOrigin( pev, m_hObserverTarget->pev->origin );
+		UTIL_SetOrigin( this, m_hObserverTarget->pev->origin );
 
 	// print spectator mode on client screen
 	char modemsg[16];
@@ -381,7 +381,7 @@ void CBasePlayer::StartObserver( Vector vecPosition, Vector vecViewAngle )
 	pev->solid = SOLID_NOT;
 	pev->takedamage = DAMAGE_NO;
 	pev->movetype = MOVETYPE_NONE;
-	UTIL_SetOrigin( pev, vecPosition );
+	UTIL_SetOrigin( this, vecPosition );
 	m_afPhysicsFlags &= ~PFLAG_DUCKING;
 	pev->flags &= ~FL_DUCKING;
 	pev->deadflag = DEAD_DEAD;
@@ -448,7 +448,7 @@ void CBasePlayer::Observer_SpectatePlayer( int iCurrent )
 				Observer_SetMode( OBS_CHASE_FREE );
 
 			pev->iuser2 = ENTINDEX( m_hObserverTarget->edict() );
-			UTIL_SetOrigin( pev, m_hObserverTarget->pev->origin );
+			UTIL_SetOrigin( this, m_hObserverTarget->pev->origin );
 			ALERT( at_console, "Now Tracking %s\n", STRING( m_hObserverTarget->pev->netname ) );
 
 			if ( pev->iuser1 == OBS_IN_EYE && m_hObserverTarget )

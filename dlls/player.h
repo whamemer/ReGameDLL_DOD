@@ -133,6 +133,7 @@ enum sbar_data
 #define HINT_TOUCHED_CONTROL_POINT 0x00080
 #define HINT_PICKED_UP_OBJECT 0x00100
 #define HINT_MG_FIRE_BETTER_DEPLOYED 0x00200
+#define HINT_SANDBAG_AREA_TOUCH 0x00400
 #define HINT_OUT_OF_AMMO 0x01000
 #define HINT_PRONE 0x02000
 #define HINT_LOW_STAMINA 0x04000
@@ -440,10 +441,6 @@ public:
 	bool IsParatrooper();
 	bool IsBritish();
 	void MortarFireCommand( byte command );
-
-	// DoD hint / object helpers used tree-wide (no standalone symbols: inlined).
-	static BOOL IsProne( CBasePlayer *pPlayer );
-	static BOOL IsSandbagDeployed( CBasePlayer *pPlayer );
 };
 
 #if defined( __GNUC__ ) && defined( __i386__ )  // the layout was taken from the 32-bit gcc build of the original, the MSVC ABI differs

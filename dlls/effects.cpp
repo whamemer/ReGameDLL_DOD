@@ -118,7 +118,7 @@ void CBubbling::RoundRespawn( void )
 	{
 		SetThink( &CBubbling::FizzThink );
 		pev->nextthink = gpGlobals->time + 2.0;
-		m_state = STATE_ON;
+		m_state = 1;
 	}
 }
 
@@ -321,7 +321,7 @@ void CBeam::RelinkBeam( void )
 	pev->maxs = pev->maxs - pev->origin;
 
 	UTIL_SetSize( pev, pev->mins, pev->maxs );
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 }
 
 #if 0
@@ -1061,13 +1061,6 @@ void CLaser::KeyValue( KeyValueData *pkvd )
 		CBeam::KeyValue( pkvd );
 }
 
-int CLaser::IsOn( void )
-{
-	if ( pev->effects & EF_NODRAW )
-		return 0;
-	return 1;
-}
-
 void CLaser::TurnOff( void )
 {
 	pev->effects |= EF_NODRAW;
@@ -1087,7 +1080,7 @@ void CLaser::TurnOn( void )
 
 void CLaser::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
-	int active = IsOn();
+	int active = GetState() == STATE_ON;
 
 	if ( !ShouldToggle( useType, active ) )
 		return;
@@ -1107,7 +1100,7 @@ void CLaser::FireAtPoint( TraceResult &tr )
 {
 	SetEndPos( tr.vecEndPos );
 	if ( m_pSprite )
-		UTIL_SetOrigin( m_pSprite->pev, tr.vecEndPos );
+		UTIL_SetOrigin( m_pSprite, tr.vecEndPos );
 
 	BeamDamage( &tr );
 	DoSparks( GetStartPos(), tr.vecEndPos );
@@ -2509,16 +2502,12 @@ void CEnvWarpBall::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 			if ( tr.flFraction != 1.0 )
 			{
 				CBeam *pBeam = CBeam::BeamCreate( "sprites/lgtning.spr", 200 );
-				pBeam->pev->origin = pev->origin;
-				pBeam->pev->angles = tr.vecEndPos;
-				pBeam->pev->sequence &= 0xFFF;
-				pBeam->pev->skin &= 0xFFF;
-				pBeam->RelinkBeam();
-				pBeam->pev->rendercolor = Vector( 197, 243, 169 );
-				pBeam->pev->body = 0x41;
-				pBeam->pev->renderamt = 150;
-				pBeam->pev->scale = 18;
-				pBeam->pev->animtime = 35;
+				pBeam->PointsInit( pev->origin, tr.vecEndPos );
+				pBeam->SetColor( 197, 243, 169 );
+				pBeam->SetNoise( 65 );
+				pBeam->SetBrightness( 150 );
+				pBeam->SetWidth( 18 );
+				pBeam->SetScrollRate( 35 );
 				pBeam->SetThink( &CBaseEntity::SUB_Remove );
 				pBeam->pev->nextthink = gpGlobals->time + 1.0;
 				iDrawn++;
@@ -2794,7 +2783,7 @@ void CEnvModel::Spawn( void )
 	}
 
 	SET_MODEL( ENT( pev ), STRING( pev->model ) );
-	UTIL_SetOrigin( pev, pev->origin );
+	UTIL_SetOrigin( this, pev->origin );
 	m_rsorigin = pev->origin;
 
 	if ( FBitSet( pev->spawnflags, SF_ENVMODEL_DROPT_OFLOOR ) )
@@ -2935,7 +2924,7 @@ void CRocketShooter::KeyValue( KeyValueData *pkvd )
 {
 	if ( FStrEq( pkvd->szKeyName, "rockettype" ) )
 	{
-		m_iRocketType = atoi( pkvd->szValue );
+		m_iRocketType = (int) atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
 	else if ( FStrEq( pkvd->szKeyName, "firedelay" ) )
@@ -2947,7 +2936,7 @@ void CRocketShooter::KeyValue( KeyValueData *pkvd )
 	}
 	else if ( FStrEq( pkvd->szKeyName, "numrockets" ) )
 	{
-		m_iNumRockets = atoi( pkvd->szValue );
+		m_iNumRockets = (int) atof( pkvd->szValue );
 		pkvd->fHandled = TRUE;
 	}
 	else if ( FStrEq( pkvd->szKeyName, "aimvariance" ) )

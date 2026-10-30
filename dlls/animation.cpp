@@ -766,11 +766,11 @@ mstudioanim_t *StudioGetAnim(model_t *m_pSubModel, mstudioseqdesc_t *pseqdesc)
 	return (mstudioanim_t *)((byte *)paSequences[pseqdesc->seqgroup].data + pseqdesc->animindex);
 }
 
-mstudioanim_t *LookupAnimation(model_t *model, mstudioseqdesc_t *pseqdesc, int index)
+mstudioanim_t *LookupAnimation(studiohdr_t *pstudiohdr, model_t *model, mstudioseqdesc_t *pseqdesc, int index)
 {
 	mstudioanim_t *panim = StudioGetAnim(model, pseqdesc);
 	if (index >= 0 && index <= (pseqdesc->numblends - 1))
-		panim += index * g_pstudiohdr->numbones;
+		panim += index * pstudiohdr->numbones;
 
 	return panim;
 }
@@ -1162,29 +1162,29 @@ void SV_StudioSetupBones(model_t *pModel, float frame, int sequence, const vec_t
 
 				StudioCalcRotations(pbones, chain, chainlength, adj, pos, q, pseqdesc, panim, subframe, f);
 
-				panim = LookupAnimation(pModel, pseqdesc, 1);
+				panim = LookupAnimation(g_pstudiohdr, pModel, pseqdesc, 1);
 				StudioCalcRotations(pbones, chain, chainlength, adj, pos2, q2, pseqdesc, panim, subframe, f);
 
-				panim = LookupAnimation(pModel, pseqdesc, 3);
+				panim = LookupAnimation(g_pstudiohdr, pModel, pseqdesc, 3);
 				StudioCalcRotations(pbones, chain, chainlength, adj, pos3, q3, pseqdesc, panim, subframe, f);
 
-				panim = LookupAnimation(pModel, pseqdesc, 4);
+				panim = LookupAnimation(g_pstudiohdr, pModel, pseqdesc, 4);
 				StudioCalcRotations(pbones, chain, chainlength, adj, pos4, q4, pseqdesc, panim, subframe, f);
 			}
 			else
 			{
 				t = 2.0f * (t - 127.0f);
 
-				panim = LookupAnimation(pModel, pseqdesc, 3);
+				panim = LookupAnimation(g_pstudiohdr, pModel, pseqdesc, 3);
 				StudioCalcRotations(pbones, chain, chainlength, adj, pos, q, pseqdesc, panim, subframe, f);
 
-				panim = LookupAnimation(pModel, pseqdesc, 4);
+				panim = LookupAnimation(g_pstudiohdr, pModel, pseqdesc, 4);
 				StudioCalcRotations(pbones, chain, chainlength, adj, pos2, q2, pseqdesc, panim, subframe, f);
 
-				panim = LookupAnimation(pModel, pseqdesc, 6);
+				panim = LookupAnimation(g_pstudiohdr, pModel, pseqdesc, 6);
 				StudioCalcRotations(pbones, chain, chainlength, adj, pos3, q3, pseqdesc, panim, subframe, f);
 
-				panim = LookupAnimation(pModel, pseqdesc, 7);
+				panim = LookupAnimation(g_pstudiohdr, pModel, pseqdesc, 7);
 				StudioCalcRotations(pbones, chain, chainlength, adj, pos4, q4, pseqdesc, panim, subframe, f);
 			}
 		}
@@ -1197,32 +1197,32 @@ void SV_StudioSetupBones(model_t *pModel, float frame, int sequence, const vec_t
 			{
 				t = (t * 2.0f);
 
-				panim = LookupAnimation(pModel, pseqdesc, 1);
+				panim = LookupAnimation(g_pstudiohdr, pModel, pseqdesc, 1);
 				StudioCalcRotations(pbones, chain, chainlength, adj, pos, q, pseqdesc, panim, subframe, f);
 
-				panim = LookupAnimation(pModel, pseqdesc, 2);
+				panim = LookupAnimation(g_pstudiohdr, pModel, pseqdesc, 2);
 				StudioCalcRotations(pbones, chain, chainlength, adj, pos2, q2, pseqdesc, panim, subframe, f);
 
-				panim = LookupAnimation(pModel, pseqdesc, 4);
+				panim = LookupAnimation(g_pstudiohdr, pModel, pseqdesc, 4);
 				StudioCalcRotations(pbones, chain, chainlength, adj, pos3, q3, pseqdesc, panim, subframe, f);
 
-				panim = LookupAnimation(pModel, pseqdesc, 5);
+				panim = LookupAnimation(g_pstudiohdr, pModel, pseqdesc, 5);
 				StudioCalcRotations(pbones, chain, chainlength, adj, pos4, q4, pseqdesc, panim, subframe, f);
 			}
 			else
 			{
 				t = 2.0f * (t - 127.0f);
 
-				panim = LookupAnimation(pModel, pseqdesc, 4);
+				panim = LookupAnimation(g_pstudiohdr, pModel, pseqdesc, 4);
 				StudioCalcRotations(pbones, chain, chainlength, adj, pos, q, pseqdesc, panim, subframe, f);
 
-				panim = LookupAnimation(pModel, pseqdesc, 5);
+				panim = LookupAnimation(g_pstudiohdr, pModel, pseqdesc, 5);
 				StudioCalcRotations(pbones, chain, chainlength, adj, pos2, q2, pseqdesc, panim, subframe, f);
 
-				panim = LookupAnimation(pModel, pseqdesc, 7);
+				panim = LookupAnimation(g_pstudiohdr, pModel, pseqdesc, 7);
 				StudioCalcRotations(pbones, chain, chainlength, adj, pos3, q3, pseqdesc, panim, subframe, f);
 
-				panim = LookupAnimation(pModel, pseqdesc, 8);
+				panim = LookupAnimation(g_pstudiohdr, pModel, pseqdesc, 8);
 				StudioCalcRotations(pbones, chain, chainlength, adj, pos4, q4, pseqdesc, panim, subframe, f);
 			}
 		}
