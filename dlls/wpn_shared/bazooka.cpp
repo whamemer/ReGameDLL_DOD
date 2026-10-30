@@ -65,7 +65,7 @@ void CBazookaShell::Spawn( void )
 	SET_MODEL( ENT( pev ), "models/w_bazooka_rocket.mdl" );
 	UTIL_SetSize( pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ) );
 	UTIL_SetOrigin( this, pev->origin );
-	pev->movetype = MOVETYPE_FLY;
+	pev->movetype = MOVETYPE_TOSS;
 
 	Vector forward;
 	UTIL_MakeVectorsPrivate( pev->angles, forward, NULL, NULL );

@@ -40,8 +40,8 @@ enum Object_Animations
 void CObject::Spawn()
 {
 	Precache();
-	pev->solid = SOLID_BBOX;		// 1
-	pev->movetype = MOVETYPE_TOSS;	// 6
+	pev->solid = SOLID_TRIGGER;
+	pev->movetype = MOVETYPE_TOSS;
 
 	UTIL_SetOrigin( this, pev->origin );
 	UTIL_SetSize( pev, g_vecZero, g_vecZero );

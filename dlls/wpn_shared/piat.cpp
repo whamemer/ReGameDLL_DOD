@@ -65,7 +65,7 @@ void CPIATShell::Spawn( void )
 	SET_MODEL( ENT( pev ), "models/w_piat_rocket.mdl" );
 	UTIL_SetSize( pev, Vector( 0, 0, 0 ), Vector( 0, 0, 0 ) );
 	UTIL_SetOrigin( this, pev->origin );
-	pev->movetype = MOVETYPE_FLY;
+	pev->movetype = MOVETYPE_TOSS;
 
 	pev->velocity = gpGlobals->v_forward * 1300;
 	pev->gravity = 0.1;

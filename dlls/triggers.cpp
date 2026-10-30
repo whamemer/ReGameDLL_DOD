@@ -3464,14 +3464,13 @@ void CObjectCapture::Touch( CBaseEntity *pOther )
 	pPlayer->HasObject = FALSE;
 	CDoDTeamPlay *pRules = ( CDoDTeamPlay * ) g_pGameRules;
 
-	if( pRules->m_RoundDoesCount )
+	if( pRules->m_RoundDoesCount == 1 )
 		pPlayer->AddObjScore( pObj->m_iCapPoints, TRUE );
 
 	if( NumObjects == 0 || ( pev->spawnflags & SF_OBJECTGOAL_ONE_IS_ENOUGH ) )
 	{
 		FireTargets( sz_DoneTarget, pOther, this, USE_ON, 0.0 );
 		if( pObj->sz_DoneTarget[0] )
-
 			FireTargets( pObj->sz_DoneTarget, pOther, this, USE_ON, 0.0 );
 		if( pev->spawnflags & SF_OBJECTGOAL_ONCE )
 			m_bCapped = true;
@@ -3505,7 +3504,7 @@ void CObjectCapture::Touch( CBaseEntity *pOther )
 		{
 			CBasePlayer *pPlr = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
 
-			if( pPlr && pPlr->pev->team == pOther->pev->team && pPlr != pPlayer && pRules->m_RoundDoesCount )
+			if( pPlr && pPlr->pev->team == pOther->pev->team && pPlr != pPlayer && pRules->m_RoundDoesCount == 1 )
 				pPlr->AddObjScore( pObj->m_iOtherPoints, TRUE );
 		}
 	}
@@ -3515,9 +3514,7 @@ void CObjectCapture::Touch( CBaseEntity *pOther )
 		GETPLAYERUSERID( pOther->edict() ), GETPLAYERAUTHID( pOther->edict() ), teamName );
 
 	if( pLast && pLast->pev->noise1 )
-		EMIT_SOUND_DYN( pOther->edict(), CHAN_STATIC, STRING( ( ( CObject * ) pLast )->pev->noise1 ), 1.0, 0.0, 0, 100 );
-	else if( pObj->pev->noise1 )
-		EMIT_SOUND_DYN( pOther->edict(), CHAN_STATIC, STRING( pObj->pev->noise1 ), 1.0, 0.0, 0, 100 );
+		EMIT_SOUND_DYN( pOther->edict(), CHAN_STATIC, STRING( pLast->pev->noise1 ), 1.0, 0.0, 0, 100 );
 
 	pPlayer->HasObject = FALSE;
 	pPlayer->RemoveObjectIcon();
@@ -3643,7 +3640,7 @@ CControlPoint::CControlPoint()
 void CControlPoint::Spawn()
 {
 	Precache();
-	pev->solid = SOLID_BBOX;  // 1
+	pev->solid = SOLID_TRIGGER;
 	pev->movetype = MOVETYPE_NONE;
 	pev->sequence = 0;
 	pev->framerate = 1.0;
