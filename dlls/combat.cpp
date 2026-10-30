@@ -373,7 +373,7 @@ void CBaseMonster::Killed( entvars_t *pevAttacker, int iGib )
 	if ( pev->flags & FL_MONSTER )
 	{
 		SetTouch( NULL );
-		Touch( NULL );
+		BecomeDead();
 	}
 
 	if ( pev->health < -99 )

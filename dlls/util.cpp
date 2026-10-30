@@ -2289,7 +2289,7 @@ int CSave ::DataEmpty( const char *pdata, int size )
 	return 1;
 }
 
-void CSave ::BufferField( const char *pname, int size, const char *pdata, int typesize ) // typesize: only for byte swapping on big-endian, unused on x86
+void CSave ::BufferField( const char *pname, int size, const char *pdata )
 {
 	BufferHeader( pname, size );
 	BufferData( pdata, size );
@@ -2304,7 +2304,7 @@ void CSave ::BufferHeader( const char *pname, int size )
 	BufferData( (const char *) &hashvalue, sizeof( short ) );
 }
 
-void CSave ::BufferData( const char *pdata, int size, int typesize ) // typesize: only for byte swapping on big-endian, unused on x86
+void CSave ::BufferData( const char *pdata, int size )
 {
 	if ( !m_pdata )
 		return;
