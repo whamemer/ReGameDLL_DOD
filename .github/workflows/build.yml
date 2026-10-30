@@ -1,0 +1,230 @@
+name: build
+
+on:
+  push:
+    branches:
+      - '**'
+    tags:
+      - 'v*'
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.github/workflows/manual.yml'
+  pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+      - '.github/workflows/manual.yml'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            cc: gcc
+            cxx: g++
+          - os: ubuntu-latest
+            cc: clang
+            cxx: clang++
+          - os: windows-latest
+            cc: cl
+            cxx: cl
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+      STEAMRT_SNAPSHOT: latest-steam-client-general-availability
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Checkout steam-runtime
+      if: startsWith(matrix.os, 'ubuntu')
+      uses: actions/checkout@v4
+      with:
+        repository: ValveSoftware/steam-runtime
+        path: steam-runtime
+    - name: Cache steam-runtime
+      if: startsWith(matrix.os, 'ubuntu')
+      id: cache-steam-runtime
+      uses: actions/cache@v4
+      with:
+        path: com.valvesoftware.SteamRuntime.Sdk-i386-scout-sysroot.tar.gz
+        key: steam-runtime-${{ env.STEAMRT_SNAPSHOT }}
+    - name: Download steam-runtime
+      if: startsWith(matrix.os, 'ubuntu') && steps.cache-steam-runtime.outputs.cache-hit != 'true'
+      run: wget --no-verbose https://repo.steampowered.com/steamrt-images-scout/snapshots/${{ env.STEAMRT_SNAPSHOT }}/com.valvesoftware.SteamRuntime.Sdk-i386-scout-sysroot.tar.gz
+    - name: Install steam runtime
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        sudo apt update
+        ./steam-runtime/setup_chroot.sh --i386 --tarball ./com.valvesoftware.SteamRuntime.Sdk-i386-scout-sysroot.tar.gz
+        sudo sed -i 's/groups=sudo/groups=adm/g' /etc/schroot/chroot.d/steamrt_scout_i386.conf
+
+    # the shared linker flag makes an unresolved symbol a build error: a library with one loads in no engine
+    - name: Build on Linux
+      if: startsWith(matrix.os, 'ubuntu')
+      run: |
+        schroot --chroot steamrt_scout_i386 -- cmake -GNinja -DCMAKE_BUILD_TYPE=Release -B build -S . -DCMAKE_SHARED_LINKER_FLAGS="-Wl,--no-undefined" -DCMAKE_INSTALL_PREFIX="$PWD/dist"
+        schroot --chroot steamrt_scout_i386 -- cmake --build build --target all
+        schroot --chroot steamrt_scout_i386 -- cmake --build build --target install
+    - name: Set developer command prompt for Windows x86
+      if: startsWith(matrix.os, 'windows')
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x86
+
+    - name: Build on Windows
+      if: startsWith(matrix.os, 'windows')
+      run: |
+        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -B build -S . -DCMAKE_INSTALL_PREFIX="dist"
+        cmake --build build --target all
+        cmake --build build --target install
+
+    - name: Set developer command prompt for Windows x86_64
+      if: startsWith(matrix.os, 'windows')
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+    - name: Build on Windows x64
+      if: startsWith(matrix.os, 'windows')
+      run: |
+        cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -B build64 -S . -DCMAKE_INSTALL_PREFIX="dist64" -D64BIT=ON
+        cmake --build build64 --target all
+        cmake --build build64 --target install
+
+    - name: Extract branch name
+      shell: bash
+      run: echo "branch=$(echo ${GITHUB_REF_NAME} | tr '/' '_')" >> $GITHUB_OUTPUT
+      id: extract_branch
+    - name: Extract gamedir
+      shell: bash
+      run: echo "gamedir=$(grep build/CMakeCache.txt -Ee 'GAMEDIR:STRING=[a-z]+' | cut -d '=' -f 2)" >> $GITHUB_OUTPUT
+      id: extract_gamedir
+    - name: Upload linux artifact
+      if: startsWith(matrix.os, 'ubuntu') && matrix.cc == 'gcc'
+      uses: actions/upload-artifact@v4
+      with:
+        name: dod13-server-${{ steps.extract_branch.outputs.branch }}-linux
+        path: dist/${{ steps.extract_gamedir.outputs.gamedir }}
+        if-no-files-found: error
+    - name: Upload windows artifact
+      if: startsWith(matrix.os, 'windows')
+      uses: actions/upload-artifact@v4
+      with:
+        name: dod13-server-${{ steps.extract_branch.outputs.branch }}-windows
+        path: dist/${{ steps.extract_gamedir.outputs.gamedir }}
+        if-no-files-found: error
+    - name: Upload windows x64 artifact
+      if: startsWith(matrix.os, 'windows')
+      uses: actions/upload-artifact@v4
+      with:
+        name: dod13-server-${{ steps.extract_branch.outputs.branch }}-windows_x64
+        path: dist64/${{ steps.extract_gamedir.outputs.gamedir }}
+        if-no-files-found: error
+
+  macos:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    # Nobody has run this build on a Mac: the first runs of the CI are its test. A failure of it does not fail the whole run and does
+    # not stop the release, the release takes the archives that were built.
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # every architecture is built on a machine of its own, as cs16-client does
+          - name: macos_arm64
+            os: macos-latest
+            arch: arm64
+          - name: macos_x64
+            os: macos-15-intel
+            arch: x86_64
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Build
+      run: |
+        cmake -DCMAKE_BUILD_TYPE=Release -B build -S . -DCMAKE_INSTALL_PREFIX="$PWD/dist" -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }}
+        cmake --build build --target all --parallel 4
+        cmake --build build --target install
+
+    - name: Extract branch name
+      shell: bash
+      run: echo "branch=$(echo ${GITHUB_REF_NAME} | tr '/' '_')" >> $GITHUB_OUTPUT
+      id: extract_branch
+    - name: Extract gamedir
+      shell: bash
+      run: echo "gamedir=$(grep build/CMakeCache.txt -Ee 'GAMEDIR:STRING=[a-z]+' | cut -d '=' -f 2)" >> $GITHUB_OUTPUT
+      id: extract_gamedir
+    # strip changes the library after the linker has signed it, and Apple Silicon does not load a library with a broken signature
+    - name: Sign the library and list the result
+      shell: bash
+      run: |
+        cd "dist/${{ steps.extract_gamedir.outputs.gamedir }}"
+        codesign --force --sign - dlls/*.dylib
+        find . -type f | sort
+        file dlls/*.dylib
+        ls dlls/dod_*.dylib
+    - name: Upload macos artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: dod13-server-${{ steps.extract_branch.outputs.branch }}-${{ matrix.name }}
+        path: dist/${{ steps.extract_gamedir.outputs.gamedir }}
+        if-no-files-found: error
+
+  release:
+    # the macOS build may fail without stopping the release, it takes what was built
+    if: ${{ !cancelled() && startsWith(github.ref, 'refs/tags/v') && needs.build.result == 'success' }}
+    needs: [build, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+    - name: Pack the dod folder
+      run: |
+        for dir in artifacts/*; do
+          name=$(basename "$dir")
+          mkdir -p "pack/$name/dod"
+          cp -r "$dir"/. "pack/$name/dod/"
+          (cd "pack/$name" && zip -qr "$GITHUB_WORKSPACE/$name.zip" dod)
+        done
+        ls -l
+    - name: Create the release
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        # the list of the changes of a release is in .github/release-notes/<tag>.md
+        {
+          echo "Server library of Day of Defeat 1.3 for Xash3D FWGS."
+          echo
+          if [ -f ".github/release-notes/$GITHUB_REF_NAME.md" ]; then
+            cat ".github/release-notes/$GITHUB_REF_NAME.md"
+            echo
+          fi
+        } > notes.md
+        cat >> notes.md <<'NOTES'
+        Unpack the archive into the directory of the engine, next to the `valve` and `dod` folders of the original game, so that
+        the library lands in `dod/dlls/`. See the
+        [README](https://github.com/${{ github.repository }}#installation) for the details.
+
+        * `windows` is the 32-bit build, the one that is developed and tested.
+        * `windows_x64` and `linux` (i386) are built by the CI and not tested yet.
+        * `macos_arm64` and `macos_x64` (Apple Silicon and Intel) are built by the CI and not tested yet; a macOS archive is here only
+          if its build passed.
+        NOTES
+        shopt -s nullglob
+        gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag \
+          --title "ReGameDLL_DOD ${GITHUB_REF_NAME#v}" --notes-file notes.md *.zip
