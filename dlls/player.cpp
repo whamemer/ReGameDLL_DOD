@@ -4481,8 +4481,8 @@ void CBasePlayer::Stamina( void )
 	if( speed2d > 0.0f )
 	{
 		delta = 1.0f;  // moving recovery
-		if( ( pev->button & IN_RUN ) && ( pev->flags & FL_ONGROUND ) )
-			delta = 5.0f;  // sprinting recovery
+		if( ( pev->button & IN_DUCK ) && ( pev->flags & FL_ONGROUND ) )
+			delta = 5.0f;  // crouching recovery
 	}
 
 	pev->fuser4 += delta;

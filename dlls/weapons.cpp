@@ -1098,10 +1098,6 @@ float CBasePlayerWeapon::flAim( float accuracyFactor, CBasePlayer *pOther )
 
 void CBasePlayerWeapon::RemoveStamina( float removeAmount, CBasePlayer *pOther )
 {
-	if( !pOther )
-		pOther = m_pPlayer;
-	if( !pOther )
-		return;
 	if( ( pOther->pev->button & IN_DUCK ) == 0 && !pOther->IsProne() )
 	{
 		float f = pOther->pev->fuser4 - removeAmount;
