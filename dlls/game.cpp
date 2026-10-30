@@ -479,6 +479,12 @@ void GameDLLInit( void )
 	g_psv_aim = CVAR_GET_POINTER( "sv_aim" );
 	g_footsteps = CVAR_GET_POINTER( "mp_footsteps" );
 
+#if defined( DEFAULT_SV_ROLLANGLE )
+	// GoldSrc tilts the view in a strafe by default (sv_rollangle 2), Xash3D starts with 0 and the strafe has no tilt
+	if( CVAR_GET_FLOAT( "sv_rollangle" ) == 0 )
+		CVAR_SET_FLOAT( "sv_rollangle", 2 );
+#endif
+
 	CVAR_REGISTER( &cvar_displaysoundlist );
 	CVAR_REGISTER( &cvar_teamplay );
 	CVAR_REGISTER( &cvar_timelimit );

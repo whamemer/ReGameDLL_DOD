@@ -5,6 +5,8 @@
 FIX_ENTITY_HASH_OVERFLOW=ON # The hash of a classname can point one element behind the table of entities, the table gets one more element
 FIX_CAPTURE_AREA_DIVIDE_BY_ZERO=ON # The progress bar of a capture area divides by the number of capturing players, which is 0 when the capturing team left the area (SIGFPE in the original), the update is skipped
 
+DEFAULT_SV_ROLLANGLE=ON # Xash3D starts with sv_rollangle 0 (GoldSrc with 2), so the view does not tilt in a strafe, the library sets 2 at start when the value is 0
+
 GAMEDIR=dod # Gamedir path
 
 # keys below must match liblist.gam/gameinfo.txt
