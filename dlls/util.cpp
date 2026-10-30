@@ -1917,6 +1917,9 @@ void CSaveRestoreBuffer::BufferRewind( int size )
 }
 
 #ifndef _WIN32
+// GCC 4.8 of the Steam Runtime makes _rotr a macro of its own in ia32intrin.h
+#undef _rotr
+
 extern "C"
 {
 	unsigned _rotr( unsigned val, int shift )
