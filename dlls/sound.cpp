@@ -1635,6 +1635,7 @@ float TEXTURETYPE_PlaySound( TraceResult *ptr, Vector vecSrc, Vector vecEnd, int
 	const char *rgsz[4];
 	int i;
 	CBaseEntity *pEntity = NULL;
+
 	if( FNullEnt( ptr->pHit ) )
 		pTextureName = TRACE_TEXTURE( ENT( 0 ), vecSrc, vecEnd );
 	else

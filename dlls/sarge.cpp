@@ -794,6 +794,7 @@ CBaseEntity *CSarge::BestVisibleEnemy( void )
 	CBaseEntity *pNextEnt = m_pLink;
 	int iBestRel = 0;
 	int iNearest = 8192;
+
 	while( pNextEnt )
 	{
 		if( pNextEnt->IsAlive() && pNextEnt->pev->team != pev->team )

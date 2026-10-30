@@ -2060,6 +2060,7 @@ void CTestHull::BuildNodeGraph( void )
 		{
 			int iLink;
 			WorldGraph.HashSearch( WorldGraph.INodeLink( i, j ), i, iLink );
+
 			if( iLink < 0 )
 			{
 				fPairsValid = FALSE;  // unmatched link pair.

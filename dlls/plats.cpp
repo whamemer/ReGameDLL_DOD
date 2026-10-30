@@ -739,6 +739,7 @@ void CFuncTrain::Wait( void )
 	if( m_flWait != 0 )
 	{  // -1 wait will wait forever!
 		pev->nextthink = pev->ltime + m_flWait;
+
 		if( pev->noiseMovement )
 			STOP_SOUND( edict(), CHAN_STATIC, ( char * ) STRING( pev->noiseMovement ) );
 		if( pev->noiseStopMoving )
@@ -1557,6 +1558,7 @@ void CFuncTrackTrain::RoundRespawn( void )
 	SetAvelocity( g_vecZero );
 	pev->impulse = ( int ) m_speed;
 	m_dir = 1;
+
 	if( FStringNull( pev->target ) )
 	{
 		if( FStringNull( pev->targetname ) )

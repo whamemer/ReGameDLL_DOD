@@ -166,6 +166,7 @@ void CLight::SetCorrectStyle( void )
 	if( m_iStyle < 32 )
 		return;
 	int style;
+
 	if( m_iState == STATE_TURN_ON )
 	{
 		style = m_iTurnOnStyle;

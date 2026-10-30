@@ -228,6 +228,7 @@ Activity CBaseMonster::GetDeathActivity( void )
 	}
 
 	( void ) vecSrc;
+
 	if( ( m_bitsDamageType & ( DMG_NERVEGAS | DMG_DOD_GIB6 ) ) ==
 		0 )
 	{
@@ -254,6 +255,7 @@ Activity CBaseMonster::GetDeathActivity( void )
 					break;
 				default:
 					deathActivity = DOD_SIMPLE;
+
 					if( m_LastHitGroup == HITGROUP_HEAD )
 						deathActivity = ACT_DIE_HEADSHOT;
 					break;
@@ -778,6 +780,7 @@ void RadiusDamage( Vector vecSrc, entvars_t *pevInflictor, entvars_t *pevAttacke
 			{
 				ClearMultiDamage();
 				int bits = bitsDamageType;
+
 				if( pEntity == pAttackerRef )
 					bits |=
 					DMG_DOD_SELFSPLASH;
@@ -964,6 +967,7 @@ void CBaseEntity::TraceAttack( entvars_t *pevAttacker, float flDamage, Vector ve
 	{
 		AddMultiDamage( pevAttacker, this, flDamage, bitsDamageType );
 		int blood = BloodColor();
+
 		if(
 			blood != DONT_BLEED &&
 			!( bitsDamageType &
@@ -1053,6 +1057,7 @@ void CBaseEntity::FireTWalls( float flDamage, int iBulletType, entvars_t *pevAtt
 
 	BOOL bPlayerHit = FALSE;
 	char chTextureType = 'C';
+
 	if( pEntity && !pEntity->IsPlayer() )
 	{
 		const char *pTextureName = TRACE_TEXTURE( tr.pHit ? tr.pHit : ENT( 0 ), vecSrc, vecDest );
@@ -1098,6 +1103,7 @@ void CBaseEntity::FireTWalls( float flDamage, int iBulletType, entvars_t *pevAtt
 	DecalGunshot( &beam_tr, iBulletType );
 	UTIL_TraceLine( beam_tr.vecEndPos, vecDest, dont_ignore_monsters, pentIgnore, &beam_tr );
 	DecalGunshot( &beam_tr, iBulletType );
+
 	if( beam_tr.pHit && !FNullEnt( beam_tr.pHit ) )
 	{
 		CBaseEntity *pEnt = CBaseEntity::Instance( beam_tr.pHit );

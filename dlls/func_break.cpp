@@ -852,6 +852,7 @@ void CBreakable::Killed( entvars_t *pevAttacker, int iGib )
 		volume = 1.0f;
 
 	int shards = 0;
+
 	switch( m_Material )
 	{
 	case matGlass:
@@ -1418,6 +1419,7 @@ void CPushable::Move( CBaseEntity *pOther, int push )
 	{
 		pevToucher->velocity.x = pev->velocity.x;
 		pevToucher->velocity.y = pev->velocity.y;
+
 		if( ( gpGlobals->time - m_soundTime ) > 0.7 )
 		{
 			m_soundTime = gpGlobals->time;

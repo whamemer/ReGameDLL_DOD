@@ -521,6 +521,7 @@ CBaseEntity *UTIL_FindEntityByString( CBaseEntity *pStartEntity, const char *szK
 	if( pStartEntity )
 		pentEntity = ENT( pStartEntity->pev );
 	int startEntityIndex = ENTINDEX( pentEntity );
+
 	if( szKeyword[0] == 99 )
 	{
 		int hash = CaseInsensitiveHash( szValue, stringsHashTable.Count() );
@@ -537,6 +538,7 @@ CBaseEntity *UTIL_FindEntityByString( CBaseEntity *pStartEntity, const char *szK
 					{
 						hash_item_t *last = item->lastHash;
 						int idx;
+
 						if( last )
 							idx = last->pevIndex;
 						else
@@ -643,6 +645,7 @@ CBaseEntity *UTIL_FollowGroupReference( CBaseEntity *pStartEntity, const char *s
 	char buf[80];
 	const char *tail = 0;
 	const char *head = szMemberName;
+
 	if( *szMemberName != 0 )
 	{
 		if( *szMemberName == 46 )
@@ -708,6 +711,7 @@ CBaseEntity *UTIL_FollowReference( CBaseEntity *pStartEntity, const char *szName
 	if( *szName == 42 )
 		return UTIL_FollowAliasReference( pStartEntity, szName + 1 );
 	int n = 0;
+
 	if( *szName == 46 )
 		n = 0;
 	else
@@ -1336,6 +1340,7 @@ void UTIL_BloodDrips( const Vector &origin, const Vector &direction, int color, 
 	if( g_pGameRules->IsMultiplayer() )
 		amount *= 2;
 	float fScale = 16.0;
+
 	if( amount < 256 && amount < 160 && amount > 29 )
 		fScale = ( float ) ( amount / 10 );
 	else if( !( amount < 256 && amount < 160 ) )
@@ -1559,6 +1564,7 @@ void UTIL_StringToIntArray( int *pVector, int count, const char *pString )
 	strncpy( tempString, pString, 128 );
 	tempString[127] = 0;
 	char *pstr = tempString;
+
 	for( int j = 0; j < count; j++ )
 	{
 		pVector[j] = strtol( pstr, NULL, 10 );
@@ -2752,6 +2758,7 @@ void UTIL_EffectPrint( CBasePlayer *pPlayer, int color, int effect, int channel,
 	parms.g2 = 255;
 	parms.b2 = 255;
 	parms.a2 = 0;
+
 	if( effect == SCANOUT )
 		parms.fadeinTime = 0.05;
 	else

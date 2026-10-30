@@ -384,8 +384,11 @@ BOOL CSPDoDRules::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pWea
 			{
 				int fl = CBasePlayerItem::ItemInfoArray[it->m_iId].iFlags;
 				if( fl & 0x20 ) hasKnife = TRUE;
+
 				if( fl & 0x40 ) hasSidearm = TRUE;
+
 				if( fl & 0x80 ) hasPrimary = TRUE;
+
 				if( wid == it->m_iId )
 					return FALSE;
 			}

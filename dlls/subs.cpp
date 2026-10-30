@@ -129,6 +129,7 @@ int CBaseDMStart::GetState( CBaseEntity *pEntity )
 		return 2;
 	int owner = ( ( CControlPoint * ) pPoint )->GetOwner();
 	int team = 0;
+
 	if( pEntity && pEntity->pev )
 		team = pEntity->pev->team;
 	if( owner == 1 )
@@ -308,6 +309,7 @@ void FireDODCameraTargets( const char *targetName, CBaseEntity *pActivator, CBas
 		return;
 	edict_t *pentT = NULL;
 	ALERT( at_aiconsole, "Firing: (%s)\n", targetName );
+
 	for( ;; )
 	{
 		pentT = FIND_ENTITY_BY_TARGETNAME( pentT, targetName );

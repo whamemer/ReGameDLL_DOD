@@ -622,6 +622,7 @@ void CMultiManager::RoundRespawn( void )
 		m_triggerType = USE_TOGGLE;
 
 	bool swapped;
+
 	do
 	{
 		swapped = false;
@@ -981,6 +982,7 @@ BOOL CStateWatcher::EvalLogic()
 			continue;
 		int st = ( ( int ( * )( CBaseEntity * ) )( ( ( void *** ) pEnt )[0][15] ) )( pEnt );
 		int flags = pev->spawnflags;
+
 		if( st == 0 )
 		{
 			if( !( flags & 0x10 ) )
@@ -4192,6 +4194,7 @@ void CControlPointMaster::CPMThink()
 
 		BOOL bUnique = TRUE;
 		int num = 0;
+
 		do
 		{
 			if( strcmp( m_szGroup, pPoint->m_szGroup ) == 0 )
@@ -4199,6 +4202,7 @@ void CControlPointMaster::CPMThink()
 				if( pPoint->m_iPointIndex < 0 )
 					bUnique = FALSE;
 				ControlPointArray[num] = pPoint;
+
 				for( int i = num - 1; i >= 0; i-- )
 				{
 					if( ControlPointArray[i]->m_iPointIndex == pPoint->m_iPointIndex )
@@ -4247,12 +4251,14 @@ void CControlPointMaster::CPMThink()
 			{
 				Vector spawnpos = pSpawn->pev->origin;
 				int handled[20];
+
 				for( int i = 0; i < num; i++ )
 					handled[i] = 0;
 				for( int slot = 0; slot < num; slot++ )
 				{
 					float leastdist = 99999.0f;
 					int selected = 0;
+
 					for( int i = 0; i < num; i++ )
 					{
 						if( handled[i] )
@@ -4418,6 +4424,7 @@ void CControlPointMaster::CPMThink()
 	{
 		MESSAGE_BEGIN( MSG_SPEC, gmsgInitObjDisplay );
 		WRITE_BYTE( m_iNumPoints );
+
 		for( int i = 0; i < m_iNumPoints; i++ )
 		{
 			CControlPoint *p = ControlPointArray[i];
@@ -4490,6 +4497,7 @@ void CControlPointMaster::SendObjectiveStatus( CBasePlayer *pPlayer )
 	else
 		MESSAGE_BEGIN( MSG_ONE, gmsgInitObjDisplay, NULL, pPlayer->edict() );
 	WRITE_BYTE( m_iNumPoints );
+
 	for( int i = 0; i < m_iNumPoints; i++ )
 	{
 		CControlPoint *p = ControlPointArray[i];
@@ -4745,6 +4753,7 @@ void CAreaCapture::AreaTouch( CBaseEntity *pOther )
 	CBasePlayer *pPlayer = ( CBasePlayer * ) pOther;
 	int team = pOther->pev->team;
 	BOOL can = ( team == TEAM_ALLIES ) ? m_bAlliesCanCap : ( team == TEAM_AXIS ? m_bAxisCanCap : FALSE );
+
 	if( ( pPlayer->m_flDisplayHistory & HINT_TOUCHED_AREA_CAPTURE ) == 0 && team != m_nOwningTeam )
 	{
 		if( !can )
@@ -4767,6 +4776,7 @@ void CAreaCapture::AreaTouch( CBaseEntity *pOther )
 	pPlayer->SetClientAreaIcon( m_iAreaIndex, true );
 presentState:
 	pPlayer->m_signals.Signal( SIGNAL_CAPTUREAREA );
+
 	if( m_bRequiresObject && can )
 	{
 		if( !pPlayer->HasObject || !pPlayer->m_pObject )
@@ -4849,6 +4859,7 @@ void CAreaCapture::Think()
 
 	int numAllies = 0;
 	int numAxis = 0;
+
 	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBasePlayer *plr = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
@@ -4942,6 +4953,7 @@ void CAreaCapture::Think()
 			m_iCapMode = 0;
 		float t = m_fTimeRemaining - ( ( float ) players / ( float ) required ) * 0.1f;
 		m_fTimeRemaining = t;
+
 		if( ( numAllies != 0 || numAxis != 0 ) && ( numAxis < 1 || numAllies < 1 ) )
 		{
 			if( t <= 0.0f )
@@ -5119,6 +5131,7 @@ void CAreaCapture::StartCapture( int team, int capmode )
 	m_iCapMode = capmode;
 	m_bCapturing = 1;
 	m_fTimeRemaining = ( float ) m_nCapTime;
+
 	if( m_pPoint && !( m_pPoint->pev->spawnflags & SF_CONTROLPOINT_HIDDEN ) )
 	{
 		if( capmode == 1 )
@@ -5170,6 +5183,7 @@ void CAreaCapture::EndCapture( int team )
 	m_iCappingPlayers = 0;
 
 	CBasePlayer *pFirstCapper = NULL;
+
 	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBasePlayer *plr = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
@@ -5178,6 +5192,7 @@ void CAreaCapture::EndCapture( int team )
 		if( ( plr->m_signals.GetState() & SIGNAL_CAPTUREAREA ) == 0 || plr->m_iCapAreaIndex != m_iAreaIndex )
 			continue;
 		const char *teamName = ( plr->pev->team == TEAM_ALLIES ) ? "Allies" : "Axis";
+
 		if( !m_pPoint )
 			UTIL_LogPrintf( "\"%s<%i><%s><%s>\" triggered a \"dod_capture_area\"\n", STRING( plr->pev->netname ),
 				GETPLAYERUSERID( plr->edict() ), GETPLAYERAUTHID( plr->edict() ), teamName );
@@ -5199,6 +5214,7 @@ void CAreaCapture::EndCapture( int team )
 			plr->m_pObject = NULL;
 			plr->RemoveObjectIcon();
 			int idx = ENTINDEX( plr->edict() );
+
 			for( int j = 1; j <= gpGlobals->maxClients; j++ )
 			{
 				CBaseEntity *pMate = UTIL_PlayerByIndex( j );
@@ -5271,6 +5287,7 @@ void CAreaCapture::RoundRespawn()
 	UTIL_SetSize( pev, pev->mins, pev->maxs );
 	SetTouch( &CAreaCapture::AreaTouch );
 	pev->nextthink = gpGlobals->time + 0.1;
+
 	if( m_bCapturing )
 		BreakCapture( m_nCapturingTeam );
 	m_nCapturingTeam = -1;
@@ -5459,6 +5476,7 @@ void CDodRoundTimer::Think()
 		return;
 	m_fRoundTime -= 0.1f;
 	m_fUpdateTimer -= 0.1f;
+
 	if( m_fUpdateTimer <= 0.0f )
 	{
 		if( ( pev->spawnflags & SF_ROUNDTIMER_SHOW ) && UTIL_IsMasterTriggered( m_sMaster, this ) && m_bTimer )
@@ -5625,9 +5643,11 @@ void CDoDCamera::Spawn( void )
 	pev->rendermode = 2;
 	m_angles = pev->angles;	 // remember spawn angles/origin
 	m_origin = pev->origin;
+
 	for( int i = 1; i <= 32; i++ )
 		m_hPlayer[i] = NULL;
 	m_initialSpeed = pev->speed;
+
 	if( m_acceleration == 0.0 )
 		m_acceleration = 500.0;
 	if( m_deceleration == 0.0 )
@@ -5711,6 +5731,7 @@ void CDoDCamera::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE us
 	if( !ShouldToggle( useType, m_state ) )
 		return;
 	BOOL bFound = FALSE;
+
 	for( int i = 1; i <= 32; i++ )
 	{
 		m_hPlayer[i] = UTIL_PlayerByIndex( i );
@@ -5803,12 +5824,14 @@ void CDoDCamera::FollowTarget()
 		Vector vecAng;
 		vecAng = UTIL_VecToAngles( vecGoal );
 		vecAng.x = -vecAng.x;
+
 		if( pev->angles.y > 360.0 )
 			pev->angles.y -= 360.0;
 		if( pev->angles.y < 0.0 )
 			pev->angles.y += 360.0;
 		float dx = vecAng.x - pev->angles.x;
 		float dy = vecAng.y - pev->angles.y;
+
 		if( dx < -180.0 )
 			dx += 360.0;
 		if( dx > 180.0 )
@@ -5819,6 +5842,7 @@ void CDoDCamera::FollowTarget()
 			dy -= 360.0;
 		pev->avelocity.x = dx * 40.0 * gpGlobals->frametime;
 		pev->avelocity.y = dy * 40.0 * gpGlobals->frametime;
+
 		if( !( pev->spawnflags & SF_DODCAMERA_NO_DAMPING ) )
 		{
 			pev->velocity = pev->velocity * 0.8;
@@ -5832,6 +5856,7 @@ void CDoDCamera::FollowTarget()
 	}
 
 	( *( int * ) ( ( char * ) g_pGameRules + 8 ) )--;
+
 	for( int i = 1; i <= 32; i++ )
 	{
 		if( !m_hPlayer[i] )
@@ -5957,6 +5982,7 @@ void CDoDCamera::Move()
 			SetCameraMode( STRING( pPath->pev->targetname ), ( ( CPathCorner * ) pPath )->m_iCamFade );
 		pPath = pPath->GetNextTarget();
 		m_pentPath = pPath;
+
 		if( !pPath )
 		{
 			pev->velocity = g_vecZero;
@@ -5968,6 +5994,7 @@ void CDoDCamera::Move()
 			Vector delta = pPath->pev->origin - pev->origin;
 			float len = delta.Length();
 			m_moveDistance = len;
+
 			if( len == 0 )
 				pev->movedir = Vector( 0, 0, 1 );
 			else
@@ -6032,6 +6059,7 @@ void CDoDCamera::SetCameraMode( const char *szTargetname, int nFade )
 		{
 			float fadeTime;
 			int flags;
+
 			switch( nFade )
 			{
 			case 1:

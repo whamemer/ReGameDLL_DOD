@@ -372,10 +372,12 @@ void ExtractCommandString( char *s, char *szCommand )
 			*o = 0;
 			char *d = value;
 			*d = 0;
+
 			while( s[0] && s[0] != '\\' )
 				*o++ = *s++;
 			*o = 0;
 			strcat( szCommand, pkey );
+
 			if( value[0] )
 			{
 				strcat( szCommand, " " );
@@ -638,6 +640,7 @@ void CDoDTeamPlay::SendMOTDToClient( edict_t *client )
 	{
 		int char_count = 0;
 		char *aFileList = pFileList;
+
 		do
 		{
 			char chunk[61];
@@ -794,6 +797,7 @@ BOOL CDoDTeamPlay::CanHavePlayerItem( CBasePlayer *pPlayer, CBasePlayerItem *pIt
 	{
 		unsigned int cls = pItem->Classify();
 		unsigned int mask = cls & 8;
+
 		if( ( cls & 0x3F0 ) != 0 )
 			mask = 0x3F0;
 		if( ( cls & 1 ) != 0 )
@@ -2945,6 +2949,7 @@ void CDoDTeamPlay::RestartRound( void )
 	int allies = 0;
 	int axis = 0;
 	CBaseEntity *first = NULL;
+
 	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBasePlayer *p = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
@@ -3113,6 +3118,7 @@ int CountTeamMembers( int teamNum )
 {
 	int iAllies = 0;
 	int iAxis = 0;
+
 	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBaseEntity *p = UTIL_PlayerByIndex( i );
@@ -3202,6 +3208,7 @@ void RespawnAllies( void )
 	ALERT( at_console, "Respawning Allies\n" );
 	CBaseEntity *ent1 = NULL;
 	FireTargets( "dod_respawn_allies", NULL, NULL, USE_TOGGLE, 0.0f );
+
 	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBasePlayer *p = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
@@ -3228,6 +3235,7 @@ void RespawnAxis( void )
 	CBaseEntity *ent1 = NULL;
 	ALERT( at_console, "Respawning Axis\n" );
 	FireTargets( "dod_respawn_axis", NULL, NULL, USE_TOGGLE, 0.0f );
+
 	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBasePlayer *p = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
@@ -3310,6 +3318,7 @@ void CDoDTeamPlay::RoundUnfreeze( void )
 		int team = p->pev->team;
 		const char *msg;
 		int bparam1;
+
 		if( team == TEAM_ALLIES )
 		{
 			if( m_GamePlayRules.m_bAlliesAreBrit )
@@ -3759,6 +3768,7 @@ void CDoDTeamPlay::SendWaveStatus( CBasePlayer *pPlayer, int status )
 		return;
 	int team = pPlayer->pev->team;
 	BOOL infinite;
+
 	if( team == TEAM_ALLIES )
 		infinite = m_GamePlayRules.m_bAlliesInfiniteLives;
 	else if( team == TEAM_AXIS )
@@ -3958,6 +3968,7 @@ void CDoDTeamPlay::EnumerateTeams( int *aA, int *nA, int *aX, int *nX )
 	int na = 0;
 	int ax = 0;
 	int nx = 0;
+
 	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBasePlayer *p = ( CBasePlayer * ) UTIL_PlayerByIndex( i );
@@ -4108,6 +4119,7 @@ void CDoDTeamPlay::ClassSelect( CBasePlayer *pPlayer, int iClassSelect )
 			pPlayer->m_irdytospawn = 1;
 		pPlayer->m_iNextClass = 0x1b;
 		pPlayer->m_bIsRandomClass = true;
+
 		if( !pPlayer->IsAlive() )
 		{
 			ClientPrint( pPlayer->pev, HUD_PRINTTALK, "#game_spawn_asrandom", 0, 0, 0, 0 );
@@ -4188,6 +4200,7 @@ void CDoDTeamPlay::ClassSelect( CBasePlayer *pPlayer, int iClassSelect )
 		return;
 	int team2 = pPlayer->pev->team;
 	BOOL infinite;
+
 	if( team2 == 1 )
 		infinite = m_GamePlayRules.m_bAlliesInfiniteLives;
 	else if( team2 == 2 )

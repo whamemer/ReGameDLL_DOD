@@ -299,6 +299,7 @@ void CGrenade::RocketExplodeTouch( CBaseEntity *pOther )
 		if( !pentBreak )
 			pentBreak = ( *g_engfuncs.pfnPEntityOfEntOffset )( 0 );
 		CBreakable *pBreak = NULL;
+
 		if( pentBreak )
 			pBreak = ( CBreakable * ) GET_PRIVATE( pentBreak );
 		if( pBreak && pBreak->m_Material == matGlass )
@@ -311,6 +312,7 @@ void CGrenade::RocketExplodeTouch( CBaseEntity *pOther )
 			pOther->TraceAttack( pevOwner, 1.0, gpGlobals->v_forward, &tr, DMG_DOD_NOBLOOD );
 			ApplyMultiDamage( pev, pevOwner );
 			UTIL_MakeVectors( pev->angles );
+
 			if( pOther->pev->health > 0.0f )
 			{
 				UTIL_Remove( this );

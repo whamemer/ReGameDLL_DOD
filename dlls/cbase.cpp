@@ -385,6 +385,7 @@ void RemoveEntityHashValue( entvars_t *pev, const char *value, hash_types_e fiel
 	hash_item_t *prev = item;
 	hash_item_t *cur = item;
 	hash_item_t *next = item->next;
+
 	while( true )
 	{
 		if( cur->pev == pev )

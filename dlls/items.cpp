@@ -127,6 +127,7 @@ void CItem::ItemTouch( CBaseEntity *pOther )
 
 		// player grabbed the item.
 		g_pGameRules->PlayerGotItem( pPlayer, this );
+
 		if( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_YES )
 		{
 			Respawn();

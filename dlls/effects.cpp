@@ -779,6 +779,7 @@ void CBeam::BeamDamage( TraceResult *ptr )
 			pHit->TraceAttack( pev, pev->dmg * ( gpGlobals->time - pev->dmgtime ),
 				( ptr->vecEndPos - pev->origin ).Normalize(), ptr, DMG_ENERGYBEAM );
 			ApplyMultiDamage( pev, pev );
+
 			if( pev->spawnflags & SF_BEAM_DECALS )
 			{
 				if( pHit->IsBSPModel() )
@@ -959,6 +960,7 @@ void CLightning::BeamUpdateVars( void )
 	pev->body = m_noiseAmplitude;
 	pev->frame = m_frameStart;
 	pev->animtime = m_speed;
+
 	if( pev->spawnflags & SF_BEAM_SHADEIN )
 		pev->rendermode = ( pev->rendermode & 0x0F ) | BEAM_FSHADEIN;
 	else if( !( pev->spawnflags & SF_BEAM_SHADEOUT ) )

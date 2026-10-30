@@ -379,6 +379,7 @@ void CFuncRotating::KeyValue( KeyValueData *pkvd )
 	{
 		Vector tmp;
 		UTIL_StringToVector( ( float * ) tmp, pkvd->szValue );
+
 		if( tmp != g_vecZero )
 			pev->origin = tmp;
 	}

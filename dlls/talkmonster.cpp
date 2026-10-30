@@ -656,6 +656,7 @@ void CTalkMonster::TalkInit( void )
 	CTalkMonster::g_talkWaitTime = 0;
 
 	m_voicePitch = 100;
+
 	if( m_iszSpeakAs != 0 )
 	{
 		char szBuf[64];
@@ -672,16 +673,19 @@ void CTalkMonster::TalkInit( void )
 		m_szGrp[2] = STRING( ALLOC_STRING( szBuf ) );
 		strcpy( tail, "START" );
 		m_szGrp[3] = STRING( ALLOC_STRING( szBuf ) );
+
 		if( ( pev->spawnflags & SF_MONSTER_PREDISASTER ) == 0 )
 			strcpy( tail, "OK" );
 		else
 			strcpy( tail, "PFOLLOW" );
 		m_szGrp[4] = STRING( ALLOC_STRING( szBuf ) );
+
 		if( ( pev->spawnflags & SF_MONSTER_PREDISASTER ) == 0 )
 			strcpy( tail, "WAIT" );
 		else
 			strcpy( tail, "PWAIT" );
 		m_szGrp[5] = STRING( ALLOC_STRING( szBuf ) );
+
 		if( ( pev->spawnflags & SF_MONSTER_PREDISASTER ) == 0 )
 			strcpy( tail, "NOTOK" );
 		else

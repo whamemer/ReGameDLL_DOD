@@ -909,6 +909,7 @@ void CBaseButton::RoundRespawn( void )
 		m_vecPosition2 = m_vecPosition1;
 	m_fStayPushed = ( m_flWait == -1 ? TRUE : FALSE );
 	m_fRotating = FALSE;
+
 	if( !FBitSet( pev->spawnflags, SF_BUTTON_TOUCH_ONLY ) )
 	{
 		SetTouch( NULL );
@@ -1352,6 +1353,7 @@ void CRotButton::RoundRespawn( void )
 	m_vecAngle2 = pev->angles + pev->movedir * m_flMoveDistance;
 	m_fStayPushed = ( m_flWait == -1 ? TRUE : FALSE );
 	m_fRotating = TRUE;
+
 	if( !FBitSet( pev->spawnflags, SF_BUTTON_TOUCH_ONLY ) )
 	{
 		SetTouch( NULL );

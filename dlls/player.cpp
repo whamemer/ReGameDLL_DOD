@@ -976,6 +976,7 @@ void CBasePlayer::Killed( entvars_t *pevAttacker, int iGib )
 	pev->deadflag = DEAD_DYING;
 	pev->movetype = MOVETYPE_TOSS;
 	pev->flags &= ~FL_ONGROUND;
+
 	if( cvar_fadetoblack.value != 0.0f && g_pGameRules->IsClanMatch() && g_pGameRules->IsClanMatchActive() )
 	{
 		UTIL_ScreenFade( this, Vector( 0, 0, 0 ), 3.0, 3.0, 0xff, 5 );
@@ -4397,6 +4398,7 @@ void CBasePlayer::GetObject( CObject *pObject )
 		return;
 	HasObject = 1;
 	m_pObject = pObject;
+
 	if( pObject->m_szObjectHIcon )
 		AddObjectIcon( pObject->m_szObjectHIcon );
 	pObject->SendPickupMsg( this );
@@ -4405,6 +4407,7 @@ void CBasePlayer::GetObject( CObject *pObject )
 		GETPLAYERUSERID( edict() ), GETPLAYERAUTHID( edict() ), pszTeam );
 	EMIT_SOUND_DYN( edict(), CHAN_ITEM, "items/ammopickup.wav", 1.0, 0.8, 0, 100 );
 	int entindex = ENTINDEX( edict() );
+
 	for( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBaseEntity *plr = UTIL_PlayerByIndex( i );
@@ -4498,6 +4501,7 @@ void CBasePlayer::DropGenericAmmo()
 	if( pev->iuser1 != 0 || pev->iuser2 != 0 || pev->health <= 0.0f || m_nGenericAmmoCount <= 0 )
 		return;
 	const char *szName = "ammo_generic_german";
+
 	if( pev->team != TEAM_AXIS && ( unsigned ) ( pev->playerclass - 0x15 ) >= 6 )
 		szName = "ammo_generic_american";
 	else if( pev->team != TEAM_AXIS )
@@ -4521,6 +4525,7 @@ void CBasePlayer::HandSignal( int signal )
 	m_handSignal = signal;
 	SetAnimation( PLAYER_SIGNAL );
 	m_flNextHand = gpGlobals->time + 1.0f;
+
 	if( ( unsigned ) signal < 0x1a )
 	{
 		for( int i = 1; i <= gpGlobals->maxClients; i++ )
@@ -5466,6 +5471,7 @@ bool CBasePlayer::CheckPlayerSpeed( void )
 		bBazookaDeployed = TRUE;
 
 	int speed = 350;
+
 	if( IsAlive() )
 	{
 		speed = 1;
@@ -5475,6 +5481,7 @@ bool CBasePlayer::CheckPlayerSpeed( void )
 			{
 				int iUser3 = pev->iuser3;
 				speed = 1;
+
 				if( iUser3 != 2 && iUser3 != 3 )
 				{
 					if( pev->deadflag == DEAD_NO && ( unsigned ) ( iUser3 - 1 ) < 2 )
@@ -5491,6 +5498,7 @@ bool CBasePlayer::CheckPlayerSpeed( void )
 							{
 								float stamina = pev->fuser4;
 								float f;
+
 								if( stamina < 10.0f )
 									f = 0.3f;
 								else if( stamina < 25.0f )

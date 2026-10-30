@@ -369,6 +369,7 @@ void CBaseDoor::Precache( void )
 	const char *pszSound;
 	PRECACHE_SOUND( "doors/doormove.wav" );
 	PRECACHE_SOUND( "doors/doorstop.wav" );
+
 	if( m_bMoveSnd == 0 )
 		pev->noiseMoving = ALLOC_STRING( "common/null.wav" );
 	else
@@ -935,6 +936,7 @@ void CRotDoor::RoundRespawn( void )
 {
 	m_vecAngle1 = pev->angles;
 	m_vecAngle2 = pev->angles + pev->movedir * m_flMoveDistance;
+
 	if( !FBitSet( pev->spawnflags, SF_DOOR_START_OPEN ) )
 	{
 		pev->angles = m_vecAngle1;
