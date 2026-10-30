@@ -335,7 +335,6 @@ void CBaseMonster::CallGibMonster( void )
 	else
 	{
 		pev->effects = EF_NODRAW;  // make the model invisible.
-		GibMonster();
 	}
 
 	pev->deadflag = DEAD_DEAD;
