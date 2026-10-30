@@ -3209,7 +3209,7 @@ void RespawnAllies( void )
 		{
 			if( p->m_iNextClass == -1 )
 			{
-				ClientPrint( p->pev, HUD_PRINTCENTER, "#game_will_spawn", 0, 0, 0, 0 );
+				ClientPrint( p->pev, HUD_PRINTTALK, "#game_will_spawn", 0, 0, 0, 0 );
 				p->m_imissedwave = 1;
 			}
 			else
@@ -3235,7 +3235,7 @@ void RespawnAxis( void )
 		{
 			if( p->m_iNextClass == -1 )
 			{
-				ClientPrint( p->pev, HUD_PRINTCENTER, "#game_will_spawn", 0, 0, 0, 0 );
+				ClientPrint( p->pev, HUD_PRINTTALK, "#game_will_spawn", 0, 0, 0, 0 );
 				p->m_imissedwave = 1;
 			}
 			else

@@ -3741,7 +3741,7 @@ void CBasePlayer::UpdateClientData( void )
 				FireTargets( "game_playerjoin", this, this, USE_TOGGLE, 0 );
 			}
 
-			m_iObserverLastMode = OBS_ROAMING;
+			m_iObserverLastMode = OBS_CHASE_FREE;
 
 			( ( CDoDTeamPlay * ) g_pGameRules )->SendObjectiveStatus( this );
 		}

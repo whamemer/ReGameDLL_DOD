@@ -156,7 +156,7 @@ void CObject::Disappear()
 // Same-team dropped object + object_resetontouch => ResetObject.
 void CObject::ObjectTouch( CBaseEntity *pOther )
 {
-	if( g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
+	if( g_pGameRules && g_pGameRules->RoundState() != ROUNDSTATE_RUNNING )
 		return;
 
 	if( !UTIL_IsMasterTriggered( m_sMaster, this ) )
@@ -206,7 +206,7 @@ void CObject::ObjectTouch( CBaseEntity *pOther )
 		}
 
 		if( pev->noise )
-			EMIT_SOUND_DYN( pOther->edict(), CHAN_ITEM, STRING( pev->noise ), 1.0, 0.8, 0, 100 );
+			EMIT_SOUND_DYN( pOther->edict(), CHAN_STATIC, STRING( pev->noise ), 1.0, 0.8, 0, 100 );
 	}
 	else if( m_bDropped && m_iResetOnTouch )
 		ResetObject();

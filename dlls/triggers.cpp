@@ -5243,9 +5243,9 @@ void CAreaCapture::BreakCapture( int team )
 		FireTargets( sz_AxisBreak, NULL, this, USE_BREAK, 0 );
 
 	if( team == TEAM_ALLIES )
-		UTIL_ClientPrintAll( HUD_PRINTCENTER, "#game_capture_broken_allie" );
+		UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_capture_broken_allie" );
 	else
-		UTIL_ClientPrintAll( HUD_PRINTCENTER, "#game_capture_broken_axis" );
+		UTIL_ClientPrintAll( HUD_PRINTTALK, "#game_capture_broken_axis" );
 
 	m_bCapturing = 0;
 
