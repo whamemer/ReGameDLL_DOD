@@ -2,7 +2,7 @@
 **English** | [Русский](#russian)
 
 # ReGameDLL_DOD [![Build Status](https://github.com/whamemer/ReGameDLL_DOD/actions/workflows/build.yml/badge.svg)](https://github.com/whamemer/ReGameDLL_DOD/actions)
-Reverse-engineered server library of **Day of Defeat 1.3** for [Xash3D FWGS](https://github.com/FWGS/xash3d-fwgs).
+Reverse-engineered server library of **Day of Defeat 1.3**.
 
 The code base is [hlsdk-portable](https://github.com/FWGS/hlsdk-portable) with the Day of Defeat game code restored on top of it,
 function by function, from the Steam version of the game (`dod.so` with debug information). It replaces `dod.dll` / `dod.so` of
@@ -40,13 +40,14 @@ that goes next to the engine, with the server library (`dod/dlls/dod.dll`, `dod_
    folders from your Steam installation into the Xash3D FWGS directory. The game files are not distributed with this project.
 3. Unpack the build into the same directory, so that the library lands in `dod/dlls/`. Keep the original library under another
    name if you want to go back.
-4. Run `xash3d.exe -game dod`, or a dedicated server, for example
+4. Run `xash3d.exe -game dod` (when the client part is installed) or a dedicated server, for example
    `xash3d.exe -DEDICATED -game dod -dlls dlls/dod.dll +maxplayers 32 +map dod_switch`.
 
 ### Notes
 * **The view does not tilt when strafing.** The tilt comes from the engine cvar `sv_rollangle`. The default of GoldSrc is `2`,
-  the default of Xash3D is `0`, and this library does not change it. Put `sv_rollangle 2` and `sv_rollspeed 200` into the
-  `server.cfg` of the server.
+  the default of Xash3D is `0`, so the library sets `sv_rollangle 2` at start when the value is still `0` (the option
+  `DEFAULT_SV_ROLLANGLE` in `mod_options.txt`). The `server.cfg` of a dedicated server runs before the library is loaded, so to
+  turn the tilt off set `sv_rollangle 0` after the `map` command, for example `+map dod_switch +sv_rollangle 0`.
 * The server cvars and the mechanics are described in [dlls/README.md](dlls/README.md).
 
 ## Documentation
@@ -72,7 +73,8 @@ GCC or Clang) and either Python 3 (waf) or CMake 3.10 or newer.
 `SERVER_LIBRARY_NAME` say where the library is installed and how it is called (they must match `liblist.gam` / `gameinfo.txt`).
 Every fix of a bug of the original game has its own macro (`FIX_ENTITY_HASH_OVERFLOW`, `FIX_CAPTURE_AREA_DIVIDE_BY_ZERO`), both
 are `ON`. Set one to `OFF` to get the behavior of the original. They are described in
-[dlls/README.md](dlls/README.md#fixes-of-the-bugs-of-the-original-game).
+[dlls/README.md](dlls/README.md#fixes-of-the-bugs-of-the-original-game). `DEFAULT_SV_ROLLANGLE` (`ON`) makes the library set
+the view tilt of the strafe, see the [Notes](#notes). waf reads the file at `./waf configure`, run it again after a change.
 
 ### Library names
 The names follow the [library naming scheme](https://github.com/FWGS/xash3d-fwgs/blob/master/Documentation/extensions/library-naming.md)
@@ -83,12 +85,10 @@ of Xash3D FWGS, the engine finds the library by them:
 | Windows x86 | `dod.dll` |
 | Windows x64 | `dod_amd64.dll` |
 | Linux i386 | `dod.so` |
-| Linux x86_64 | `dod_amd64.so` |
 | macOS arm64 | `dod_arm64.dylib` |
 | macOS x86_64 | `dod_amd64.dylib` |
 
 The CI builds Windows x86 and x64, Linux i386 and macOS arm64 and x86_64, the same platforms as dod13-client without Android.
-Linux x86_64 is not built by the CI: with `-D64BIT=ON` it compiles with GCC, but nobody has run it.
 
 ### waf
 ```
@@ -122,7 +122,6 @@ cmake --install build --prefix dist
 * **Linux i386** on a 64-bit host: install `gcc-multilib` and `g++-multilib`, the build adds `-m32` by itself. For a library that
   starts on old distributions the CI builds in the [Steam Runtime](https://github.com/ValveSoftware/steam-runtime) i386
   environment, see [.github/workflows/build.yml](.github/workflows/build.yml).
-* **Linux x86_64:** add `-D64BIT=ON`.
 * **macOS:** the build is 64-bit, on Apple Silicon it is arm64; `-DCMAKE_OSX_ARCHITECTURES=x86_64` makes the Intel build. A
   32-bit macOS build is not supported.
 * The Ninja generator (`-GNinja`) works everywhere. In a Visual Studio prompt, pick the one of the architecture you want
@@ -130,15 +129,9 @@ cmake --install build --prefix dist
 
 `-DLTO=ON` turns on the link time optimization.
 
-### As a submodule
-`dod13-client` is going to take this repository as a submodule and build the server library next to the client library, so
-the CI of the client delivers both. The Android libraries of the server will be built there too, into the one APK with the
-client (`-DANDROID_APK=ON` or `--enable-android-apk` puts the library into the root of the APK); this repository has no
-Android CI.
-
 ## Credits
-* **jeefo** wrote the reverse-engineered source of the Day of Defeat 1.3 server library with which this repository started, and
-  created the repository. The restoration was finished on top of that source.
+* **[jeefo](https://github.com/jeefo)** wrote the reverse-engineered source of the Day of Defeat 1.3 server library with which
+  this repository started. The restoration was finished on top of that source.
 * [FWGS](https://github.com/FWGS) for the engine, [Xash3D FWGS](https://github.com/FWGS/xash3d-fwgs), and for the SDK this code
   is based on, [hlsdk-portable](https://github.com/FWGS/hlsdk-portable).
 * **Valve** for Day of Defeat.
@@ -156,7 +149,7 @@ contains no assets of the game, you need the original game to play.
 [English](#english) | **Русский**
 
 # ReGameDLL_DOD [![Build Status](https://github.com/whamemer/ReGameDLL_DOD/actions/workflows/build.yml/badge.svg)](https://github.com/whamemer/ReGameDLL_DOD/actions)
-Серверная библиотека **Day of Defeat 1.3**, восстановленная реверс-инжинирингом, для [Xash3D FWGS](https://github.com/FWGS/xash3d-fwgs).
+Серверная библиотека **Day of Defeat 1.3**, восстановленная реверс-инжинирингом.
 
 За основу взят [hlsdk-portable](https://github.com/FWGS/hlsdk-portable), поверх которого функция за функцией восстановлен
 игровой код Day of Defeat из Steam-версии игры (`dod.so` с отладочной информацией). Библиотека заменяет `dod.dll` / `dod.so`
@@ -193,12 +186,14 @@ contains no assets of the game, you need the original game to play.
    `dod` из установки Steam в каталог Xash3D FWGS. Файлы игры вместе с проектом не распространяются.
 3. Распакуйте сборку в тот же каталог так, чтобы библиотека оказалась в `dod/dlls/`. Сохраните оригинальную библиотеку под
    другим именем, если захотите вернуться.
-4. Запустите `xash3d.exe -game dod` или выделенный сервер, например
+4. Запустите `xash3d.exe -game dod` (при наличии клиентской части) или выделенный сервер, например
    `xash3d.exe -DEDICATED -game dod -dlls dlls/dod.dll +maxplayers 32 +map dod_switch`.
 
 ### Примечания
 * **Вид не наклоняется при стрейфе.** Наклон задаёт переменная движка `sv_rollangle`. Умолчание GoldSrc равно `2`, умолчание
-  Xash3D равно `0`, и эта библиотека его не меняет. Добавьте `sv_rollangle 2` и `sv_rollspeed 200` в `server.cfg` сервера.
+  Xash3D равно `0`, поэтому библиотека при старте ставит `sv_rollangle 2`, если значение всё ещё `0` (параметр
+  `DEFAULT_SV_ROLLANGLE` в `mod_options.txt`). `server.cfg` выделенного сервера выполняется до загрузки библиотеки, поэтому
+  чтобы отключить наклон, задайте `sv_rollangle 0` после команды `map`, например `+map dod_switch +sv_rollangle 0`.
 * Серверные переменные и механики описаны в [dlls/README.md](dlls/README.md#russian).
 
 ## Документация
@@ -224,7 +219,9 @@ git clone https://github.com/whamemer/ReGameDLL_DOD --recursive
 `SERVER_LIBRARY_NAME` говорят, куда устанавливается библиотека и как она называется (они должны совпадать с `liblist.gam` /
 `gameinfo.txt`). У каждого исправления бага оригинальной игры есть свой макрос (`FIX_ENTITY_HASH_OVERFLOW`,
 `FIX_CAPTURE_AREA_DIVIDE_BY_ZERO`), оба `ON`. Поставьте `OFF`, чтобы получить поведение оригинала. Они описаны в
-[dlls/README.md](dlls/README.md#исправления-багов-оригинальной-игры).
+[dlls/README.md](dlls/README.md#исправления-багов-оригинальной-игры). `DEFAULT_SV_ROLLANGLE` (`ON`) заставляет библиотеку
+включить наклон вида в стрейфе, см. [Примечания](#примечания). waf читает файл при `./waf configure`, после правки запустите
+его снова.
 
 ### Имена библиотек
 Имена следуют [схеме именования библиотек](https://github.com/FWGS/xash3d-fwgs/blob/master/Documentation/extensions/library-naming.md)
@@ -235,12 +232,10 @@ Xash3D FWGS, движок находит библиотеку по ним:
 | Windows x86 | `dod.dll` |
 | Windows x64 | `dod_amd64.dll` |
 | Linux i386 | `dod.so` |
-| Linux x86_64 | `dod_amd64.so` |
 | macOS arm64 | `dod_arm64.dylib` |
 | macOS x86_64 | `dod_amd64.dylib` |
 
 CI собирает Windows x86 и x64, Linux i386 и macOS arm64 и x86_64, те же платформы, что и dod13-client без Android.
-Linux x86_64 CI не собирает: с `-D64BIT=ON` он компилируется GCC, но его никто не запускал.
 
 ### waf
 ```
@@ -274,7 +269,6 @@ cmake --install build --prefix dist
 * **Linux i386** на 64-битной системе: поставьте `gcc-multilib` и `g++-multilib`, `-m32` сборка добавит сама. Чтобы библиотека
   запускалась и на старых дистрибутивах, CI собирает в окружении [Steam Runtime](https://github.com/ValveSoftware/steam-runtime)
   i386, см. [.github/workflows/build.yml](.github/workflows/build.yml).
-* **Linux x86_64:** добавьте `-D64BIT=ON`.
 * **macOS:** сборка 64-битная, на Apple Silicon это arm64; `-DCMAKE_OSX_ARCHITECTURES=x86_64` делает сборку для Intel.
   32-битная сборка для macOS не поддерживается.
 * Генератор Ninja (`-GNinja`) работает везде. В окне Visual Studio выберите нужную архитектуру (`x86` или `x64`) до запуска
@@ -282,14 +276,9 @@ cmake --install build --prefix dist
 
 `-DLTO=ON` включает оптимизацию на этапе компоновки.
 
-### Как подмодуль
-`dod13-client` будет брать этот репозиторий как подмодуль и собирать серверную библиотеку рядом с клиентской, так что CI клиента
-будет поставлять обе. Android-библиотеки сервера тоже будут собираться там, в один APK вместе с клиентом (`-DANDROID_APK=ON`
-или `--enable-android-apk` кладёт библиотеку в корень APK); в этом репозитории Android-CI нет.
-
 ## Благодарности
-* **jeefo** написал реверс-инжиниринговый исходный код серверной библиотеки Day of Defeat 1.3, с которого начался этот
-  репозиторий, и завёл репозиторий. Восстановление было завершено поверх этого исходного кода.
+* **[jeefo](https://github.com/jeefo)** написал реверс-инжиниринговый исходный код серверной библиотеки Day of Defeat 1.3, с которого начался этот
+  репозиторий. Восстановление было завершено поверх этого исходного кода.
 * [FWGS](https://github.com/FWGS) за движок, [Xash3D FWGS](https://github.com/FWGS/xash3d-fwgs), и за SDK, на котором основан
   этот код, [hlsdk-portable](https://github.com/FWGS/hlsdk-portable).
 * **Valve** за Day of Defeat.

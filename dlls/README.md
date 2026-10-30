@@ -8,8 +8,8 @@ the mechanics that exist only in Day of Defeat, the entities that the maps of th
 [hlsdk-portable](https://github.com/FWGS/hlsdk-portable), the SDK this code base is built on. It is written for people who run a
 server, make maps, or want to read, build or modify the library.
 
-The library targets **Xash3D FWGS**. It replaces the server library of the original game and works with the original client
-library as well as with [dod13-client](https://github.com/whamemer/dod13-client).
+The library replaces the server part of the original game and works with the original client library as well as with
+[dod13-client](https://github.com/whamemer/dod13-client).
 
 * [Layout](#layout)
 * [Build options](#build-options)
@@ -41,7 +41,7 @@ library as well as with [dod13-client](https://github.com/whamemer/dod13-client)
 | `mod_options.txt` | The options of the build, see below. |
 
 `pm_shared/`, `game_shared/`, `common/`, `engine/`, `public/` and `external/` are the same files as in dod13-client: they are
-shared with the client prediction and must stay identical.
+shared with the client prediction.
 
 ## Build options
 
@@ -56,6 +56,7 @@ value becomes a variable of the build.
 | `SERVER_LIBRARY_NAME` | `dod` | Name of the library; the platform adds the suffix of the library naming scheme (`_amd64`, `_arm64`). |
 | `FIX_ENTITY_HASH_OVERFLOW` | `ON` | A fix of a bug of the original game, see [below](#fixes-of-the-bugs-of-the-original-game). |
 | `FIX_CAPTURE_AREA_DIVIDE_BY_ZERO` | `ON` | A fix of a bug of the original game, see [below](#fixes-of-the-bugs-of-the-original-game). |
+| `DEFAULT_SV_ROLLANGLE` | `ON` | Xash3D starts with `sv_rollangle` 0 (GoldSrc with 2), so the view does not tilt in a strafe. The library sets 2 at start when the value is 0, see [Cvars of the engine](#cvars-of-the-engine-that-the-game-reads). |
 
 ## Fixes of the bugs of the original game
 
@@ -188,6 +189,11 @@ is fixed to 100. They matter for the Half-Life monsters, which no map uses.
 ### Cvars of the engine that the game reads
 
 `sv_gravity` (the gravity of the world), `sv_aim` and `mp_footsteps` (the sounds of footsteps).
+
+The game also sets one cvar of the engine: `sv_rollangle`. GoldSrc starts with 2, Xash3D with 0, and with 0 the view does not
+tilt in a strafe. At start the library sets 2 when the value is 0 (the option `DEFAULT_SV_ROLLANGLE`). The `server.cfg` of a
+dedicated server runs before the library is loaded, so to turn the tilt off set `sv_rollangle 0` after the `map` command, for
+example `+map dod_switch +sv_rollangle 0`.
 
 ## Mechanics that exist only in Day of Defeat
 
@@ -410,7 +416,7 @@ empty is all), `noise2` (1 ends the game), `message`, `score_nextmap`, `score_ne
 [hlsdk-portable](https://github.com/FWGS/hlsdk-portable), SDK, на котором построен этот код. Он написан для тех, кто запускает
 сервер, делает карты или хочет читать, собирать и менять библиотеку.
 
-Библиотека предназначена для **Xash3D FWGS**. Она заменяет серверную библиотеку оригинальной игры и работает как с
+Библиотека заменяет серверную часть оригинальной игры и работает как с
 оригинальной клиентской библиотекой, так и с [dod13-client](https://github.com/whamemer/dod13-client).
 
 * [Структура](#структура)
@@ -443,7 +449,7 @@ empty is all), `noise2` (1 ends the game), `message`, `score_nextmap`, `score_ne
 | `mod_options.txt` | Параметры сборки, см. ниже. |
 
 `pm_shared/`, `game_shared/`, `common/`, `engine/`, `public/` и `external/` это те же файлы, что и в dod13-client: они общие с
-клиентским предсказанием и должны оставаться одинаковыми.
+клиентским предсказанием.
 
 ## Параметры сборки
 
@@ -458,6 +464,7 @@ waf (`wscript`), и CMake. `ON` определяет макрос `ИМЯ` дл�
 | `SERVER_LIBRARY_NAME` | `dod` | Имя библиотеки; платформа добавляет суффикс схемы именования (`_amd64`, `_arm64`). |
 | `FIX_ENTITY_HASH_OVERFLOW` | `ON` | Исправление бага оригинальной игры, см. [ниже](#исправления-багов-оригинальной-игры). |
 | `FIX_CAPTURE_AREA_DIVIDE_BY_ZERO` | `ON` | Исправление бага оригинальной игры, см. [ниже](#исправления-багов-оригинальной-игры). |
+| `DEFAULT_SV_ROLLANGLE` | `ON` | Xash3D стартует с `sv_rollangle` 0 (GoldSrc с 2), поэтому в стрейфе вид не наклоняется. Библиотека при старте ставит 2, если значение 0, см. [Квары движка](#квары-движка-которые-читает-игра). |
 
 ## Исправления багов оригинальной игры
 
@@ -591,6 +598,11 @@ Defeat берётся из кода оружия, а урон трёх раке�
 ### Квары движка, которые читает игра
 
 `sv_gravity` (гравитация мира), `sv_aim` и `mp_footsteps` (звуки шагов).
+
+Игра ещё задаёт один квар движка: `sv_rollangle`. GoldSrc стартует с 2, Xash3D с 0, а при 0 вид в стрейфе не наклоняется.
+При старте библиотека ставит 2, если значение 0 (параметр `DEFAULT_SV_ROLLANGLE`). `server.cfg` выделенного сервера
+выполняется до загрузки библиотеки, поэтому чтобы отключить наклон, задайте `sv_rollangle 0` после команды `map`, например
+`+map dod_switch +sv_rollangle 0`.
 
 ## Механики, которые есть только в Day of Defeat
 
