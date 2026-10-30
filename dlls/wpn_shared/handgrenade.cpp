@@ -21,10 +21,8 @@
 
 #include "dod_shared.h"
 
-#if !CLIENT_DLL
 #include "gamerules.h"
 #include "dod_gamerules.h"
-#endif
 
 LINK_ENTITY_TO_CLASS( weapon_handgrenade, CHandGrenade )
 
@@ -81,11 +79,9 @@ BOOL CHandGrenade::Deploy( void )
 
 	int iModel = WEAPON_HANDGRENADE;
 
-#if !CLIENT_DLL
 	// the British throw the Mills bomb
 	if( g_pGameRules && ( (CDoDTeamPlay *)g_pGameRules )->IsAlliesBrit() )
 		iModel = WEAPON_MILLSGRENADE;
-#endif
 
 	return DefaultDeploy( P_WpnInfo[iModel].vmodel, P_WpnInfo[iModel].pmodel, HANDGRENADE_DRAW, P_WpnInfo[iModel].szAnimExt, P_WpnInfo[iModel].szAnimReloadExt, 0 );
 }
@@ -117,10 +113,8 @@ void CHandGrenade::DropGren( void )
 
 		grenType type = G_HANDGRENADE;
 
-#if !CLIENT_DLL
 		if( g_pGameRules && ( (CDoDTeamPlay *)g_pGameRules )->IsAlliesBrit() )
 			type = G_MILLSGRENADE;
-#endif
 
 		CGrenade::ShootPickup( m_pPlayer->pev, vecEnd, gpGlobals->v_forward, 5.0f, type, 0.8f );
 
@@ -258,10 +252,8 @@ void CHandGrenade::WeaponIdle( void )
 
 			grenType type = G_HANDGRENADE;
 
-#if !CLIENT_DLL
 			if( g_pGameRules && ( (CDoDTeamPlay *)g_pGameRules )->IsAlliesBrit() )
 				type = G_MILLSGRENADE;
-#endif
 
 			CGrenade::ShootPickup( m_pPlayer->pev, vecSrc, vecThrow, 5.0f, type, flFriction );
 

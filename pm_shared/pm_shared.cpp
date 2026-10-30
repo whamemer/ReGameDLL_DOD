@@ -1757,17 +1757,6 @@ void PM_SpectatorMove( void )
 	
 	if( pmove->iuser1 == OBS_ROAMING )
 	{
-#if CLIENT_DLL
-		// jump only in roaming mode
-		if( iJumpSpectator )
-		{
-			VectorCopy( vJumpOrigin, pmove->origin );
-			VectorCopy( vJumpAngles, pmove->angles );
-			VectorCopy( vec3_origin, pmove->velocity );
-			iJumpSpectator	= 0;
-			return;
-		}
-#endif
 		// Move around in normal spectator method
 		speed = Length( pmove->velocity );
 		if( speed < 1 )

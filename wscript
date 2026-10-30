@@ -45,7 +45,7 @@ def remove_implib_install(self):
 	if not getattr(self, 'install_path_implib', None):
 		self.install_path_implib = None
 
-# the server is built from dlls, the client (freevgui, cl_dll) joins the build as soon as its directories are in the tree
+# the server is built from dlls
 def get_subprojects(ctx, names):
 	return ' '.join([name for name in names.split() if ctx.path.find_node(name + '/wscript')])
 
@@ -67,7 +67,7 @@ def options(opt):
 	grp.add_option('--enable-msvcdeps', action='store_true', dest='MSVCDEPS', default=False, help='')
 	grp.add_option('--enable-wafcache', action='store_true', dest='WAFCACHE', default=False, help='')
 
-	opt.add_subproject(get_subprojects(opt, 'cl_dll dlls'))
+	opt.add_subproject(get_subprojects(opt, 'dlls'))
 
 def configure(conf):
 	conf.env.EXPORT_DEFINES_LIST = []
@@ -294,18 +294,8 @@ def configure(conf):
 		if conf.env.cxxshlib_PATTERN.startswith('lib'):
 			conf.env.cxxshlib_PATTERN = conf.env.cxxshlib_PATTERN[3:]
 
-	conf.env.FREEVGUI_NO_INSTALL = True # prevents FreeVGUI from installing itself
-
-	# engine is obligated to provide VGUI interface in 32-bit builds on Windows/Linux/Mac as shared library
-	# on platforms supported only by Xash3D FWGS, freevgui can be linked statically into client library
-	if conf.env.DEST_OS in ['win32', 'linux', 'darwin'] and conf.env.DEST_CPU == 'x86':
-		conf.env.USE_STATIC_FREEVGUI = False
-	else:
-		# no prebuilt vgui shared library exists here by default, so link FreeVGUI into the client
-		conf.env.USE_STATIC_FREEVGUI = True
-
 	conf.load('library_naming')
-	conf.add_subproject(get_subprojects(conf, 'game_shared dlls freevgui cl_dll'))
+	conf.add_subproject(get_subprojects(conf, 'game_shared dlls'))
 
 def build(bld):
 	if bld.env.WAFCACHE:
@@ -319,4 +309,4 @@ def build(bld):
 		excl='*.user configuration.py .lock* *conf_check_*/** config.log %s/*' % Build.CACHE_DIR,
 		quiet=True, generator=True)
 
-	bld.add_subproject(get_subprojects(bld, 'game_shared dlls freevgui cl_dll'))
+	bld.add_subproject(get_subprojects(bld, 'game_shared dlls'))

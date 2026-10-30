@@ -2,13 +2,10 @@
 # ON and OFF make a compile definition (ON) or nothing (OFF), any other value becomes a variable of the build.
 # The fixes of the bugs of the original game are added here, each one under its own macro.
 
-CLIENT_WEAPONS=ON # Client local weapons prediction (UseDecrement, UTIL_WeaponTimeBase)
-
 FIX_ENTITY_HASH_OVERFLOW=ON # The hash of a classname can point one element behind the table of entities, the table gets one more element
 
 GAMEDIR=dod # Gamedir path
 
 # keys below must match liblist.gam/gameinfo.txt
 SERVER_INSTALL_DIR=dlls # Where to put server dll
-CLIENT_INSTALL_DIR=cl_dlls # Where to put client or menu dll
 SERVER_LIBRARY_NAME=dod # Default server dll name

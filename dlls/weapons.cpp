@@ -604,11 +604,7 @@ void CBasePlayerItem::PickupUse( CBaseEntity *pActivator, CBaseEntity *pCaller, 
 
 BOOL CanAttack( float attack_time, float curtime, BOOL isPredicted )
 {
-#if defined( CLIENT_WEAPONS )
 	if ( !isPredicted )
-#else
-	if ( 1 )
-#endif
 	{
 		return ( attack_time <= curtime ) ? TRUE : FALSE;
 	}

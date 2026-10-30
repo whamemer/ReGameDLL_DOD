@@ -21,11 +21,9 @@
 
 #include "dod_shared.h"
 
-#if !CLIENT_DLL
 #include "gamerules.h"
 #include "dod_gamerules.h"
 #include "skill.h"
-#endif
 
 extern p_wpninfo_s P_WpnInfo[];
 
@@ -58,9 +56,6 @@ void CMeleeWeapon::Precache( void )
 
 int CMeleeWeapon::AddToPlayer( CBasePlayer *pPlayer )
 {
-#if CLIENT_DLL
-	return FALSE;
-#else
 	if( !CBasePlayerWeapon::AddToPlayer( pPlayer ) )
 		return FALSE;
 
@@ -79,7 +74,6 @@ int CMeleeWeapon::AddToPlayer( CBasePlayer *pPlayer )
 	}
 
 	return TRUE;
-#endif
 }
 
 BOOL CMeleeWeapon::Deploy( void )
@@ -93,11 +87,9 @@ BOOL CMeleeWeapon::Deploy( void )
 
 	int iModel = m_iId;
 
-#if !CLIENT_DLL
 	// the British have their own knife in their hands
 	if( g_pGameRules && ( (CDoDTeamPlay *)g_pGameRules )->IsAlliesBrit() && m_pPlayer->pev->team == TEAM_ALLIES )
 		iModel = WEAPON_FAIRBAIRN;
-#endif
 
 	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 0.75f;
 
@@ -230,7 +222,6 @@ int CMeleeWeapon::Swing( int fFirst )
 		// player "shoot" animation
 		m_pPlayer->SetAnimation( PLAYER_ATTACK1 );
 
-#if !CLIENT_DLL
 		CBaseEntity *pEntity = CBaseEntity::Instance( tr.pHit );
 
 		ClearMultiDamage();
@@ -270,7 +261,6 @@ int CMeleeWeapon::Swing( int fFirst )
 
 			flVol = 0.1f;
 		}
-#endif
 
 		m_trHit = tr;
 
@@ -342,7 +332,6 @@ int CMeleeWeapon::Stab( int fFirst )
 		// player "shoot" animation
 		m_pPlayer->SetAnimation( PLAYER_ATTACK1 );
 
-#if !CLIENT_DLL
 		CBaseEntity *pEntity = CBaseEntity::Instance( tr.pHit );
 
 		ClearMultiDamage();
@@ -382,7 +371,6 @@ int CMeleeWeapon::Stab( int fFirst )
 
 			flVol = 0.1f;
 		}
-#endif
 
 		m_trHit = tr;
 

@@ -21,18 +21,13 @@
 
 #include "dod_shared.h"
 
-#if !CLIENT_DLL
 #include "gamerules.h"
 #include "skill.h"
-#endif
 
 LINK_ENTITY_TO_CLASS( weapon_bazooka, CBazooka )
 
 extern p_wpninfo_s P_WpnInfo[];
 
-#if CLIENT_DLL
-extern void ClientSetSensitivity( int sens );
-#else
 // the server has no mouse sensitivity to change: the launcher slows the player down instead
 extern int gmsgResetSens;
 
@@ -42,9 +37,7 @@ extern int gmsgResetSens;
 		m_pPlayer->m_bBazookaDeployed = ( sens ); \
 		m_pPlayer->CheckPlayerSpeed(); \
 	} while( 0 )
-#endif
 
-#if !CLIENT_DLL
 LINK_ENTITY_TO_CLASS( shell_bazooka, CBazookaShell )
 
 CBazookaShell *CBazookaShell::CreateRocket( Vector vecOrigin, Vector vecAngles, CBaseEntity *pOwner )
@@ -100,7 +93,6 @@ void CBazookaShell::Precache( void )
 	PRECACHE_MODEL( "models/w_bazooka_rocket.mdl" );
 	PRECACHE_SOUND( "weapons/rocket1.wav" );
 }
-#endif
 
 void CBazooka::Reload( void )
 {
@@ -191,10 +183,8 @@ void CBazooka::Holster( int skiplocal )
 {
 	ClientSetSensitivity( 0 );
 
-#if !CLIENT_DLL
 	MESSAGE_BEGIN( MSG_ONE, gmsgResetSens, NULL, m_pPlayer->pev );
 	MESSAGE_END();
-#endif
 
 	m_iWeaponState &= ~( WPNSTATE_SCOPED | WPNSTATE_ROCKET_SLOW );
 
@@ -226,7 +216,6 @@ void CBazooka::PrimaryAttack( void )
 	{
 		m_pPlayer->m_iWeaponVolume = 1000;
 
-#if !CLIENT_DLL
 		m_pPlayer->SetAnimation( PLAYER_ATTACK1 );
 
 		UTIL_MakeVectors( m_pPlayer->pev->v_angle );
@@ -234,7 +223,6 @@ void CBazooka::PrimaryAttack( void )
 		Vector vecOrigin = m_pPlayer->GetGunPosition() + gpGlobals->v_forward * 32;
 
 		CBazookaShell::CreateRocket( vecOrigin, m_pPlayer->pev->v_angle, m_pPlayer );
-#endif
 
 		PLAYBACK_EVENT_FULL( 1, m_pPlayer->edict(), m_usFireBazooka, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, 0.0f, 0.0f, 0, 0, m_iClip == 0, 0 );
 
@@ -245,9 +233,7 @@ void CBazooka::PrimaryAttack( void )
 	}
 	else
 	{
-#if !CLIENT_DLL
 		UTIL_ShowMessage( "#game_shoulder_bazooka", m_pPlayer, TRUE );
-#endif
 
 		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[WEAPON_BAZOOKA].anim_reloadtime;
 	}

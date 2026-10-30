@@ -35,11 +35,7 @@ extern int gmsgTextMsg, gmsgSayText;
 
 float UTIL_WeaponTimeBase( void )
 {
-#if defined( CLIENT_WEAPONS )
 	return 0.0;
-#else
-	return gpGlobals->time;
-#endif
 }
 
 static unsigned int glSeed = 0;

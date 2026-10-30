@@ -45,7 +45,7 @@ def build(bld):
 		'../pm_shared',
 		'../game_shared',
 		'../public',
-		'../cl_dll' # dod_shared.h is shared with the client
+		'../cl_dll' # dod_shared.h stays in cl_dll like in the original
 	]
 
 	# DoD: symbols are complete (verified against the shipped dod.so), so the

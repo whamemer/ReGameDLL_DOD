@@ -178,18 +178,6 @@ void CFG42::SecondaryAttack( void )
 	}
 	else
 	{
-#if CLIENT_DLL
-		if( m_pPlayer->pev->iuser3 == STANCE_PRONE || m_pPlayer->pev->vuser1.x == 1.0f )
-		{
-			m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 1.2f;
-			SendWeaponAnim( FG42_UP_TO_DOWN, 1 );
-		}
-		else if( m_pPlayer->pev->iuser3 == STANCE_PRONE_DEPLOYED || m_pPlayer->pev->vuser1.x == SANDBAG_DEPLOYED )
-		{
-			m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 0.98f;
-			SendWeaponAnim( FG42_DOWN_TO_UP, 1 );
-		}
-#else
 		entvars_t *pevPlayer = m_pPlayer->pev;
 
 		// standing without a sandbag there is nothing to deploy
@@ -223,7 +211,6 @@ void CFG42::SecondaryAttack( void )
 			m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 0.98f;
 			SendWeaponAnim( FG42_DOWN_TO_UP, 1 );
 		}
-#endif
 
 		m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 1.3f;
 		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 1.3f;

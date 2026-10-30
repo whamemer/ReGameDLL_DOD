@@ -302,9 +302,7 @@ extern void UTIL_MakeAimVectors( const Vector &vecAngles );	 // like MakeVectors
 extern void UTIL_MakeInvVectors( const Vector &vec, globalvars_t *pgv );
 
 extern void UTIL_SetOrigin( entvars_t *pev, const Vector &vecOrigin );
-#if !CLIENT_DLL
 extern void UTIL_SetOrigin( CBaseEntity *pEntity, const Vector &vecOrigin );
-#endif
 extern void UTIL_SetEdictOrigin( edict_t *pEdict, const Vector &vecOrigin );
 extern void UTIL_EmitAmbientSound( edict_t *entity, const Vector &vecOrigin, const char *samp, float vol,
 								   float attenuation, int fFlags, int pitch );

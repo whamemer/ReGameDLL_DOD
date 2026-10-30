@@ -21,10 +21,8 @@
 
 #include "dod_shared.h"
 
-#if !CLIENT_DLL
 #include "gamerules.h"
 #include "dod_gamerules.h"
-#endif
 
 LINK_ENTITY_TO_CLASS( weapon_m1carbine, CM1Carbine )
 
@@ -48,11 +46,9 @@ int CM1Carbine::AddToPlayer( CBasePlayer *pPlayer )
 	{
 		int iModel = WEAPON_M1CARBINE;
 
-#if !CLIENT_DLL
 		// the paratroopers have the folding carbine
 		if( g_pGameRules && ( (CDoDTeamPlay *)g_pGameRules )->IsAlliesPara() )
 			iModel = WEAPON_FOLDINGCARBINE;
-#endif
 
 		SET_MODEL( ENT( pev ), P_WpnInfo[iModel].wmodel );
 		return TRUE;
@@ -98,11 +94,9 @@ BOOL CM1Carbine::SpawnDeploy( void )
 	m_pPlayer->m_iFOV = ZoomOut();
 	UpdateZoomSpeed();
 
-#if !CLIENT_DLL
 	// the paratroopers unfold their carbine while they are drawing it
 	if( g_pGameRules && ( (CDoDTeamPlay *)g_pGameRules )->IsAlliesPara() )
 		return TimedDeploy( P_WpnInfo[WEAPON_FOLDINGCARBINE].vmodel, P_WpnInfo[WEAPON_FOLDINGCARBINE].pmodel, M1CARBINE_DRAW, P_WpnInfo[WEAPON_FOLDINGCARBINE].szAnimExt, P_WpnInfo[WEAPON_FOLDINGCARBINE].szAnimReloadExt, 1.66f, 1.66f, UseDecrement() != 0 );
-#endif
 
 	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 1.0f;
 
@@ -116,10 +110,8 @@ BOOL CM1Carbine::Deploy( void )
 
 	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + 1.0f;
 
-#if !CLIENT_DLL
 	if( g_pGameRules && ( (CDoDTeamPlay *)g_pGameRules )->IsAlliesPara() )
 		return DefaultDeploy( P_WpnInfo[WEAPON_FOLDINGCARBINE].vmodel, P_WpnInfo[WEAPON_FOLDINGCARBINE].pmodel, M1CARBINE_FAST_DRAW, P_WpnInfo[WEAPON_FOLDINGCARBINE].szAnimExt, P_WpnInfo[WEAPON_FOLDINGCARBINE].szAnimReloadExt, 0 );
-#endif
 
 	return DefaultDeploy( P_WpnInfo[WEAPON_M1CARBINE].vmodel, P_WpnInfo[WEAPON_M1CARBINE].pmodel, M1CARBINE_DRAW, P_WpnInfo[WEAPON_M1CARBINE].szAnimExt, P_WpnInfo[WEAPON_M1CARBINE].szAnimReloadExt, 0 );
 }

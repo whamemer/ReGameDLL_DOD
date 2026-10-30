@@ -51,7 +51,6 @@ project (REGAMEDLL-DOD)
 #--------------
 # USER DEFINES \
 ################\
-option(BUILD_CLIENT "Build client dll" ON)
 option(BUILD_SERVER "Build server dll" ON)
 option(LTO "Enable interprocedural optimization" OFF)
 option(POLLY "Enable pollyhedral optimization" OFF)
@@ -73,30 +72,6 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 4 OR
 	option(64BIT "Disable auto -m32 appending to compiler flags" OFF)
 else()
 	option(64BIT "Disable auto -m32 appending to compiler flags" ON)
-endif()
-
-# It seems CMAKE_SYSTEM_PROCESSOR parameter completely useless for APPLE platform,
-# so may need to set options here manually.
-if((WIN32 OR ${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-	AND (((CMAKE_SYSTEM_PROCESSOR STREQUAL "x64"
-	OR CMAKE_SYSTEM_PROCESSOR STREQUAL "X64"
-	OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"
-	OR CMAKE_SYSTEM_PROCESSOR STREQUAL "X86_64"
-	OR CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64"
-	OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64"
-	OR CMAKE_SYSTEM_PROCESSOR STREQUAL "EM64T") AND NOT 64BIT)
-	OR CMAKE_SYSTEM_PROCESSOR STREQUAL "x86"
-	OR CMAKE_SYSTEM_PROCESSOR STREQUAL "X86"
-	OR CMAKE_SYSTEM_PROCESSOR STREQUAL "i386"
-	OR CMAKE_SYSTEM_PROCESSOR STREQUAL "i486"
-	OR CMAKE_SYSTEM_PROCESSOR STREQUAL "i586"
-	OR CMAKE_SYSTEM_PROCESSOR STREQUAL "i686"))
-	option(GOLDSOURCE_SUPPORT "Build goldsource compatible client library" ON)
-	set(USE_STATIC_FREEVGUI OFF)
-else()
-	option(GOLDSOURCE_SUPPORT "Build goldsource compatible client library" OFF)
-	# no prebuilt vgui shared library exists here by default, so link FreeVGUI into the client
-	set(USE_STATIC_FREEVGUI ON)
 endif()
 
 #-----------------
@@ -133,7 +108,6 @@ endforeach()
 if(ANDROID_APK)
 	set(GAMEDIR ".")
 	set(SERVER_INSTALL_DIR ".")
-	set(CLIENT_INSTALL_DIR ".")
 endif()
 
 
@@ -211,7 +185,7 @@ if(HAVE_TGMATH_H)
 	endif()
 endif()
 
-# cl_dll.h includes <cmath> first when it is usable, before cl_util.h defines the fabs macro (waf does the same)
+# the headers include <cmath> first when it is usable (waf does the same)
 include(CheckCXXSourceCompiles)
 check_cxx_source_compiles("#include <cmath>
 	int main(){ return (int)sqrt(2.0f); }" HAVE_CMATH)
@@ -221,22 +195,12 @@ endif()
 
 add_subdirectory(game_shared)
 
-# the client (freevgui, cl_dll) joins the build as soon as its directories are in the tree
-if(BUILD_CLIENT AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/cl_dll/CMakeLists.txt")
-	message(STATUS "Building client enabled")
-
-	add_subdirectory(freevgui)
-	add_subdirectory(cl_dll)
-else()
-	set(BUILD_CLIENT OFF)
-endif()
-
 if(BUILD_SERVER)
 	message(STATUS "Building server enabled")
 	add_subdirectory(dlls)
 endif()
 
-if(NOT BUILD_SERVER AND NOT BUILD_CLIENT)
+if(NOT BUILD_SERVER)
 	message(FATAL_ERROR "Nothing to build")
 endif()
 

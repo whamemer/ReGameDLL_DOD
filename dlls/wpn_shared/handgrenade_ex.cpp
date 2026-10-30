@@ -23,10 +23,8 @@
 
 extern p_wpninfo_s P_WpnInfo[];
 
-#if !CLIENT_DLL
 #include "gamerules.h"
 #include "dod_gamerules.h"
-#endif
 
 LINK_ENTITY_TO_CLASS( weapon_handgrenade_ex, CHandGrenadeEx )
 
@@ -77,14 +75,12 @@ BOOL CHandGrenadeEx::Deploy( void )
 
 	pev->iuser1 = 1;
 
-#if !CLIENT_DLL
 	// the British throw the Mills bomb
 	if( g_pGameRules && ( (CDoDTeamPlay *)g_pGameRules )->IsAlliesBrit() )
 	{
 		iModel = WEAPON_MILLSGRENADE;
 		pev->iuser1 = 0;
 	}
-#endif
 
 	return DefaultDeploy( P_WpnInfo[iModel].vmodel, P_WpnInfo[iModel].pmodel, HANDGRENADE_EX_DRAW, P_WpnInfo[iModel].szAnimExt, P_WpnInfo[iModel].szAnimReloadExt, 0 );
 }

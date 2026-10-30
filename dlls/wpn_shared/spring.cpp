@@ -24,9 +24,6 @@
 LINK_ENTITY_TO_CLASS( weapon_spring, CSPRING )
 
 extern p_wpninfo_s P_WpnInfo[];
-#if CLIENT_DLL
-extern float flBoltHideXHair;
-#endif
 
 void CSPRING::Spawn( void )
 {
@@ -146,9 +143,6 @@ void CSPRING::PrimaryAttack( void )
 	m_fInAttack = 1;
 	m_flTimeWeaponIdle = UTIL_WeaponTimeBase() + P_WpnInfo[WEAPON_SPRING].anim_firedelay;
 
-#if CLIENT_DLL
-	flBoltHideXHair = P_WpnInfo[WEAPON_KAR].anim_firedelay;
-#endif
 
 	if( GetFOV() > 0 )
 	{

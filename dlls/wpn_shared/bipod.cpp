@@ -105,13 +105,11 @@ void CBipodWeapon::PrimaryAttack( void )
 
 		if( m_flWeaponHeat >= 99.0f )
 		{
-#if !CLIENT_DLL
 			if( !( m_pPlayer->m_flDisplayHistory & HINT_MG_OVERHEAT ) )
 			{
 				m_pPlayer->m_flDisplayHistory |= HINT_MG_OVERHEAT;
 				m_pPlayer->HintMessage( "#Hint_mg_overheat", 0 );
 			}
-#endif
 			m_fInAttack = 1;
 			return;
 		}
@@ -135,7 +133,6 @@ void CBipodWeapon::PrimaryAttack( void )
 			flSpread += P_WpnInfo[m_iId].accuracy_penalty;
 	}
 
-#if !CLIENT_DLL
 	// the machine guns aren't accurate when they are not deployed
 	if( m_pPlayer->pev->iuser3 != STANCE_PRONE_DEPLOYED && m_pPlayer->pev->vuser1.x != SANDBAG_DEPLOYED )
 	{
@@ -145,7 +142,6 @@ void CBipodWeapon::PrimaryAttack( void )
 			m_pPlayer->HintMessage( "#Hint_mgs_fire_better_deployed", 0 );
 		}
 	}
-#endif
 
 	vecSrc = m_pPlayer->GetGunPosition();
 	vecAiming = gpGlobals->v_forward;
@@ -178,13 +174,11 @@ void CBipodWeapon::PrimaryAttack( void )
 	if( !m_pPlayer->IsInMGDeploy() )
 		RemoveStamina( info.flRecoil, m_pPlayer );
 
-#if !CLIENT_DLL
 	if( info.iFlags & ITEM_FLAG_HEAT )
 	{
 		SetThink( &CBipodWeapon::CoolThink );
 		pev->nextthink = gpGlobals->time + 0.1f;
 	}
-#endif
 }
 
 void CBipodWeapon::CoolThink( void )
@@ -204,18 +198,6 @@ void CBipodWeapon::CoolThink( void )
 
 void CBipodWeapon::SecondaryAttack( void )
 {
-#if CLIENT_DLL
-	if( m_pPlayer->pev->waterlevel > 0 && m_pPlayer->pev->iuser3 != STANCE_PRONE_DEPLOYED )
-		return;
-
-	m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[m_iId].anim_down2uptime;
-	m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[m_iId].anim_down2uptime;
-
-	if( m_pPlayer->pev->iuser3 == STANCE_PRONE || m_pPlayer->pev->vuser1.x == 1.0f )
-		SendWeaponAnim( GetUpToDownAnim(), 1 );
-	else if( m_pPlayer->pev->iuser3 == STANCE_PRONE_DEPLOYED || m_pPlayer->pev->vuser1.x == SANDBAG_DEPLOYED )
-		SendWeaponAnim( GetDownToUpAnim(), 1 );
-#else
 	entvars_t *pevPlayer = m_pPlayer->pev;
 
 	if( pevPlayer->waterlevel <= 0 )
@@ -258,7 +240,6 @@ void CBipodWeapon::SecondaryAttack( void )
 	}
 
 	m_pPlayer->CheckPlayerSpeed();
-#endif
 }
 
 void CBipodWeapon::ForceUndeploy( void )

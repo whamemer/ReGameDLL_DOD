@@ -2656,7 +2656,6 @@ void CBasePlayer::PostThink()
 	UpdatePlayerSound();
 
 pt_end:
-#if defined( CLIENT_WEAPONS )
 	// Decay timers on weapons
 	// go through all of the weapons and make a list of the ones to pack
 	for ( int i = 0; i < MAX_ITEM_TYPES; i++ )
@@ -2691,7 +2690,6 @@ pt_end:
 
 	if ( m_flNextAttack < -0.001 )
 		m_flNextAttack = -0.001;
-#endif
 
 	// Track button info so we can detect 'pressed' and 'released' buttons next frame
 	m_afButtonLast = pev->button;
@@ -3621,11 +3619,7 @@ Called every frame by the player PreThink
 */
 void CBasePlayer::ItemPreFrame()
 {
-#if defined( CLIENT_WEAPONS )
 	if ( m_flNextAttack > 0 )
-#else
-	if ( gpGlobals->time < m_flNextAttack )
-#endif
 	{
 		return;
 	}

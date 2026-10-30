@@ -1822,7 +1822,6 @@ void RegisterEncoders( void )
 
 int GetWeaponData( struct edict_s *player, struct weapon_data_s *info )
 {
-#if defined( CLIENT_WEAPONS )
 	int i;
 	weapon_data_t *item;
 	entvars_t *pev = &player->v;
@@ -1873,9 +1872,6 @@ int GetWeaponData( struct edict_s *player, struct weapon_data_s *info )
 			}
 		}
 	}
-#else
-	memset( info, 0, 32 * sizeof( weapon_data_t ) );
-#endif
 	return 1;
 }
 

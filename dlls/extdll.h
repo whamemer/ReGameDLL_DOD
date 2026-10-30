@@ -114,7 +114,6 @@ typedef float vec_t;				// needed before including progdefs.h
 #define Q_max(a,b)  (((a) > (b)) ? (a) : (b))
 #endif
 
-#if !CLIENT_DLL
 // the server code relies on string.h and min/max from extdll.h, and on the integer types of the Steam SDK
 // (steamtypes.h in the original game)
 #include <string.h>
@@ -128,6 +127,5 @@ typedef uint32_t uint32;
 typedef int32_t int32;
 typedef uint64_t uint64;
 typedef int64_t int64;
-#endif
 
 #endif //EXTDLL_H

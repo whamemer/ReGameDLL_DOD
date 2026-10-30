@@ -43,7 +43,6 @@ else()
 endif()
 
 # The sources are listed explicitly, a new file has to be added here as well as it is picked up by waf (dlls/wscript) automatically.
-# wxdebug.h is only a header, the weapons in wpn_shared are shared with the client.
 set (SVDLL_SOURCES
 	../public/MemPool.cpp
 	alias.cpp
@@ -165,7 +164,7 @@ else()
 		../external/openbsd/strlcat.c)
 endif()
 
-# ../cl_dll is here for dod_shared.h, it is shared with the client
+# ../cl_dll is here for dod_shared.h, it stays in cl_dll like in the original
 include_directories (. wpn_shared ../common ../engine ../pm_shared ../game_shared ../public ../cl_dll)
 
 if(MSVC)

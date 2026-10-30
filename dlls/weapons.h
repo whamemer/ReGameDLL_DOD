@@ -280,7 +280,6 @@ public:
 	static bool GiveGenericAmmo( CBaseEntity *pOther );
 };
 
-#if !CLIENT_DLL
 
 // the parts of the SDK weapons.h that only the server needs
 // constant items
@@ -395,7 +394,6 @@ public:
 	void RoundRespawn( void );
 };
 
-#endif // !CLIENT_DLL
 
 /*
 Guns Class Hierachy
@@ -464,11 +462,7 @@ public:
 	virtual BOOL CanDrop( void ) { return FALSE; }
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 
 	virtual int GetIdleAnim( void ) { return 0; }
@@ -501,11 +495,7 @@ public:
 	virtual BOOL CanDrop( void ) { return FALSE; }
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 
 	virtual int GetIdleAnim( void ) { return 0; }
@@ -536,11 +526,7 @@ public:
 	virtual BOOL CanDrop( void ) { return CanHolster(); }
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 
 	virtual int GetIdleAnim( void ) { return 0; }
@@ -562,11 +548,7 @@ public:
 	virtual int Classify( void ) { return CLASS_ROCKET; }
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 
 	virtual void ReSlow( void ) { }
@@ -585,11 +567,7 @@ public:
 	virtual BOOL ShouldWeaponIdle( void ) { return FALSE; }
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 };
 
@@ -804,11 +782,7 @@ public:
 	virtual int Classify( void );
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 };
 
@@ -834,11 +808,7 @@ public:
 	virtual int Classify( void );
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 };
 
@@ -866,11 +836,7 @@ public:
 	virtual int Classify( void );
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 };
 
@@ -896,11 +862,7 @@ public:
 	virtual int Classify( void );
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 };
 
@@ -926,11 +888,7 @@ public:
 	virtual int Classify( void );
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 };
 
@@ -959,11 +917,7 @@ public:
 	virtual int Classify( void );
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 };
 
@@ -989,11 +943,7 @@ public:
 	virtual int Classify( void );
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 };
 
@@ -1038,11 +988,7 @@ public:
 	virtual int Classify( void );
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 };
 
@@ -1125,11 +1071,7 @@ public:
 	virtual int Classify( void );
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 };
 
@@ -1156,11 +1098,7 @@ public:
 	virtual int Classify( void );
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 
 	BOOL IsDeployed( void );
@@ -1188,11 +1126,7 @@ public:
 	virtual int Classify( void );
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 };
 
@@ -1221,11 +1155,7 @@ public:
 	virtual int Classify( void );
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 };
 
@@ -1251,11 +1181,7 @@ public:
 	virtual int Classify( void );
 	virtual BOOL UseDecrement( void )
 	{
-#if defined( CLIENT_WEAPONS )
 		return TRUE;
-#else
-		return FALSE;
-#endif
 	}
 };
 
@@ -1347,7 +1273,6 @@ public:
 	virtual void ReSlow( void );
 };
 
-#if !CLIENT_DLL
 
 class CBazookaShell : public CGrenade
 {
@@ -1447,5 +1372,4 @@ public:
 	}
 };
 
-#endif // !CLIENT_DLL
 #endif // WEAPONS_H
