@@ -134,7 +134,7 @@ void CInfoGroup::KeyValue( KeyValueData *pkvd )
 		pkvd->fHandled = TRUE;
 	}
 	else
-		ALERT( at_error, "Too many members for info_group %s (limit is %d)", STRING( pev->targetname ), 16 );
+		ALERT( at_error, "Too many members for info_group %s (limit is %d)\n", STRING( pev->targetname ), 16 );
 }
 
 void CInfoGroup::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
@@ -151,7 +151,7 @@ void CInfoGroup::Think()
 		if( ( pev->spawnflags & SF_ALIAS_DEBUG ) == 0 )
 			return;
 
-		ALERT( at_console, "info_group %s changed the contents of alias %s to %s", STRING( pev->targetname ),
+		ALERT( at_console, "info_group %s changed the contents of alias %s to \"%s\"\n", STRING( pev->targetname ),
 			STRING( pT->pev->targetname ), STRING( pT->pev->target ) );
 
 		return;
@@ -166,7 +166,7 @@ int CInfoGroup::GetMember( const char *szMemberName )
 {
 	if( szMemberName == 0 )
 	{
-		ALERT( at_console, "info_group: GetMember called with null szMemberName!" );
+		ALERT( at_console, "info_group: GetMember called with null szMemberName!?\n" );
 		return 0;
 	}
 
@@ -176,7 +176,7 @@ int CInfoGroup::GetMember( const char *szMemberName )
 			return m_iszMemberValue[i];
 	}
 
-	ALERT( at_console, "info_group %s has no member called %s.", STRING( pev->targetname ), szMemberName );
+	ALERT( at_console, "info_group %s has no member called \"%s\".\n", STRING( pev->targetname ), szMemberName );
 	return 0;
 }
 
@@ -193,7 +193,7 @@ void CMultiAlias::KeyValue( KeyValueData *pkvd )
 		pkvd->fHandled = TRUE;
 	}
 	else
-		ALERT( at_error, "Too many targets for multi_alias %s (limit is %d)", STRING( pev->targetname ), 16 );
+		ALERT( at_error, "Too many targets for multi_alias %s (limit is %d)\n", STRING( pev->targetname ), 16 );
 }
 
 class CTriggerChangeAlias : public CBaseEntity

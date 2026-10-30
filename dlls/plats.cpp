@@ -1040,15 +1040,15 @@ void CFuncTrackTrain::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 
 		if( pev->speed == 0 )
 		{
-			pev->speed = m_speed * m_dir;
+			SetSpeed( m_speed * m_dir );
 
 			Next();
 		}
 		else
 		{
-			pev->speed = 0;
-			pev->velocity = g_vecZero;
-			pev->avelocity = g_vecZero;
+			SetSpeed( 0 );
+			SetVelocity( g_vecZero );
+			SetAvelocity( g_vecZero );
 			StopSound();
 			SetThink( NULL );
 		}
@@ -1068,7 +1068,7 @@ void CFuncTrackTrain::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TY
 				delta = 0;
 		}
 
-		pev->speed = m_speed * delta;
+		SetSpeed( m_speed * delta );
 		Next();
 		ALERT( at_aiconsole, "TRAIN(%s), speed to %.2f\n", STRING( pev->targetname ), pev->speed );
 	}
@@ -1209,7 +1209,7 @@ void CFuncTrackTrain::Next( void )
 	CPathTrack *pnext = m_ppath->LookAhead( &nextPos, pev->speed * 0.1, 1 );
 	nextPos.z += m_height;
 
-	pev->velocity = ( nextPos - pev->origin ) * 10;
+	SetVelocity( ( nextPos - pev->origin ) * 10 );
 	Vector nextFront = pev->origin;
 
 	nextFront.z -= m_height;
@@ -1238,21 +1238,22 @@ void CFuncTrackTrain::Next( void )
 		vx = 0;
 	vy = UTIL_AngleDistance( angles.y, pev->angles.y );
 
-	pev->avelocity.y = vy * 10;
-	pev->avelocity.x = vx * 10;
+	Vector avel;
+	avel.y = vy * 10;
+	avel.x = vx * 10;
+	avel.z = 0;
 
 	if( m_flBank != 0 )
 	{
-		if( pev->avelocity.y < -5 )
-			pev->avelocity.z =
-			UTIL_AngleDistance( UTIL_ApproachAngle( -m_flBank, pev->angles.z, m_flBank * 2 ), pev->angles.z );
-		else if( pev->avelocity.y > 5 )
-			pev->avelocity.z =
-			UTIL_AngleDistance( UTIL_ApproachAngle( m_flBank, pev->angles.z, m_flBank * 2 ), pev->angles.z );
+		if( avel.y < -5 )
+			avel.z = UTIL_AngleDistance( UTIL_ApproachAngle( -m_flBank, pev->angles.z, m_flBank * 2 ), pev->angles.z );
+		else if( avel.y > 5 )
+			avel.z = UTIL_AngleDistance( UTIL_ApproachAngle( m_flBank, pev->angles.z, m_flBank * 2 ), pev->angles.z );
 		else
-			pev->avelocity.z =
-			UTIL_AngleDistance( UTIL_ApproachAngle( 0, pev->angles.z, m_flBank * 4 ), pev->angles.z ) * 4;
+			avel.z = UTIL_AngleDistance( UTIL_ApproachAngle( 0, pev->angles.z, m_flBank * 4 ), pev->angles.z ) * 4;
 	}
+
+	SetAvelocity( avel );
 
 	if( pnext )
 	{
@@ -1281,7 +1282,7 @@ void CFuncTrackTrain::Next( void )
 			{
 				if( pFire->pev->speed != 0 )
 				{  // don't copy speed from target if it is 0 (uninitialized)
-					pev->speed = pFire->pev->speed;
+					SetSpeed( pFire->pev->speed );
 					ALERT( at_aiconsole, "TrackTrain %s speed to %4.2f\n", STRING( pev->targetname ), pev->speed );
 				}
 			}
@@ -1293,12 +1294,12 @@ void CFuncTrackTrain::Next( void )
 	else  // end of path, stop
 	{
 		StopSound();
-		pev->velocity = ( nextPos - pev->origin );
-		pev->avelocity = g_vecZero;
+		SetVelocity( nextPos - pev->origin );
+		SetAvelocity( g_vecZero );
 		float distance = pev->velocity.Length();
 		m_oldSpeed = pev->speed;
 
-		pev->speed = 0;
+		SetSpeed( 0 );
 
 		// Move to the dead end
 
@@ -1307,7 +1308,7 @@ void CFuncTrackTrain::Next( void )
 		{
 			// no, how long to get there?
 			time = distance / m_oldSpeed;
-			pev->velocity = pev->velocity * ( m_oldSpeed / distance );
+			SetVelocity( pev->velocity * ( m_oldSpeed / distance ) );
 			SetThink( &CFuncTrackTrain::DeadEnd );
 			NextThink( pev->ltime + time, FALSE );
 		}
@@ -1640,7 +1641,7 @@ void CFuncTrainControls::Find( void )
 
 	if( FNullEnt( pTarget ) )
 	{
-		ALERT( at_console, "No train %s\n", STRING( pev->target ) );
+		ALERT( at_console, "TrackTrainControls: No train %s\n", STRING( pev->target ) );
 		return;
 	}
 
