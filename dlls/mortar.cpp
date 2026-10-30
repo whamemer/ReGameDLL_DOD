@@ -237,18 +237,3 @@ void CMortar::MortarExplode( void )
 	SetThink( &CMortar::SUB_Remove );
 	pev->nextthink = gpGlobals->time + 0.1;
 }
-
-#if 0
-void CMortar::ShootTimed( EVARS *pevOwner, Vector vecStart, float time )
-{
-	CMortar *pMortar = GetClassPtr( ( CMortar * ) NULL );
-	pMortar->Spawn();
-
-	TraceResult tr;
-	UTIL_TraceLine( vecStart, vecStart + Vector( 0, 0, -1 ) * 4096, ignore_monsters, ENT( pMortar->pev ), &tr );
-
-	pMortar->pev->nextthink = gpGlobals->time + time;
-
-	UTIL_SetOrigin( pMortar, tr.vecEndPos );
-}
-#endif

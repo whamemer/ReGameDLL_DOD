@@ -34,22 +34,9 @@ extern "C++"
 	using std::max;
 	#endif
 
-#if 0
-	template< class T >
-	inline const T& clamp( const T& val, const T& minVal, const T& maxVal )
-	{
-		if( val < minVal )
-			return minVal;
-		else if( val > maxVal )
-			return maxVal;
-		else
-			return val;
-	}
-#else
 # ifndef clamp
 #  define clamp(val, min, max) (((val) > (max)) ? (max) : (((val) < (min)) ? (min) : (val)))
 # endif
-#endif
 
 }
 # endif

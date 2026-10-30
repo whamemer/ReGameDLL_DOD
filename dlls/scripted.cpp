@@ -145,12 +145,6 @@ void CCineMonster::Spawn( void )
 	pev->solid = SOLID_NOT;
 	m_iState = STATE_OFF;
 
-	// REMOVE: The old side-effect
-#if 0
-	if( m_iszIdle )
-		m_fMoveTo = 4;
-#endif
-
 	// if no targetname, start now
 	if( FStringNull( pev->targetname ) || !FStringNull( m_iszIdle ) )
 	{
@@ -329,15 +323,6 @@ void CCineMonster::PossessEntity( void )
 
 	if( pTarget )
 	{
-
-		// FindEntity() just checked this!
-#if 0
-		if( !pTarget->CanPlaySequence( FCanOverrideState() ) )
-		{
-			ALERT( at_aiconsole, "Can't possess entity %s\n", STRING( pTarget->pev->classname ) );
-			return;
-		}
-#endif
 
 		pTarget->m_pGoalEnt = this;
 		pTarget->m_pCine = this;
@@ -535,16 +520,6 @@ BOOL CCineMonster::StartSequence( CBaseMonster *pTarget, int iszSeq, BOOL comple
 		pTarget->pev->sequence = 0;
 		// return FALSE;
 	}
-
-#if 0
-	char *s;
-	if( pev->spawnflags & SF_SCRIPT_NOINTERRUPT )
-		s = "No";
-	else
-		s = "Yes";
-
-	ALERT( at_console, "%s (%s): started \"%s\":INT:%s\n", STRING( pTarget->pev->targetname ), STRING( pTarget->pev->classname ), STRING( iszSeq ), s );
-#endif
 
 	pTarget->pev->frame = 0;
 	pTarget->ResetSequenceInfo();

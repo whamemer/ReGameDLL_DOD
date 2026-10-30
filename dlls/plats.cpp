@@ -887,31 +887,6 @@ void CFuncTrain::Spawn( void )
 void CFuncTrain::Precache( void )
 {
 	CBasePlatTrain::Precache();
-
-#if 0  // obsolete
-	// otherwise use preset sound
-	switch( m_sounds )
-	{
-	case 0:
-		pev->noise = 0;
-		pev->noise1 = 0;
-		break;
-
-	case 1:
-		PRECACHE_SOUND( "plats/train2.wav" );
-		PRECACHE_SOUND( "plats/train1.wav" );
-		pev->noise = MAKE_STRING( "plats/train2.wav" );
-		pev->noise1 = MAKE_STRING( "plats/train1.wav" );
-		break;
-
-	case 2:
-		PRECACHE_SOUND( "plats/platmove1.wav" );
-		PRECACHE_SOUND( "plats/platstop1.wav" );
-		pev->noise = MAKE_STRING( "plats/platstop1.wav" );
-		pev->noise1 = MAKE_STRING( "plats/platmove1.wav" );
-		break;
-	}
-#endif
 }
 
 void CFuncTrain::OverrideReset( void )
@@ -1828,10 +1803,6 @@ void CFuncTrackChange::Precache( void )
 // UNDONE: Filter touches before re-evaluating the train.
 void CFuncTrackChange::Touch( CBaseEntity *pOther )
 {
-#if 0
-	TRAIN_CODE code;
-	entvars_t *pevToucher = pOther->pev;
-#endif
 }
 
 void CFuncTrackChange::KeyValue( KeyValueData *pkvd )
