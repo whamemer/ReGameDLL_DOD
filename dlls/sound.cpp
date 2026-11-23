@@ -1306,7 +1306,11 @@ void SENTENCEG_Init()
 		if( !buffer[j] )
 			continue;
 
+#if defined( FIX_SENTENCES_OVERFLOW )
+		if( gcallsentences >= CVOXFILESENTENCEMAX )
+#else
 		if( gcallsentences > CVOXFILESENTENCEMAX )
+#endif
 		{
 			ALERT( at_error, "Too many sentences in sentences.txt!\n" );
 			break;
@@ -1834,7 +1838,11 @@ void CSpeaker::Precache( void )
 }
 void CSpeaker::SpeakerThink( void )
 {
+#if defined( FIX_SPEAKER_UNKNOWN_PRESET )
+	const char *szSoundFile = "";
+#else
 	const char *szSoundFile;
+#endif
 	float flvolume = pev->health * 0.1;
 	float flattenuation = 0.3;
 	int flags = 0;

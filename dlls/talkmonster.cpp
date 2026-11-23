@@ -1319,6 +1319,10 @@ BOOL CTalkMonster::CanFollow( void )
 {
 	if( m_MonsterState == MONSTERSTATE_SCRIPT )
 	{
+#if defined( FIX_TALKMONSTER_NULL_CINE )
+		if( !m_pCine )
+			return FALSE;
+#endif
 		if( !m_pCine->CanInterrupt() )
 			return FALSE;
 	}

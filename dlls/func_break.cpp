@@ -327,7 +327,11 @@ void CBreakable::MaterialSoundRandom( edict_t *pEdict, Materials soundMaterial, 
 
 void CBreakable::Precache( void )
 {
+#if defined( FIX_BREAKABLE_NO_GIB_MODEL )
+	const char *pGibName = NULL;
+#else
 	const char *pGibName;
+#endif
 
 	switch( m_Material )
 	{
