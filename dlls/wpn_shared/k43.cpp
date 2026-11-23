@@ -129,7 +129,7 @@ void CK43::PrimaryAttack( void )
 
 	vecNewShot = m_pPlayer->FireBulletsNC( vecSrc, vecAiming, flSpread, 8192.0f, BULLET_PLAYER_K43, 3, 0, m_pPlayer->pev, m_pPlayer->random_seed );
 
-	PLAYBACK_EVENT_FULL( 1, m_pPlayer->edict(), m_usFireK43, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, vecNewShot.x, vecNewShot.y, (int)m_pPlayer->pev->punchangle.x, 0, m_iClip, 0 );
+	PLAYBACK_EVENT_FULL( FEV_NOTHOST, m_pPlayer->edict(), m_usFireK43, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, vecNewShot.x, vecNewShot.y, (int)m_pPlayer->pev->punchangle.x, 0, m_iClip, 0 );
 
 	m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[WEAPON_K43].anim_firedelay;
 	m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[WEAPON_K43].anim_firedelay;
@@ -147,7 +147,7 @@ void CK43::SecondaryAttack( void )
 
 	m_pPlayer->SetAnimation( PLAYER_BUT_SWING );
 
-	PLAYBACK_EVENT_FULL( 1, m_pPlayer->edict(), m_usFireK43, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, 0.0f, 0.0f, 1, 0, m_iClip == 0, 0 );
+	PLAYBACK_EVENT_FULL( FEV_NOTHOST, m_pPlayer->edict(), m_usFireK43, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, 0.0f, 0.0f, 1, 0, m_iClip == 0, 0 );
 
 	m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 1.1f;
 	m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 1.1f;

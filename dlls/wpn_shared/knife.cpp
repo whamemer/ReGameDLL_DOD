@@ -198,7 +198,7 @@ int CMeleeWeapon::Swing( int fFirst )
 		if( fFirst )
 		{
 			// miss
-			PLAYBACK_EVENT_FULL( 1, m_pPlayer->edict(), m_iFireEvent, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, 0.0f, 0.0f, GetSlashAnim( m_iSwing ), 0, 1, 0 );
+			PLAYBACK_EVENT_FULL( FEV_NOTHOST, m_pPlayer->edict(), m_iFireEvent, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, 0.0f, 0.0f, GetSlashAnim( m_iSwing ), 0, 1, 0 );
 
 			m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.35f;
 			m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 0.5f;
@@ -212,7 +212,7 @@ int CMeleeWeapon::Swing( int fFirst )
 		// hit
 		fDidHit = TRUE;
 
-		PLAYBACK_EVENT_FULL( 1, m_pPlayer->edict(), m_iFireEvent, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, 0.0f, 0.0f, GetSlashAnim( m_iSwing ), 0, 0, 0 );
+		PLAYBACK_EVENT_FULL( FEV_NOTHOST, m_pPlayer->edict(), m_iFireEvent, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, 0.0f, 0.0f, GetSlashAnim( m_iSwing ), 0, 0, 0 );
 
 		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 0.4f;
 		m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 0.5f;
@@ -308,7 +308,7 @@ int CMeleeWeapon::Stab( int fFirst )
 		if( fFirst )
 		{
 			// miss
-			PLAYBACK_EVENT_FULL( 1, m_pPlayer->edict(), m_iFireEvent, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, 0.0f, 0.0f, GetSlashAnim( m_iSwing ), 0, 1, 0 );
+			PLAYBACK_EVENT_FULL( FEV_NOTHOST, m_pPlayer->edict(), m_iFireEvent, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, 0.0f, 0.0f, GetSlashAnim( m_iSwing ), 0, 1, 0 );
 
 			m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 1.0f;
 			m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 1.0f;
@@ -322,7 +322,7 @@ int CMeleeWeapon::Stab( int fFirst )
 		// hit
 		fDidHit = TRUE;
 
-		PLAYBACK_EVENT_FULL( 1, m_pPlayer->edict(), m_iFireEvent, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, 0.0f, 0.0f, GetSlashAnim( m_iSwing ), 0, 0, 0 );
+		PLAYBACK_EVENT_FULL( FEV_NOTHOST, m_pPlayer->edict(), m_iFireEvent, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, 0.0f, 0.0f, GetSlashAnim( m_iSwing ), 0, 0, 0 );
 
 		m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 1.1f;
 		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 1.1f;

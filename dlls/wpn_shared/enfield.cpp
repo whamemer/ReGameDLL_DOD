@@ -161,13 +161,13 @@ void CENFIELD::PrimaryAttack( void )
 
 	if( m_iWeaponState & WPNSTATE_SCOPED )
 	{
-		PLAYBACK_EVENT_FULL( 1, m_pPlayer->edict(), m_usFireScopedEnfield, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, vecNewShot.x, vecNewShot.y, 0, 0, m_iClip == 0, GetFOV() > 0 );
+		PLAYBACK_EVENT_FULL( FEV_NOTHOST, m_pPlayer->edict(), m_usFireScopedEnfield, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, vecNewShot.x, vecNewShot.y, 0, 0, m_iClip == 0, GetFOV() > 0 );
 
 		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[WEAPON_SCOPEDENFIELD].anim_firedelay;
 	}
 	else
 	{
-		PLAYBACK_EVENT_FULL( 1, m_pPlayer->edict(), m_usFireEnfield, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, vecNewShot.x, vecNewShot.y, 0, 0, m_iClip == 0, 0 );
+		PLAYBACK_EVENT_FULL( FEV_NOTHOST, m_pPlayer->edict(), m_usFireEnfield, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, vecNewShot.x, vecNewShot.y, 0, 0, m_iClip == 0, 0 );
 
 		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + P_WpnInfo[WEAPON_ENFIELD].anim_firedelay;
 	}
@@ -208,7 +208,7 @@ void CENFIELD::SecondaryAttack( void )
 
 		m_pPlayer->SetAnimation( PLAYER_ATTACK2 );
 
-		PLAYBACK_EVENT_FULL( 1, m_pPlayer->edict(), m_usFireEnfield, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, 0.0f, 0.0f, 1, 0, m_iClip == 0, 0 );
+		PLAYBACK_EVENT_FULL( FEV_NOTHOST, m_pPlayer->edict(), m_usFireEnfield, 0.0f, (float *)&g_vecZero, (float *)&g_vecZero, 0.0f, 0.0f, 1, 0, m_iClip == 0, 0 );
 
 		m_flNextPrimaryAttack = UTIL_WeaponTimeBase() + 1.1f;
 		m_flNextSecondaryAttack = UTIL_WeaponTimeBase() + 1.1f;
