@@ -5398,6 +5398,12 @@ void CBasePlayer::SetMapMarker( int marker )
 		m_iMapMarker = marker;
 }
 
+// The byte of WRITE_ANGLE of the engine
+static int CorpseAngleByte( float flAngle )
+{
+	return (int)( flAngle * 256 / 360 ) & 255;
+}
+
 void CBasePlayer::SpawnClientSideCorpse()
 {
 	char *infobuffer = g_engfuncs.pfnGetInfoKeyBuffer( edict() );
@@ -5408,9 +5414,12 @@ void CBasePlayer::SpawnClientSideCorpse()
 	WRITE_COORD( pev->origin.x );
 	WRITE_COORD( pev->origin.y );
 	WRITE_COORD( pev->origin.z );
-	WRITE_ANGLE( pev->angles.x );
-	WRITE_ANGLE( pev->angles.y );
-	WRITE_ANGLE( pev->angles.z );
+	// the angles are written as the bytes of WRITE_ANGLE: Xash3D FWGS writes WRITE_ANGLE as a signed char and loses the
+	// high bit of the byte, so a corpse with an angle from 180 to 360 turned around by 180 (upside down for the pitch);
+	// the client reads them as before (READ_ANGLE), GoldSrc gets the same bytes
+	WRITE_BYTE( CorpseAngleByte( pev->angles.x ) );
+	WRITE_BYTE( CorpseAngleByte( pev->angles.y ) );
+	WRITE_BYTE( CorpseAngleByte( pev->angles.z ) );
 	WRITE_BYTE( pev->sequence );
 	WRITE_SHORT( pev->body );
 	WRITE_BYTE( pev->team );
