@@ -11,6 +11,7 @@ FIX_SPEAKER_UNKNOWN_PRESET=ON # A speaker with a preset above 12 read an uniniti
 FIX_ANIMATION_INVALID_SEQUENCE=ON # A negative sequence read before the sequence table of the model, SetBlending did not check the sequence at all (hlsdk-portable 63e3769)
 FIX_SENTENCES_OVERFLOW=ON # The sentence 1537 of sentences.txt was written behind the table of the names (hlsdk-portable cb51d2a)
 FIX_FUNC_TANK_BARREL_NAN=ON # A func_tank aiming at a target closer than the offset of its barrel took sqrt of a negative number and got a NaN angle (hlsdk-portable 1394637)
+FIX_SAY_NON_ASCII=ON # A chat message of only non-ASCII letters (Cyrillic) was dropped as empty, isprint is false for the bytes of UTF-8
 DEFAULT_SV_ROLLANGLE=ON # Xash3D starts with sv_rollangle 0 (GoldSrc with 2), so the view does not tilt in a strafe, the library sets 2 at start when the value is 0
 
 GAMEDIR=dod # Gamedir path

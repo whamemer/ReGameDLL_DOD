@@ -331,6 +331,14 @@ void Host_Say( edict_t *pEntity, int teamonly )
 				bHasContent = true;
 				break;
 			}
+#if defined( FIX_SAY_NON_ASCII )
+			// a UTF-8 letter (Cyrillic) is content too
+			if( ( unsigned char ) *pc >= 0x80 )
+			{
+				bHasContent = true;
+				break;
+			}
+#endif
 		}
 
 		if( !bHasContent )
